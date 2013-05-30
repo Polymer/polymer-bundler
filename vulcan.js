@@ -99,8 +99,8 @@ function extractImports($, dir) {
   return hrefs.map(function(h) { return path.resolve(dir, h) });
 }
 
-function extractElements($) {
-  return $(ELEMENTS).map(function(i, e){ return $.html(e) });
+function extractElements($, assetPath) {
+  return $(ELEMENTS).map(function(i, e){ this.attr('assetpath', assetPath); return $.html(e) });
 }
 
 function concat(filename) {
@@ -108,9 +108,10 @@ function concat(filename) {
     read[filename] = true;
     var $ = readDocument(filename);
     var dir = path.dirname(filename);
+    var assetPath = path.relative(outputDir, dir);
     var links = extractImports($, dir);
     resolve(filename, links);
-    var es = extractElements($);
+    var es = extractElements($, assetPath);
     es.forEach(concatElement.bind(this, dir, outputDir));
   } else {
     if (options.verbose) {
@@ -128,7 +129,28 @@ function resolve(inName, inDependencies) {
   }
 }
 
-var buffer = [];
+// monkey patch addResolvePath for build
+var monkeyPatch = function(proto, element) {
+  var assetPath = element.getAttribute('assetpath');
+  var url = HTMLImports.getDocumentUrl(element.ownerDocument) || '';
+  if (url) {
+    var parts = url.split('/');
+    parts.pop();
+    if (assetPath) {
+      parts.push(assetPath);
+    }
+    parts.push('');
+    url = parts.join('/');
+  }
+  proto.resolvePath = function(path) {
+    return url + path;
+  }
+};
+
+var buffer = [
+  '<!-- Monkey Patch addResolvePath to use assetpath -->',
+  '<script>Polymer.addResolvePath = ' + monkeyPatch + '</script>'
+];
 var read = {};
 
 options.input.forEach(concat);
