@@ -29,7 +29,7 @@ if (!options.output) {
 var outputDir = path.dirname(options.output);
 
 var IMPORTS = 'link[rel="import"][href]';
-var ELEMENTS = 'element';
+var ELEMENTS = 'polymer-element';
 var URL_ATTR = ['href', 'src', 'action', 'style'];
 var URL_ATTR_SEL = '[' + URL_ATTR.join('],[') + ']';
 var ABS_URL = /(^data:)|(^http[s]?:)|(^\/)/;
@@ -44,7 +44,7 @@ function concatElement(dir, output, e) {
 function resolveElementPaths(input, output, element) {
   var $ = cheerio.load(element);
   resolvePaths(input, output, $);
-  return $.html('element');
+  return $.html(ELEMENTS);
 }
 
 function resolvePaths(input, output, $) {
