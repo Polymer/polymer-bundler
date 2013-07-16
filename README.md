@@ -31,25 +31,25 @@ app.html:
 
 ```html
 <link rel="import" href="path/to/x-dep.html">
-<element name="x-app">
+<polymer-element name="x-app">
   <template>
     <x-dep></x-dep>
   </template>
-  <script>Polymer.register(this)</script>
-</element>
+  <script>Polymer('x-app')</script>
+</polymer-element>
 ```
 
 x-dep.html:
 
 ```html
-<element name="x-dep">
+<polymer-element name="x-dep">
   <template>
     <img src="x-dep-icon.jpg">
   </template>
   <script>
-    Polymer.register(this)
+    Polymer('x-dep');
   </script>
-</element>
+</polymer-element>
 ```
 
 Running vulcan on `index.html`, and specifying `build.html` as the output:
@@ -59,22 +59,22 @@ Running vulcan on `index.html`, and specifying `build.html` as the output:
 Will result in `build.html` that appears as so:
 
 ```html
-<element name="x-dep" assetpath="path/to/">
+<polymer-element name="x-dep" assetpath="path/to/">
   <template>
     <img src="path/to/x-dep-icon.jpg">
   </template>
   <script>
-    Polymer.register(this);
+    Polymer('x-dep');
   </script>
-</element>
-<element name="x-app" assetpath="">
+</polymer-element>
+<polymer-element name="x-app" assetpath="">
   <template>
     <x-dep></x-dep>
   </template>
   <script>
-    Polymer.register(this)
+    Polymer('x-app');
   </script>
-</element>
+</polymer-element>
 ```
 
 To use this, make `build.html` the only import in `index.html`:
