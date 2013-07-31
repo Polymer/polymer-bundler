@@ -36,18 +36,8 @@ var ABS_URL = /(^data:)|(^http[s]?:)|(^\/)/;
 var URL = /url\([^)]*\)/g;
 var URL_TEMPLATE = '{{.*}}';
 
-function concatElement(dir, output, e) {
-  e = resolveElementPaths(dir, output, e);
-  buffer.push(e);
-}
-
-function resolveElementPaths(input, output, element) {
-  var $ = cheerio.load(element);
-  resolvePaths(input, output, $);
-  return $.html(ELEMENTS);
-}
-
-function resolvePaths(input, output, $) {
+function resolvePaths($, input, output) {
+  var assetPath = path.relative(output, input);
   // resolve attributes
   $(URL_ATTR_SEL).each(function() {
     var val;
@@ -67,6 +57,9 @@ function resolvePaths(input, output, $) {
   $('style').each(function() {
     var val = this.html();
     this.html(rewriteURL(input, output, val));
+  });
+  $(ELEMENTS).each(function() {
+    this.attr('assetpath', assetPath);
   });
 }
 
@@ -99,20 +92,15 @@ function extractImports($, dir) {
   return hrefs.map(function(h) { return path.resolve(dir, h) });
 }
 
-function extractElements($, assetPath) {
-  return $(ELEMENTS).map(function(i, e){ this.attr('assetpath', assetPath); return $.html(e) });
-}
-
 function concat(filename) {
   if (!read[filename]) {
     read[filename] = true;
     var $ = readDocument(filename);
     var dir = path.dirname(filename);
-    var assetPath = path.relative(outputDir, dir);
-    var links = extractImports($, dir);
-    resolve(filename, links);
-    var es = extractElements($, assetPath);
-    es.forEach(concatElement.bind(this, dir, outputDir));
+    processImports(extractImports($, dir));
+    $(IMPORTS).remove();
+    resolvePaths($, dir, outputDir);
+    buffer.push($.html());
   } else {
     if (options.verbose) {
       console.log('Dependency deduplicated');
@@ -120,12 +108,12 @@ function concat(filename) {
   }
 }
 
-function resolve(inName, inDependencies) {
-  if (inDependencies.length > 0) {
+function processImports(imports) {
+  if (imports.length > 0) {
     if (options.verbose) {
-      console.log('Dependencies:', inDependencies);
+      console.log('Dependencies:', imports);
     }
-    inDependencies.forEach(concat);
+    imports.forEach(concat);
   }
 }
 
@@ -153,7 +141,11 @@ var buffer = [
 ];
 var read = {};
 
-options.input.forEach(concat);
+options.input.forEach(function(i) {
+  var $ = readDocument(i);
+  var dir = path.dirname(i);
+  processImports(extractImports($, dir));
+});
 
 if (buffer.length) {
   fs.writeFileSync(options.output, buffer.join('\n'), 'utf8');
