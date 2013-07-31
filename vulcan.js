@@ -7,7 +7,8 @@ var options = nopt(
   {
     'output': path,
     'input': [path, Array],
-    'verbose': Boolean
+    'verbose': Boolean,
+    'csp': Boolean
   },
   {
     'o': ['--output'],
@@ -22,7 +23,7 @@ if (!options.input) {
 }
 
 if (!options.output) {
-  console.warn('Default output to output.html');
+  console.warn('Default output to output.html' + (options.csp ? ' and output.js' : ''));
   options.output = path.resolve('output.html');
 }
 
@@ -117,8 +118,8 @@ function processImports(imports) {
   }
 }
 
-// monkey patch addResolvePath for build
 var monkeyPatch = function(proto, element) {
+  // monkey patch addResolvePath to use assetpath attribute
   var assetPath = element.getAttribute('assetpath');
   var url = HTMLImports.getDocumentUrl(element.ownerDocument) || '';
   if (url) {
@@ -132,12 +133,11 @@ var monkeyPatch = function(proto, element) {
   }
   proto.resolvePath = function(path) {
     return url + path;
-  }
+  };
 };
 
 var buffer = [
-  '<!-- Monkey Patch addResolvePath to use assetpath -->',
-  '<script>Polymer.addResolvePath = ' + monkeyPatch + '</script>'
+  '<script>Polymer.addResolvePath = ' + monkeyPatch + ';</script>'
 ];
 var read = {};
 
@@ -147,6 +147,27 @@ options.input.forEach(function(i) {
   processImports(extractImports($, dir));
 });
 
-if (buffer.length) {
-  fs.writeFileSync(options.output, buffer.join('\n'), 'utf8');
+var output = buffer.join('\n');
+
+// strip scripts into a separate file
+if (options.csp) {
+  if (options.verbose) {
+    console.log('Separating scripts into separate file');
+  }
+  var scripts = [];
+  var $ = cheerio.load(output);
+  $('script').each(function() {
+    var src;
+    if (src = this.attr('src')) {
+      // external script
+      scripts.push(fs.readFileSync(src, 'utf8'));
+    } else {
+      // inline script
+      scripts.push(this.text());
+    }
+  }).remove();
+  output = $.html();
+  fs.writeFileSync(options.output.replace('html', 'js'), scripts.join('\n'), 'utf8');
 }
+
+fs.writeFileSync(options.output, output, 'utf8');
