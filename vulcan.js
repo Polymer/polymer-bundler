@@ -167,7 +167,8 @@ if (options.csp) {
     }
   }).remove();
   output = $.html();
-  fs.writeFileSync(options.output.replace('html', 'js'), scripts.join('\n'), 'utf8');
+  // join scripts with ';' to prevent breakages due to EOF semicolon insertion
+  fs.writeFileSync(options.output.replace('html', 'js'), scripts.join(';\n'), 'utf8');
 }
 
 fs.writeFileSync(options.output, output, 'utf8');
