@@ -2,34 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var cheerio = require('cheerio');
 var nopt = require('nopt');
-
-var options = nopt(
-  {
-    'output': path,
-    'input': path,
-    'verbose': Boolean,
-    'csp': Boolean
-  },
-  {
-    'o': ['--output'],
-    'i': ['--input'],
-    'v': ['--verbose']
-  }
-);
-
-if (!options.input) {
-  console.error('No input file given!');
-  process.exit(1);
-}
-
-var DEFAULT_OUTPUT = 'vulcanized.html';
-if (!options.output) {
-  console.warn('Default output to index-vulcanized.html,' + (options.csp ? ', vulcanized.js,' : '') + ' and vulcanized.html in the input directory.');
-  options.output = path.resolve(path.dirname(options.input), DEFAULT_OUTPUT);
-}
-
-var outputDir = path.dirname(options.output);
-
+var EOL = require('os').EOL;
 var IMPORTS = 'link[rel="import"][href]';
 var ELEMENTS = 'polymer-element';
 var URL_ATTR = ['href', 'src', 'action', 'style'];
@@ -62,6 +35,32 @@ var import_buffer = [
 var imports_before_polymer = [];
 var read = {};
 
+var options = nopt(
+  {
+    'output': path,
+    'input': path,
+    'verbose': Boolean,
+    'csp': Boolean
+  },
+  {
+    'o': ['--output'],
+    'i': ['--input'],
+    'v': ['--verbose']
+  }
+);
+
+if (!options.input) {
+  console.error('No input file given!');
+  process.exit(1);
+}
+
+var DEFAULT_OUTPUT = 'vulcanized.html';
+if (!options.output) {
+  console.warn('Default output to index-vulcanized.html' + (options.csp ? ', vulcanized.js,' : '') + ' and vulcanized.html in the input directory.');
+  options.output = path.resolve(path.dirname(options.input), DEFAULT_OUTPUT);
+}
+
+var outputDir = path.dirname(options.output);
 
 function resolvePaths($, input, output) {
   var assetPath = path.relative(output, input);
@@ -144,7 +143,7 @@ function handleMainDocument() {
   var $ = readDocument(options.input);
   var dir = path.dirname(options.input);
   processImports($, dir);
-  var output = import_buffer.join('\n');
+  var output = import_buffer.join(EOL);
 
   // strip scripts into a separate file
   if (options.csp) {
@@ -172,14 +171,14 @@ function handleMainDocument() {
     output = output.html();
     // join scripts with ';' to prevent breakages due to EOF semicolon insertion
     var script_name = path.relative(outputDir, options.output.replace('html', 'js'));
-    fs.writeFileSync(script_name, scripts.join(';\n'), 'utf8');
+    fs.writeFileSync(script_name, scripts.join(';' + EOL), 'utf8');
     scripts_after_polymer.push('<script src="' + script_name + '"></script>');
-    $(POLYMER).first().after(scripts_after_polymer.join('\n'));
+    $(POLYMER).first().after(EOL + scripts_after_polymer.join(EOL));
   }
 
   fs.writeFileSync(options.output, output, 'utf8');
   imports_before_polymer.push('<link rel="import" href="' + path.relative(outputDir, options.output) + '">');
-  $(POLYMER).first().before(imports_before_polymer.join('\n'));
+  $(POLYMER).first().before(imports_before_polymer.join(EOL) + EOL);
   fs.writeFileSync(path.resolve(outputDir, 'index-vulcanized.html'), $.html(), 'utf8');
 }
 

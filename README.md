@@ -8,11 +8,12 @@ materials.
 ## Getting Started
 - Install the node dependencies with `npm install`
   - Depends on [cheerio](https://github.com/MatthewMueller/cheerio) and [nopt](https://github.com/isaacs/nopt)
-- Give some input html files with the `--input` or `-i` flags and output file name with the `--output` or `-o` flags.
+- Give a main input html file with the `--input` or `-i` flags and output file name with the `--output` or `-o` flags.
   - Example: `node vulcan.js -i index.html -o build.html`
   - Defaults to `output.html`
 - URL paths are adjusted for the new output location automatically (execpt ones set in Javascript)
-- Once finished, link the final output html into your app page with `<link rel="import">`.
+- When finished, `index-vulcanized.js` will be placed in the output location
+  with the vulcanized imports and scripts included.
 
 ## Example
 
