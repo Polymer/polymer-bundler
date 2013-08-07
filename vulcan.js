@@ -6,7 +6,7 @@ var nopt = require('nopt');
 var options = nopt(
   {
     'output': path,
-    'input': [path, Array],
+    'input': path,
     'verbose': Boolean,
     'csp': Boolean
   },
@@ -18,13 +18,14 @@ var options = nopt(
 );
 
 if (!options.input) {
-  console.error('No input files given');
+  console.error('No input file given!');
   process.exit(1);
 }
 
+var DEFAULT_OUTPUT = 'vulcanized.html';
 if (!options.output) {
-  console.warn('Default output to output.html' + (options.csp ? ' and output.js' : ''));
-  options.output = path.resolve('output.html');
+  console.warn('Default output to index-vulcanized.html,' + (options.csp ? ', vulcanized.js,' : '') + ' and vulcanized.html in the input directory.');
+  options.output = path.resolve(path.dirname(options.input), DEFAULT_OUTPUT);
 }
 
 var outputDir = path.dirname(options.output);
@@ -36,6 +37,31 @@ var URL_ATTR_SEL = '[' + URL_ATTR.join('],[') + ']';
 var ABS_URL = /(^data:)|(^http[s]?:)|(^\/)/;
 var URL = /url\([^)]*\)/g;
 var URL_TEMPLATE = '{{.*}}';
+var POLYMER = 'script[src $= "polymer.js"], script[src $= "polymer.min.js"]';
+var MONKEYPATCH_RESOLVEPATH = function(proto, element) {
+  // monkey patch addResolvePath to use assetpath attribute
+  var assetPath = element.getAttribute('assetpath');
+  var url = HTMLImports.getDocumentUrl(element.ownerDocument) || '';
+  if (url) {
+    var parts = url.split('/');
+    parts.pop();
+    if (assetPath) {
+      parts.push(assetPath);
+    }
+    parts.push('');
+    url = parts.join('/');
+  }
+  proto.resolvePath = function(path) {
+    return url + path;
+  };
+};
+
+var import_buffer = [
+  '<script>Polymer.addResolvePath = ' + MONKEYPATCH_RESOLVEPATH + ';</script>'
+];
+var imports_before_polymer = [];
+var read = {};
+
 
 function resolvePaths($, input, output) {
   var assetPath = path.relative(output, input);
@@ -88,20 +114,14 @@ function readDocument(docname) {
   return cheerio.load(content);
 }
 
-function extractImports($, dir) {
-  var hrefs = $(IMPORTS).map(function(){ return this.attr('href') });
-  return hrefs.map(function(h) { return path.resolve(dir, h) });
-}
-
 function concat(filename) {
   if (!read[filename]) {
     read[filename] = true;
     var $ = readDocument(filename);
     var dir = path.dirname(filename);
-    processImports(extractImports($, dir));
-    $(IMPORTS).remove();
+    processImports($, dir);
     resolvePaths($, dir, outputDir);
-    buffer.push($.html());
+    import_buffer.push($.html());
   } else {
     if (options.verbose) {
       console.log('Dependency deduplicated');
@@ -109,66 +129,58 @@ function concat(filename) {
   }
 }
 
-function processImports(imports) {
-  if (imports.length > 0) {
-    if (options.verbose) {
-      console.log('Dependencies:', imports);
-    }
-    imports.forEach(concat);
-  }
-}
-
-var monkeyPatch = function(proto, element) {
-  // monkey patch addResolvePath to use assetpath attribute
-  var assetPath = element.getAttribute('assetpath');
-  var url = HTMLImports.getDocumentUrl(element.ownerDocument) || '';
-  if (url) {
-    var parts = url.split('/');
-    parts.pop();
-    if (assetPath) {
-      parts.push(assetPath);
-    }
-    parts.push('');
-    url = parts.join('/');
-  }
-  proto.resolvePath = function(path) {
-    return url + path;
-  };
-};
-
-var buffer = [
-  '<script>Polymer.addResolvePath = ' + monkeyPatch + ';</script>'
-];
-var read = {};
-
-options.input.forEach(function(i) {
-  var $ = readDocument(i);
-  var dir = path.dirname(i);
-  processImports(extractImports($, dir));
-});
-
-var output = buffer.join('\n');
-
-// strip scripts into a separate file
-if (options.csp) {
-  if (options.verbose) {
-    console.log('Separating scripts into separate file');
-  }
-  var scripts = [];
-  var $ = cheerio.load(output);
-  $('script').each(function() {
-    var src;
-    if (src = this.attr('src')) {
-      // external script
-      scripts.push(fs.readFileSync(src, 'utf8'));
+function processImports($, prefix) {
+  $(IMPORTS).each(function() {
+    var href = this.attr('href');
+    if (!ABS_URL.test(href)) {
+      concat(path.resolve(prefix, href));
     } else {
-      // inline script
-      scripts.push(this.text());
+      imports_before_polymer.push(this.html());
     }
   }).remove();
-  output = $.html();
-  // join scripts with ';' to prevent breakages due to EOF semicolon insertion
-  fs.writeFileSync(options.output.replace('html', 'js'), scripts.join(';\n'), 'utf8');
 }
 
-fs.writeFileSync(options.output, output, 'utf8');
+function handleMainDocument() {
+  var $ = readDocument(options.input);
+  var dir = path.dirname(options.input);
+  processImports($, dir);
+  var output = import_buffer.join('\n');
+
+  // strip scripts into a separate file
+  if (options.csp) {
+    if (options.verbose) {
+      console.log('Separating scripts into separate file');
+    }
+    var scripts = [];
+    var scripts_after_polymer = [];
+    var output = cheerio.load(output);
+    output('script').each(function() {
+      var src;
+      if (src = this.attr('src')) {
+        // external script
+        if (!ABS_URL.test(src)) {
+          scripts.push(fs.readFileSync(src, 'utf8'));
+        } else {
+          // put an absolute path script after polymer.js in main document
+          scripts_after_polymer.push(this.html());
+        }
+      } else {
+        // inline script
+        scripts.push(this.text());
+      }
+    }).remove();
+    output = output.html();
+    // join scripts with ';' to prevent breakages due to EOF semicolon insertion
+    var script_name = path.relative(outputDir, options.output.replace('html', 'js'));
+    fs.writeFileSync(script_name, scripts.join(';\n'), 'utf8');
+    scripts_after_polymer.push('<script src="' + script_name + '"></script>');
+    $(POLYMER).first().after(scripts_after_polymer.join('\n'));
+  }
+
+  fs.writeFileSync(options.output, output, 'utf8');
+  imports_before_polymer.push('<link rel="import" href="' + path.relative(outputDir, options.output) + '">');
+  $(POLYMER).first().before(imports_before_polymer.join('\n'));
+  fs.writeFileSync(path.resolve(outputDir, 'index-vulcanized.html'), $.html(), 'utf8');
+}
+
+handleMainDocument();
