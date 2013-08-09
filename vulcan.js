@@ -139,9 +139,23 @@ function processImports($, prefix) {
   }).remove();
 }
 
+function findScriptLocation($) {
+  var body;
+  var polymer = $(POLYMER);
+  if (polymer) {
+    return polymer.last().parent();
+  }
+  if (body = $('body')) {
+    return body;
+  }
+  return $.root();
+}
+
 function handleMainDocument() {
   var $ = readDocument(options.input);
   var dir = path.dirname(options.input);
+  // find the position of the last import's nextSibling
+  var import_pos = $(IMPORTS).last().next();
   processImports($, dir);
   var output = import_buffer.join(EOL);
 
@@ -173,12 +187,13 @@ function handleMainDocument() {
     var script_name = path.relative(outputDir, options.output.replace('html', 'js'));
     fs.writeFileSync(script_name, scripts.join(';' + EOL), 'utf8');
     scripts_after_polymer.push('<script src="' + script_name + '"></script>');
-    $(POLYMER).first().after(EOL + scripts_after_polymer.join(EOL));
+    findScriptLocation($).append(EOL + scripts_after_polymer.join(EOL));
   }
 
   fs.writeFileSync(options.output, output, 'utf8');
   imports_before_polymer.push('<link rel="import" href="' + path.relative(outputDir, options.output) + '">');
-  $(POLYMER).first().before(imports_before_polymer.join(EOL) + EOL);
+  // append vulcanized import before the last import's next sibling
+  import_pos.before(imports_before_polymer.join(EOL) + EOL);
   fs.writeFileSync(path.resolve(outputDir, 'index-vulcanized.html'), $.html(), 'utf8');
 }
 
