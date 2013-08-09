@@ -4,7 +4,7 @@
   "description": "Concat all the components into one output file, with dependencies in the proper order",
   "main": "vulcan.js",
   "dependencies": {
-    "cheerio": "~0.11.0",
+    "cheerio": "~0.12.1",
     "nopt": "~2.1.1"
   },
   "devDependencies": {},
