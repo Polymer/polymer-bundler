@@ -152,10 +152,6 @@ function findScriptLocation($) {
   return pos;
 }
 
-function findImportLocation($) {
-  return $(IMPORTS).last().next();
-}
-
 function insertImport($, storedPosition, importText) {
   var pos = storedPosition;
   var operation = 'before';
