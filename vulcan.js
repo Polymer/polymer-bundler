@@ -68,7 +68,8 @@ function resolvePaths($, input, output) {
   $(URL_ATTR_SEL).each(function() {
     var val;
     URL_ATTR.forEach(function(a) {
-      if (val = this.attr(a)) {
+      val = this.attr(a);
+      if (val) {
         if (val.search(URL_TEMPLATE) < 0) {
           if (a === 'style') {
             this.attr(a, rewriteURL(input, output, val));
@@ -140,12 +141,12 @@ function processImports($, prefix) {
 }
 
 function findScriptLocation($) {
-  var body;
+  var body = $('body');
   var polymer = $(POLYMER);
   if (polymer) {
     return polymer.last().parent();
   }
-  if (body = $('body')) {
+  if (body) {
     return body;
   }
   return $.root();
@@ -166,10 +167,11 @@ function handleMainDocument() {
     }
     var scripts = [];
     var scripts_after_polymer = [];
-    var output = cheerio.load(output);
-    output('script').each(function() {
-      var src;
-      if (src = this.attr('src')) {
+    var tempoutput = cheerio.load(output);
+
+    tempoutput('script').each(function() {
+      var src = this.attr('src');
+      if (src) {
         // external script
         if (!ABS_URL.test(src)) {
           scripts.push(fs.readFileSync(src, 'utf8'));
@@ -182,9 +184,9 @@ function handleMainDocument() {
         scripts.push(this.text());
       }
     }).remove();
-    output = output.html();
+    output = tempoutput.html();
     // join scripts with ';' to prevent breakages due to EOF semicolon insertion
-    var script_name = path.relative(outputDir, options.output.replace('html', 'js'));
+    var script_name = path.relative(outputDir, path.basename(options.output).replace('html', 'js'));
     fs.writeFileSync(script_name, scripts.join(';' + EOL), 'utf8');
     scripts_after_polymer.push('<script src="' + script_name + '"></script>');
     findScriptLocation($).append(EOL + scripts_after_polymer.join(EOL));
