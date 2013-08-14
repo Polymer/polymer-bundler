@@ -64,11 +64,11 @@ var outputDir = path.dirname(options.output);
 
 function resolvePaths($, input, output) {
   var assetPath = path.relative(output, input);
+  assetPath = assetPath.split(path.sep).join('/');
   // resolve attributes
   $(URL_ATTR_SEL).each(function() {
-    var val;
     URL_ATTR.forEach(function(a) {
-      val = this.attr(a);
+      var val = this.attr(a);
       if (val) {
         if (val.search(URL_TEMPLATE) < 0) {
           if (a === 'style') {
@@ -95,7 +95,8 @@ function rewriteRelPath(inputPath, outputPath, rel) {
     return rel;
   }
   var abs = path.resolve(inputPath, rel);
-  return path.relative(outputPath, abs);
+  var relPath = path.relative(outputPath, abs);
+  return relPath.split(path.sep).join('/');
 }
 
 function rewriteURL(inputPath, outputPath, cssText) {
@@ -141,15 +142,39 @@ function processImports($, prefix) {
 }
 
 function findScriptLocation($) {
-  var body = $('body');
-  var polymer = $(POLYMER);
-  if (polymer) {
-    return polymer.last().parent();
+  var pos = $(POLYMER).last().parent();
+  if (!pos.length) {
+    pos = $('body');
   }
-  if (body) {
-    return body;
+  if (!pos.length) {
+    pos = $.root();
   }
-  return $.root();
+  return pos;
+}
+
+function findImportLocation($) {
+  return $(IMPORTS).last().next();
+}
+
+function insertImport($, storedPosition, importText) {
+  var pos = storedPosition;
+  var operation = 'before';
+  if (!pos.length) {
+    // before polymer script in <head>
+    pos = $('head ' + POLYMER).last();
+  }
+  if (!pos.length) {
+    // at the bottom of head
+    pos = $('head').last();
+    operation = 'append';
+  }
+  if (!pos.length) {
+    // at the bottom of <html>
+    pos = $.root();
+    operation = 'append';
+  }
+
+  pos[operation](importText);
 }
 
 function handleMainDocument() {
@@ -186,16 +211,15 @@ function handleMainDocument() {
     }).remove();
     output = tempoutput.html();
     // join scripts with ';' to prevent breakages due to EOF semicolon insertion
-    var script_name = path.relative(outputDir, path.basename(options.output).replace('html', 'js'));
+    var script_name = path.basename(options.output, '.html') + '.js';
     fs.writeFileSync(script_name, scripts.join(';' + EOL), 'utf8');
     scripts_after_polymer.push('<script src="' + script_name + '"></script>');
-    findScriptLocation($).append(EOL + scripts_after_polymer.join(EOL));
+    findScriptLocation($).append(EOL + scripts_after_polymer.join(EOL) + EOL);
   }
 
   fs.writeFileSync(options.output, output, 'utf8');
-  imports_before_polymer.push('<link rel="import" href="' + path.relative(outputDir, options.output) + '">');
-  // append vulcanized import before the last import's next sibling
-  import_pos.before(imports_before_polymer.join(EOL) + EOL);
+  imports_before_polymer.push('<link rel="import" href="' + path.basename(options.output) + '">');
+  insertImport($, import_pos, imports_before_polymer.join(EOL) + EOL);
   fs.writeFileSync(path.resolve(outputDir, 'index-vulcanized.html'), $.html(), 'utf8');
 }
 
