@@ -92,7 +92,7 @@ that aims to prevent XSS and other attacks. In so doing, it prohibits the use of
 To help automate the use of Polymer element registration with CSP, the `--csp` flag to vulcan will remove all scripts
 from the HTML Imports and place their contents into an output javascript file.
 
-Using the previous example, the output from `node vulcan --csp -i index.html -o build.html` will be
+Using the previous example, the output from `node vulcan.js --csp -i index.html -o build.html` will be
 
 build.html:
 ```html
