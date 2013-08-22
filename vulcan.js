@@ -11,27 +11,8 @@ var ABS_URL = /(^data:)|(^http[s]?:)|(^\/)/;
 var URL = /url\([^)]*\)/g;
 var URL_TEMPLATE = '{{.*}}';
 var POLYMER = 'script[src $= "polymer.js"], script[src $= "polymer.min.js"]';
-var MONKEYPATCH_RESOLVEPATH = function(proto, element) {
-  // monkey patch addResolvePath to use assetpath attribute
-  var assetPath = element.getAttribute('assetpath');
-  var url = HTMLImports.getDocumentUrl(element.ownerDocument) || '';
-  if (url) {
-    var parts = url.split('/');
-    parts.pop();
-    if (assetPath) {
-      parts.push(assetPath);
-    }
-    parts.push('');
-    url = parts.join('/');
-  }
-  proto.resolvePath = function(path) {
-    return url + path;
-  };
-};
 
-var import_buffer = [
-  '<script>Polymer.addResolvePath = ' + MONKEYPATCH_RESOLVEPATH + ';</script>'
-];
+var import_buffer = [];
 var imports_before_polymer = [];
 var read = {};
 
@@ -64,7 +45,7 @@ var outputDir = path.dirname(options.output);
 
 function resolvePaths($, input, output) {
   var assetPath = path.relative(output, input);
-  assetPath = assetPath.split(path.sep).join('/');
+  assetPath = assetPath.split(path.sep).join('/') + '/';
   // resolve attributes
   $(URL_ATTR_SEL).each(function() {
     URL_ATTR.forEach(function(a) {
