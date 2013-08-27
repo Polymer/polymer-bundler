@@ -96,12 +96,31 @@ function readDocument(docname) {
   return cheerio.load(content);
 }
 
+// inline relative linked stylesheets into <style> tags
+function inlineSheets($, dir) {
+  $('link[rel="stylesheet"]').each(function() {
+    var href = this.attr('href');
+    if (href && !ABS_URL.test(href)) {
+      var filepath = path.resolve(dir, href);
+      // fix up paths in the stylesheet to be relative to this import
+      var content = rewriteURL(path.dirname(filepath), dir, fs.readFileSync(filepath, 'utf8'));
+      var styleDoc = cheerio.load('<style>' + content + '</style>');
+      var polymerScope = this.attr('polymer-scope');
+      if (polymerScope) {
+        styleDoc('style').attr('polymer-scope', polymerScope);
+      }
+      this.replaceWith(styleDoc.html());
+    }
+  });
+}
+
 function concat(filename) {
   if (!read[filename]) {
     read[filename] = true;
     var $ = readDocument(filename);
     var dir = path.dirname(filename);
     processImports($, dir);
+    inlineSheets($, dir);
     resolvePaths($, dir, outputDir);
     import_buffer.push($.html());
   } else {
@@ -161,21 +180,6 @@ function handleMainDocument() {
   var import_pos = $(IMPORTS).last().next();
   processImports($, dir);
   var output = import_buffer.join(EOL);
-  var tempoutput = cheerio.load(output);
-  // inline relative linked stylesheets into <style> tags
-  tempoutput('polymer-element > template > link[href]').each(function() {
-    var href = this.attr('href');
-    if (href && !ABS_URL.test(href)) {
-      var content = fs.readFileSync(href, 'utf8');
-      var styleDoc = cheerio.load('<style>' + content + '</style>');
-      var polymerScope = this.attr('polymer-scope');
-      if (polymerScope) {
-        styleDoc('style').attr('polymer-scope', polymerScope);
-      }
-      this.replaceWith(styleDoc.html());
-    }
-  });
-  output = tempoutput.html();
 
   // strip scripts into a separate file
   if (options.csp) {
@@ -184,7 +188,7 @@ function handleMainDocument() {
     }
     var scripts = [];
     var scripts_after_polymer = [];
-    tempoutput = cheerio.load(output);
+    var tempoutput = cheerio.load(output);
 
     tempoutput('script').each(function() {
       var src = this.attr('src');
