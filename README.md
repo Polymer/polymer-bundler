@@ -77,7 +77,7 @@ Will result in `build.html` that appears as so:
 </polymer-element>
 ```
 
-To use this, make `build.html` the only import in `index.html`:
+And an `index-vulcanized.html` file that includes `build.html` as the only import:
 
 ```html
 <!DOCTYPE html>
@@ -112,4 +112,11 @@ build.js:
 ```js
 Polymer('x-dep');
 Polymer('x-app');
+```
+
+index-vulcanized.html:
+```html
+<!DOCTYPE html>
+<link rel="import" href="build.html">
+<script src="build.js"></script>
 ```
