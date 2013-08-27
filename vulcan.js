@@ -161,6 +161,21 @@ function handleMainDocument() {
   var import_pos = $(IMPORTS).last().next();
   processImports($, dir);
   var output = import_buffer.join(EOL);
+  var tempoutput = cheerio.load(output);
+  // inline relative linked stylesheets into <style> tags
+  tempoutput('polymer-element > template > link[href]').each(function() {
+    var href = this.attr('href');
+    if (href && !ABS_URL.test(href)) {
+      var content = fs.readFileSync(href, 'utf8');
+      var styleDoc = cheerio.load('<style>' + content + '</style>');
+      var polymerScope = this.attr('polymer-scope');
+      if (polymerScope) {
+        styleDoc('style').attr('polymer-scope', polymerScope);
+      }
+      this.replaceWith(styleDoc.html());
+    }
+  });
+  output = tempoutput.html();
 
   // strip scripts into a separate file
   if (options.csp) {
@@ -169,7 +184,7 @@ function handleMainDocument() {
     }
     var scripts = [];
     var scripts_after_polymer = [];
-    var tempoutput = cheerio.load(output);
+    tempoutput = cheerio.load(output);
 
     tempoutput('script').each(function() {
       var src = this.attr('src');
