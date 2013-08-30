@@ -37,7 +37,7 @@ if (!options.input) {
 
 var DEFAULT_OUTPUT = 'vulcanized.html';
 if (!options.output) {
-  console.warn('Default output to index-vulcanized.html' + (options.csp ? ', vulcanized.js,' : '') + ' and vulcanized.html in the input directory.');
+  console.warn('Default output to vulcanized.html' + (options.csp ? ' and vulcanized.js' : '') + ' in the input directory.');
   options.output = path.resolve(path.dirname(options.input), DEFAULT_OUTPUT);
 }
 
@@ -173,6 +173,15 @@ function insertImport($, storedPosition, importText) {
   pos[operation](importText);
 }
 
+function insertInlinedImports($, importText) {
+  var pos = $('body').last();
+  var operation = 'prepend';
+  if (!pos.length) {
+    pos = $.root();
+  }
+  pos[operation](importText);
+}
+
 function handleMainDocument() {
   var $ = readDocument(options.input);
   var dir = path.dirname(options.input);
@@ -213,10 +222,9 @@ function handleMainDocument() {
     findScriptLocation($).append(EOL + scripts_after_polymer.join(EOL) + EOL);
   }
 
-  fs.writeFileSync(options.output, output, 'utf8');
-  imports_before_polymer.push('<link rel="import" href="' + path.basename(options.output) + '">');
   insertImport($, import_pos, imports_before_polymer.join(EOL) + EOL);
-  fs.writeFileSync(path.resolve(outputDir, 'index-vulcanized.html'), $.html(), 'utf8');
+  insertInlinedImports($, output);
+  fs.writeFileSync(options.output, $.html(), 'utf8');
 }
 
 handleMainDocument();
