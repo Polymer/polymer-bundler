@@ -173,9 +173,13 @@ function insertImport($, storedPosition, importText) {
   pos[operation](importText);
 }
 
-function insertInlinedImports($, importText) {
-  var pos = $('body').last();
-  var operation = 'prepend';
+function insertInlinedImports($, storedPosition, importText) {
+  var pos = storedPosition;
+  var operation = 'before';
+  if (!pos.length) {
+    pos = $('body').last();
+    operation = 'prepend';
+  }
   if (!pos.length) {
     pos = $.root();
   }
@@ -223,7 +227,7 @@ function handleMainDocument() {
   }
 
   insertImport($, import_pos, imports_before_polymer.join(EOL) + EOL);
-  insertInlinedImports($, output);
+  insertInlinedImports($, import_pos, output);
   fs.writeFileSync(options.output, $.html(), 'utf8');
 }
 
