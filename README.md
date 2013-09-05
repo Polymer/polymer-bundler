@@ -10,10 +10,8 @@ materials.
   - Depends on [cheerio](https://github.com/MatthewMueller/cheerio) and [nopt](https://github.com/isaacs/nopt)
 - Give a main input html file with the `--input` or `-i` flags and output file name with the `--output` or `-o` flags.
   - Example: `node vulcan.js -i index.html -o build.html`
-  - Defaults to `output.html`
+  - Defaults to `vulcanized.html`
 - URL paths are adjusted for the new output location automatically (execpt ones set in Javascript)
-- When finished, `index-vulcanized.js` will be placed in the output location
-  with the vulcanized imports and scripts included.
 
 ## Example
 
@@ -59,6 +57,7 @@ Running vulcan on `index.html`, and specifying `build.html` as the output:
 Will result in `build.html` that appears as so:
 
 ```html
+<!DOCTYPE html>
 <polymer-element name="x-dep" assetpath="path/to/">
   <template>
     <img src="path/to/x-dep-icon.jpg">
@@ -75,13 +74,6 @@ Will result in `build.html` that appears as so:
     Polymer('x-app');
   </script>
 </polymer-element>
-```
-
-And an `index-vulcanized.html` file that includes `build.html` as the only import:
-
-```html
-<!DOCTYPE html>
-<link rel="import" href="build.html">
 <x-app></x-app>
 ```
 
@@ -96,6 +88,7 @@ Using the previous example, the output from `node vulcan.js --csp -i index.html 
 
 build.html:
 ```html
+<!DOCTYPE html>
 <polymer-element name="x-dep" assetpath="path/to/">
   <template>
     <img src="path/to/x-dep-icon.jpg">
@@ -106,17 +99,12 @@ build.html:
     <x-dep></x-dep>
   </template>
 </polymer-element>
+<script src="build.js"></script>
+<x-app></x-app>
 ```
 
 build.js:
 ```js
 Polymer('x-dep');
 Polymer('x-app');
-```
-
-index-vulcanized.html:
-```html
-<!DOCTYPE html>
-<link rel="import" href="build.html">
-<script src="build.js"></script>
 ```
