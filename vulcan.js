@@ -187,13 +187,13 @@ function insertInlinedImports($, storedPosition, importText) {
   pos[operation](importText);
 }
 
-function inlineScripts($) {
-  $('script[src]').each(function() {
-    var src = this.attr('src');
+function inlineScripts(htmlstring) {
+  return htmlstring.replace(SCRIPT_SRC, function(match, src) {
+    var out = match;
     if (!ABS_URL.test(src)) {
-      this.removeAttr('src');
-      this.html(fs.readFileSync(src, 'utf8'));
+      out = '<script>' + fs.readFileSync(src, 'utf8') + '</script>';
     }
+    return out;
   });
 }
 
@@ -239,10 +239,11 @@ function handleMainDocument() {
 
   insertImport($, import_pos, imports_before_polymer.join(EOL) + EOL);
   insertInlinedImports($, import_pos, output);
+  var outhtml = $.html();
   if (!options.csp && options.inline) {
-    inlineScripts($);
+    outhtml = inlineScripts(outhtml);
   }
-  fs.writeFileSync(options.output, $.html(), 'utf8');
+  fs.writeFileSync(options.output, outhtml, 'utf8');
 }
 
 handleMainDocument();
