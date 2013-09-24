@@ -192,7 +192,7 @@ function inlineScripts($) {
     var src = this.attr('src');
     if (!ABS_URL.test(src)) {
       this.removeAttr('src');
-      this.text(fs.readFileSync(src, 'utf8'));
+      this.html(fs.readFileSync(src, 'utf8'));
     }
   });
 }
