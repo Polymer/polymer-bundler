@@ -21,7 +21,8 @@ var options = nopt(
     'output': path,
     'input': path,
     'verbose': Boolean,
-    'csp': Boolean
+    'csp': Boolean,
+    'inline': Boolean
   },
   {
     'o': ['--output'],
@@ -186,6 +187,16 @@ function insertInlinedImports($, storedPosition, importText) {
   pos[operation](importText);
 }
 
+function inlineScripts($) {
+  $('script[src]').each(function() {
+    var src = this.attr('src');
+    if (!ABS_URL.test(src)) {
+      this.removeAttr('src');
+      this.text(fs.readFileSync(src, 'utf8'));
+    }
+  });
+}
+
 function handleMainDocument() {
   var $ = readDocument(options.input);
   var dir = path.dirname(options.input);
@@ -228,6 +239,9 @@ function handleMainDocument() {
 
   insertImport($, import_pos, imports_before_polymer.join(EOL) + EOL);
   insertInlinedImports($, import_pos, output);
+  if (!options.csp && options.inline) {
+    inlineScripts($);
+  }
   fs.writeFileSync(options.output, $.html(), 'utf8');
 }
 
