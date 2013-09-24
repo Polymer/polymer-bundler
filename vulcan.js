@@ -3,14 +3,16 @@ var path = require('path');
 var cheerio = require('cheerio');
 var nopt = require('nopt');
 var EOL = require('os').EOL;
-var IMPORTS = 'link[rel="import"][href]';
+
+var ABS_URL = /(^data:)|(^http[s]?:)|(^\/)/;
 var ELEMENTS = 'polymer-element';
+var IMPORTS = 'link[rel="import"][href]';
+var POLYMER = 'script[src $= "polymer.js"], script[src $= "polymer.min.js"]';
+var SCRIPT_SRC = /<script src=["']([^"']+)["']><\/script>/;
+var URL = /url\([^)]*\)/g;
 var URL_ATTR = ['href', 'src', 'action', 'style'];
 var URL_ATTR_SEL = '[' + URL_ATTR.join('],[') + ']';
-var ABS_URL = /(^data:)|(^http[s]?:)|(^\/)/;
-var URL = /url\([^)]*\)/g;
 var URL_TEMPLATE = '{{.*}}';
-var POLYMER = 'script[src $= "polymer.js"], script[src $= "polymer.min.js"]';
 
 var import_buffer = [];
 var imports_before_polymer = [];
