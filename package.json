@@ -1,8 +1,11 @@
 {
   "name": "vulcanize",
-  "version": "0.0.0",
-  "description": "Concat all the components into one output file, with dependencies in the proper order",
-  "main": "vulcan.js",
+  "version": "0.0.1",
+  "description": "Process Web Components into one output file",
+  "main": "lib",
+  "bin": {
+    "vulcanize": "bin/vulcanize"
+  },
   "dependencies": {
     "cheerio": "~0.12.1",
     "nopt": "~2.1.1"
@@ -11,8 +14,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "",
-  "author": "",
+  "author": "Daniel Freedman",
   "license": "BSD",
-  "readmeFilename": "README.md"
+  "directories": {
+    "test": "test"
+  },
+  "keywords": [
+    "web components",
+    "polymer"
+  ]
 }
