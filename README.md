@@ -1,4 +1,4 @@
-# Vulcanizer
+# Vulcanize
 
 ### Concatenate a set of Web Components into one file
 
