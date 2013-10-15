@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+var path = require('path');
+var nopt = require('nopt');
+var vulcan = require('../lib/vulcan.js');
+
+var options = nopt(
+  {
+    'output': path,
+    'verbose': Boolean,
+    'csp': Boolean,
+    'inline': Boolean
+  },
+  {
+    'o': ['--output'],
+    'v': ['--verbose']
+  }
+);
+
+options.input = path.resolve(options.argv.remain[0]);
+
+if (!options.input) {
+  console.error('No input file given!');
+  process.exit(1);
+}
+
+var DEFAULT_OUTPUT = 'vulcanized.html';
+if (!options.output) {
+  console.warn('Default output to vulcanized.html' + (options.csp ? ' and vulcanized.js' : '') + ' in the input directory.');
+  options.output = path.resolve(path.dirname(options.input), DEFAULT_OUTPUT);
+}
+
+options.outputDir = path.dirname(options.output);
+
+vulcan.setOptions(options);
+vulcan.processDocument();
