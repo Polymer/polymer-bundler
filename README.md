@@ -1,4 +1,4 @@
-# Vulcan
+# Vulcanizer
 
 ### Concatenate a set of Web Components into one file
 
@@ -6,10 +6,9 @@
 materials.
 
 ## Getting Started
-- Install the node dependencies with `npm install`
-  - Depends on [cheerio](https://github.com/MatthewMueller/cheerio) and [nopt](https://github.com/isaacs/nopt)
-- Give a main input html file with the `--input` or `-i` flags and output file name with the `--output` or `-o` flags.
-  - Example: `node vulcan.js -i index.html -o build.html`
+- Install `vulcanize` from npm.
+- Give a main input html file and optionally, an output file name with the `--output` or `-o` flags.
+  - Example: `vulcanize index.html -o build.html`
   - Defaults to `vulcanized.html`
 - URL paths are adjusted for the new output location automatically (execpt ones set in Javascript)
 
@@ -52,7 +51,7 @@ x-dep.html:
 
 Running vulcan on `index.html`, and specifying `build.html` as the output:
 
-    node vulcan.js -i index.html -o build.html
+    vulcanize -o build.html index.html
 
 Will result in `build.html` that appears as so:
 
@@ -84,7 +83,7 @@ that aims to prevent XSS and other attacks. In so doing, it prohibits the use of
 To help automate the use of Polymer element registration with CSP, the `--csp` flag to vulcan will remove all scripts
 from the HTML Imports and place their contents into an output javascript file.
 
-Using the previous example, the output from `node vulcan.js --csp -i index.html -o build.html` will be
+Using the previous example, the output from `vulcanize --csp -o build.html index.html` will be
 
 build.html:
 ```html
