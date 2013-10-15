@@ -22,5 +22,12 @@
   "keywords": [
     "web components",
     "polymer"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Polymer/vulcanize.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Polymer/vulcanize/issues"
+  }
 }
