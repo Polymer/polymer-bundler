@@ -6,8 +6,8 @@
 materials.
 
 ## Getting Started
-- Install `vulcanize` from npm.
-- Give a main input html file and optionally, an output file name with the `--output` or `-o` flags.
+- Install `vulcanize` from npm: `npm install -g vulcanize`
+- Provide a main input HTML file and optionally, an output file name with the `--output` or `-o` flags.
   - Example: `vulcanize index.html -o build.html`
   - Defaults to `vulcanized.html`
 - URL paths are adjusted for the new output location automatically (execpt ones set in Javascript)
