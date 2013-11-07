@@ -5,12 +5,33 @@
 >Named for the [Vulcanization](http://en.wikipedia.org/wiki/Vulcanization) process that turns polymers into more durable
 materials.
 
-## Getting Started
-- Install `vulcanize` from npm: `npm install -g vulcanize`
-- Provide a main input HTML file and optionally, an output file name with the `--output` or `-o` flags.
-  - Example: `vulcanize index.html -o build.html`
-  - Defaults to `vulcanized.html`
-- URL paths are adjusted for the new output location automatically (execpt ones set in Javascript)
+## Usage
+
+    vulcanize index.html
+
+At the simplest, `vulcanize` only requires an html file as an argument. The optimized output file will be named
+`vulcanized.html`.
+
+If you want to control the output name, use the `-o` flag
+
+    vulcanize -o build.html index.html
+
+Most URLs will be automatically adjusted by the vulcanizer.
+
+
+## Options
+
+-  `--output`, `-o`
+  - Output file name (defualts to vulcanized.html)
+-  `--verbose`, `-v`
+  - More verbose logging
+-  `--help`, `-v`, `-?`
+  - Print this message
+-  `--csp`
+  - Extract inline scripts to a separate file (uses `<output file name>`.js)
+-  `--inline`
+  - The opposite of CSP mode, inline all assets (script and css) into the document
+
 
 ## Example
 
