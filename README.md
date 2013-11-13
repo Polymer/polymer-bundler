@@ -5,6 +5,14 @@
 >Named for the [Vulcanization](http://en.wikipedia.org/wiki/Vulcanization) process that turns polymers into more durable
 materials.
 
+## Installation
+
+`vulcanize` is available on npm. For maximium utility, `vulcanize` should be installed globally.
+
+    sudo npm install -g vulcanize
+
+This will install `vulcanize` to `/usr/local/bin/vulcanize`.
+
 ## Usage
 
     vulcanize index.html
