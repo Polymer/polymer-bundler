@@ -45,18 +45,8 @@ if (argv[0]) {
   options.input = path.resolve(argv[0]);
 }
 
-if (!options.input || !fs.existsSync(options.input)) {
-  console.error('No input file given!');
+if (vulcan.setOptions(options)) {
+  vulcan.processDocument();
+} else {
   process.exit(1);
 }
-
-var DEFAULT_OUTPUT = 'vulcanized.html';
-if (!options.output) {
-  console.warn('Default output to vulcanized.html' + (options.csp ? ' and vulcanized.js' : '') + ' in the input directory.');
-  options.output = path.resolve(path.dirname(options.input), DEFAULT_OUTPUT);
-}
-
-options.outputDir = path.dirname(options.output);
-
-vulcan.setOptions(options);
-vulcan.processDocument();
