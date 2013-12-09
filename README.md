@@ -35,13 +35,30 @@ Most URLs will be automatically adjusted by the vulcanizer.
   - More verbose logging
 -  `--help`, `-v`, `-?`
   - Print this message
+- `--config`
+  - Read a given config file
 -  `--csp`
   - Extract inline scripts to a separate file (uses `<output file name>`.js)
 -  `--inline`
   - The opposite of CSP mode, inline all assets (script and css) into the document
 
+## Config
+> JSON file for additional options
 
-## Example
+- Excludes: Exclude the selected urls from vulcanization (urls are still deduplicated for imports).
+
+### Example Config
+```json
+{
+  "excludes": {
+    "imports": [
+      "regex-to-exclude"
+    ]
+  }
+}
+```
+
+## Example Usage
 
 Say we have three html files: `index.html`, `x-app.html`, and `x-dep.html`.
 
