@@ -11,8 +11,20 @@ var help = [
   '  --output, -o: Output file name (defualts to vulcanized.html)',
   '  --verbose, -v: More verbose logging',
   '  --help, -v, -?: Print this message',
+  '  --config: Read the given config file',
   '  --csp: Extract inline scripts to a separate file (uses <output file name>.js)',
-  '  --inline: The opposite of CSP mode, inline all assets (script and css) into the document'
+  '  --inline: The opposite of CSP mode, inline all assets (script and css) into the document',
+  '',
+  'Config:',
+  '  JSON file for additional options',
+  '',
+  '  {',
+  '    "excludes": {',
+  '      "imports": [ "regex-to-exclude" ],',
+  // '      "styles": [ "regex-to-exclude" ],',
+  // '      "scripts": [ "regex-to-exclude" ],',
+  '    }',
+  '  }'
 ];
 
 function printHelp() {
@@ -22,22 +34,47 @@ function printHelp() {
 
 var options = nopt(
   {
-    'output': path,
-    'verbose': Boolean,
+    'config': path,
     'csp': Boolean,
+    'help': Boolean,
     'inline': Boolean,
-    'help': Boolean
+    'output': path,
+    'verbose': Boolean
   },
   {
-    'o': ['--output'],
-    'v': ['--verbose'],
     '?': ['--help'],
-    'h': ['--help']
+    'h': ['--help'],
+    'o': ['--output'],
+    'v': ['--verbose']
   }
 );
 
 if (options.help) {
   printHelp();
+}
+
+if (options.config) {
+  var configBlob;
+  var config;
+  try {
+    configBlob = fs.readFileSync(options.config, 'utf8');
+  } catch(e) {
+    console.log('Config file not found!');
+    process.exit(1);
+  }
+  try {
+    config = JSON.parse(configBlob);
+  } catch(e) {
+    console.error('Malformed config JSON!');
+    process.exit(1);
+  }
+  if (config.excludes) {
+    options.excludes = {
+      imports: config.excludes.imports
+      // styles: config.excludes.styles,
+      // scripts: config.excludes.scripts
+    };
+  }
 }
 
 var argv = options.argv.remain;
