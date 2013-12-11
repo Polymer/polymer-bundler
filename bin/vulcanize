@@ -8,7 +8,7 @@ var help = [
   'vulcanize: Concatenate a set of Web Components into one file',
   '',
   'Options:',
-  '  --output, -o: Output file name (defualts to vulcanized.html)',
+  '  --output, -o: Output file name (defaults to vulcanized.html)',
   '  --verbose, -v: More verbose logging',
   '  --help, -v, -?: Print this message',
   '  --config: Read the given config file',
