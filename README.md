@@ -30,13 +30,15 @@ Most URLs will be automatically adjusted by the vulcanizer.
 ## Options
 
 -  `--output`, `-o`
-  - Output file name (defualts to vulcanized.html)
+  - Output file name (defaults to vulcanized.html)
 -  `--verbose`, `-v`
   - More verbose logging
 -  `--help`, `-v`, `-?`
   - Print this message
 - `--config`
   - Read a given config file
+- `--strip`, `-s`
+  - Remove comments and empty text nodes
 -  `--csp`
   - Extract inline scripts to a separate file (uses `<output file name>`.js)
 -  `--inline`
