@@ -155,3 +155,5 @@ build.js:
 Polymer('x-dep');
 Polymer('x-app');
 ```
+
+[![Analytics](https://ga-beacon.appspot.com/UA-39334307-2/Polymer/vulcanize/README)](https://github.com/igrigorik/ga-beacon)
