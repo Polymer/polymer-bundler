@@ -7,7 +7,7 @@
     "vulcanize": "bin/vulcanize"
   },
   "dependencies": {
-    "cheerio": "~0.12.1",
+    "cheerio": "~0.13.1",
     "nopt": "~2.1.1"
   },
   "devDependencies": {},
