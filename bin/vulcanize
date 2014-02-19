@@ -22,8 +22,8 @@ var help = [
   '  {',
   '    "excludes": {',
   '      "imports": [ "regex-to-exclude" ],',
-  // '      "styles": [ "regex-to-exclude" ],',
-  // '      "scripts": [ "regex-to-exclude" ],',
+  '      "styles": [ "regex-to-exclude" ],',
+  '      "scripts": [ "regex-to-exclude" ],',
   '    }',
   '  }'
 ];
@@ -73,9 +73,9 @@ if (options.config) {
   }
   if (config.excludes) {
     options.excludes = {
-      imports: config.excludes.imports
-      // styles: config.excludes.styles,
-      // scripts: config.excludes.scripts
+      imports: config.excludes.imports,
+      styles: config.excludes.styles,
+      scripts: config.excludes.scripts
     };
   }
 }
