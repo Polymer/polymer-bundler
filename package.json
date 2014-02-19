@@ -1,6 +1,6 @@
 {
   "name": "vulcanize",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "bin": {
@@ -8,8 +8,8 @@
   },
   "dependencies": {
     "cheerio": "~0.13.1",
-    "nopt": "~2.1.1",
-    "clean-css": "~2.0.6",
+    "nopt": "~2.2.0",
+    "clean-css": "~2.1.0",
     "uglify-js": "~2.4.8"
   },
   "devDependencies": {},
