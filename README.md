@@ -68,11 +68,11 @@ index.html:
 
 ```html
 <!DOCTYPE html>
-<link rel="import" href="app.html">
+<link rel="import" href="x-app.html">
 <x-app></x-app>
 ```
 
-app.html:
+x-app.html:
 
 ```html
 <link rel="import" href="path/to/x-dep.html">
