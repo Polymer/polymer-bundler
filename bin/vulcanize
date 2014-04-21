@@ -52,7 +52,7 @@ var options = nopt(
   }
 );
 
-if (options.help) {
+if (options.help || process.argv.length === 2) {
   printHelp();
 }
 
