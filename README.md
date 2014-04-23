@@ -43,6 +43,8 @@ Most URLs will be automatically adjusted by the vulcanizer.
   - Extract inline scripts to a separate file (uses `<output file name>`.js)
 -  `--inline`
   - The opposite of CSP mode, inline all assets (script and css) into the document
+- `--inline --csp`
+  - Bundle all javascript (inline and external) into `<output file name>`.js
 
 ## Config
 > JSON file for additional options

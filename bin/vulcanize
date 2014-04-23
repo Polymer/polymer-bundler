@@ -15,6 +15,7 @@ var help = [
   '  --strip, -s: Remove comments and empty text nodes',
   '  --csp: Extract inline scripts to a separate file (uses <output file name>.js)',
   '  --inline: The opposite of CSP mode, inline all assets (script and css) into the document',
+  '  --csp --inline: Bundle all javascript (inline and external) into <output file name>.js',
   '',
   'Config:',
   '  JSON file for additional options',
