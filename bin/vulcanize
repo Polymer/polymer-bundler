@@ -7,6 +7,9 @@ var vulcan = require('../lib/vulcan.js');
 var help = [
   'vulcanize: Concatenate a set of Web Components into one file',
   '',
+  'Usage:',
+  '  vulcanize [OPTIONS] <html file>*',
+  '',
   'Options:',
   '  --output, -o: Output file name (defaults to vulcanized.html)',
   '  --verbose, -v: More verbose logging',
