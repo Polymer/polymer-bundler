@@ -45,6 +45,8 @@ Most URLs will be automatically adjusted by the vulcanizer.
   - The opposite of CSP mode, inline all assets (script and css) into the document
 - `--inline --csp`
   - Bundle all javascript (inline and external) into `<output file name>`.js
+- `--preprocess`
+  - Require additional module(s) to preprocess stylesheets and scripts
 
 ## Config
 > JSON file for additional options
@@ -156,6 +158,25 @@ build.js:
 ```js
 Polymer('x-dep');
 Polymer('x-app');
+```
+
+## Preprocessing
+Stylesheets and scripts can be written in multiple languages.
+Preprocessing provides a hook to convert them into plain CSS/JavaScript
+during the vulcanization process.
+
+A preprocessor is any node module that exports a single function that
+has the opportunity to inspect both the file name and content, and
+call back with the preprocessed content.
+
+```javascript
+module.exports = function(filename, content, callback) {
+  //processing ...
+  //on success
+  callback(undefined, filename, transformed_content);
+  //on error
+  callback(err, filename, content);
+}
 ```
 
 [![Analytics](https://ga-beacon.appspot.com/UA-39334307-2/Polymer/vulcanize/README)](https://github.com/igrigorik/ga-beacon)
