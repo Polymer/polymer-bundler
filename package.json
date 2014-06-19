@@ -1,6 +1,6 @@
 {
   "name": "spock",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "dependencies": {
