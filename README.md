@@ -7,7 +7,7 @@ materials.
 
 ## Installation
 
-`vulcanize` is available on npm. For maximium utility, `vulcanize` should be installed globally.
+`spock` is available on npm. For maximium utility, `spock` should be installed globally.
 
     npm install --save-dev spock
 
@@ -115,7 +115,7 @@ that aims to prevent XSS and other attacks. In so doing, it prohibits the use of
 To help automate the use of Polymer element registration with CSP, the `--csp` flag to spock will remove all scripts
 from the HTML Imports and place their contents into an output javascript file.
 
-Using the previous example, the output from `vulcanize --csp -o build.html index.html` will be
+Using the previous example, the output from `spock --csp -o build.html index.html` will be
 
 build.html:
 ```html
