@@ -1,36 +1,28 @@
 {
-  "name": "vulcanize",
-  "version": "0.2.6",
+  "name": "spock",
+  "version": "0.1.0",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
-  "bin": {
-    "vulcanize": "bin/vulcanize"
-  },
   "dependencies": {
     "async": "^0.7.0",
-    "cheerio": "^0.15.0",
-    "clean-css": "~2.1.0",
-    "nopt": "~2.2.0",
-    "uglify-js": "~2.4.8"
+    "cheerio": "^0.15.0"
   },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Daniel Freedman",
-  "license": "BSD",
-  "directories": {
-    "test": "test"
-  },
+  "author": "William Riley-Land",
+  "license": "LICENSE",
   "keywords": [
     "web components",
     "polymer"
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/Polymer/vulcanize.git"
+    "url": "git://github.com/wprl/spock.git"
   },
   "bugs": {
-    "url": "https://github.com/Polymer/vulcanize/issues"
-  }
+    "url": "https://github.com/wprl/spock/issues"
+  },
+  "homepage": "https://github.com/wprl/spock"
 }

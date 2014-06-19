@@ -1,4 +1,4 @@
-# Vulcanize
+# Spock
 
 ### Concatenate a set of Web Components into one file
 
@@ -9,22 +9,7 @@ materials.
 
 `vulcanize` is available on npm. For maximium utility, `vulcanize` should be installed globally.
 
-    sudo npm install -g vulcanize
-
-This will install `vulcanize` to `/usr/local/bin/vulcanize`.
-
-## Usage
-
-    vulcanize index.html
-
-At the simplest, `vulcanize` only requires an html file as an argument. The optimized output file will be named
-`vulcanized.html`.
-
-If you want to control the output name, use the `-o` flag
-
-    vulcanize -o build.html index.html
-
-Most URLs will be automatically adjusted by the vulcanizer.
+    npm install --save-dev spock
 
 
 ## Options
@@ -99,11 +84,8 @@ x-dep.html:
 </polymer-element>
 ```
 
-Running vulcan on `index.html`, and specifying `build.html` as the output:
-
-    vulcanize -o build.html index.html
-
-Will result in `build.html` that appears as so:
+Running spock on `index.html`, and specifying `build.html` as the output will
+result in `build.html` that appears as so:
 
 ```html
 <!DOCTYPE html>
@@ -130,7 +112,7 @@ Will result in `build.html` that appears as so:
 [Content Security Policy](http://en.wikipedia.org/wiki/Content_Security_Policy), or CSP, is a Javascript security model
 that aims to prevent XSS and other attacks. In so doing, it prohibits the use of inline scripts.
 
-To help automate the use of Polymer element registration with CSP, the `--csp` flag to vulcan will remove all scripts
+To help automate the use of Polymer element registration with CSP, the `--csp` flag to spock will remove all scripts
 from the HTML Imports and place their contents into an output javascript file.
 
 Using the previous example, the output from `vulcanize --csp -o build.html index.html` will be
@@ -157,5 +139,3 @@ build.js:
 Polymer('x-dep');
 Polymer('x-app');
 ```
-
-[![Analytics](https://ga-beacon.appspot.com/UA-39334307-2/Polymer/vulcanize/README)](https://github.com/igrigorik/ga-beacon)

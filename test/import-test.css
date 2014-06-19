@@ -1,5 +1,0 @@
-:host([type="platform"]) { background-color: red; }
-:host([type="core"]) { background-color: red; }
-:host([type="elements"]) { background-color: red; }
-polyfill-next-selector { content: ':host header'; }
-polyfill-next-selector { content: 'I WIN'; }
