@@ -1,12 +1,13 @@
 {
   "name": "spock",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Process Web Components into one output file",
   "main": "index.js",
   "dependencies": {
     "async": "^0.7.0",
     "cheerio": "^0.15.0",
-    "event-stream": "^3.1.5"
+    "event-stream": "^3.1.5",
+    "vinyl": "^0.2.3"
   },
   "devDependencies": {},
   "scripts": {
