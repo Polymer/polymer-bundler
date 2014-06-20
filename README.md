@@ -1,14 +1,13 @@
 # Spock
 
-### A gulp task to concatenate a set of Web Components into one file.  A 
-preprocessor for `<link rel="import">`.
+A gulp task to concatenate a set of Web Components into one file.  A preprocessor for `<link rel="import">`.
 
 >Named for the [Vulcanization](http://en.wikipedia.org/wiki/Vulcanization) process that turns polymers into more durable
 materials.
 
 ## Installation
 
-`spock` is available on npm. For maximium utility, `spock` should be installed globally.
+`spock` is available on npm.
 
     npm install --save-dev spock
 

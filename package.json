@@ -1,6 +1,6 @@
 {
   "name": "spock",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Process Web Components into one output file",
   "main": "index.js",
   "dependencies": {
@@ -16,8 +16,13 @@
   "author": "William Riley-Land",
   "license": "LICENSE",
   "keywords": [
+    "gulp",
     "web components",
-    "polymer"
+    "polymer",
+    "preprocessor",
+    "link",
+    "rel",
+    "import"
   ],
   "repository": {
     "type": "git",
