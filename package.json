@@ -1,36 +1,38 @@
 {
-  "name": "vulcanize",
-  "version": "0.2.6",
-  "description": "Process Web Components into one output file",
-  "main": "lib/vulcan.js",
-  "bin": {
-    "vulcanize": "bin/vulcanize"
-  },
+  "name": "spock",
+  "version": "0.3.2",
+  "description": "Process <link rel='import'> into a single file with this gulp plugin.",
+  "main": "index.js",
   "dependencies": {
     "async": "^0.7.0",
     "cheerio": "^0.15.0",
-    "clean-css": "~2.1.0",
-    "nopt": "~2.2.0",
-    "uglify-js": "~2.4.8"
+    "event-stream": "^3.1.5",
+    "vinyl": "^0.2.3"
   },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Daniel Freedman",
-  "license": "BSD",
-  "directories": {
-    "test": "test"
-  },
+  "author": "William Riley-Land",
+  "license": "LICENSE",
   "keywords": [
+    "gulp",
     "web components",
-    "polymer"
+    "polymer",
+    "preprocessor",
+    "link",
+    "rel",
+    "import",
+    "html",
+    "include",
+    "html5"
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/Polymer/vulcanize.git"
+    "url": "git://github.com/wprl/spock.git"
   },
   "bugs": {
-    "url": "https://github.com/Polymer/vulcanize/issues"
-  }
+    "url": "https://github.com/wprl/spock/issues"
+  },
+  "homepage": "https://github.com/wprl/spock"
 }
