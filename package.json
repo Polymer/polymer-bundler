@@ -1,7 +1,7 @@
 {
   "name": "spock",
-  "version": "0.3.1",
-  "description": "Process Web Components into one output file",
+  "version": "0.3.2",
+  "description": "Process <link rel='import'> into a single file with this gulp plugin.",
   "main": "index.js",
   "dependencies": {
     "async": "^0.7.0",
@@ -22,7 +22,10 @@
     "preprocessor",
     "link",
     "rel",
-    "import"
+    "import",
+    "html",
+    "include",
+    "html5"
   ],
   "repository": {
     "type": "git",
