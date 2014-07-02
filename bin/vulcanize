@@ -28,6 +28,7 @@ var help = [
   '      "imports": [ "regex-to-exclude" ],',
   '      "styles": [ "regex-to-exclude" ],',
   '      "scripts": [ "regex-to-exclude" ],',
+  '      "stripExcludes": [ "boolean" ],',
   '    }',
   '  }'
 ];
