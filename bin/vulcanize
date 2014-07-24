@@ -2,7 +2,6 @@
 var path = require('path');
 var fs = require('fs');
 var nopt = require('nopt');
-var vulcan = require('../lib/vulcan.js');
 
 var help = [
   'vulcanize: Concatenate a set of Web Components into one file',
@@ -15,6 +14,7 @@ var help = [
   '  --verbose, -v: More verbose logging',
   '  --help, -h, -?: Print this message',
   '  --config: Read the given config file',
+  '  --stdio: Read input from stdin and output to stdio',
   '  --strip, -s: Remove comments and empty text nodes',
   '  --csp: Extract inline scripts to a separate file (uses <output file name>.js)',
   '  --inline: The opposite of CSP mode, inline all assets (script and css) into the document',
@@ -44,6 +44,7 @@ var options = nopt(
     'help': Boolean,
     'inline': Boolean,
     'output': path,
+    'stdio': Boolean,
     'strip': Boolean,
     'verbose': Boolean
   },
@@ -51,6 +52,7 @@ var options = nopt(
     '?': ['--help'],
     'h': ['--help'],
     'o': ['--output'],
+    'i': ['--stdio'],
     's': ['--strip'],
     'v': ['--verbose']
   }
@@ -66,10 +68,29 @@ if (argv[0]) {
   options.input = path.resolve(argv[0]);
 }
 
-vulcan.setOptions(options, function(err) {
-  if (err) {
-    console.error(err);
-    process.exit(1);
-  }
-  vulcan.processDocument();
-});
+var vulcan = new require('../lib/vulcan.js');
+
+/**
+ * vulcanize can be called either as autonomous process,
+ * reading and writing from/to file, or as piped utility,
+ * accepting input from stdin and sending output to stdout.
+ */
+function vulcanize(input) {
+  vulcan.process(input, options, function(err, data) {
+    if (err) {
+      console.error(err);
+      process.exit(1);
+    }
+    if (options.stdio) {
+      process.stdout.write(data);
+    }
+  });
+}
+
+if (!options.input && options.stdio) {
+  var aggregate = '';
+  process.stdin.resume();
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', function(data) { aggregate += data; });
+  process.stdin.on('end', function() { vulcanize(aggregate); });
+} else { vulcanize(false); }
