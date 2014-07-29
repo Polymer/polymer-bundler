@@ -31,5 +31,8 @@
   },
   "bugs": {
     "url": "https://github.com/Polymer/vulcanize/issues"
+  },
+  "scripts": {
+    "test": "node test.js"
   }
 }

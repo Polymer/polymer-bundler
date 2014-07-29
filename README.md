@@ -13,7 +13,42 @@ materials.
 
 This will install `vulcanize` to `/usr/local/bin/vulcanize`.
 
-## Usage
+## Node.js Usage
+
+After installation, require vulcanize into your project, and use its `process` function to initiate a vulcanization
+attempt. Called without any specific options, this will run `vulcanize` in string input/output mode:
+
+    var vulcan = require("vulcanize");
+    var data = "<!doctype html><html>...</html>";
+    vulcan.process(data, function(err, vulcanized) {
+      if(err) {
+        return console.error(err);
+      }
+      console.log(vulcanized);
+    });
+
+Alternatively, to run from file, you can pass in an options object with the `options.input` value set to whichever
+input file needs to be converted:
+
+    vulcan.process({ input: "test/import-test.html", stdio: true}, function(err, vulcanized) {
+      if(err) {
+        return console.error(err);
+      }
+      console.log(vulcanized);
+    });
+
+Or, if you wish to work with the filesystem exclusively, omit the `stdio` option entirely and either use `output`
+for an explicit filewrite, or omit it for writing to the default `vulcanized.html`:
+
+    vulcan.process({ input: "test/import-test.html" }, function(err, vulcanized) {
+      if(err) {
+        return console.error(err);
+      }
+      var fromVulcanizedFile = fs.readFileSync("vulcanized.html");
+      console.log(vulcanized == fromVulcanizedFile);
+    });
+
+## CLI Usage
 
     vulcanize index.html
 
@@ -26,6 +61,10 @@ If you want to control the output name, use the `-o` flag
 
 Most URLs will be automatically adjusted by the vulcanizer.
 
+To use vulcanize as a pipe utility, using it to accept input from `stdin` and ouputting to `stdout`, use the `--stdio`
+runtime flag:
+
+    ls x-*.html | vulcanize --stdio | grep "<polymer-element"
 
 ## Options
 
@@ -37,6 +76,8 @@ Most URLs will be automatically adjusted by the vulcanizer.
   - Print this message
 - `--config`
   - Read a given config file
+- `  --stdio`, `-i`
+  - Read input from `stdin` and output to `stdout`, rather than reading from and writing to file
 - `--strip`, `-s`
   - Remove comments and empty text nodes
 -  `--csp`
