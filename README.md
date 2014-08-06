@@ -107,22 +107,22 @@ Will result in `build.html` that appears as so:
 
 ```html
 <!DOCTYPE html>
-<polymer-element name="x-dep" assetpath="path/to/">
+<div hidden><polymer-element name="x-dep" assetpath="path/to/">
   <template>
-    <img src="path/to/x-dep-icon.jpg">
+    <img src="http://www.polymer-project.org/images/logos/p-logo.svg">
   </template>
   <script>
     Polymer('x-dep');
   </script>
 </polymer-element>
+
 <polymer-element name="x-app" assetpath="">
   <template>
     <x-dep></x-dep>
   </template>
-  <script>
-    Polymer('x-app');
-  </script>
+  <script>Polymer('x-app')</script>
 </polymer-element>
+</div>
 <x-app></x-app>
 ```
 
@@ -138,24 +138,52 @@ Using the previous example, the output from `vulcanize --csp -o build.html index
 build.html:
 ```html
 <!DOCTYPE html>
-<polymer-element name="x-dep" assetpath="path/to/">
+<div hidden><polymer-element name="x-dep" assetpath="path/to/">
   <template>
-    <img src="path/to/x-dep-icon.jpg">
+    <img src="http://www.polymer-project.org/images/logos/p-logo.svg">
   </template>
+  
 </polymer-element>
+
 <polymer-element name="x-app" assetpath="">
   <template>
     <x-dep></x-dep>
   </template>
+  
 </polymer-element>
-<script src="build.js"></script>
+</div>
 <x-app></x-app>
+<script src="build.js"></script>
 ```
 
 build.js:
 ```js
-Polymer('x-dep');
-Polymer('x-app');
+
+    Polymer('x-dep');
+  ;
+Polymer('x-app')
+```
+
+The JS files can become a bit messy without reformatting, and semi-colons are inserted between script contents as a
+precaution.
+
+## Stripping whitespace
+
+Vulcanize includes a set of size reducing heuristics to remove unnecessary whitespace and comments in HTML, JS, and CSS.
+This can be activated by using the `--strip` option.
+
+Using the previous example, the output from `vulcanize --csp -o build.html --strip index.html` will be
+
+build.html:
+```html
+<!DOCTYPE html>
+<div hidden><polymer-element name="x-dep" assetpath="path/to/"><template><img src="http://www.polymer-project.org/images/logos/p-logo.svg"></template></polymer-element><polymer-element name="x-app" assetpath=""><template><x-dep></x-dep></template></polymer-element></div>
+<x-app></x-app>
+<script src="build.js"></script>
+```
+
+```js
+Polymer("x-dep");Polymer("x-app");
 ```
 
 [![Analytics](https://ga-beacon.appspot.com/UA-39334307-2/Polymer/vulcanize/README)](https://github.com/igrigorik/ga-beacon)
