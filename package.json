@@ -1,6 +1,6 @@
 {
   "name": "vulcanize",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "bin": {
@@ -9,6 +9,7 @@
   "dependencies": {
     "cheerio": "^0.17.0",
     "clean-css": "^2.2.11",
+    "dom-serializer": "git://github.com/azakus/dom-serializer.git#self-closing-svg",
     "nopt": "^3.0.1",
     "uglify-js": "^2.4.15"
   },
