@@ -46,7 +46,7 @@ Most URLs will be automatically adjusted by the vulcanizer.
 - `--inline --csp`
   - Bundle all javascript (inline and external) into `<output file name>`.js
 - `--webAbsPath`, `-p`
-  - Join ``webAbsPath`` with your site root path resources to derive a relative path
+  - Specify path to your site root. Absolute paths and relative paths will be resolved to absolute paths based on webAbsPath
 
 ## Config
 > JSON file for additional options
