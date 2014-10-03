@@ -18,7 +18,7 @@ var help = [
   '  --strip, -s: Remove comments and empty text nodes',
   '  --csp: Extract inline scripts to a separate file (uses <output file name>.js)',
   '  --inline: The opposite of CSP mode, inline all assets (script and css) into the document',
-  '  --webAbsPath: An absolute path to resolve ~web absolute paths to relative paths',
+  '  --abspath: An absolute path to resolve ~web absolute paths to relative paths',
   '  --csp --inline: Bundle all javascript (inline and external) into <output file name>.js',
   '',
   'Config:',
@@ -45,7 +45,7 @@ var options = nopt(
     'help': Boolean,
     'inline': Boolean,
     'output': path,
-    'webAbsPath': path,
+    'abspath': path,
     'strip': Boolean,
     'verbose': Boolean
   },

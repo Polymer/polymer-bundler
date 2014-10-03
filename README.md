@@ -45,8 +45,8 @@ Most URLs will be automatically adjusted by the vulcanizer.
     - The opposite of CSP mode, inline all assets (script and css) into the document
 - `--inline --csp`
     - Bundle all javascript (inline and external) into `<output file name>`.js
-- `--webAbsPath`, `-p`
-    - Join ``webAbsPath`` with your site root path resources to derive a relative path
+- `--abspath`, `-p`
+    - Join ``abspath`` with your site root path resources to derive a relative path
 
 ## Config
 > JSON file for additional options
