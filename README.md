@@ -50,7 +50,6 @@ Most URLs will be automatically adjusted by the vulcanizer.
 > JSON file for additional options
 
 - Excludes: Exclude the selected urls from vulcanization (urls are still deduplicated for imports).
-- Excluded tags are stripped completely when "stripExcludes" is true. Useful for excluding local jQuery in favor of CDN.
 
 ### Example Config
 ```json
@@ -64,6 +63,9 @@ Most URLs will be automatically adjusted by the vulcanizer.
 ```
 
 ### Example: use excludes to replace a local jQuery with CDN jQuery for my-comp
+
+- Excluded tags are stripped completely when "stripExcludes" is true. Useful for excluding local jQuery in favor of CDN.
+
 #### Step 1, create config.json
 ```json
 {
