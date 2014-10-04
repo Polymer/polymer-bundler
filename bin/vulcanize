@@ -26,7 +26,7 @@ var help = [
   '  --help, -h, -?: Print this message',
   '  --config: Read the given config file',
   '  --strip, -s: Remove comments and empty text nodes',
-  '  --webAbsPath: A local absolute path for resolving web root absolute paths',
+  '  --abspath, -p: Specify site root. Resolve paths to absolute paths based on site root',
   '  --csp: Extract inline scripts to a separate file (uses <output file name>.js)',
   '  --inline: The opposite of CSP mode, inline all assets (script and css) into the document',
   '  --csp --inline: Bundle all javascript (inline and external) into <output file name>.js',
@@ -55,7 +55,7 @@ var options = nopt(
     'help': Boolean,
     'inline': Boolean,
     'output': path,
-    'webAbsPath': path,
+    'abspath': path,
     'strip': Boolean,
     'verbose': Boolean
   },
@@ -63,7 +63,7 @@ var options = nopt(
     '?': ['--help'],
     'h': ['--help'],
     'o': ['--output'],
-    'p': ['--webAbsPath'],
+    'p': ['--abspath'],
     's': ['--strip'],
     'v': ['--verbose']
   }
