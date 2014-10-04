@@ -7,6 +7,10 @@
     Code distributed by Google as part of the polymer project is also
     subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
-<link rel="import" href="http://example.com/foo/bar.html">
-<link rel="import" href="http://example.com/foo/fizz/../bar.html">
-<link rel="import" href="/foo/bar.html">
+<link rel="import" href="path/to/x-dep.html">
+<polymer-element name="x-app">
+  <template>
+    <x-dep></x-dep>
+  </template>
+  <script>Polymer('x-app')</script>
+</polymer-element>
