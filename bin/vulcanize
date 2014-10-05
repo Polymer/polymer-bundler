@@ -44,7 +44,6 @@ var options = nopt(
     'help': Boolean,
     'inline': Boolean,
     'output': path,
-    'stdio': Boolean,
     'strip': Boolean,
     'verbose': Boolean
   },
@@ -52,7 +51,6 @@ var options = nopt(
     '?': ['--help'],
     'h': ['--help'],
     'o': ['--output'],
-    'i': ['--stdio'],
     's': ['--strip'],
     'v': ['--verbose']
   }
@@ -87,7 +85,7 @@ function vulcanize(input) {
   });
 }
 
-if (!options.input && options.stdio) {
+if (!options.input) {
   var aggregate = '';
   process.stdin.resume();
   process.stdin.setEncoding('utf8');
