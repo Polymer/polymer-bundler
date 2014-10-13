@@ -30,21 +30,23 @@ Most URLs will be automatically adjusted by the vulcanizer.
 ## Options
 
 -  `--output`, `-o`
-  - Output file name (defaults to vulcanized.html)
+    - Output file name (defaults to vulcanized.html)
 -  `--verbose`, `-v`
-  - More verbose logging
+    - More verbose logging
 -  `--help`, `-v`, `-?`
-  - Print this message
+    - Print this message
 - `--config`
-  - Read a given config file
+    - Read a given config file
 - `--strip`, `-s`
-  - Remove comments and empty text nodes
+    - Remove comments and empty text nodes
 -  `--csp`
-  - Extract inline scripts to a separate file (uses `<output file name>`.js)
+    - Extract inline scripts to a separate file (uses `<output file name>`.js)
 -  `--inline`
-  - The opposite of CSP mode, inline all assets (script and css) into the document
+    - The opposite of CSP mode, inline all assets (script and css) into the document
 - `--inline --csp`
-  - Bundle all javascript (inline and external) into `<output file name>`.js
+    - Bundle all javascript (inline and external) into `<output file name>`.js
+- `--abspath`, `-p`
+    - Join ``abspath`` with your site root path resources to derive a relative path
 
 ## Config
 > JSON file for additional options
