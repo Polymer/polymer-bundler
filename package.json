@@ -1,11 +1,12 @@
 {
   "name": "spock",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Process <link rel='import'> into a single file with this gulp plugin.",
   "main": "index.js",
   "dependencies": {
     "async": "^0.7.0",
     "cheerio": "^0.15.0",
+    "deco": "^0.12.3",
     "event-stream": "^3.1.5",
     "vinyl": "^0.2.3"
   },
