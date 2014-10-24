@@ -147,14 +147,14 @@ suite('constants', function() {
       pathresolver.resolvePaths($, inputPath, outputPath);
 
       actual = $.html();
-      assert.equal(actual, expected);
+      assert.equal(actual, expected, 'relative');
 
       $ = whacko.load(html);
 
       pathresolver.resolvePaths($, inputPath, outputPath, '/foo');
 
       actual = $.html();
-      assert.equal(actual, expected2);
+      assert.equal(actual, expected2, 'absolute');
     });
 
   });
