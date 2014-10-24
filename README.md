@@ -1,3 +1,6 @@
+[![NPM version](http://img.shields.io/npm/v/vulcanize.svg)](https://npmjs.org/package/vulcanize)
+[![Build Status](http://img.shields.io/travis/Polymer/vulcanize.svg)](https://travis-ci.org/Polymer/vulcanize)
+
 # Vulcanize
 
 ### Concatenate a set of Web Components into one file
