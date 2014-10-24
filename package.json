@@ -17,7 +17,7 @@
     "mocha": "^2.0.1"
   },
   "scripts": {
-    "test": "node_modules/.bin/jshint lib/* bin/* && node_modules/.bin/mocha --ui tdd"
+    "test": "node_modules/.bin/jshint lib/*.js bin/* test/*.js && node_modules/.bin/mocha"
   },
   "author": "Daniel Freedman",
   "license": "BSD",
