@@ -14,6 +14,8 @@ var fs = require('fs');
 var nopt = require('nopt');
 var vulcan = require('../lib/vulcan.js');
 
+var pkg = require('../package.json');
+
 var help = [
   'vulcanize: Concatenate a set of Web Components into one file',
   '',
@@ -30,6 +32,8 @@ var help = [
   '  --csp: Extract inline scripts to a separate file (uses <output file name>.js)',
   '  --inline: The opposite of CSP mode, inline all assets (script and css) into the document',
   '  --csp --inline: Bundle all javascript (inline and external) into <output file name>.js',
+  '  --version, -V: print version information',
+  '  --no-update-notifier: disable "update vulcanize" checks',
   '',
   'Config:',
   '  JSON file for additional options',
@@ -57,7 +61,8 @@ var options = nopt(
     'output': path,
     'abspath': path,
     'strip': Boolean,
-    'verbose': Boolean
+    'verbose': Boolean,
+    'version': Boolean
   },
   {
     '?': ['--help'],
@@ -65,12 +70,29 @@ var options = nopt(
     'o': ['--output'],
     'p': ['--abspath'],
     's': ['--strip'],
-    'v': ['--verbose']
+    'v': ['--verbose'],
+    'V': ['--version']
   }
 );
 
 if (options.help || process.argv.length === 2) {
   printHelp();
+}
+
+if (options.version) {
+  console.log('vulcanize %s', pkg.version);
+  process.exit(0);
+}
+
+if (options['update-notifier'] !== false) {
+  (function() {
+    try {
+      require('update-notifier')({
+        packageName: pkg.name,
+        packageVersion: pkg.version
+      }).notify();
+    } catch(_) {}
+  })();
 }
 
 var argv = options.argv.remain;

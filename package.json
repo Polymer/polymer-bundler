@@ -1,6 +1,6 @@
 {
   "name": "vulcanize",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "bin": {
@@ -12,9 +12,12 @@
     "uglify-js": "^2.4.15",
     "whacko": "^0.17.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jshint": "^2.5.6",
+    "mocha": "^2.0.1"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node_modules/.bin/jshint lib/* bin/* && node_modules/.bin/mocha --ui tdd"
   },
   "author": "Daniel Freedman",
   "license": "BSD",
@@ -31,5 +34,8 @@
   },
   "bugs": {
     "url": "https://github.com/Polymer/vulcanize/issues"
+  },
+  "optionalDependencies": {
+    "update-notifier": "^0.2.2"
   }
 }
