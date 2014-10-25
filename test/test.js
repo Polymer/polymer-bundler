@@ -41,24 +41,6 @@ suite('constants', function() {
       assert('url("foo.html")'.match(url), 'double quote');
     });
 
-    test('Polymer Invocation', function() {
-      var polymer = constants.POLYMER_INVOCATION;
-
-      function test(invocation, expected, msg) {
-        var matches = polymer.exec(invocation);
-        assert(matches, 'polymer invocation found');
-        if (expected) {
-          var name = String(matches[1]).replace(/['"]/g, '');
-          assert.equal(name, expected);
-        }
-      }
-
-      test('Polymer(\'core-input\', {})', 'core-input', 'full');
-      test('Polymer()', null, 'none');
-      test('Polymer({})', null, 'partial');
-
-    });
-
   });
 
   suite('Path Resolver', function() {
@@ -155,6 +137,30 @@ suite('constants', function() {
 
       actual = $.html();
       assert.equal(actual, expected2, 'absolute');
+    });
+
+  });
+
+  suite('Utils', function() {
+    var utils = require('../lib/utils.js');
+
+    test('Polymer Invocation', function() {
+      var polymer = constants.POLYMER_INVOCATION;
+
+      function test(invocation, expected, msg) {
+        var matches = polymer.exec(invocation);
+        assert(matches, 'polymer invocation found');
+        var replacement = utils.processPolymerInvocation('core-input', matches);
+        var actual = invocation.replace(matches[0], replacement);
+        assert.strictEqual(actual, expected, msg);
+      }
+
+      test('Polymer(\'core-input\', {})', 'Polymer(\'core-input\', {})', 'full');
+      test('Polymer(\'core-input\')', 'Polymer(\'core-input\')', 'name-only');
+      test('Polymer()', 'Polymer(\'core-input\')', 'none');
+      test('Polymer({})', 'Polymer(\'core-input\',{})', 'object-only');
+      test('Polymer(p)', 'Polymer(\'core-input\',p)', 'indirect');
+
     });
 
   });
