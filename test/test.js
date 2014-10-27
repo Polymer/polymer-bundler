@@ -338,6 +338,8 @@ done();
 
 suite('Vulcan', function() {
   var vulcan = require('../lib/vulcan.js');
+  var outputPath = path.resolve('test/html/actual.html');
+  var inputPath = path.resolve('test/html/default.html');
 
   test('set options', function(done) {
     var options = {
@@ -373,16 +375,69 @@ suite('Vulcan', function() {
     });
   }
 
-  test.skip('defaults', function(done) {
-    var outputPath = path.resolve('test/html/actual.html');
-    process({input: path.resolve('test/html/default.html'), output: outputPath}, function(outputs) {
+  test('defaults', function(done) {
+    var getTextContent = require('../lib/utils.js').getTextContent;
+
+    process({input: inputPath, output: outputPath}, function(outputs) {
       assert.equal(Object.keys(outputs).length, 1);
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
       assert.equal($('body > div[hidden]').length, 1, 'only one div[hidden]');
-      $('polymer-element');
+      assert.equal($('head > link[rel="import"]').length, 0, 'all imports removed');
+      assert.equal($('polymer-element').length, 1, 'imports were deduplicated');
+      assert.equal($('polymer-element').attr('noscript'), null, 'noscript removed');
+      assert.equal(getTextContent($('polymer-element > script')), 'Polymer(\'my-element\');', 'polymer script included');
+      assert.equal($('polymer-element > template > link').length, 0, 'external styles removed');
+      assert.equal($('polymer-element > template > style').length, 1, 'styles inlined');
+      assert.equal($('polymer-element > template > svg > *').length, 6, 'svg children propery nested');
+      assert.equal($('polymer-element').attr('assetpath'), 'imports/', 'assetpath set');
       done();
+    });
+  });
+
+  test('CSP', function(done) {
+
+    process({input: inputPath, output: outputPath, csp: true}, function(outputs) {
+      assert.equal(Object.keys(outputs).length, 2);
+      var vulcanized = outputs[outputPath];
+      var vulcanizedJS = outputs[path.resolve(outputPath, '../actual.js')];
+      assert(vulcanized);
+      assert(vulcanizedJS);
+      var $ = require('whacko').load(vulcanized);
+      assert($('body > script[src="actual.js"]'), 'vulcanized script in body');
+      assert.equal($('body script:not([src])').length, 0, 'inline scripts removed');
+      assert.equal(vulcanizedJS, 'Polymer(\'my-element\');', 'csp element script');
+      done();
+    });
+  });
+
+  test('exclude', function(done) {
+
+    var i = 2;
+    function reallyDone(err) {
+      if (err) {
+        return done(err);
+      }
+      if (--i === 0) {
+        done();
+      }
+    }
+
+    process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}}, function(outputs) {
+      var vulcanized = outputs[outputPath];
+      assert(vulcanized);
+      var $ = require('whacko').load(vulcanized);
+      assert.equal($('head > link[href="imports/simple-import.html"]').length, 1, 'import excluded');
+      reallyDone();
+    });
+
+    process({input: inputPath, output: outputPath, excludes: {styles: ['simple-style']}}, function(outputs) {
+      var vulcanized = outputs[outputPath];
+      assert(vulcanized);
+      var $ = require('whacko').load(vulcanized);
+      assert.equal($('polymer-element[name="my-element"] > template > link[href="imports/simple-style.css"]').length, 1, 'style excluded');
+      reallyDone();
     });
   });
 
