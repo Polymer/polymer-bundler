@@ -48,7 +48,7 @@ suite('constants', function() {
     var inputPath = '/foo/bar/my-element';
     var outputPath = '/foo/bar';
 
-    test('rewrite URLs', function() {
+    test('Rewrite URLs', function() {
       var css = [
         'x-element {',
         '  background-image: url(foo.jpg);',
@@ -161,6 +161,134 @@ suite('constants', function() {
       test('Polymer({})', 'Polymer(\'core-input\',{})', 'object-only');
       test('Polymer(p)', 'Polymer(\'core-input\',p)', 'indirect');
 
+    });
+
+    test('getTextContent', function() {
+      var whacko = require('whacko');
+      var divEl = whacko('<div>some text!</div>');
+      assert.equal(utils.getTextContent(divEl), 'some text!', 'a textnode child');
+      var blankEl = whacko('<div></div>');
+      assert.equal(utils.getTextContent(blankEl), '', 'no textnode children');
+    });
+
+    test('setTextContent', function() {
+      var whacko = require('whacko');
+      var divEl = whacko('<div></div>');
+      utils.setTextContent(divEl, 'some text!');
+      assert.equal(utils.getTextContent(divEl), 'some text!', 'create text node');
+      utils.setTextContent(divEl, 'some text 2!');
+      assert.equal(utils.getTextContent(divEl), 'some text 2!', 'override text node');
+    });
+
+    test('unixPath', function() {
+      var pp = ['foo', 'bar', 'baz'];
+      var p = pp.join('/');
+      var actual = utils.unixPath(p);
+      assert.equal(actual, p, 'started unix');
+      var p2 = pp.join('\\');
+      actual = utils.unixPath(p2, '\\');
+      assert.equal(actual, p, 'windows path');
+    });
+
+    test('escapeForRegExp', function() {
+      var actual = utils.escapeForRegExp('foo-bar');
+      assert.equal(actual, 'foo\\-bar', 'element name');
+      actual = utils.escapeForRegExp('foo/bar/baz');
+      assert.equal(actual, 'foo\\/bar\\/baz', 'absolute path');
+    });
+
+  });
+
+  suite('Optparser', function() {
+    var path = require('path');
+    var optParser = require('../lib/optparser.js');
+    var constants = require('../lib/constants.js');
+    var ABS_URL = constants.ABS_URL;
+    var REMOTE_ABS_URL = constants.REMOTE_ABS_URL;
+
+    function optParserTest(fn, opts, skipFail) {
+      if (typeof opts === 'undefined') {
+        opts = {input: path.resolve('index.html')};
+      }
+      optParser.processOptions(opts, function(err, options) {
+        if (!skipFail) {
+          assert.equal(err, null);
+        }
+        fn(err, options);
+      });
+    }
+
+    test('Error on no input', function(done) {
+      optParserTest(function(err, options) {
+        assert.equal(err, 'No input file given!');
+        done();
+      }, null, true);
+    });
+
+    test('Defaults', function(done) {
+      optParserTest(function(err, options) {
+        assert.equal(options.input, path.resolve('index.html'));
+        assert.equal(options.output, path.resolve('vulcanized.html'));
+        assert.equal(options.outputDir, path.dirname(path.resolve('vulcanized.html')));
+        assert(!options.csp);
+        assert(!options.abspath);
+        assert.deepEqual(options.excludes, {imports:[ABS_URL], scripts:[ABS_URL], styles:[ABS_URL]});
+        done();
+      });
+    });
+
+    test('CSP', function(done) {
+      optParserTest(function(err, options) {
+        assert.equal(options.csp, path.resolve('vulcanized.js'));
+        done();
+      }, {input: 'index.html', csp: true});
+    });
+
+    test('output', function(done) {
+      optParserTest(function(err, options) {
+        assert.equal(options.output, path.resolve('build.html'));
+        assert.equal(options.csp, path.resolve('build.js'));
+        done();
+      }, {input: path.resolve('index.html'), output: path.resolve('build.html'), csp: true});
+    });
+
+    test('abspath', function(done) {
+      optParserTest(function(err, options) {
+        assert.equal(options.abspath, path.resolve('../'));
+        assert.deepEqual(options.excludes, {imports:[REMOTE_ABS_URL], scripts:[REMOTE_ABS_URL], styles:[REMOTE_ABS_URL]});
+        done();
+      }, {input: path.resolve('index.html'), abspath: path.resolve('../')});
+    });
+
+    test('excludes', function(done) {
+      var excludes = {
+        imports: [
+          '.*'
+        ]
+      };
+      var expected = [/.*/, ABS_URL];
+      optParserTest(function(err, options) {
+        assert.deepEqual(options.excludes.imports, expected);
+        done();
+      }, {input: path.resolve('index.html'), excludes: excludes});
+    });
+
+    test('config file', function(done) {
+      optParserTest(function(err, options) {
+        assert.equal(options.input, path.resolve('index.html'));
+        assert.equal(options.output, path.resolve('build.html'));
+        assert.equal(options.csp, path.resolve('build.js'));
+        assert(!options.abspath);
+        assert.deepEqual(options.excludes, {imports:[/.*/, ABS_URL], scripts:[ABS_URL], styles:[ABS_URL]});
+        done();
+      }, {config: path.resolve('test/config.json'), input: path.resolve('index.html'), output: path.resolve('build.html'), csp: true});
+    });
+
+    test('report broken config file', function(done) {
+      optParserTest(function(err, options) {
+        assert.equal(err, 'Malformed config JSON!');
+        done();
+      }, {config: path.resolve('test/broken_config.json')}, true);
     });
 
   });
