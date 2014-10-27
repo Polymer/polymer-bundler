@@ -43,253 +43,347 @@ suite('constants', function() {
 
   });
 
-  suite('Path Resolver', function() {
-    var pathresolver = require('../lib/pathresolver.js');
-    var inputPath = '/foo/bar/my-element';
-    var outputPath = '/foo/bar';
+  test('Polymer Invocation', function() {
+    var polymer = constants.POLYMER_INVOCATION;
 
-    test('Rewrite URLs', function() {
-      var css = [
-        'x-element {',
-        '  background-image: url(foo.jpg);',
-        '}',
-        'x-bar {',
-        '  background-image: url(data:xxxxx);',
-        '}',
-        'x-quuz {',
-        '  background-image: url(\'https://foo.bar/baz.jpg\');',
-        '}',
-      ].join('\n');
-
-      var expected = [
-        'x-element {',
-        '  background-image: url("my-element/foo.jpg");',
-        '}',
-        'x-bar {',
-        '  background-image: url("data:xxxxx");',
-        '}',
-        'x-quuz {',
-        '  background-image: url("https://foo.bar/baz.jpg");',
-        '}',
-      ].join('\n');
-
-      var actual = pathresolver.rewriteURL(inputPath, outputPath, css);
-      assert.equal(actual, expected);
-    });
-
-    test('Rewrite Paths', function() {
-      function testPath(val, expected, abs, msg) {
-        var actual = pathresolver.rewriteRelPath(inputPath, outputPath, val, abs);
-        assert.equal(actual, expected, msg);
-      }
-
-      testPath('biz.jpg', 'my-element/biz.jpg', null, 'local');
-      testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', null, 'remote');
-      testPath('biz.jpg', 'bar/my-element/biz.jpg', '/foo/', 'build path');
-    });
-
-    test('Resolve Paths', function() {
-      var html = [
-        '<link rel="import" href="../polymer/polymer.html">',
-        '<link rel="stylesheet" href="my-element.css">',
-        '<polymer-element name="my-element">',
-        '<template>',
-        '<style>:host { background-image: url(background.svg); }</style>',
-        '<script>Polymer()</script>',
-        '</template>',
-        '</polymer-element>'
-      ].join('\n');
-
-      var expected = [
-        '<html><head><link rel="import" href="polymer/polymer.html">',
-        '<link rel="stylesheet" href="my-element/my-element.css">',
-        '</head><body><polymer-element name="my-element" assetpath="my-element/">',
-        '<template>',
-        '<style>:host { background-image: url("my-element/background.svg"); }</style>',
-        '<script>Polymer()</script>',
-        '</template>',
-        '</polymer-element></body></html>'
-      ].join('\n');
-
-      var expected2 = [
-        '<html><head><link rel="import" href="/bar/polymer/polymer.html">',
-        '<link rel="stylesheet" href="/bar/my-element/my-element.css">',
-        '</head><body><polymer-element name="my-element" assetpath="/bar/my-element/">',
-        '<template>',
-        '<style>:host { background-image: url("/bar/my-element/background.svg"); }</style>',
-        '<script>Polymer()</script>',
-        '</template>',
-        '</polymer-element></body></html>'
-      ].join('\n');
-
-      var actual;
-      var whacko = require('whacko');
-      var $ = whacko.load(html);
-
-      pathresolver.resolvePaths($, inputPath, outputPath);
-
-      actual = $.html();
-      assert.equal(actual, expected, 'relative');
-
-      $ = whacko.load(html);
-
-      pathresolver.resolvePaths($, inputPath, outputPath, '/foo');
-
-      actual = $.html();
-      assert.equal(actual, expected2, 'absolute');
-    });
-
-  });
-
-  suite('Utils', function() {
-    var utils = require('../lib/utils.js');
-
-    test('Polymer Invocation', function() {
-      var polymer = constants.POLYMER_INVOCATION;
-
-      function test(invocation, expected, msg) {
-        var matches = polymer.exec(invocation);
-        assert(matches, 'polymer invocation found');
-        var replacement = utils.processPolymerInvocation('core-input', matches);
-        var actual = invocation.replace(matches[0], replacement);
-        assert.strictEqual(actual, expected, msg);
-      }
-
-      test('Polymer(\'core-input\', {})', 'Polymer(\'core-input\', {})', 'full');
-      test('Polymer(\'core-input\')', 'Polymer(\'core-input\')', 'name-only');
-      test('Polymer()', 'Polymer(\'core-input\')', 'none');
-      test('Polymer({})', 'Polymer(\'core-input\',{})', 'object-only');
-      test('Polymer(p)', 'Polymer(\'core-input\',p)', 'indirect');
-
-    });
-
-    test('getTextContent', function() {
-      var whacko = require('whacko');
-      var divEl = whacko('<div>some text!</div>');
-      assert.equal(utils.getTextContent(divEl), 'some text!', 'a textnode child');
-      var blankEl = whacko('<div></div>');
-      assert.equal(utils.getTextContent(blankEl), '', 'no textnode children');
-    });
-
-    test('setTextContent', function() {
-      var whacko = require('whacko');
-      var divEl = whacko('<div></div>');
-      utils.setTextContent(divEl, 'some text!');
-      assert.equal(utils.getTextContent(divEl), 'some text!', 'create text node');
-      utils.setTextContent(divEl, 'some text 2!');
-      assert.equal(utils.getTextContent(divEl), 'some text 2!', 'override text node');
-    });
-
-    test('unixPath', function() {
-      var pp = ['foo', 'bar', 'baz'];
-      var p = pp.join('/');
-      var actual = utils.unixPath(p);
-      assert.equal(actual, p, 'started unix');
-      var p2 = pp.join('\\');
-      actual = utils.unixPath(p2, '\\');
-      assert.equal(actual, p, 'windows path');
-    });
-
-    test('escapeForRegExp', function() {
-      var actual = utils.escapeForRegExp('foo-bar');
-      assert.equal(actual, 'foo\\-bar', 'element name');
-      actual = utils.escapeForRegExp('foo/bar/baz');
-      assert.equal(actual, 'foo\\/bar\\/baz', 'absolute path');
-    });
-
-  });
-
-  suite('Optparser', function() {
-    var path = require('path');
-    var optParser = require('../lib/optparser.js');
-    var constants = require('../lib/constants.js');
-    var ABS_URL = constants.ABS_URL;
-    var REMOTE_ABS_URL = constants.REMOTE_ABS_URL;
-
-    function optParserTest(fn, opts, skipFail) {
-      if (typeof opts === 'undefined') {
-        opts = {input: path.resolve('index.html')};
-      }
-      optParser.processOptions(opts, function(err, options) {
-        if (!skipFail) {
-          assert.equal(err, null);
-        }
-        fn(err, options);
-      });
+    function test(invocation, msg) {
+      var matches = polymer.exec(invocation);
+      assert(matches, 'polymer invocation found', msg);
     }
 
-    test('Error on no input', function(done) {
-      optParserTest(function(err, options) {
-        assert.equal(err, 'No input file given!');
-        done();
-      }, null, true);
-    });
+    test('Polymer(\'core-input\', {})', 'full');
+    test('Polymer(\'core-input\')', 'name-only');
+    test('Polymer()', 'none');
+    test('Polymer({})', 'object-only');
+    test('Polymer(p)', 'indirect');
+  });
 
-    test('Defaults', function(done) {
-      optParserTest(function(err, options) {
-        assert.equal(options.input, path.resolve('index.html'));
-        assert.equal(options.output, path.resolve('vulcanized.html'));
-        assert.equal(options.outputDir, path.dirname(path.resolve('vulcanized.html')));
-        assert(!options.csp);
-        assert(!options.abspath);
-        assert.deepEqual(options.excludes, {imports:[ABS_URL], scripts:[ABS_URL], styles:[ABS_URL]});
-        done();
-      });
-    });
+});
 
-    test('CSP', function(done) {
-      optParserTest(function(err, options) {
-        assert.equal(options.csp, path.resolve('vulcanized.js'));
-        done();
-      }, {input: 'index.html', csp: true});
-    });
+suite('Path Resolver', function() {
+  var pathresolver = require('../lib/pathresolver.js');
+  var inputPath = '/foo/bar/my-element';
+  var outputPath = '/foo/bar';
 
-    test('output', function(done) {
-      optParserTest(function(err, options) {
-        assert.equal(options.output, path.resolve('build.html'));
-        assert.equal(options.csp, path.resolve('build.js'));
-        done();
-      }, {input: path.resolve('index.html'), output: path.resolve('build.html'), csp: true});
-    });
+  test('Rewrite URLs', function() {
+    var css = [
+      'x-element {',
+      '  background-image: url(foo.jpg);',
+      '}',
+      'x-bar {',
+      '  background-image: url(data:xxxxx);',
+      '}',
+      'x-quuz {',
+      '  background-image: url(\'https://foo.bar/baz.jpg\');',
+      '}',
+    ].join('\n');
 
-    test('abspath', function(done) {
-      optParserTest(function(err, options) {
-        assert.equal(options.abspath, path.resolve('../'));
-        assert.deepEqual(options.excludes, {imports:[REMOTE_ABS_URL], scripts:[REMOTE_ABS_URL], styles:[REMOTE_ABS_URL]});
-        done();
-      }, {input: path.resolve('index.html'), abspath: path.resolve('../')});
-    });
+    var expected = [
+      'x-element {',
+      '  background-image: url("my-element/foo.jpg");',
+      '}',
+      'x-bar {',
+      '  background-image: url("data:xxxxx");',
+      '}',
+      'x-quuz {',
+      '  background-image: url("https://foo.bar/baz.jpg");',
+      '}',
+    ].join('\n');
 
-    test('excludes', function(done) {
-      var excludes = {
-        imports: [
-          '.*'
-        ]
-      };
-      var expected = [/.*/, ABS_URL];
-      optParserTest(function(err, options) {
-        assert.deepEqual(options.excludes.imports, expected);
-        done();
-      }, {input: path.resolve('index.html'), excludes: excludes});
-    });
+    var actual = pathresolver.rewriteURL(inputPath, outputPath, css);
+    assert.equal(actual, expected);
+  });
 
-    test('config file', function(done) {
-      optParserTest(function(err, options) {
-        assert.equal(options.input, path.resolve('index.html'));
-        assert.equal(options.output, path.resolve('build.html'));
-        assert.equal(options.csp, path.resolve('build.js'));
-        assert(!options.abspath);
-        assert.deepEqual(options.excludes, {imports:[/.*/, ABS_URL], scripts:[ABS_URL], styles:[ABS_URL]});
-        done();
-      }, {config: path.resolve('test/config.json'), input: path.resolve('index.html'), output: path.resolve('build.html'), csp: true});
-    });
+  test('Rewrite Paths', function() {
+    function testPath(val, expected, abs, msg) {
+      var actual = pathresolver.rewriteRelPath(inputPath, outputPath, val, abs);
+      assert.equal(actual, expected, msg);
+    }
 
-    test('report broken config file', function(done) {
-      optParserTest(function(err, options) {
-        assert.equal(err, 'Malformed config JSON!');
-        done();
-      }, {config: path.resolve('test/broken_config.json')}, true);
-    });
+    testPath('biz.jpg', 'my-element/biz.jpg', null, 'local');
+    testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', null, 'remote');
+    testPath('biz.jpg', 'bar/my-element/biz.jpg', '/foo/', 'build path');
+  });
+
+  test('Resolve Paths', function() {
+    var html = [
+      '<link rel="import" href="../polymer/polymer.html">',
+      '<link rel="stylesheet" href="my-element.css">',
+      '<polymer-element name="my-element">',
+      '<template>',
+      '<style>:host { background-image: url(background.svg); }</style>',
+      '<script>Polymer()</script>',
+      '</template>',
+      '</polymer-element>'
+    ].join('\n');
+
+    var expected = [
+      '<html><head><link rel="import" href="polymer/polymer.html">',
+      '<link rel="stylesheet" href="my-element/my-element.css">',
+      '</head><body><polymer-element name="my-element" assetpath="my-element/">',
+      '<template>',
+      '<style>:host { background-image: url("my-element/background.svg"); }</style>',
+      '<script>Polymer()</script>',
+      '</template>',
+      '</polymer-element></body></html>'
+    ].join('\n');
+
+    var expected2 = [
+      '<html><head><link rel="import" href="/bar/polymer/polymer.html">',
+      '<link rel="stylesheet" href="/bar/my-element/my-element.css">',
+      '</head><body><polymer-element name="my-element" assetpath="/bar/my-element/">',
+      '<template>',
+      '<style>:host { background-image: url("/bar/my-element/background.svg"); }</style>',
+      '<script>Polymer()</script>',
+      '</template>',
+      '</polymer-element></body></html>'
+    ].join('\n');
+
+    var actual;
+    var whacko = require('whacko');
+    var $ = whacko.load(html);
+
+    pathresolver.resolvePaths($, inputPath, outputPath);
+
+    actual = $.html();
+    assert.equal(actual, expected, 'relative');
+
+    $ = whacko.load(html);
+
+    pathresolver.resolvePaths($, inputPath, outputPath, '/foo');
+
+    actual = $.html();
+    assert.equal(actual, expected2, 'absolute');
+  });
+
+});
+
+suite('Utils', function() {
+  var constants = require('../lib/constants.js');
+  var utils = require('../lib/utils.js');
+
+  test('getTextContent', function() {
+    var whacko = require('whacko');
+    var divEl = whacko('<div>some text!</div>');
+    assert.equal(utils.getTextContent(divEl), 'some text!', 'a textnode child');
+    var blankEl = whacko('<div></div>');
+    assert.equal(utils.getTextContent(blankEl), '', 'no textnode children');
+  });
+
+  test('setTextContent', function() {
+    var whacko = require('whacko');
+    var divEl = whacko('<div></div>');
+    utils.setTextContent(divEl, 'some text!');
+    assert.equal(utils.getTextContent(divEl), 'some text!', 'create text node');
+    utils.setTextContent(divEl, 'some text 2!');
+    assert.equal(utils.getTextContent(divEl), 'some text 2!', 'override text node');
+  });
+
+  test('unixPath', function() {
+    var pp = ['foo', 'bar', 'baz'];
+    var p = pp.join('/');
+    var actual = utils.unixPath(p);
+    assert.equal(actual, p, 'started unix');
+    var p2 = pp.join('\\');
+    actual = utils.unixPath(p2, '\\');
+    assert.equal(actual, p, 'windows path');
+  });
+
+  test('escapeForRegExp', function() {
+    var actual = utils.escapeForRegExp('foo-bar');
+    assert.equal(actual, 'foo\\-bar', 'element name');
+    actual = utils.escapeForRegExp('foo/bar/baz');
+    assert.equal(actual, 'foo\\/bar\\/baz', 'absolute path');
+  });
+
+  test('Polymer Invocation', function() {
+    var polymer = constants.POLYMER_INVOCATION;
+
+    function test(invocation, expected, msg) {
+      var matches = polymer.exec(invocation);
+      assert(matches, 'polymer invocation found');
+      var replacement = utils.processPolymerInvocation('core-input', matches);
+      var actual = invocation.replace(matches[0], replacement);
+      assert.strictEqual(actual, expected, msg);
+    }
+
+    test('Polymer(\'core-input\', {})', 'Polymer(\'core-input\', {})', 'full');
+    test('Polymer(\'core-input\')', 'Polymer(\'core-input\')', 'name-only');
+    test('Polymer()', 'Polymer(\'core-input\')', 'none');
+    test('Polymer({})', 'Polymer(\'core-input\',{})', 'object-only');
+    test('Polymer(p)', 'Polymer(\'core-input\',p)', 'indirect');
 
   });
+
+  test('#82', function() {
+    var constants = require('../lib/constants.js');
+    var whacko = require('whacko');
+    var $ = whacko.load('<polymer-element name="paper-button-base"><script>(function(){ Polymer(p);}()</script></polymer-element>');
+    $(constants.JS_INLINE).each(function() {
+      var el = $(this);
+      var content = utils.getTextContent(el);
+      assert(content);
+      var parentElement = el.closest('polymer-element').get(0);
+      if (parentElement) {
+        var match = constants.POLYMER_INVOCATION.exec(content);
+        var elementName = $(parentElement).attr('name');
+        if (match) {
+          var invocation = utils.processPolymerInvocation(elementName, match);
+          content = content.replace(match[0], invocation);
+          utils.setTextContent(el, content);
+        }
+      }
+      assert.equal(utils.getTextContent(el), '(function(){ Polymer(\'paper-button-base\',p);}()');
+    });
+  });
+
+
+});
+
+suite('Optparser', function() {
+  var path = require('path');
+  var optParser = require('../lib/optparser.js');
+  var constants = require('../lib/constants.js');
+  var ABS_URL = constants.ABS_URL;
+  var REMOTE_ABS_URL = constants.REMOTE_ABS_URL;
+
+  function optParserTest(fn, opts, skipFail) {
+    if (typeof opts === 'undefined') {
+      opts = {input: path.resolve('index.html')};
+    }
+    optParser.processOptions(opts, function(err, options) {
+      if (!skipFail) {
+        assert.equal(err, null);
+      }
+      fn(err, options);
+    });
+  }
+
+  test('Error on no input', function(done) {
+    optParserTest(function(err, options) {
+      assert.equal(err, 'No input file given!');
+      done();
+    }, null, true);
+  });
+
+  test('Defaults', function(done) {
+    optParserTest(function(err, options) {
+      assert.equal(options.input, path.resolve('index.html'));
+      assert.equal(options.output, path.resolve('vulcanized.html'));
+      assert.equal(options.outputDir, path.dirname(path.resolve('vulcanized.html')));
+      assert(!options.csp);
+      assert(!options.abspath);
+      assert.deepEqual(options.excludes, {imports:[ABS_URL], scripts:[ABS_URL], styles:[ABS_URL]});
+      done();
+    });
+  });
+
+  test('CSP', function(done) {
+    optParserTest(function(err, options) {
+      assert.equal(options.csp, path.resolve('vulcanized.js'));
+      done();
+    }, {input: 'index.html', csp: true});
+  });
+
+  test('output', function(done) {
+    optParserTest(function(err, options) {
+      assert.equal(options.output, path.resolve('build.html'));
+      assert.equal(options.csp, path.resolve('build.js'));
+      done();
+    }, {input: path.resolve('index.html'), output: path.resolve('build.html'), csp: true});
+  });
+
+  test('abspath', function(done) {
+    optParserTest(function(err, options) {
+      assert.equal(options.abspath, path.resolve('../'));
+      assert.deepEqual(options.excludes, {imports:[REMOTE_ABS_URL], scripts:[REMOTE_ABS_URL], styles:[REMOTE_ABS_URL]});
+      done();
+    }, {input: path.resolve('index.html'), abspath: path.resolve('../')});
+  });
+
+  test('excludes', function(done) {
+    var excludes = {
+      imports: [
+        '.*'
+      ]
+    };
+    var expected = [/.*/, ABS_URL];
+
+    optParserTest(function(err, options) {
+      assert.deepEqual(options.excludes.imports, expected);
+      done();
+    }, {input: path.resolve('index.html'), excludes: excludes});
+
+  });
+
+  test('config file', function(done) {
+    optParserTest(function(err, options) {
+      assert.equal(options.input, path.resolve('index.html'));
+      assert.equal(options.output, path.resolve('build.html'));
+      assert.equal(options.csp, path.resolve('build.js'));
+      assert(!options.abspath);
+      assert.deepEqual(options.excludes, {imports:[/.*/, ABS_URL], scripts:[ABS_URL], styles:[ABS_URL]});
+done();
+    }, {config: path.resolve('test/config.json'), input: path.resolve('index.html'), output: path.resolve('build.html'), csp: true});
+  });
+
+  test('report broken config file', function(done) {
+    optParserTest(function(err, options) {
+      assert.equal(err, 'Malformed config JSON!');
+      done();
+    }, {config: path.resolve('test/broken_config.json')}, true);
+  });
+
+});
+
+suite('Vulcan', function() {
+  var vulcan = require('../lib/vulcan.js');
+
+  test('set options', function(done) {
+    var options = {
+      input: 'index.html'
+    };
+    vulcan.setOptions(options, done);
+  });
+
+  function process(options, fn) {
+    var outputs = Object.create(null);
+    options.outputSrc = function(name, data, eof) {
+      var b = outputs[name];
+      if (b && data) {
+        if (!Buffer.isBuffer(b)) {
+          throw new Error("Writing to an EOF'd Buffer!");
+        }
+        b = Buffer.concat([b, new Buffer(data)]);
+      }
+      if (!b) {
+        outputs[name] = b = new Buffer(data);
+      }
+      if (eof) {
+        outputs[name] = b.toString('utf8');
+      }
+    };
+    vulcan.setOptions(options, function(err) {
+      assert(!err);
+      vulcan.processDocument();
+      Object.keys(outputs).forEach(function(o) {
+        assert.equal(typeof outputs[o], 'string', 'all buffers are closed');
+      });
+      fn(outputs);
+    });
+  }
+
+  test.skip('defaults', function(done) {
+    var outputPath = path.resolve('test/html/actual.html');
+    process({input: path.resolve('test/html/default.html'), output: outputPath}, function(outputs) {
+      assert.equal(Object.keys(outputs).length, 1);
+      var vulcanized = outputs[outputPath];
+      assert(vulcanized);
+      var $ = require('whacko').load(vulcanized);
+      assert.equal($('body > div[hidden]').length, 1, 'only one div[hidden]');
+      $('polymer-element');
+      done();
+    });
+  });
+
 });
