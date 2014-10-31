@@ -359,20 +359,11 @@ suite('Vulcan', function() {
 
   function process(options, fn) {
     var outputs = Object.create(null);
-    options.outputSrc = function(name, data, eof) {
-      var b = outputs[name];
-      if (b && data) {
-        if (!Buffer.isBuffer(b)) {
-          throw new Error("Writing to an EOF'd Buffer!");
-        }
-        b = Buffer.concat([b, new Buffer(data)]);
+    options.outputSrc = function(name, data, eop) {
+      if (!data) {
+        throw new Error("Writing empty data");
       }
-      if (!b) {
-        outputs[name] = b = new Buffer(data);
-      }
-      if (eof) {
-        outputs[name] = b.toString('utf8');
-      }
+      outputs[name] = data;
     };
     vulcan.setOptions(options, function(err) {
       assert(!err);
