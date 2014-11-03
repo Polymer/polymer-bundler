@@ -1,3 +1,5 @@
+### 0.6.1
+- fix bug with removing absolute imports
 ### 0.6.0
 - Strip excluded imports by default (old behavior accessible with --no-strip-excludes flag)
 ### 0.5.0

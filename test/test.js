@@ -384,7 +384,7 @@ suite('Vulcan', function() {
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
       assert.equal($('body > div[hidden]').length, 1, 'only one div[hidden]');
-      assert.equal($('head > link[rel="import"]').length, 0, 'all imports removed');
+      assert.equal($('head > link[rel="import"]:not([href^="http://"])').length, 0, 'all relative imports removed');
       assert.equal($('polymer-element').length, 1, 'imports were deduplicated');
       assert.equal($('polymer-element').attr('noscript'), null, 'noscript removed');
       assert.equal(getTextContent($('polymer-element > script')), 'Polymer(\'my-element\');', 'polymer script included');
@@ -427,6 +427,7 @@ suite('Vulcan', function() {
       var $ = require('whacko').load(vulcanized);
       assert.equal($('head > link[href="imports/simple-import.html"]').length, 0, 'import excluded');
       assert.equal($('head > link[rel="stylesheet"][href="imports/simple-style.css"]').length, 0, 'import content excluded');
+      assert.equal($('head > link[href="http://example.com/foo/bar.html"]').length, 1, 'external import is not excluded');
       reallyDone();
     });
 
