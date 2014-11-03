@@ -33,6 +33,7 @@ var help = [
   '  --inline: The opposite of CSP mode, inline all assets (script and css) into the document',
   '  --csp --inline: Bundle all javascript (inline and external) into <output file name>.js',
   '  --version, -V: print version information',
+  '  --no-strip-excludes: Keep imports excluded from inlining',
   '  --no-update-notifier: disable "update vulcanize" checks',
   '',
   'Config:',

@@ -414,11 +414,8 @@ suite('Vulcan', function() {
 
   test('exclude', function(done) {
 
-    var i = 2;
-    function reallyDone(err) {
-      if (err) {
-        return done(err);
-      }
+    var i = 3;
+    function reallyDone() {
       if (--i === 0) {
         done();
       }
@@ -428,7 +425,8 @@ suite('Vulcan', function() {
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
-      assert.equal($('head > link[href="imports/simple-import.html"]').length, 1, 'import excluded');
+      assert.equal($('head > link[href="imports/simple-import.html"]').length, 0, 'import excluded');
+      assert.equal($('head > link[rel="stylesheet"][href="imports/simple-style.css"]').length, 0, 'import content excluded');
       reallyDone();
     });
 
@@ -437,6 +435,14 @@ suite('Vulcan', function() {
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
       assert.equal($('polymer-element[name="my-element"] > template > link[href="imports/simple-style.css"]').length, 1, 'style excluded');
+      reallyDone();
+    });
+
+    process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}, 'strip-excludes': false}, function(outputs) {
+      var vulcanized = outputs[outputPath];
+      assert(vulcanized);
+      var $ = require('whacko').load(vulcanized);
+      assert.equal($('link[href="imports/simple-import.html"]').length, 1, 'excluded import not stripped');
       reallyDone();
     });
   });
