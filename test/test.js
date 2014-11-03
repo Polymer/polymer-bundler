@@ -428,7 +428,7 @@ suite('Vulcan', function() {
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
-      assert.equal($('head > link[href="imports/simple-import.html"]').length, 1, 'import excluded');
+      assert.equal($('head > link[href="imports/simple-import.html"]').length, 0, 'import excluded');
       reallyDone();
     });
 
