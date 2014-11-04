@@ -50,11 +50,15 @@ Most URLs will be automatically adjusted by the vulcanizer.
   - Bundle all javascript (inline and external) into `<output file name>`.js
 - `--abspath`, `-p`
   - Specify site root. Resolve paths to absolute paths based on site root
+- `--no-strip-excludes`
+  - Keep imports excluded from inlining
+- `--version`, ` -V`
+  - print version information
 
 ## Config
 > JSON file for additional options
 
-- Excludes: Exclude the selected urls from vulcanization (urls are still deduplicated for imports).
+- Excludes: Remove the selected urls from the vulcanized bundle:
 
 ### Example Config
 ```json
