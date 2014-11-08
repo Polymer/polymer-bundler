@@ -1,3 +1,5 @@
+### 0.6.2
+- stick to whack 0.17.1 until `<template>` support is complete
 ### 0.6.1
 - fix bug with removing absolute imports
 ### 0.6.0
