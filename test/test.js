@@ -225,7 +225,6 @@ suite('Utils', function() {
   });
 
   test('#82', function() {
-    var constants = require('../lib/constants.js');
     var whacko = require('whacko');
     var $ = whacko.load('<polymer-element name="paper-button-base"><script>(function(){ Polymer(p);}()</script></polymer-element>');
     $(constants.JS_INLINE).each(function() {
@@ -246,6 +245,14 @@ suite('Utils', function() {
     });
   });
 
+  test('searchAll', function() {
+    var searchAll = utils.searchAll;
+    var whacko = require('whacko');
+    var $ = whacko.load('<body><template><span>foo</span><template><span></span></template></template><span><template><span>bar</span></template>baz</span></body>');
+    var out = searchAll($, 'span');
+
+    assert.equal(out.length, 4, 'found all spans, nested in templates');
+  });
 
 });
 
@@ -350,6 +357,8 @@ suite('Vulcan', function() {
   var outputPath = path.resolve('test/html/actual.html');
   var inputPath = path.resolve('test/html/default.html');
 
+  var searchAll = require('../lib/utils.js').searchAll;
+
   test('set options', function(done) {
     var options = {
       input: 'index.html'
@@ -383,15 +392,15 @@ suite('Vulcan', function() {
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
-      assert.equal($('body > div[hidden]').length, 1, 'only one div[hidden]');
-      assert.equal($('head > link[rel="import"]:not([href^="http://"])').length, 0, 'all relative imports removed');
-      assert.equal($('polymer-element').length, 1, 'imports were deduplicated');
-      assert.equal($('polymer-element').attr('noscript'), null, 'noscript removed');
-      assert.equal(getTextContent($('polymer-element > script')), 'Polymer(\'my-element\');', 'polymer script included');
-      assert.equal($('polymer-element > template > link').length, 0, 'external styles removed');
-      assert.equal($('polymer-element > template > style').length, 1, 'styles inlined');
-      assert.equal($('polymer-element > template > svg > *').length, 6, 'svg children propery nested');
-      assert.equal($('polymer-element').attr('assetpath'), 'imports/', 'assetpath set');
+      assert.equal(searchAll($, 'body > div[hidden]').length, 1, 'only one div[hidden]');
+      assert.equal(searchAll($, 'head > link[rel="import"]:not([href^="http://"])').length, 0, 'all relative imports removed');
+      assert.equal(searchAll($, 'polymer-element').length, 1, 'imports were deduplicated');
+      assert.equal(searchAll($, 'polymer-element').attr('noscript'), null, 'noscript removed');
+      assert.equal(getTextContent(searchAll($, 'polymer-element > script')), 'Polymer(\'my-element\');', 'polymer script included');
+      assert.equal($('link', $('polymer-element > template').get(0).children[0]).length, 0, 'external styles removed');
+      assert.equal($('style', $('polymer-element > template').get(0).children[0]).length, 1, 'styles inlined');
+      assert.equal($('svg > *', $('polymer-element > template').get(0).children[0]).length, 6, 'svg children propery nested');
+      assert.equal(searchAll($, 'polymer-element').attr('assetpath'), 'imports/', 'assetpath set');
       done();
     });
   });
@@ -405,8 +414,8 @@ suite('Vulcan', function() {
       assert(vulcanized);
       assert(vulcanizedJS);
       var $ = require('whacko').load(vulcanized);
-      assert($('body > script[src="actual.js"]'), 'vulcanized script in body');
-      assert.equal($('body script:not([src])').length, 0, 'inline scripts removed');
+      assert(searchAll($, 'body > script[src="actual.js"]'), 'vulcanized script in body');
+      assert.equal(searchAll($, 'body script:not([src])').length, 0, 'inline scripts removed');
       assert.equal(vulcanizedJS, 'Polymer(\'my-element\');', 'csp element script');
       done();
     });
@@ -425,9 +434,9 @@ suite('Vulcan', function() {
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
-      assert.equal($('head > link[href="imports/simple-import.html"]').length, 0, 'import excluded');
-      assert.equal($('head > link[rel="stylesheet"][href="imports/simple-style.css"]').length, 0, 'import content excluded');
-      assert.equal($('head > link[href="http://example.com/foo/bar.html"]').length, 1, 'external import is not excluded');
+      assert.equal(searchAll($, 'head > link[href="imports/simple-import.html"]').length, 0, 'import excluded');
+      assert.equal(searchAll($, 'head > link[rel="stylesheet"][href="imports/simple-style.css"]').length, 0, 'import content excluded');
+      assert.equal(searchAll($, 'head > link[href="http://example.com/foo/bar.html"]').length, 1, 'external import is not excluded');
       reallyDone();
     });
 
@@ -435,7 +444,7 @@ suite('Vulcan', function() {
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
-      assert.equal($('polymer-element[name="my-element"] > template > link[href="imports/simple-style.css"]').length, 1, 'style excluded');
+      assert.equal(searchAll($, 'link[href="imports/simple-style.css"]').length, 1, 'style excluded');
       reallyDone();
     });
 
@@ -443,7 +452,7 @@ suite('Vulcan', function() {
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
-      assert.equal($('link[href="imports/simple-import.html"]').length, 1, 'excluded import not stripped');
+      assert.equal(searchAll($, 'link[href="imports/simple-import.html"]').length, 1, 'excluded import not stripped');
       reallyDone();
     });
   });

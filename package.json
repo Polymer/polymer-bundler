@@ -10,7 +10,7 @@
     "clean-css": "^2.2.11",
     "nopt": "^3.0.1",
     "uglify-js": "^2.4.15",
-    "whacko": "0.17.1"
+    "whacko": "0.17.2"
   },
   "devDependencies": {
     "jshint": "^2.5.6",
