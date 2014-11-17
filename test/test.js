@@ -368,7 +368,7 @@ suite('Vulcan', function() {
 
   function process(options, fn) {
     var outputs = Object.create(null);
-    options.outputSrc = function(name, data, eop) {
+    options.outputHandler = function(name, data, eop) {
       if (!data) {
         throw new Error("Writing empty data");
       }
