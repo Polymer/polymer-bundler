@@ -277,7 +277,7 @@ suite('Optparser', function() {
 
   test('Error on no input', function(done) {
     optParserTest(function(err, options) {
-      assert.equal(err, 'No input file given!');
+      assert.equal(err, 'No input file or source string given!');
       done();
     }, null, true);
   });
