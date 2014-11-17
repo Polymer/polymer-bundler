@@ -25,6 +25,8 @@ suite('constants', function() {
       assert(abs.test('http://foo.com'), 'http');
       assert(abs.test('https://foo.com'), 'https');
       assert(abs.test('mailto:foo@bar.com'), 'mailto');
+      assert(abs.test('tel:+49123123456'), 'phonecall');
+      assert(abs.test('sms:1-123-123456'), 'sms');
       assert(abs.test('//foo.com'), 'protocol-free');
       assert(abs.test('/components/'), '/');
       assert(!abs.test('../foo/bar.html'), '../');
