@@ -1,5 +1,8 @@
+### 0.7.0
+- Upgrade to whacko 0.17.2 with template support
+- add utils.searchAll to make a query that walks into `<template>` elements
 ### 0.6.2
-- stick to whack 0.17.1 until `<template>` support is complete
+- stick to whacko 0.17.1 until `<template>` support is complete
 ### 0.6.1
 - fix bug with removing absolute imports
 ### 0.6.0
