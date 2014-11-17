@@ -55,6 +55,42 @@ Most URLs will be automatically adjusted by the vulcanizer.
 - `--version`, ` -V`
   - print version information
 
+## Additional options when used as Node module
+
+In addition to the above options, `vulcan` when used as Node module has additional options for string-based rather than file-based document processing. These are:
+
+- `inputSrc`
+  - The document to process, represented as String, String Buffer, or any Object with a `toString` function that yields valid HTML souce. Imports are resolved relative to the directory in which the node process was started.
+- `outputHandler`
+  - An output handler function to call rather than writing the processing result to file. The handler must be of the form `function(filename, data)`, which is called with the following arguments:
+    - `filename`
+      - The file that vulcanize would create if it were running in file I/O mode.
+    -  `data`
+      - The HTML source that vulcanize writes to file if no outputhandler is used.
+
+An example of using these options is shown below:
+
+```
+var vulcan = require("./lib/vulcan");
+
+var head = "<head><link rel='import' href='test/html/imports/simple-import.html'></head>";
+var body = "<body><my-element>test</my-element></body>";
+var input = "<!doctype><html>" + head + body + "</html>";
+
+var outputHandler = function(filename, data) {
+  console.log(data);
+};
+
+vulcan.setOptions({inputSrc: input, outputHandler: outputHandler}, function(err) {
+  if(err) {
+    console.error(err);
+    process.exit(1);
+  }
+  vulcan.processDocument();
+});
+
+```
+
 ## Config
 > JSON file for additional options
 
@@ -151,14 +187,14 @@ build.html:
   <template>
     <img src="http://www.polymer-project.org/images/logos/p-logo.svg">
   </template>
-  
+
 </polymer-element>
 
 <polymer-element name="x-app" assetpath="">
   <template>
     <x-dep></x-dep>
   </template>
-  
+
 </polymer-element>
 </div>
 <x-app></x-app>
