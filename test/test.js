@@ -457,4 +457,22 @@ suite('Vulcan', function() {
     });
   });
 
+  suite('Strip', function() {
+
+    test('uglify', function(done) {
+      var options = {input: 'test/html/broken-js.html', strip: true};
+      vulcan.setOptions(options, function(err) {
+        assert.ifError(err);
+        assert.throws(vulcan.processDocument, function(err) {
+          assert.equal(err.message, 'Compress JS Error');
+          assert.equal(err.content.trim(), 'var a = (');
+          assert.ok(err.detail);
+          return true;
+        }, 'throws useful error');
+        done();
+      });
+    });
+
+  });
+
 });
