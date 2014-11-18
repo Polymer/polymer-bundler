@@ -1,3 +1,8 @@
+### 0.7.1
+- Support for mobile URL Schemes "tel:" and "sms:"
+- Better reporting of javascript error messages with `--strip`
+- Handle buffers as input with `inputSrc`
+- Rename `outputSrc` to `outputHandler`
 ### 0.7.0
 - Upgrade to whacko 0.17.2 with template support
 - add utils.searchAll to make a query that walks into `<template>` elements
