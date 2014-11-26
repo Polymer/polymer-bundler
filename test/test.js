@@ -475,6 +475,15 @@ suite('Vulcan', function() {
       });
     });
 
+    test('cleancss', function(done) {
+      process({inputSrc: '<style>test{ -ms-flex: 0 0 0.0000000001px; }</style>', output: outputPath, strip: true}, function(outputs) {
+        var vulcanized = outputs[outputPath];
+        assert(vulcanized);
+        assert(vulcanized.indexOf('.0000000001px') > -1, 'precision is correct');
+        done();
+      });
+    });
+
   });
 
 });
