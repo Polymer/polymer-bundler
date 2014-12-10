@@ -486,4 +486,19 @@ suite('Vulcan', function() {
 
   });
 
+  test('Multiple Polymer Invocations', function(done) {
+    var options = {input: 'test/html/multiple.html', output: outputPath};
+    process(options, function(outputs) {
+      var vulcanized = outputs[outputPath];
+      assert(vulcanized);
+      var $ = require('whacko').load(vulcanized);
+      var getText = require('../lib/utils.js').getTextContent;
+      var xa = $('polymer-element[name="x-a"] > script');
+      var xb = $('polymer-element[name="x-b"] > script');
+      assert.equal(getText(xa), 'Polymer(\'x-a\',{})');
+      assert.equal(getText(xb), 'Polymer(\'x-b\',{})');
+      done();
+    });
+  });
+
 });
