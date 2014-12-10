@@ -484,6 +484,20 @@ suite('Vulcan', function() {
       });
     });
 
+    test('comment removal', function(done) {
+      var options = {input: 'test/html/comments.html', output: outputPath, strip: true};
+      process(options, function(outputs) {
+        var vulcanized = outputs[outputPath];
+        assert(vulcanized);
+        assert.equal(vulcanized.indexOf('comment 1'), -1, 'comment in body removed');
+        assert.equal(vulcanized.indexOf('comment 2'), -1, 'comment in template removed');
+        assert.equal(vulcanized.indexOf('comment 3'), -1, 'comment in style in template removed');
+        assert.equal(vulcanized.indexOf('comment 4'), -1, 'comment in polymer-element removed');
+        assert.equal(vulcanized.indexOf('comment 5'), -1, 'comment in script removed');
+        done();
+      });
+    });
+
   });
 
   test('Multiple Polymer Invocations', function(done) {
