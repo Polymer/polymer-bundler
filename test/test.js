@@ -489,6 +489,7 @@ suite('Vulcan', function() {
       process(options, function(outputs) {
         var vulcanized = outputs[outputPath];
         assert(vulcanized);
+        assert.equal(vulcanized.indexOf('@license'), -1, 'license comment at top removed');
         assert.equal(vulcanized.indexOf('comment 1'), -1, 'comment in body removed');
         assert.equal(vulcanized.indexOf('comment 2'), -1, 'comment in template removed');
         assert.equal(vulcanized.indexOf('comment 3'), -1, 'comment in style in template removed');
