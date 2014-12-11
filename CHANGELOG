@@ -1,3 +1,7 @@
+### 0.7.2
+- Disable css number rounding for crazy-sad flexbox hacks in IE 10
+- Add charset=utf-8 to all scripts
+- Better comment removal codepath
 ### 0.7.1
 - Support for mobile URL Schemes "tel:" and "sms:"
 - Better reporting of javascript error messages with `--strip`
