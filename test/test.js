@@ -461,7 +461,7 @@ suite('Vulcan', function() {
 
   suite('Strip', function() {
 
-    test('uglify', function(done) {
+    test('script', function(done) {
       var options = {input: 'test/html/broken-js.html', strip: true};
       vulcan.setOptions(options, function(err) {
         assert.ifError(err);
@@ -475,12 +475,25 @@ suite('Vulcan', function() {
       });
     });
 
-    test('cleancss', function(done) {
-      process({inputSrc: '<style>test{ -ms-flex: 0 0 0.0000000001px; }</style>', output: outputPath, strip: true}, function(outputs) {
-        var vulcanized = outputs[outputPath];
-        assert(vulcanized);
-        assert(vulcanized.indexOf('.0000000001px') > -1, 'precision is correct');
-        done();
+    suite('css', function() {
+
+      test('precsision', function(done) {
+        process({inputSrc: '<style>test{ -ms-flex: 0 0 0.0000000001px; }</style>', output: outputPath, strip: true}, function(outputs) {
+          var vulcanized = outputs[outputPath];
+          assert(vulcanized);
+          assert(vulcanized.indexOf('.0000000001px') > -1, 'precision is correct');
+          done();
+        });
+      });
+
+      test('polyfill-next-selector', function(done) {
+        process({inputSrc: '<style>polyfill-next-selector {content:\':host > *\';}\n::content > * {z-index:-1000;}\npolyfill-next-selector {content:\':host > .core-selected\';}\n::content > .core-selected{z-index: auto;}</style>', output: outputPath, strip: true}, function(outputs) {
+          var vulcanized = outputs[outputPath];
+          assert(vulcanized);
+          console.log(vulcanized);
+          assert(vulcanized.indexOf('<style>polyfill-next-selector') > -1, 'polfill-next-selector is kept');
+          done();
+        });
       });
     });
 
