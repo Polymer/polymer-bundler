@@ -490,7 +490,6 @@ suite('Vulcan', function() {
         process({inputSrc: '<style>polyfill-next-selector {content:\':host > *\';}\n::content > * {z-index:-1000;}\npolyfill-next-selector {content:\':host > .core-selected\';}\n::content > .core-selected{z-index: auto;}</style>', output: outputPath, strip: true}, function(outputs) {
           var vulcanized = outputs[outputPath];
           assert(vulcanized);
-          console.log(vulcanized);
           assert(vulcanized.indexOf('<style>polyfill-next-selector') > -1, 'polfill-next-selector is kept');
           done();
         });

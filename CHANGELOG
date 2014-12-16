@@ -1,3 +1,5 @@
+### 0.7.3
+- Replace clean-css with cssom, which does less "optimizations"
 ### 0.7.2
 - Disable css number rounding for crazy-sad flexbox hacks in IE 10
 - Add charset=utf-8 to all scripts
