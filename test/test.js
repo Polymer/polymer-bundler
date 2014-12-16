@@ -494,6 +494,16 @@ suite('Vulcan', function() {
           done();
         });
       });
+
+      test('fallback on parse fail', function(done) {
+        var input = '<style>div{\r\nwidth: {{ foo }};\n}\r\n</style>';
+        process({inputSrc: input, output: outputPath, strip: true}, function(outputs) {
+          var vulcanized = outputs[outputPath];
+          assert(vulcanized);
+          assert(vulcanized.indexOf(input.replace(/[\r\n]/g, '')) > -1, 'newlines removed at least');
+          done();
+        });
+      });
     });
 
     test('comment removal', function(done) {
