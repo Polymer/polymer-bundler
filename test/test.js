@@ -500,6 +500,7 @@ suite('Vulcan', function() {
         process({inputSrc: input, output: outputPath, strip: true}, function(outputs) {
           var vulcanized = outputs[outputPath];
           assert(vulcanized);
+          assert(vulcanized.indexOf('{{ foo }}') > -1, 'braces kept');
           assert(vulcanized.indexOf(input.replace(/[\r\n]/g, '')) > -1, 'newlines removed at least');
           done();
         });
@@ -517,6 +518,17 @@ suite('Vulcan', function() {
         assert.equal(vulcanized.indexOf('comment 3'), -1, 'comment in style in template removed');
         assert.equal(vulcanized.indexOf('comment 4'), -1, 'comment in polymer-element removed');
         assert.equal(vulcanized.indexOf('comment 5'), -1, 'comment in script removed');
+        done();
+      });
+    });
+
+    test('keep fallback declarations', function(done) {
+      var options = {inputSrc: '<style>div { display: flex; display: -webkit-flex; }</style>', output: outputPath, strip: true};
+      process(options, function(outputs) {
+        var vulcanized = outputs[outputPath];
+        assert(vulcanized);
+        assert(vulcanized.indexOf('display: flex') > -1, 'keep flex');
+        assert(vulcanized.indexOf('display: -webkit-flex') > -1, 'keep -webkit-flex');
         done();
       });
     });

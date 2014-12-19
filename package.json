@@ -7,7 +7,6 @@
     "vulcanize": "bin/vulcanize"
   },
   "dependencies": {
-    "cssom": "^0.2.3",
     "nopt": "^3.0.1",
     "uglify-js": "^2.4.15",
     "whacko": "0.17.2"
