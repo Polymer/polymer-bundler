@@ -298,7 +298,7 @@ suite('Optparser', function() {
 
   test('CSP', function(done) {
     optParserTest(function(err, options) {
-      assert.equal(options.csp, path.resolve('vulcanized.js'));
+      assert(options.csp);
       done();
     }, {input: 'index.html', csp: true});
   });
@@ -306,7 +306,7 @@ suite('Optparser', function() {
   test('output', function(done) {
     optParserTest(function(err, options) {
       assert.equal(options.output, path.resolve('build.html'));
-      assert.equal(options.csp, path.resolve('build.js'));
+      assert(options.csp);
       done();
     }, {input: path.resolve('index.html'), output: path.resolve('build.html'), csp: true});
   });
@@ -338,7 +338,7 @@ suite('Optparser', function() {
     optParserTest(function(err, options) {
       assert.equal(options.input, path.resolve('index.html'));
       assert.equal(options.output, path.resolve('build.html'));
-      assert.equal(options.csp, path.resolve('build.js'));
+      assert(options.csp);
       assert(!options.abspath);
       assert.deepEqual(options.excludes, {imports:[/.*/, ABS_URL], scripts:[ABS_URL], styles:[ABS_URL]});
 done();
