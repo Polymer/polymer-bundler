@@ -29,6 +29,7 @@ suite('constants', function() {
       assert(abs.test('sms:1-123-123456'), 'sms');
       assert(abs.test('//foo.com'), 'protocol-free');
       assert(abs.test('/components/'), '/');
+      assert(abs.test('#foo'), 'hash url');
       assert(!abs.test('../foo/bar.html'), '../');
       assert(!abs.test('bar.html'), 'sibling dependency');
     });
@@ -113,6 +114,7 @@ suite('Path Resolver', function() {
 
     testPath('biz.jpg', 'my-element/biz.jpg', null, 'local');
     testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', null, 'remote');
+    testPath('#foo', '#foo', null, 'hash');
     testPath('biz.jpg', 'bar/my-element/biz.jpg', '/foo/', 'build path');
   });
 
