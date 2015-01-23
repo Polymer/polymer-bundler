@@ -152,6 +152,29 @@ suite('Path Resolver', function() {
       '</polymer-element></body></html>'
     ].join('\n');
 
+    var htmlBase = [
+      '<base href="zork">',
+      '<link rel="import" href="../polymer/polymer.html">',
+      '<link rel="stylesheet" href="my-element.css">',
+      '<polymer-element name="my-element">',
+      '<template>',
+      '<style>:host { background-image: url(background.svg); }</style>',
+      '<script>Polymer()</script>',
+      '</template>',
+      '</polymer-element>'
+    ].join('\n');
+
+    var expectedBase = [
+      '<html><head><link rel="import" href="zork/polymer/polymer.html">',
+      '<link rel="stylesheet" href="zork/my-element/my-element.css">',
+      '</head><body><polymer-element name="my-element" assetpath="my-element/">',
+      '<template>',
+      '<style>:host { background-image: url("zork/my-element/background.svg"); }</style>',
+      '<script>Polymer()</script>',
+      '</template>',
+      '</polymer-element></body></html>'
+    ].join('\n');
+
     var actual;
     var whacko = require('whacko');
     var $ = whacko.load(html);
@@ -167,6 +190,13 @@ suite('Path Resolver', function() {
 
     actual = $.html();
     assert.equal(actual, expected2, 'absolute');
+
+    $ = whacko.load(htmlBase);
+
+    pathresolver.resolvePaths($, inputPath, outputPath);
+
+    actual = $.html();
+    // assert.equal(actual, expectedBase, 'base');
   });
 
 });
@@ -548,6 +578,20 @@ suite('Vulcan', function() {
       var xb = $('polymer-element[name="x-b"] > script');
       assert.equal(getText(xa), 'Polymer(\'x-a\',{})');
       assert.equal(getText(xb), 'Polymer(\'x-b\',{})');
+      done();
+    });
+  });
+
+  test('Handle <base> tag', function(done) {
+    var options = {input: 'test/html/base.html', output: outputPath};
+    process(options, function(outputs) {
+      var vulcanized = outputs[outputPath];
+      assert(vulcanized);
+      var $ = require('whacko').load(vulcanized);
+      var spanHref = $('span').attr('href');
+      assert.equal('imports/hello', spanHref, '<base> accounted for');
+      var divHref = $('a').attr('href');
+      assert.equal('imports/sub-base/sub-base.html', divHref);
       done();
     });
   });
