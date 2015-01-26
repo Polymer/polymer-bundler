@@ -165,11 +165,12 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     var expectedBase = [
-      '<html><head><link rel="import" href="zork/polymer/polymer.html">',
-      '<link rel="stylesheet" href="zork/my-element/my-element.css">',
-      '</head><body><polymer-element name="my-element" assetpath="my-element/">',
+      '<html><head>',
+      '<link rel="import" href="my-element/polymer/polymer.html">',
+      '<link rel="stylesheet" href="my-element/zork/my-element.css">',
+      '</head><body><polymer-element name="my-element" assetpath="my-element/zork/">',
       '<template>',
-      '<style>:host { background-image: url("zork/my-element/background.svg"); }</style>',
+      '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
       '<script>Polymer()</script>',
       '</template>',
       '</polymer-element></body></html>'
@@ -196,7 +197,7 @@ suite('Path Resolver', function() {
     pathresolver.resolvePaths($, inputPath, outputPath);
 
     actual = $.html();
-    // assert.equal(actual, expectedBase, 'base');
+    assert.equal(actual, expectedBase, 'base');
   });
 
 });
