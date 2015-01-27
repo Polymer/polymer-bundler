@@ -30,6 +30,10 @@ suite('constants', function() {
       assert(abs.test('javascript:;'), 'javascript');
       // jshint +W107
       assert(abs.test('sms:1-123-123456'), 'sms');
+      assert(abs.test('chrome-search:'), 'chrome search');
+      assert(abs.test('about:blank'), 'about');
+      assert(abs.test('wss://'), 'web socket');
+      assert(abs.test('b2:'), 'custom protocol');
       assert(abs.test('//foo.com'), 'protocol-free');
       assert(abs.test('/components/'), '/');
       assert(abs.test('#foo'), 'hash url');
