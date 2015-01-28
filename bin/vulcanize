@@ -89,8 +89,7 @@ if (options['update-notifier'] !== false) {
   (function() {
     try {
       require('update-notifier')({
-        packageName: pkg.name,
-        packageVersion: pkg.version
+        pkg: pkg
       }).notify();
     } catch(_) {}
   })();
