@@ -9,7 +9,7 @@
   "dependencies": {
     "nopt": "^3.0.1",
     "uglify-js": "^2.4.15",
-    "whacko": "0.17.2"
+    "whacko": "0.17.3"
   },
   "devDependencies": {
     "jshint": "^2.5.6",
