@@ -94,7 +94,9 @@ vulcan.setOptions({inputSrc: input, outputHandler: outputHandler}, function(err)
 ## Config
 > JSON file for additional options
 
-- Excludes: Remove the selected urls from the vulcanized bundle:
+- Excludes: Remove the selected urls completely from the vulcanized bundle:
+  - Use the `--no-strip-excludes` command line flag, or set `"strip-excludes": false`
+    in the config to keep excluded urls in the output bundle.
 
 ### Example Config
 ```json
@@ -104,6 +106,18 @@ vulcan.setOptions({inputSrc: input, outputHandler: outputHandler}, function(err)
       "regex-to-exclude"
     ]
   }
+}
+```
+
+### Keep excludes config
+```json
+{
+  "excludes": {
+    "imports": [
+      "regex-to-exclude"
+    ]
+  },
+  "strip-excludes": false
 }
 ```
 
