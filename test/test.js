@@ -132,8 +132,9 @@ suite('Path Resolver', function() {
       '<polymer-element name="my-element">',
       '<template>',
       '<style>:host { background-image: url(background.svg); }</style>',
-      '<script>Polymer()</script>',
+      '<div style="position: absolute;"></div>',
       '</template>',
+      '<script>Polymer()</script>',
       '</polymer-element>'
     ].join('\n');
 
@@ -143,8 +144,9 @@ suite('Path Resolver', function() {
       '</head><body><polymer-element name="my-element" assetpath="my-element/">',
       '<template>',
       '<style>:host { background-image: url("my-element/background.svg"); }</style>',
-      '<script>Polymer()</script>',
+      '<div style="position: absolute;"></div>',
       '</template>',
+      '<script>Polymer()</script>',
       '</polymer-element></body></html>'
     ].join('\n');
 
@@ -154,8 +156,9 @@ suite('Path Resolver', function() {
       '</head><body><polymer-element name="my-element" assetpath="/bar/my-element/">',
       '<template>',
       '<style>:host { background-image: url("/bar/my-element/background.svg"); }</style>',
-      '<script>Polymer()</script>',
+      '<div style="position: absolute;"></div>',
       '</template>',
+      '<script>Polymer()</script>',
       '</polymer-element></body></html>'
     ].join('\n');
 
@@ -166,8 +169,8 @@ suite('Path Resolver', function() {
       '<polymer-element name="my-element">',
       '<template>',
       '<style>:host { background-image: url(background.svg); }</style>',
-      '<script>Polymer()</script>',
       '</template>',
+      '<script>Polymer()</script>',
       '</polymer-element>'
     ].join('\n');
 
@@ -178,8 +181,8 @@ suite('Path Resolver', function() {
       '</head><body><polymer-element name="my-element" assetpath="my-element/zork/">',
       '<template>',
       '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
-      '<script>Polymer()</script>',
       '</template>',
+      '<script>Polymer()</script>',
       '</polymer-element></body></html>'
     ].join('\n');
 
