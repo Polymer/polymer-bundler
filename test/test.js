@@ -79,6 +79,63 @@ suite('constants', function() {
 
 });
 
+suite('CommentMap', function() {
+  var CommentMap = require('../lib/commentmap.js');
+
+  suite('Normalize', function() {
+    test('whitespace', function() {
+      var c = new CommentMap();
+      var s = [
+        'Hi',
+        'There'
+      ].join('\n');
+      var e = 'HiThere';
+
+      assert.equal(c.normalize(s), e);
+    });
+
+    test('single comment', function() {
+      var c = new CommentMap();
+      var s = '// foo';
+      var e = 'foo';
+
+      assert.equal(c.normalize(s), e);
+    });
+
+    test('multiline comment', function() {
+      var c = new CommentMap();
+      var s = [
+        '/**',
+        ' * foo',
+        ' */'
+      ].join('\n');
+      var e = 'foo';
+
+      assert.equal(c.normalize(s), e);
+    });
+  });
+
+  suite('Set and Has', function() {
+
+    test('Plain', function() {
+      var c = new CommentMap();
+      var s = 'Test';
+
+      c.set(s);
+      assert.ok(c.has(s));
+    });
+
+    test('Strip Comments', function() {
+      var c = new CommentMap();
+      var m = '/** foo */';
+      c.set(m);
+      var s = '// foo';
+      assert.ok(c.has(s));
+    });
+
+  });
+});
+
 suite('Path Resolver', function() {
   var pathresolver = require('../lib/pathresolver.js');
   var inputPath = '/foo/bar/my-element';
@@ -555,12 +612,22 @@ suite('Vulcan', function() {
       process(options, function(outputs) {
         var vulcanized = outputs[outputPath];
         assert(vulcanized);
-        assert.equal(vulcanized.indexOf('@license'), -1, 'license comment at top removed');
+        assert(vulcanized.indexOf('@license') > -1, 'license comment at top kept');
         assert.equal(vulcanized.indexOf('comment 1'), -1, 'comment in body removed');
         assert.equal(vulcanized.indexOf('comment 2'), -1, 'comment in template removed');
         assert.equal(vulcanized.indexOf('comment 3'), -1, 'comment in style in template removed');
         assert.equal(vulcanized.indexOf('comment 4'), -1, 'comment in polymer-element removed');
         assert.equal(vulcanized.indexOf('comment 5'), -1, 'comment in script removed');
+        done();
+      });
+    });
+
+    test('License deduplicated', function(done) {
+      var options = {inputSrc: '<!-- @license foo --><script>/** @license foo */ var x = 3;</script><style>/* @license foo */</style>', output: outputPath, strip: true};
+      process(options, function(outputs) {
+        var vulcanized = outputs[outputPath];
+        assert(vulcanized);
+        assert.equal(vulcanized.indexOf('foo'), vulcanized.lastIndexOf('foo'));
         done();
       });
     });
