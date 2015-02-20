@@ -62,21 +62,6 @@ suite('constants', function() {
 
   });
 
-  test('Polymer Invocation', function() {
-    var polymer = constants.POLYMER_INVOCATION;
-
-    function test(invocation, msg) {
-      var matches = polymer.exec(invocation);
-      assert(matches, 'polymer invocation found', msg);
-    }
-
-    test('Polymer(\'core-input\', {})', 'full');
-    test('Polymer(\'core-input\')', 'name-only');
-    test('Polymer()', 'none');
-    test('Polymer({})', 'object-only');
-    test('Polymer(p)', 'indirect');
-  });
-
 });
 
 suite('CommentMap', function() {
@@ -186,61 +171,61 @@ suite('Path Resolver', function() {
     var html = [
       '<link rel="import" href="../polymer/polymer.html">',
       '<link rel="stylesheet" href="my-element.css">',
-      '<polymer-element name="my-element">',
+      '<dom-module id="my-element">',
       '<template>',
       '<style>:host { background-image: url(background.svg); }</style>',
       '<div style="position: absolute;"></div>',
       '</template>',
-      '<script>Polymer()</script>',
-      '</polymer-element>'
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script>'
     ].join('\n');
 
     var expected = [
       '<html><head><link rel="import" href="polymer/polymer.html">',
       '<link rel="stylesheet" href="my-element/my-element.css">',
-      '</head><body><polymer-element name="my-element" assetpath="my-element/">',
+      '</head><body><dom-module id="my-element" assetpath="my-element/">',
       '<template>',
       '<style>:host { background-image: url("my-element/background.svg"); }</style>',
       '<div style="position: absolute;"></div>',
       '</template>',
-      '<script>Polymer()</script>',
-      '</polymer-element></body></html>'
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script></body></html>'
     ].join('\n');
 
     var expected2 = [
       '<html><head><link rel="import" href="/bar/polymer/polymer.html">',
       '<link rel="stylesheet" href="/bar/my-element/my-element.css">',
-      '</head><body><polymer-element name="my-element" assetpath="/bar/my-element/">',
+      '</head><body><dom-module id="my-element" assetpath="/bar/my-element/">',
       '<template>',
       '<style>:host { background-image: url("/bar/my-element/background.svg"); }</style>',
       '<div style="position: absolute;"></div>',
       '</template>',
-      '<script>Polymer()</script>',
-      '</polymer-element></body></html>'
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script></body></html>'
     ].join('\n');
 
     var htmlBase = [
       '<base href="zork">',
       '<link rel="import" href="../polymer/polymer.html">',
       '<link rel="stylesheet" href="my-element.css">',
-      '<polymer-element name="my-element">',
+      '<dom-module id="my-element">',
       '<template>',
       '<style>:host { background-image: url(background.svg); }</style>',
       '</template>',
-      '<script>Polymer()</script>',
-      '</polymer-element>'
+      '</dom-module>',
+      '<script>Polymer()</script>'
     ].join('\n');
 
     var expectedBase = [
       '<html><head>',
       '<link rel="import" href="my-element/polymer/polymer.html">',
       '<link rel="stylesheet" href="my-element/zork/my-element.css">',
-      '</head><body><polymer-element name="my-element" assetpath="my-element/zork/">',
+      '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
       '<template>',
       '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
       '</template>',
-      '<script>Polymer()</script>',
-      '</polymer-element></body></html>'
+      '</dom-module>',
+      '<script>Polymer()</script></body></html>'
     ].join('\n');
 
     var actual;
@@ -305,46 +290,6 @@ suite('Utils', function() {
     assert.equal(actual, 'foo\\-bar', 'element name');
     actual = utils.escapeForRegExp('foo/bar/baz');
     assert.equal(actual, 'foo\\/bar\\/baz', 'absolute path');
-  });
-
-  test('Polymer Invocation', function() {
-    var polymer = constants.POLYMER_INVOCATION;
-
-    function test(invocation, expected, msg) {
-      var matches = polymer.exec(invocation);
-      assert(matches, 'polymer invocation found');
-      var replacement = utils.processPolymerInvocation('core-input', matches);
-      var actual = invocation.replace(matches[0], replacement);
-      assert.strictEqual(actual, expected, msg);
-    }
-
-    test('Polymer(\'core-input\', {})', 'Polymer(\'core-input\', {})', 'full');
-    test('Polymer(\'core-input\')', 'Polymer(\'core-input\')', 'name-only');
-    test('Polymer()', 'Polymer(\'core-input\')', 'none');
-    test('Polymer({})', 'Polymer(\'core-input\',{})', 'object-only');
-    test('Polymer(p)', 'Polymer(\'core-input\',p)', 'indirect');
-
-  });
-
-  test('#82', function() {
-    var whacko = require('whacko');
-    var $ = whacko.load('<polymer-element name="paper-button-base"><script>(function(){ Polymer(p);}()</script></polymer-element>');
-    $(constants.JS_INLINE).each(function() {
-      var el = $(this);
-      var content = utils.getTextContent(el);
-      assert(content);
-      var parentElement = el.closest('polymer-element').get(0);
-      if (parentElement) {
-        var match = constants.POLYMER_INVOCATION.exec(content);
-        var elementName = $(parentElement).attr('name');
-        if (match) {
-          var invocation = utils.processPolymerInvocation(elementName, match);
-          content = content.replace(match[0], invocation);
-          utils.setTextContent(el, content);
-        }
-      }
-      assert.equal(utils.getTextContent(el), '(function(){ Polymer(\'paper-button-base\',p);}()');
-    });
   });
 
   test('searchAll', function() {
@@ -496,13 +441,11 @@ suite('Vulcan', function() {
       var $ = require('whacko').load(vulcanized);
       assert.equal(searchAll($, 'body > div[hidden]').length, 1, 'only one div[hidden]');
       assert.equal(searchAll($, 'head > link[rel="import"]:not([href^="http://"])').length, 0, 'all relative imports removed');
-      assert.equal(searchAll($, 'polymer-element').length, 1, 'imports were deduplicated');
-      assert.equal(searchAll($, 'polymer-element').attr('noscript'), null, 'noscript removed');
-      assert.equal(getTextContent(searchAll($, 'polymer-element > script')), 'Polymer(\'my-element\');', 'polymer script included');
-      assert.equal($('link', $('polymer-element > template').get(0).children[0]).length, 0, 'external styles removed');
-      assert.equal($('style', $('polymer-element > template').get(0).children[0]).length, 1, 'styles inlined');
-      assert.equal($('svg > *', $('polymer-element > template').get(0).children[0]).length, 6, 'svg children propery nested');
-      assert.equal(searchAll($, 'polymer-element').attr('assetpath'), 'imports/', 'assetpath set');
+      assert.equal(searchAll($, 'dom-module').length, 1, 'imports were deduplicated');
+      assert.equal($('link', $('dom-module > template').get(0).children[0]).length, 0, 'external styles removed');
+      assert.equal($('style', $('dom-module > template').get(0).children[0]).length, 1, 'styles inlined');
+      assert.equal($('svg > *', $('dom-module > template').get(0).children[0]).length, 6, 'svg children propery nested');
+      assert.equal(searchAll($, 'dom-module').attr('assetpath'), 'imports/', 'assetpath set');
       done();
     });
   });
@@ -518,7 +461,7 @@ suite('Vulcan', function() {
       var $ = require('whacko').load(vulcanized);
       assert(searchAll($, 'body > script[src="actual.js"]'), 'vulcanized script in body');
       assert.equal(searchAll($, 'body script:not([src])').length, 0, 'inline scripts removed');
-      assert.equal(vulcanizedJS, 'Polymer(\'my-element\');', 'csp element script');
+      assert.equal(vulcanizedJS.trim(), 'Polymer({\n    is: \'my-element\'\n  });', 'csp element script');
       done();
     });
   });
@@ -643,21 +586,6 @@ suite('Vulcan', function() {
       });
     });
 
-  });
-
-  test('Multiple Polymer Invocations', function(done) {
-    var options = {input: 'test/html/multiple.html', output: outputPath};
-    process(options, function(outputs) {
-      var vulcanized = outputs[outputPath];
-      assert(vulcanized);
-      var $ = require('whacko').load(vulcanized);
-      var getText = require('../lib/utils.js').getTextContent;
-      var xa = $('polymer-element[name="x-a"] > script');
-      var xb = $('polymer-element[name="x-b"] > script');
-      assert.equal(getText(xa), 'Polymer(\'x-a\',{})');
-      assert.equal(getText(xb), 'Polymer(\'x-b\',{})');
-      done();
-    });
   });
 
   test('Handle <base> tag', function(done) {
