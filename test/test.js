@@ -252,6 +252,24 @@ suite('Path Resolver', function() {
     assert.equal(actual, expectedBase, 'base');
   });
 
+  test('Leave Templated Urls', function() {
+    var base = [
+      '<html><head></head><body>',
+      '<a href="{{foo}}"></a>',
+      '<img src="[[bar]]">',
+      '</body></html>'
+    ].join('\n');
+
+    var actual;
+    var whacko = require('whacko');
+    var $ = whacko.load(base);
+
+    pathresolver.resolvePaths($, inputPath, outputPath);
+
+    actual = $.html();
+    assert.equal(actual, base, 'templated urls');
+  });
+
 });
 
 suite('Utils', function() {
