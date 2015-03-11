@@ -1,33 +1,22 @@
 <!DOCTYPE html>
-<!--
-    @license
-    Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
-    This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-    The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-    The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-    Code distributed by Google as part of the polymer project is also
-    subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
--->
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Vulcanizer Test</title>
-  <script src="bower_components/platform/platform.js"></script>
-  <link rel="import" href="absolutes.html">
-  <link rel="import" href="import-test.html" />
-  <link rel="stylesheet" href="empty.css">
+  <script src="bower_components/webcomponentsjs/webcomponents.js"></script>
+  <link rel="import" href="bower_components/polymer/polymer.html">
+  <link rel="import" href="foo.html">
+  <link rel="import" href="sub/import.html">
 </head>
 <body>
-  <x-import>Hello Import!</x-import>
-  <y-import></y-import>
-  <polymer-element name="x-foo" attributes="">
-  <script>Polymer()</script>
-  </polymer-element>
-  <polymer-element name="x-bar" attributes="">
-  <script>Polymer({})</script>
-  </polymer-element>
+  <dom-module id="my-foo">
+    <template>
+      <f-f></f-f>
+    </template>
+  </dom-module>
   <script>
-    console.log('&lt;hi&gt;');
+  Polymer({
+    is: 'my-foo'
+  })
   </script>
+  <my-foo></my-foo>
 </body>
 </html>
