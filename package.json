@@ -7,9 +7,9 @@
     "vulcanize": "bin/vulcanize"
   },
   "dependencies": {
-    "hydrolysis": "git+ssh://git@github.com/PolymerLabs/hydrolysis.git#vulcanize-demo",
+    "hydrolysis": "git+ssh://git@github.com/PolymerLabs/hydrolysis.git#master",
     "nopt": "^3.0.1",
-    "parse5-utils": "git://github.com/PolymerLabs/parse5-utils#query",
+    "parse5-utils": "git://github.com/PolymerLabs/parse5-utils#master",
     "parse5": "^1.4.1"
   },
   "devDependencies": {

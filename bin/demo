@@ -17,16 +17,16 @@ function isUniqueImport(importNode) {
 var headFinder = p5u.predicates.hasTagName('head');
 var bodyFinder = p5u.predicates.hasTagName('body');
 var attrs = ['action', 'href', 'src', 'style', 'assetpath'];
-var attrMatcher = p5u.predicates.OR(attrs.map(function(attr) {
+var attrMatcher = p5u.predicates.OR.apply(null, attrs.map(function(attr) {
   return p5u.predicates.hasAttr(attr);
 }));
-var elementMatcher = p5u.predicates.AND([
+var elementMatcher = p5u.predicates.AND(
   p5u.predicates.hasTagName('dom-module'),
   p5u.predicates.hasAttr('id'),
   p5u.predicates.NOT(
     p5u.predicates.hasAttr('assetpath')
   )
-]);
+);
 function reparent(newParent) {
   return function(node) {
     node.parentNode = newParent;
@@ -48,6 +48,16 @@ function relativeTo(from, to) {
   return to;
 }
 
+function remove(node) {
+  var parent = node.parentNode;
+  if (parent) {
+    var idx = parent.childNodes.indexOf(node);
+    if (idx > -1) {
+      parent.childNodes.slice(idx, 1);
+    }
+  }
+}
+
 function flatten(tree) {
   var doc = tree.html.ast;
   var imports = tree.imports;
@@ -59,7 +69,7 @@ function flatten(tree) {
     for (var i = 0, im; i < imports.length; i++) {
       im = imports[i];
       if (!isUniqueImport(im)) {
-        p5u.remove(importNodes[i]);
+        remove(importNodes[i]);
         continue;
       }
       importDoc = flatten(im);
