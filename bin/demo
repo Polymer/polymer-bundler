@@ -53,7 +53,7 @@ function remove(node) {
   if (parent) {
     var idx = parent.childNodes.indexOf(node);
     if (idx > -1) {
-      parent.childNodes.slice(idx, 1);
+      parent.childNodes.splice(idx, 1);
     }
   }
 }

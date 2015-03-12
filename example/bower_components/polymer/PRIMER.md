@@ -408,7 +408,7 @@ Example:
 <a name="dom-api"></a>
 ## DOM API
 
-Polymer provides custom API for manipulating dom such that local DOM and light DOM trees are properly maintained.
+Polymer provides custom API for manipulating DOM such that local DOM and light DOM trees are properly maintained.
 
 **<div style="color:red">Note: All DOM manipulation must use this API, as opposed to DOM API directly on nodes.</div>**
 
@@ -425,7 +425,9 @@ The following methods are provided:
   * `Polymer.dom(node).getDestinationInsertionPoints()`
   * `Polymer.dom.flush()` - The insert, append, and remove operations are trasnacted lazily in certain cases for performance.  In order to interrogate the dom (e.g. `offsetHeight`, `getComputedStyle`, etc.) immediately after one of these operations, call `Polymer.dom.flush()` first.
 
-Calling `append`/`insertBefore` where parent is a custom Polymer element adds the node to the light DOM of the element.  In order to insert/append into the shadow root of a custom element, use `this.root` as the parent.
+Calling `append`/`insertBefore` where `parent` is a custom Polymer element adds the node to the light DOM of the element.  In order to insert/append into the shadow root of a custom element, use `this.root` as the parent.
+
+`Polymer.dom` properties and methods that return a list of nodes return an `Array`, not a `NodeList` like the standard DOM equivalent.
 
 Example:
 
@@ -440,7 +442,7 @@ Polymer.dom(this.root).insertBefore(toLocal, beforeNode);
 var allSpans = Polymer.dom(this).querySelectorAll('span');
 ```
 
-For manipulating dom in elements that themselves do not have local dom, the above api's support an extra argument which is the container `node` in which the operation should be performed.
+You can use `Polymer.dom` on any node, whether or not it has a local DOM tree:
 
 Example:
 
@@ -1199,15 +1201,21 @@ Polymer 0.8 uses "[Shadow DOM styling rules](http://www.html5rocks.com/en/tutori
     });
 
 </script>
-
 ```
 
-Note: Remote stylesheets (`<link rel="stylesheet">`) are not currently supported for providing scoped styles.  This may be added in future versions.  See below for workarounds.
+Loading remote stylesheets is also supported. The syntax is slightly different from how stylesheets are typically loaded. This is typically convenient for developers who like to separate styles or use style pre-processing tools. 
+
+```html
+<dom-module id="my-element">
+  <link rel="import" type="css" href="my-element-style.css">
+  <template>...</template>
+</dom-module>
+```
 
 <a name="shared-stylesheets"></a>
 ### Sharing stylesheets
 
-Styles can be shared between elements by defining `<dom-module>`'s containing styles to be shared, and referencing shared styles to be included in a given element by listing the `dom-module` id in an array of `styleModules`.
+In addition to using remote stylesheets as described above, styles can be shared between elements by defining `<dom-module>`'s containing styles to be shared, and referencing shared styles to be included in a given element by listing the `dom-module` id in an array of `styleModules`.
 
 Example:
 
