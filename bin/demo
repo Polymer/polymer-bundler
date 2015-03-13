@@ -6,7 +6,7 @@
 var path = require('path');
 var url = require('url');
 var hyd = require('hydrolysis');
-var p5u = require('parse5-utils/parse5-utils.js');
+var dom5 = require('dom5');
 var loader = new hyd.loader();
 loader.addResolver(new hyd.fsResolver({}));
 
@@ -14,17 +14,17 @@ function isUniqueImport(importNode) {
   return Boolean(importNode.url);
 }
 
-var headFinder = p5u.predicates.hasTagName('head');
-var bodyFinder = p5u.predicates.hasTagName('body');
+var headFinder = dom5.predicates.hasTagName('head');
+var bodyFinder = dom5.predicates.hasTagName('body');
 var attrs = ['action', 'href', 'src', 'style', 'assetpath'];
-var attrMatcher = p5u.predicates.OR.apply(null, attrs.map(function(attr) {
-  return p5u.predicates.hasAttr(attr);
+var attrMatcher = dom5.predicates.OR.apply(null, attrs.map(function(attr) {
+  return dom5.predicates.hasAttr(attr);
 }));
-var elementMatcher = p5u.predicates.AND(
-  p5u.predicates.hasTagName('dom-module'),
-  p5u.predicates.hasAttr('id'),
-  p5u.predicates.NOT(
-    p5u.predicates.hasAttr('assetpath')
+var elementMatcher = dom5.predicates.AND(
+  dom5.predicates.hasTagName('dom-module'),
+  dom5.predicates.hasAttr('id'),
+  dom5.predicates.NOT(
+    dom5.predicates.hasAttr('assetpath')
   )
 );
 function reparent(newParent) {
@@ -61,8 +61,8 @@ function remove(node) {
 function flatten(tree) {
   var doc = tree.html.ast;
   var imports = tree.imports;
-  var head = p5u.query(doc, headFinder);
-  var body = p5u.query(doc, bodyFinder);
+  var head = dom5.query(doc, headFinder);
+  var body = dom5.query(doc, bodyFinder);
   var importNodes = tree.html.import;
   var importDoc, importHead, importBody, importHeadChildren, importBodyChildren;
   if (imports) {
@@ -73,26 +73,26 @@ function flatten(tree) {
         continue;
       }
       importDoc = flatten(im);
-      importHead = p5u.query(importDoc, headFinder);
-      importBody = p5u.query(importDoc, bodyFinder);
+      importHead = dom5.query(importDoc, headFinder);
+      importBody = dom5.query(importDoc, bodyFinder);
       // rewrite urls
-      p5u.queryAll(importDoc, attrMatcher).forEach(function(node) {
+      dom5.queryAll(importDoc, attrMatcher).forEach(function(node) {
         attrs.forEach(function(attr) {
-          var attrValue = p5u.getAttribute(node, attr);
+          var attrValue = dom5.getAttribute(node, attr);
           if (attrValue) {
             var absUrl = url.resolve(im.url, attrValue);
             var relUrl = relativeTo(tree.url, absUrl);
             if (attr === 'assetpath') {
               relUrl += '/';
             }
-            p5u.setAttribute(node, attr, relUrl);
+            dom5.setAttribute(node, attr, relUrl);
           }
         });
       });
-      p5u.queryAll(importDoc, elementMatcher).forEach(function(el) {
+      dom5.queryAll(importDoc, elementMatcher).forEach(function(el) {
         var rel = relativeTo(tree.url, im.url);
         rel = path.dirname(rel) + '/';
-        p5u.setAttribute(el, 'assetpath', rel);
+        dom5.setAttribute(el, 'assetpath', rel);
       });
       // merge head and body tags for imports into main document
       importHeadChildren = importHead.childNodes;
