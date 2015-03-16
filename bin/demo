@@ -101,7 +101,7 @@ function flatten(tree) {
       importBodyChildren.forEach(reparent(body));
       // replace import node with importHeadChildren
       var idx = head.childNodes.indexOf(importNodes[i]);
-      head.childNodes = [].concat(head.childNodes.slice(0, idx), importHeadChildren, head.childNodes.slice(idx + 1));
+      head.childNodes = head.childNodes.slice(0, idx).concat(importHeadChildren, head.childNodes.slice(idx + 1));
       // prepend import body to document body
       body.childNodes = importBodyChildren.concat(body.childNodes);
     }
