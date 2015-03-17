@@ -575,9 +575,17 @@ suite('Vulcan', function() {
       });
     });
 
+    test('whitespace', function(done) {
+      process({inputSrc: '<div>\n  <div>\n    hi&nbsp;&nbsp;\n    </div>\n</div>  <textarea>\t\tSome text\n  \t</textarea>', output: outputPath, strip: true}, function(outputs) {
+        var vulcanized = outputs[outputPath];
+        assert.equal(vulcanized, '<html><head></head><body><div> <div> hi&nbsp;&nbsp; </div> </div> <textarea>\t\tSome text\n  \t</textarea></body></html>');
+        done();
+      });
+    });
+
     suite('css', function() {
 
-      test('precsision', function(done) {
+      test('precision', function(done) {
         process({inputSrc: '<style>test{ -ms-flex: 0 0 0.0000000001px; }</style>', output: outputPath, strip: true}, function(outputs) {
           var vulcanized = outputs[outputPath];
           assert(vulcanized);
