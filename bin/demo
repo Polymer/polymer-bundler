@@ -1,4 +1,13 @@
 #!/usr/bin/env node
+/**
+ * @license
+ * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
 
 // jshint node: true
 'use strict';
@@ -7,6 +16,10 @@ var path = require('path');
 var url = require('url');
 var hyd = require('hydrolysis');
 var dom5 = require('dom5');
+var constants = require('../lib/constants.js');
+var matchers = require('../lib/matchers.js');
+var pathResolver = require('../lib/pathresolver.js');
+
 var loader = new hyd.loader();
 loader.addResolver(new hyd.fsResolver({}));
 
@@ -14,38 +27,10 @@ function isUniqueImport(importNode) {
   return Boolean(importNode.url);
 }
 
-var headFinder = dom5.predicates.hasTagName('head');
-var bodyFinder = dom5.predicates.hasTagName('body');
-var attrs = ['action', 'href', 'src', 'style', 'assetpath'];
-var attrMatcher = dom5.predicates.OR.apply(null, attrs.map(function(attr) {
-  return dom5.predicates.hasAttr(attr);
-}));
-var elementMatcher = dom5.predicates.AND(
-  dom5.predicates.hasTagName('dom-module'),
-  dom5.predicates.hasAttr('id'),
-  dom5.predicates.NOT(
-    dom5.predicates.hasAttr('assetpath')
-  )
-);
 function reparent(newParent) {
   return function(node) {
     node.parentNode = newParent;
   };
-}
-
-// make two absolute urls relative to each other
-function relativeTo(from, to) {
-  var parsedFrom = url.parse(from);
-  var parsedTo = url.parse(to);
-  if (parsedFrom.protocol === parsedTo.protocol && parsedFrom.host === parsedTo.host) {
-    var pathname = path.relative(path.dirname(parsedFrom.pathname), parsedTo.pathname);
-    return url.format({
-      pathname: pathname,
-      search: parsedTo.search,
-      hash: parsedTo.hash
-    });
-  }
-  return to;
 }
 
 function remove(node) {
@@ -61,8 +46,8 @@ function remove(node) {
 function flatten(tree) {
   var doc = tree.html.ast;
   var imports = tree.imports;
-  var head = dom5.query(doc, headFinder);
-  var body = dom5.query(doc, bodyFinder);
+  var head = dom5.query(doc, matchers.head);
+  var body = dom5.query(doc, matchers.body);
   var importNodes = tree.html.import;
   var importDoc, importHead, importBody, importHeadChildren, importBodyChildren;
   if (imports) {
@@ -73,27 +58,10 @@ function flatten(tree) {
         continue;
       }
       importDoc = flatten(im);
-      importHead = dom5.query(importDoc, headFinder);
-      importBody = dom5.query(importDoc, bodyFinder);
+      importHead = dom5.query(importDoc, matchers.head);
+      importBody = dom5.query(importDoc, matchers.body);
       // rewrite urls
-      dom5.queryAll(importDoc, attrMatcher).forEach(function(node) {
-        attrs.forEach(function(attr) {
-          var attrValue = dom5.getAttribute(node, attr);
-          if (attrValue) {
-            var absUrl = url.resolve(im.url, attrValue);
-            var relUrl = relativeTo(tree.url, absUrl);
-            if (attr === 'assetpath') {
-              relUrl += '/';
-            }
-            dom5.setAttribute(node, attr, relUrl);
-          }
-        });
-      });
-      dom5.queryAll(importDoc, elementMatcher).forEach(function(el) {
-        var rel = relativeTo(tree.url, im.url);
-        rel = path.dirname(rel) + '/';
-        dom5.setAttribute(el, 'assetpath', rel);
-      });
+      pathResolver.resolvePaths(importDoc, im.url, tree.url);
       // merge head and body tags for imports into main document
       importHeadChildren = importHead.childNodes;
       importBodyChildren = importBody.childNodes;
