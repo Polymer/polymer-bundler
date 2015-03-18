@@ -3,6 +3,3 @@ node_js:
   - "0.10"
   - "0.12"
   - "iojs"
-branches:
-  except:
-    - hydro-demo
