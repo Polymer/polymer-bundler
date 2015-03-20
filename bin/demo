@@ -85,7 +85,7 @@ if (!target) {
 }
 
 loader.request(target).then(function(content) {
-  return hyd.hydrolyze(content, true, target, loader);
+  return new hyd.Monomers(content, true, target, loader);
 }).then(function(tree) {
   var flatDoc = flatten(tree);
   var serializer = new (require('parse5').Serializer)();
