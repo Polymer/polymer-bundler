@@ -24,7 +24,7 @@ var loader = new hyd.loader();
 loader.addResolver(new hyd.fsResolver({}));
 
 function isUniqueImport(importNode) {
-  return Boolean(importNode.url);
+  return Boolean(importNode.href);
 }
 
 function reparent(newParent) {
@@ -61,7 +61,7 @@ function flatten(tree) {
       importHead = dom5.query(importDoc, matchers.head);
       importBody = dom5.query(importDoc, matchers.body);
       // rewrite urls
-      pathResolver.resolvePaths(importDoc, im.url, tree.url);
+      pathResolver.resolvePaths(importDoc, im.href, tree.href);
       // merge head and body tags for imports into main document
       importHeadChildren = importHead.childNodes;
       importBodyChildren = importBody.childNodes;
