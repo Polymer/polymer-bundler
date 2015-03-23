@@ -7,7 +7,7 @@
     "vulcanize": "bin/vulcanize"
   },
   "dependencies": {
-    "hydrolysis": "git+ssh://git@github.com/PolymerLabs/hydrolysis.git#master",
+    "hydrolysis": "git://github.com/PolymerLabs/hydrolysis.git#master",
     "nopt": "^3.0.1",
     "dom5": "git://github.com/PolymerLabs/dom5.git#master",
     "parse5": "^1.4.1"

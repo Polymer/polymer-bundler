@@ -20,8 +20,8 @@ var constants = require('../lib/constants.js');
 var matchers = require('../lib/matchers.js');
 var pathResolver = require('../lib/pathresolver.js');
 
-var loader = new hyd.loader();
-loader.addResolver(new hyd.fsResolver({}));
+var loader = new hyd.Loader();
+loader.addResolver(new hyd.FSResolver({}));
 
 function isUniqueImport(importNode) {
   return Boolean(importNode.href);
@@ -85,7 +85,7 @@ if (!target) {
 }
 
 loader.request(target).then(function(content) {
-  return new hyd.monomers(content, true, target, loader).metadataTree();
+  return new hyd.Monomers(content, true, target, loader).metadataTree();
 }).then(function(tree) {
   var flatDoc = flatten(tree);
   var serializer = new (require('parse5').Serializer)();
