@@ -84,13 +84,12 @@ if (!target) {
   process.exit(1);
 }
 
-loader.request(target).then(function(content) {
-  return new hyd.Monomers(content, true, target, loader).metadataTree();
-}).then(function(tree) {
+new hyd.Monomers(true, loader).metadataTree(target).then(function(tree) {
   var flatDoc = flatten(tree);
   var serializer = new (require('parse5').Serializer)();
   console.log(serializer.serialize(flatDoc));
 }).catch(function(err) {
   console.log(err);
+  console.log(err.stack);
   process.exit(1);
 });
