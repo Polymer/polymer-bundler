@@ -15,15 +15,35 @@
 var hyd = require('hydrolysis');
 var vulcan = require('../lib/vulcan');
 
+var target = process.argv[2];
+
+var help = [
+  'vulcanize: Reduce an HTML file and its dependent HTML Imports into one file',
+  '',
+  'Usage:',
+  '  vulcanize <html file>',
+  'Examples:',
+  '  The command',
+  '',
+  '    vulcanize target.html',
+  '',
+  '  will inline the HTML Imports of `target.html` and print the resulting HTML to standard output.',
+  '',
+  ' The command',
+  '',
+  '    vulcanize target.html > build.html',
+  '',
+  '  will inline the HTML Imports of `target.html` and print the result to build.html.'
+].join('\n');
+
+if (!target) {
+  console.error(help);
+  process.exit(1);
+}
+
 var loader = new hyd.Loader();
 loader.addResolver(new hyd.FSResolver({}));
 
-var target = process.argv[2];
-
-if (!target) {
-  console.error('no target!');
-  process.exit(1);
-}
 
 vulcan.process(target, process.cwd(), loader, function(err, content) {
   if (err) {
