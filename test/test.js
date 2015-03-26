@@ -11,6 +11,15 @@
 var assert = require('assert');
 var path = require('path');
 
+var parse5 = require('parse5');
+
+function parse(text) {
+  return new (parse5.Parser)().parse(text);
+}
+function serialize(ast) {
+  return new (parse5.Serializer)().serialize(ast);
+}
+
 assert.AssertionError.prototype.showDiff = true;
 
 suite('constants', function() {
@@ -41,23 +50,25 @@ suite('constants', function() {
       assert(!abs.test('bar.html'), 'sibling dependency');
     });
 
-    test('remote absolute urls', function() {
-      var rabs = constants.REMOTE_ABS_URL;
-
-      assert(rabs.test('http://foo.com'), 'http');
-      assert(rabs.test('https://foo.com'), 'https');
-      assert(rabs.test('//foo.com'), 'protocol-free');
-      assert(!rabs.test('../foo/bar.html'), '../');
-      assert(!rabs.test('bar.html'), 'sibling dependency');
-      assert(!rabs.test('/components/'), '/');
-    });
-
     test('CSS URLs', function() {
       var url = constants.URL;
 
       assert('url(foo.html)'.match(url), 'naked');
       assert('url(\'foo.html\')'.match(url), 'single quote');
       assert('url("foo.html")'.match(url), 'double quote');
+    });
+
+    test('Template URLs', function() {
+      var tmpl = constants.URL_TEMPLATE;
+
+      assert('foo{{bar}}'.match(tmpl), 'curly postfix');
+      assert('{{foo}}bar'.match(tmpl), 'curly prefix');
+      assert('foo{{bar}}baz'.match(tmpl), 'curly infix');
+      assert('{{}}'.match(tmpl), 'empty curly');
+      assert('foo[[bar]]'.match(tmpl), 'square postfix');
+      assert('[[foo]]bar'.match(tmpl), 'square prefix');
+      assert('foo[[bar]]baz'.match(tmpl), 'square infix');
+      assert('[[]]'.match(tmpl), 'empty square');
     });
 
   });
@@ -123,8 +134,8 @@ suite('CommentMap', function() {
 
 suite('Path Resolver', function() {
   var pathresolver = require('../lib/pathresolver.js');
-  var inputPath = '/foo/bar/my-element';
-  var outputPath = '/foo/bar';
+  var inputPath = '/foo/bar/my-element/index.html';
+  var outputPath = '/foo/bar/index.html';
 
   test('Rewrite URLs', function() {
     var css = [
@@ -157,14 +168,13 @@ suite('Path Resolver', function() {
 
   test('Rewrite Paths', function() {
     function testPath(val, expected, abs, msg) {
-      var actual = pathresolver.rewriteRelPath(inputPath, outputPath, val, abs);
+      var actual = pathresolver.rewriteRelPath(inputPath, outputPath, val);
       assert.equal(actual, expected, msg);
     }
 
     testPath('biz.jpg', 'my-element/biz.jpg', null, 'local');
     testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', null, 'remote');
     testPath('#foo', '#foo', null, 'hash');
-    testPath('biz.jpg', 'bar/my-element/biz.jpg', '/foo/', 'build path');
   });
 
   test('Resolve Paths', function() {
@@ -192,18 +202,14 @@ suite('Path Resolver', function() {
       '<script>Polymer({is: "my-element"})</script></body></html>'
     ].join('\n');
 
-    var expected2 = [
-      '<html><head><link rel="import" href="/bar/polymer/polymer.html">',
-      '<link rel="stylesheet" href="/bar/my-element/my-element.css">',
-      '</head><body><dom-module id="my-element" assetpath="/bar/my-element/">',
-      '<template>',
-      '<style>:host { background-image: url("/bar/my-element/background.svg"); }</style>',
-      '<div style="position: absolute;"></div>',
-      '</template>',
-      '</dom-module>',
-      '<script>Polymer({is: "my-element"})</script></body></html>'
-    ].join('\n');
+    var ast = parse(html);
+    pathresolver.resolvePaths(ast, inputPath, outputPath);
 
+    var actual = serialize(ast);
+    assert.equal(actual, expected, 'relative');
+  });
+
+  test.skip('Resolve Paths with <base>', function() {
     var htmlBase = [
       '<base href="zork">',
       '<link rel="import" href="../polymer/polymer.html">',
@@ -213,7 +219,7 @@ suite('Path Resolver', function() {
       '<style>:host { background-image: url(background.svg); }</style>',
       '</template>',
       '</dom-module>',
-      '<script>Polymer()</script>'
+      '<script>Polymer({is: "my-element"})</script>'
     ].join('\n');
 
     var expectedBase = [
@@ -225,30 +231,13 @@ suite('Path Resolver', function() {
       '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
       '</template>',
       '</dom-module>',
-      '<script>Polymer()</script></body></html>'
+      '<script>Polymer({is: "my-element"})</script></body></html>'
     ].join('\n');
 
-    var actual;
-    var whacko = require('whacko');
-    var $ = whacko.load(html);
+    var ast = parse(htmlBase);
+    pathresolver.resolvePaths(ast, inputPath, outputPath);
 
-    pathresolver.resolvePaths($, inputPath, outputPath);
-
-    actual = $.html();
-    assert.equal(actual, expected, 'relative');
-
-    $ = whacko.load(html);
-
-    pathresolver.resolvePaths($, inputPath, outputPath, '/foo');
-
-    actual = $.html();
-    assert.equal(actual, expected2, 'absolute');
-
-    $ = whacko.load(htmlBase);
-
-    pathresolver.resolvePaths($, inputPath, outputPath);
-
-    actual = $.html();
+    var actual = serialize(ast);
     assert.equal(actual, expectedBase, 'base');
   });
 
@@ -260,364 +249,98 @@ suite('Path Resolver', function() {
       '</body></html>'
     ].join('\n');
 
-    var actual;
-    var whacko = require('whacko');
-    var $ = whacko.load(base);
+    var ast = parse(base);
+    pathresolver.resolvePaths(ast, inputPath, outputPath);
 
-    pathresolver.resolvePaths($, inputPath, outputPath);
-
-    actual = $.html();
+    var actual = serialize(ast);
     assert.equal(actual, base, 'templated urls');
   });
 
 });
 
-suite('Utils', function() {
-  var constants = require('../lib/constants.js');
-  var utils = require('../lib/utils.js');
+suite.skip('Vulcan', function() {
+ var vulcan = require('../lib/vulcan.js');
+ var outputPath = path.resolve('test/html/actual.html');
+ var inputPath = path.resolve('test/html/default.html');
 
-  test('getTextContent', function() {
-    var whacko = require('whacko');
-    var divEl = whacko('<div>some text!</div>');
-    assert.equal(utils.getTextContent(divEl), 'some text!', 'a textnode child');
-    var blankEl = whacko('<div></div>');
-    assert.equal(utils.getTextContent(blankEl), '', 'no textnode children');
-  });
+ var loader;
 
-  test('setTextContent', function() {
-    var whacko = require('whacko');
-    var divEl = whacko('<div></div>');
-    utils.setTextContent(divEl, 'some text!');
-    assert.equal(utils.getTextContent(divEl), 'some text!', 'create text node');
-    utils.setTextContent(divEl, 'some text 2!');
-    assert.equal(utils.getTextContent(divEl), 'some text 2!', 'override text node');
-  });
+ var hyd = require('hydrolysis');
 
-  test('unixPath', function() {
-    var pp = ['foo', 'bar', 'baz'];
-    var p = pp.join('/');
-    var actual = utils.unixPath(p);
-    assert.equal(actual, p, 'started unix');
-    var p2 = pp.join('\\');
-    actual = utils.unixPath(p2, '\\');
-    assert.equal(actual, p, 'windows path');
-  });
+ setup(function() {
+   loader = new hyd.Loader();
+   loader.addResolver(new hyd.FSResolver({}));
+ });
 
-  test('escapeForRegExp', function() {
-    var actual = utils.escapeForRegExp('foo-bar');
-    assert.equal(actual, 'foo\\-bar', 'element name');
-    actual = utils.escapeForRegExp('foo/bar/baz');
-    assert.equal(actual, 'foo\\/bar\\/baz', 'absolute path');
-  });
+ function process(input, cb) {
+ }
 
-  test('searchAll', function() {
-    var searchAll = utils.searchAll;
-    var whacko = require('whacko');
-    var $ = whacko.load('<body><template><span>foo</span><template><span></span></template></template><span><template><span>bar</span></template>baz</span></body>');
-    var out = searchAll($, 'span');
+ test('defaults', function(done) {
 
-    assert.equal(out.length, 4, 'found all spans, nested in templates');
-  });
+   process({input: inputPath, output: outputPath}, function(outputs) {
+     assert.equal(Object.keys(outputs).length, 1);
+     var vulcanized = outputs[outputPath];
+     assert(vulcanized);
+     var $ = require('whacko').load(vulcanized);
+     assert.equal(searchAll($, 'body > div[hidden]').length, 1, 'only one div[hidden]');
+     assert.equal(searchAll($, 'head > link[rel="import"]:not([href^="http://"])').length, 0, 'all relative imports removed');
+     assert.equal(searchAll($, 'dom-module').length, 1, 'imports were deduplicated');
+     assert.equal($('link', $('dom-module > template').get(0).children[0]).length, 0, 'external styles removed');
+     assert.equal($('style', $('dom-module > template').get(0).children[0]).length, 1, 'styles inlined');
+     assert.equal($('svg > *', $('dom-module > template').get(0).children[0]).length, 6, 'svg children propery nested');
+     assert.equal(searchAll($, 'dom-module').attr('assetpath'), 'imports/', 'assetpath set');
+     done();
+   });
+ });
 
-});
+ test.skip('exclude', function(done) {
 
-suite('Optparser', function() {
-  var path = require('path');
-  var optParser = require('../lib/optparser.js');
-  var constants = require('../lib/constants.js');
-  var ABS_URL = constants.ABS_URL;
-  var REMOTE_ABS_URL = constants.REMOTE_ABS_URL;
+   var i = 3;
+   function reallyDone() {
+     if (--i === 0) {
+       done();
+     }
+   }
 
-  function optParserTest(fn, opts, skipFail) {
-    if (typeof opts === 'undefined') {
-      opts = {input: path.resolve('index.html')};
-    }
-    optParser.processOptions(opts, function(err, options) {
-      if (!skipFail) {
-        assert.equal(err, null);
-      }
-      fn(err, options);
-    });
-  }
+   process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}}, function(outputs) {
+     var vulcanized = outputs[outputPath];
+     assert(vulcanized);
+     var $ = require('whacko').load(vulcanized);
+     assert.equal(searchAll($, 'head > link[href="imports/simple-import.html"]').length, 0, 'import excluded');
+     assert.equal(searchAll($, 'head > link[rel="stylesheet"][href="imports/simple-style.css"]').length, 0, 'import content excluded');
+     assert.equal(searchAll($, 'head > link[href="http://example.com/foo/bar.html"]').length, 1, 'external import is not excluded');
+     reallyDone();
+   });
 
-  test('Error on no input', function(done) {
-    optParserTest(function(err, options) {
-      assert.equal(err, 'No input file or source string given!');
-      done();
-    }, null, true);
-  });
+   process({input: inputPath, output: outputPath, excludes: {styles: ['simple-style']}}, function(outputs) {
+     var vulcanized = outputs[outputPath];
+     assert(vulcanized);
+     var $ = require('whacko').load(vulcanized);
+     assert.equal(searchAll($, 'link[href="imports/simple-style.css"]').length, 1, 'style excluded');
+     reallyDone();
+   });
 
-  test('Defaults', function(done) {
-    optParserTest(function(err, options) {
-      assert.equal(options.input, path.resolve('index.html'));
-      assert.equal(options.output, path.resolve('vulcanized.html'));
-      assert.equal(options.outputDir, path.dirname(path.resolve('vulcanized.html')));
-      assert(!options.csp);
-      assert(!options.abspath);
-      assert.deepEqual(options.excludes, {imports:[ABS_URL], scripts:[ABS_URL], styles:[ABS_URL]});
-      done();
-    });
-  });
+   process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}, 'strip-excludes': false}, function(outputs) {
+     var vulcanized = outputs[outputPath];
+     assert(vulcanized);
+     var $ = require('whacko').load(vulcanized);
+     assert.equal(searchAll($, 'link[href="imports/simple-import.html"]').length, 1, 'excluded import not stripped');
+     reallyDone();
+   });
+ });
 
-  test('CSP', function(done) {
-    optParserTest(function(err, options) {
-      assert.equal(options.csp, path.resolve('vulcanized.js'));
-      done();
-    }, {input: 'index.html', csp: true});
-  });
-
-  test('output', function(done) {
-    optParserTest(function(err, options) {
-      assert.equal(options.output, path.resolve('build.html'));
-      assert.equal(options.csp, path.resolve('build.js'));
-      done();
-    }, {input: path.resolve('index.html'), output: path.resolve('build.html'), csp: true});
-  });
-
-  test('abspath', function(done) {
-    optParserTest(function(err, options) {
-      assert.equal(options.abspath, path.resolve('../'));
-      assert.deepEqual(options.excludes, {imports:[REMOTE_ABS_URL], scripts:[REMOTE_ABS_URL], styles:[REMOTE_ABS_URL]});
-      done();
-    }, {input: path.resolve('index.html'), abspath: path.resolve('../')});
-  });
-
-  test('excludes', function(done) {
-    var excludes = {
-      imports: [
-        '.*'
-      ]
-    };
-    var expected = [/.*/, ABS_URL];
-
-    optParserTest(function(err, options) {
-      assert.deepEqual(options.excludes.imports, expected);
-      done();
-    }, {input: path.resolve('index.html'), excludes: excludes});
-
-  });
-
-  test('config file', function(done) {
-    optParserTest(function(err, options) {
-      assert.equal(options.input, path.resolve('index.html'));
-      assert.equal(options.output, path.resolve('build.html'));
-      assert.equal(options.csp, path.resolve('build.js'));
-      assert(!options.abspath);
-      assert.deepEqual(options.excludes, {imports:[/.*/, ABS_URL], scripts:[ABS_URL], styles:[ABS_URL]});
-done();
-    }, {config: path.resolve('test/config.json'), input: path.resolve('index.html'), output: path.resolve('build.html'), csp: true});
-  });
-
-  test('report broken config file', function(done) {
-    optParserTest(function(err, options) {
-      assert.equal(err, 'Malformed config JSON!');
-      done();
-    }, {config: path.resolve('test/broken_config.json')}, true);
-  });
-
-});
-
-suite('Vulcan', function() {
-  var vulcan = require('../lib/vulcan.js');
-  var outputPath = path.resolve('test/html/actual.html');
-  var inputPath = path.resolve('test/html/default.html');
-
-  var searchAll = require('../lib/utils.js').searchAll;
-
-  test('set options', function(done) {
-    var options = {
-      input: 'index.html'
-    };
-    vulcan.setOptions(options, done);
-  });
-
-  function process(options, fn) {
-    var outputs = Object.create(null);
-    options.outputHandler = function(name, data, eop) {
-      if (!data) {
-        throw new Error("Writing empty data");
-      }
-      outputs[name] = data;
-    };
-    vulcan.setOptions(options, function(err) {
-      assert(!err);
-      vulcan.processDocument();
-      Object.keys(outputs).forEach(function(o) {
-        assert.equal(typeof outputs[o], 'string', 'all buffers are closed');
-      });
-      fn(outputs);
-    });
-  }
-
-  test('defaults', function(done) {
-    var getTextContent = require('../lib/utils.js').getTextContent;
-
-    process({input: inputPath, output: outputPath}, function(outputs) {
-      assert.equal(Object.keys(outputs).length, 1);
-      var vulcanized = outputs[outputPath];
-      assert(vulcanized);
-      var $ = require('whacko').load(vulcanized);
-      assert.equal(searchAll($, 'body > div[hidden]').length, 1, 'only one div[hidden]');
-      assert.equal(searchAll($, 'head > link[rel="import"]:not([href^="http://"])').length, 0, 'all relative imports removed');
-      assert.equal(searchAll($, 'dom-module').length, 1, 'imports were deduplicated');
-      assert.equal($('link', $('dom-module > template').get(0).children[0]).length, 0, 'external styles removed');
-      assert.equal($('style', $('dom-module > template').get(0).children[0]).length, 1, 'styles inlined');
-      assert.equal($('svg > *', $('dom-module > template').get(0).children[0]).length, 6, 'svg children propery nested');
-      assert.equal(searchAll($, 'dom-module').attr('assetpath'), 'imports/', 'assetpath set');
-      done();
-    });
-  });
-
-  test('CSP', function(done) {
-
-    process({input: inputPath, output: outputPath, csp: true}, function(outputs) {
-      assert.equal(Object.keys(outputs).length, 2);
-      var vulcanized = outputs[outputPath];
-      var vulcanizedJS = outputs[path.resolve(outputPath, '../actual.js')];
-      assert(vulcanized);
-      assert(vulcanizedJS);
-      var $ = require('whacko').load(vulcanized);
-      assert(searchAll($, 'body > script[src="actual.js"]'), 'vulcanized script in body');
-      assert.equal(searchAll($, 'body script:not([src])').length, 0, 'inline scripts removed');
-      assert.equal(vulcanizedJS.trim(), 'Polymer({\n    is: \'my-element\'\n  });', 'csp element script');
-      done();
-    });
-  });
-
-  test('exclude', function(done) {
-
-    var i = 3;
-    function reallyDone() {
-      if (--i === 0) {
-        done();
-      }
-    }
-
-    process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}}, function(outputs) {
-      var vulcanized = outputs[outputPath];
-      assert(vulcanized);
-      var $ = require('whacko').load(vulcanized);
-      assert.equal(searchAll($, 'head > link[href="imports/simple-import.html"]').length, 0, 'import excluded');
-      assert.equal(searchAll($, 'head > link[rel="stylesheet"][href="imports/simple-style.css"]').length, 0, 'import content excluded');
-      assert.equal(searchAll($, 'head > link[href="http://example.com/foo/bar.html"]').length, 1, 'external import is not excluded');
-      reallyDone();
-    });
-
-    process({input: inputPath, output: outputPath, excludes: {styles: ['simple-style']}}, function(outputs) {
-      var vulcanized = outputs[outputPath];
-      assert(vulcanized);
-      var $ = require('whacko').load(vulcanized);
-      assert.equal(searchAll($, 'link[href="imports/simple-style.css"]').length, 1, 'style excluded');
-      reallyDone();
-    });
-
-    process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}, 'strip-excludes': false}, function(outputs) {
-      var vulcanized = outputs[outputPath];
-      assert(vulcanized);
-      var $ = require('whacko').load(vulcanized);
-      assert.equal(searchAll($, 'link[href="imports/simple-import.html"]').length, 1, 'excluded import not stripped');
-      reallyDone();
-    });
-  });
-
-  suite('Strip', function() {
-
-    test('script', function(done) {
-      var options = {input: 'test/html/broken-js.html', strip: true};
-      vulcan.setOptions(options, function(err) {
-        assert.ifError(err);
-        assert.throws(vulcan.processDocument, function(err) {
-          assert.equal(err.message, 'Compress JS Error');
-          assert.equal(err.content.trim(), 'var a = (');
-          assert.ok(err.detail);
-          return true;
-        }, 'throws useful error');
-        done();
-      });
-    });
-
-    suite('css', function() {
-
-      test('precsision', function(done) {
-        process({inputSrc: '<style>test{ -ms-flex: 0 0 0.0000000001px; }</style>', output: outputPath, strip: true}, function(outputs) {
-          var vulcanized = outputs[outputPath];
-          assert(vulcanized);
-          assert(vulcanized.indexOf('.0000000001px') > -1, 'precision is correct');
-          done();
-        });
-      });
-
-      test('polyfill-next-selector', function(done) {
-        process({inputSrc: '<style>polyfill-next-selector {content:\':host > *\';}\n::content > * {z-index:-1000;}\npolyfill-next-selector {content:\':host > .core-selected\';}\n::content > .core-selected{z-index: auto;}</style>', output: outputPath, strip: true}, function(outputs) {
-          var vulcanized = outputs[outputPath];
-          assert(vulcanized);
-          assert(vulcanized.indexOf('<style>polyfill-next-selector') > -1, 'polfill-next-selector is kept');
-          done();
-        });
-      });
-
-      test('fallback on parse fail', function(done) {
-        var input = '<style>div{\r\nwidth: {{ foo }};\n}\r\n</style>';
-        process({inputSrc: input, output: outputPath, strip: true}, function(outputs) {
-          var vulcanized = outputs[outputPath];
-          assert(vulcanized);
-          assert(vulcanized.indexOf('{{ foo }}') > -1, 'braces kept');
-          assert(vulcanized.indexOf(input.replace(/[\r\n]/g, '')) > -1, 'newlines removed at least');
-          done();
-        });
-      });
-    });
-
-    test('comment removal', function(done) {
-      var options = {input: 'test/html/comments.html', output: outputPath, strip: true};
-      process(options, function(outputs) {
-        var vulcanized = outputs[outputPath];
-        assert(vulcanized);
-        assert(vulcanized.indexOf('@license') > -1, 'license comment at top kept');
-        assert.equal(vulcanized.indexOf('comment 1'), -1, 'comment in body removed');
-        assert.equal(vulcanized.indexOf('comment 2'), -1, 'comment in template removed');
-        assert.equal(vulcanized.indexOf('comment 3'), -1, 'comment in style in template removed');
-        assert.equal(vulcanized.indexOf('comment 4'), -1, 'comment in polymer-element removed');
-        assert.equal(vulcanized.indexOf('comment 5'), -1, 'comment in script removed');
-        done();
-      });
-    });
-
-    test('License deduplicated', function(done) {
-      var options = {inputSrc: '<!-- @license foo --><script>/** @license foo */ var x = 3;</script><style>/* @license foo */</style>', output: outputPath, strip: true};
-      process(options, function(outputs) {
-        var vulcanized = outputs[outputPath];
-        assert(vulcanized);
-        assert.equal(vulcanized.indexOf('foo'), vulcanized.lastIndexOf('foo'));
-        done();
-      });
-    });
-
-    test('keep fallback declarations', function(done) {
-      var options = {inputSrc: '<style>div { display: flex; display: -webkit-flex; }</style>', output: outputPath, strip: true};
-      process(options, function(outputs) {
-        var vulcanized = outputs[outputPath];
-        assert(vulcanized);
-        assert(vulcanized.indexOf('display: flex') > -1, 'keep flex');
-        assert(vulcanized.indexOf('display: -webkit-flex') > -1, 'keep -webkit-flex');
-        done();
-      });
-    });
-
-  });
-
-  test('Handle <base> tag', function(done) {
-    var options = {input: 'test/html/base.html', output: outputPath};
-    process(options, function(outputs) {
-      var vulcanized = outputs[outputPath];
-      assert(vulcanized);
-      var $ = require('whacko').load(vulcanized);
-      var spanHref = $('span').attr('href');
-      assert.equal('imports/hello', spanHref, '<base> accounted for');
-      var divHref = $('a').attr('href');
-      assert.equal('imports/sub-base/sub-base.html', divHref);
-      done();
-    });
-  });
+ test.skip('Handle <base> tag', function(done) {
+   var options = {input: 'test/html/base.html', output: outputPath};
+   process(options, function(outputs) {
+     var vulcanized = outputs[outputPath];
+     assert(vulcanized);
+     var $ = require('whacko').load(vulcanized);
+     var spanHref = $('span').attr('href');
+     assert.equal('imports/hello', spanHref, '<base> accounted for');
+     var divHref = $('a').attr('href');
+     assert.equal('imports/sub-base/sub-base.html', divHref);
+     done();
+   });
+ });
 
 });
