@@ -10,6 +10,7 @@
 // jshint node: true
 var assert = require('assert');
 var path = require('path');
+var fs = require('fs');
 
 assert.AssertionError.prototype.showDiff = true;
 
@@ -532,30 +533,45 @@ suite('Vulcan', function() {
       }
     }
 
-    process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}}, function(outputs) {
+    process({input: inputPath, output: outputPath, excludes: {imports: ['my-element']}}, function(outputs) {
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
-      assert.equal(searchAll($, 'head > link[href="imports/simple-import.html"]').length, 0, 'import excluded');
-      assert.equal(searchAll($, 'head > link[rel="stylesheet"][href="imports/simple-style.css"]').length, 0, 'import content excluded');
+      assert.equal(searchAll($, 'head > link[href="imports/my-element.html"]').length, 0, 'import excluded');
+      assert.equal(searchAll($, 'head > link[rel="stylesheet"][href="imports/my-element.css"]').length, 0, 'import content excluded');
       assert.equal(searchAll($, 'head > link[href="http://example.com/foo/bar.html"]').length, 1, 'external import is not excluded');
       reallyDone();
     });
 
-    process({input: inputPath, output: outputPath, excludes: {styles: ['simple-style']}}, function(outputs) {
+    process({input: inputPath, output: outputPath, excludes: {styles: ['my-element']}}, function(outputs) {
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
-      assert.equal(searchAll($, 'link[href="imports/simple-style.css"]').length, 1, 'style excluded');
+      assert.equal(searchAll($, 'link[href="imports/my-element.css"]').length, 1, 'style excluded');
       reallyDone();
     });
 
-    process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}, 'strip-excludes': false}, function(outputs) {
+    process({input: inputPath, output: outputPath, excludes: {imports: ['my-element']}, 'strip-excludes': false}, function(outputs) {
       var vulcanized = outputs[outputPath];
       assert(vulcanized);
       var $ = require('whacko').load(vulcanized);
-      assert.equal(searchAll($, 'link[href="imports/simple-import.html"]').length, 1, 'excluded import not stripped');
+      assert.equal(searchAll($, 'link[href="imports/my-element.html"]').length, 1, 'excluded import not stripped');
       reallyDone();
+    });
+  });
+
+  test('exclude by includes', function(done) {
+    var $ = require('whacko').load(fs.readFileSync(inputPath));
+    $($('link[href="imports/my-element.html"]')[0]).attr('href', 'test/html/imports/my-element-base.html');
+
+    process({inputSrc: $.html(), output: outputPath, include: ['test/html/imports/my-element-base.html']}, function(outputs) {
+      var vulcanized = outputs[outputPath];
+      assert(vulcanized);
+      var $ = require('whacko').load(vulcanized);
+      assert.equal(searchAll($, 'head > link[href="imports/my-element.html"]').length, 0, 'import excluded');
+      assert.equal(searchAll($, 'head > link[rel="stylesheet"][href="imports/my-element.css"]').length, 0, 'import content excluded');
+      assert.equal(searchAll($, 'head > link[href="http://example.com/foo/bar.html"]').length, 1, 'external import is not excluded');
+      done();
     });
   });
 
