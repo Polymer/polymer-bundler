@@ -1,0 +1,68 @@
+#!/usr/bin/env node
+/**
+ * @license
+ * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
+
+// jshint node: true
+'use strict';
+
+var path = require('path');
+var fs = require('fs');
+
+var parse5 = require('parse5');
+var parser = new parse5.Parser();
+var serializer = new parse5.Serializer();
+
+var dom5 = require('dom5');
+var pred = dom5.predicates;
+
+var inlineScriptFinder = pred.AND(
+  pred.hasTagName('script'),
+  pred.OR(
+    pred.NOT(
+      pred.hasAttr('type')
+    ),
+    pred.hasAttrValue('type', 'application/javascript'),
+    pred.hasAttrValue('type', 'text/javascript')
+  ),
+  pred.NOT(
+    pred.hasAttr('src')
+  )
+);
+
+var target = process.argv[2];
+var outhtml = path.resolve(process.argv[3]);
+var outscript = path.resolve(process.argv[4]);
+
+var html = fs.readFileSync(target, 'utf-8');
+
+var doc = parser.parse(html);
+var head = dom5.query(doc, pred.hasTagName('head'));
+var body = dom5.query(doc, pred.hasTagName('body'));
+var scripts = dom5.queryAll(doc, inlineScriptFinder);
+
+function remove(node) {
+  var parent = node.parentNode;
+  var idx = parent.childNodes.indexOf(node);
+  parent.childNodes.splice(idx, 1);
+}
+
+var contents = [];
+scripts.forEach(function(sn) {
+  remove(sn);
+  contents.push(sn.childNodes[0].value);
+});
+
+var newScript = dom5.constructors.element('script');
+dom5.setAttribute(newScript, 'src', path.relative(path.dirname(outhtml), outscript));
+dom5.parentNode = body;
+body.childNodes.push(newScript);
+
+fs.writeFileSync(outhtml, serializer.serialize(doc), 'utf-8');
+fs.writeFileSync(outscript, contents.join(';'), 'utf-8');
