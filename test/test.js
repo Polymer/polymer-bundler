@@ -11,13 +11,13 @@
 var assert = require('assert');
 var path = require('path');
 
-var parse5 = require('parse5');
+var dom5 = require('dom5');
 
 function parse(text) {
-  return new (parse5.Parser)().parse(text);
+  return dom5.parse(text);
 }
 function serialize(ast) {
-  return new (parse5.Serializer)().serialize(ast);
+  return dom5.serialize(ast);
 }
 
 assert.AssertionError.prototype.showDiff = true;

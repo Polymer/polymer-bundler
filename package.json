@@ -7,10 +7,9 @@
     "vulcanize": "bin/vulcanize"
   },
   "dependencies": {
-    "hydrolysis": "git://github.com/PolymerLabs/hydrolysis.git#master",
-    "nopt": "^3.0.1",
-    "dom5": "git://github.com/PolymerLabs/dom5.git#master",
-    "parse5": "^1.4.1"
+    "dom5": "^1.0.0",
+    "hydrolysis": "^1.0.0",
+    "nopt": "^3.0.1"
   },
   "devDependencies": {
     "jshint": "^2.5.6",
