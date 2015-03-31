@@ -496,6 +496,7 @@ suite('Vulcan', function() {
       var $ = require('whacko').load(vulcanized);
       assert.equal(searchAll($, 'body > div[hidden]').length, 1, 'only one div[hidden]');
       assert.equal(searchAll($, 'head > link[rel="import"]:not([href^="http://"])').length, 0, 'all relative imports removed');
+      assert.equal(searchAll($, 'head > meta[charset="UTF-8"]').length, 1, 'charset meta tag added.');
       assert.equal(searchAll($, 'polymer-element').length, 1, 'imports were deduplicated');
       assert.equal(searchAll($, 'polymer-element').attr('noscript'), null, 'noscript removed');
       assert.equal(getTextContent(searchAll($, 'polymer-element > script')), 'Polymer(\'my-element\');', 'polymer script included');
@@ -578,7 +579,7 @@ suite('Vulcan', function() {
     test('whitespace', function(done) {
       process({inputSrc: '<div>\n  <div>\n    hi&nbsp;&nbsp;\n    </div>\n</div>  <textarea>\t\tSome text\n  \t</textarea>', output: outputPath, strip: true}, function(outputs) {
         var vulcanized = outputs[outputPath];
-        assert.equal(vulcanized, '<html><head></head><body><div> <div> hi&nbsp;&nbsp; </div> </div> <textarea>\t\tSome text\n  \t</textarea></body></html>');
+        assert.equal(vulcanized, '<html><head><meta charset="UTF-8"></head><body><div> <div> hi&nbsp;&nbsp; </div> </div> <textarea>\t\tSome text\n  \t</textarea></body></html>');
         done();
       });
     });
