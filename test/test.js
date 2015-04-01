@@ -209,7 +209,7 @@ suite('Path Resolver', function() {
     assert.equal(actual, expected, 'relative');
   });
 
-  test.skip('Resolve Paths with <base>', function() {
+  test('Resolve Paths with <base>', function() {
     var htmlBase = [
       '<base href="zork">',
       '<link rel="import" href="../polymer/polymer.html">',
@@ -235,6 +235,7 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     var ast = parse(htmlBase);
+    pathresolver.acid(ast, inputPath);
     pathresolver.resolvePaths(ast, inputPath, outputPath);
 
     var actual = serialize(ast);
@@ -266,51 +267,82 @@ suite('Vulcan', function() {
   var hyd = require('hydrolysis');
   var doc;
 
-  suiteSetup(function(done) {
+  function process(inputPath, cb) {
     var loader = new hyd.Loader();
     loader.addResolver(new hyd.FSResolver({}));
     vulcan.process(inputPath, loader, function(err, content) {
       if (err) {
-        return done(err);
+        return cb(err);
       }
       doc = dom5.parse(content);
-      done();
+      cb(null, doc);
     });
-  });
+  }
 
-  test('imports removed', function() {
+  test('imports removed', function(done) {
     var imports = preds.AND(
       preds.hasTagName('link'),
       preds.hasAttrValue('rel', 'import'),
       preds.hasAttr('href')
     );
-    assert.equal(dom5.queryAll(doc, imports).length, 0);
+    process(inputPath, function(err, doc) {
+      if (err) {
+        return done(err);
+      }
+      assert.equal(dom5.queryAll(doc, imports).length, 0);
+      done();
+    });
   });
 
   test('imports were deduplicated', function() {
-    assert.equal(dom5.queryAll(doc, preds.hasTagName('dom-module')).length, 1);
+    process(inputPath, function(err, doc) {
+      if (err) {
+        return done(err);
+      }
+      assert.equal(dom5.queryAll(doc, preds.hasTagName('dom-module')).length, 1);
+      done();
+    });
   });
 
-  test('svg is nested correctly', function() {
-    var svg = dom5.query(doc, preds.hasTagName('svg'));
-    assert.equal(svg.childNodes.filter(dom5.isElement).length, 6);
+  test('svg is nested correctly', function(done) {
+    process(inputPath, function(err, doc) {
+      if (err) {
+        return done(err);
+      }
+      var svg = dom5.query(doc, preds.hasTagName('svg'));
+      assert.equal(svg.childNodes.filter(dom5.isElement).length, 6);
+      done();
+    });
   });
 
-  test('import bodies are in one hidden div', function() {
+  test('import bodies are in one hidden div', function(done) {
     var hiddenDiv = preds.AND(
       preds.hasTagName('div'),
       preds.hasAttr('hidden'),
       preds.hasAttr('by-vulcanize')
     );
-    assert.equal(dom5.queryAll(doc, hiddenDiv).length, 1);
+
+    process(inputPath, function(err, doc) {
+      if (err) {
+        return done(err);
+      }
+      assert.equal(dom5.queryAll(doc, hiddenDiv).length, 1);
+      done();
+    });
   });
 
-  test('dom-modules have assetpath', function() {
+  test('dom-modules have assetpath', function(done) {
     var assetpath = preds.AND(
       preds.hasTagName('dom-module'),
       preds.hasAttrValue('assetpath', 'imports/')
     );
-    assert.ok(dom5.query(doc, assetpath), 'assetpath set');
+    process(inputPath, function(err, doc) {
+      if (err) {
+        return done(err);
+      }
+      assert.ok(dom5.query(doc, assetpath), 'assetpath set');
+      done();
+    });
   });
 
   test('output file is forced utf-8', function() {
@@ -318,7 +350,13 @@ suite('Vulcan', function() {
       preds.hasTagName('meta'),
       preds.hasAttrValue('charset', 'UTF-8')
     );
-    assert.ok(dom5.query(doc, meta));
+    process(inputPath, function(err, doc) {
+      if (err) {
+        return done(err);
+      }
+      assert.ok(dom5.query(doc, meta));
+      done();
+    });
   });
 
   test.skip('Handle <base> tag', function(done) {
@@ -330,14 +368,12 @@ suite('Vulcan', function() {
       preds.hasTagName('a'),
       preds.hasAttrValue('href', 'imports/sub-base/sub-base.html')
     );
-    process('test/html/base.html', function(err, output) {
+    process('test/html/base.html', function(err, doc) {
       if (err) {
         return done(err);
       }
-      assert(output);
-      var doc = dom5.parse(output);
       var spanHref = dom5.query(doc, span);
-      assert.ok(spanHref, '<base> accounted for');
+      assert.ok(spanHref);
       var anchorRef = dom5.query(doc, a);
       assert.ok(a);
       done();
