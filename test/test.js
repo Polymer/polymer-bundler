@@ -258,89 +258,90 @@ suite('Path Resolver', function() {
 
 });
 
-suite.skip('Vulcan', function() {
- var vulcan = require('../lib/vulcan.js');
- var outputPath = path.resolve('test/html/actual.html');
- var inputPath = path.resolve('test/html/default.html');
+suite('Vulcan', function() {
+  var vulcan = require('../lib/vulcan.js');
+  var inputPath = path.resolve('test/html/default.html');
 
- var loader;
+  var preds = dom5.predicates;
+  var hyd = require('hydrolysis');
+  var doc;
 
- var hyd = require('hydrolysis');
+  suiteSetup(function(done) {
+    var loader = new hyd.Loader();
+    loader.addResolver(new hyd.FSResolver({}));
+    vulcan.process(inputPath, loader, function(err, content) {
+      if (err) {
+        return done(err);
+      }
+      doc = dom5.parse(content);
+      done();
+    });
+  });
 
- setup(function() {
-   loader = new hyd.Loader();
-   loader.addResolver(new hyd.FSResolver({}));
- });
+  test('imports removed', function() {
+    var imports = preds.AND(
+      preds.hasTagName('link'),
+      preds.hasAttrValue('rel', 'import'),
+      preds.hasAttr('href')
+    );
+    assert.equal(dom5.queryAll(doc, imports).length, 0);
+  });
 
- function process(input, cb) {
- }
+  test('imports were deduplicated', function() {
+    assert.equal(dom5.queryAll(doc, preds.hasTagName('dom-module')).length, 1);
+  });
 
- test('defaults', function(done) {
+  test('svg is nested correctly', function() {
+    var svg = dom5.query(doc, preds.hasTagName('svg'));
+    assert.equal(svg.childNodes.filter(dom5.isElement).length, 6);
+  });
 
-   process({input: inputPath, output: outputPath}, function(outputs) {
-     assert.equal(Object.keys(outputs).length, 1);
-     var vulcanized = outputs[outputPath];
-     assert(vulcanized);
-     var $ = require('whacko').load(vulcanized);
-     assert.equal(searchAll($, 'body > div[hidden]').length, 1, 'only one div[hidden]');
-     assert.equal(searchAll($, 'head > link[rel="import"]:not([href^="http://"])').length, 0, 'all relative imports removed');
-     assert.equal(searchAll($, 'dom-module').length, 1, 'imports were deduplicated');
-     assert.equal($('link', $('dom-module > template').get(0).children[0]).length, 0, 'external styles removed');
-     assert.equal($('style', $('dom-module > template').get(0).children[0]).length, 1, 'styles inlined');
-     assert.equal($('svg > *', $('dom-module > template').get(0).children[0]).length, 6, 'svg children propery nested');
-     assert.equal(searchAll($, 'dom-module').attr('assetpath'), 'imports/', 'assetpath set');
-     done();
-   });
- });
+  test('import bodies are in one hidden div', function() {
+    var hiddenDiv = preds.AND(
+      preds.hasTagName('div'),
+      preds.hasAttr('hidden'),
+      preds.hasAttr('by-vulcanize')
+    );
+    assert.equal(dom5.queryAll(doc, hiddenDiv).length, 1);
+  });
 
- test.skip('exclude', function(done) {
+  test('dom-modules have assetpath', function() {
+    var assetpath = preds.AND(
+      preds.hasTagName('dom-module'),
+      preds.hasAttrValue('assetpath', 'imports/')
+    );
+    assert.ok(dom5.query(doc, assetpath), 'assetpath set');
+  });
 
-   var i = 3;
-   function reallyDone() {
-     if (--i === 0) {
-       done();
-     }
-   }
+  test('output file is forced utf-8', function() {
+    var meta = preds.AND(
+      preds.hasTagName('meta'),
+      preds.hasAttrValue('charset', 'UTF-8')
+    );
+    assert.ok(dom5.query(doc, meta));
+  });
 
-   process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}}, function(outputs) {
-     var vulcanized = outputs[outputPath];
-     assert(vulcanized);
-     var $ = require('whacko').load(vulcanized);
-     assert.equal(searchAll($, 'head > link[href="imports/simple-import.html"]').length, 0, 'import excluded');
-     assert.equal(searchAll($, 'head > link[rel="stylesheet"][href="imports/simple-style.css"]').length, 0, 'import content excluded');
-     assert.equal(searchAll($, 'head > link[href="http://example.com/foo/bar.html"]').length, 1, 'external import is not excluded');
-     reallyDone();
-   });
-
-   process({input: inputPath, output: outputPath, excludes: {styles: ['simple-style']}}, function(outputs) {
-     var vulcanized = outputs[outputPath];
-     assert(vulcanized);
-     var $ = require('whacko').load(vulcanized);
-     assert.equal(searchAll($, 'link[href="imports/simple-style.css"]').length, 1, 'style excluded');
-     reallyDone();
-   });
-
-   process({input: inputPath, output: outputPath, excludes: {imports: ['simple-import']}, 'strip-excludes': false}, function(outputs) {
-     var vulcanized = outputs[outputPath];
-     assert(vulcanized);
-     var $ = require('whacko').load(vulcanized);
-     assert.equal(searchAll($, 'link[href="imports/simple-import.html"]').length, 1, 'excluded import not stripped');
-     reallyDone();
-   });
- });
-
- test.skip('Handle <base> tag', function(done) {
-   var options = {input: 'test/html/base.html', output: outputPath};
-   process(options, function(outputs) {
-     var vulcanized = outputs[outputPath];
-     assert(vulcanized);
-     var $ = require('whacko').load(vulcanized);
-     var spanHref = $('span').attr('href');
-     assert.equal('imports/hello', spanHref, '<base> accounted for');
-     var divHref = $('a').attr('href');
-     assert.equal('imports/sub-base/sub-base.html', divHref);
-     done();
-   });
- });
+  test.skip('Handle <base> tag', function(done) {
+    var span = preds.AND(
+      preds.hasTagName('span'),
+      preds.hasAttrValue('href', 'imports/hello')
+    );
+    var a = preds.AND(
+      preds.hasTagName('a'),
+      preds.hasAttrValue('href', 'imports/sub-base/sub-base.html')
+    );
+    process('test/html/base.html', function(err, output) {
+      if (err) {
+        return done(err);
+      }
+      assert(output);
+      var doc = dom5.parse(output);
+      var spanHref = dom5.query(doc, span);
+      assert.ok(spanHref, '<base> accounted for');
+      var anchorRef = dom5.query(doc, a);
+      assert.ok(a);
+      done();
+    });
+  });
 
 });
