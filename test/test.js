@@ -359,7 +359,7 @@ suite('Vulcan', function() {
     });
   });
 
-  test.skip('Handle <base> tag', function(done) {
+  test('Handle <base> tag', function(done) {
     var span = preds.AND(
       preds.hasTagName('span'),
       preds.hasAttrValue('href', 'imports/hello')
