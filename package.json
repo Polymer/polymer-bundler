@@ -1,14 +1,14 @@
 {
   "name": "vulcanize",
-  "version": "0.7.9",
+  "version": "1.0.0",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "bin": {
     "vulcanize": "bin/vulcanize"
   },
   "dependencies": {
-    "dom5": "^1.0.0",
-    "hydrolysis": "^1.0.0",
+    "dom5": "^1.0.1",
+    "hydrolysis": "^1.0.2",
     "nopt": "^3.0.1"
   },
   "devDependencies": {

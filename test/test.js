@@ -70,65 +70,6 @@ suite('constants', function() {
       assert('foo[[bar]]baz'.match(tmpl), 'square infix');
       assert('[[]]'.match(tmpl), 'empty square');
     });
-
-  });
-
-});
-
-suite('CommentMap', function() {
-  var CommentMap = require('../lib/commentmap.js');
-
-  suite('Normalize', function() {
-    test('whitespace', function() {
-      var c = new CommentMap();
-      var s = [
-        'Hi',
-        'There'
-      ].join('\n');
-      var e = 'HiThere';
-
-      assert.equal(c.normalize(s), e);
-    });
-
-    test('single comment', function() {
-      var c = new CommentMap();
-      var s = '// foo';
-      var e = 'foo';
-
-      assert.equal(c.normalize(s), e);
-    });
-
-    test('multiline comment', function() {
-      var c = new CommentMap();
-      var s = [
-        '/**',
-        ' * foo',
-        ' */'
-      ].join('\n');
-      var e = 'foo';
-
-      assert.equal(c.normalize(s), e);
-    });
-  });
-
-  suite('Set and Has', function() {
-
-    test('Plain', function() {
-      var c = new CommentMap();
-      var s = 'Test';
-
-      c.set(s);
-      assert.ok(c.has(s));
-    });
-
-    test('Strip Comments', function() {
-      var c = new CommentMap();
-      var m = '/** foo */';
-      c.set(m);
-      var s = '// foo';
-      assert.ok(c.has(s));
-    });
-
   });
 });
 
@@ -166,15 +107,23 @@ suite('Path Resolver', function() {
     assert.equal(actual, expected);
   });
 
-  test('Rewrite Paths', function() {
-    function testPath(val, expected, abs, msg) {
-      var actual = pathresolver.rewriteRelPath(inputPath, outputPath, val);
-      assert.equal(actual, expected, msg);
-    }
+  function testPath(val, expected, msg) {
+    var actual = pathresolver.rewriteRelPath(inputPath, outputPath, val);
+    assert.equal(actual, expected, msg);
+  }
 
-    testPath('biz.jpg', 'my-element/biz.jpg', null, 'local');
-    testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', null, 'remote');
-    testPath('#foo', '#foo', null, 'hash');
+  test('Rewrite Paths', function() {
+    testPath('biz.jpg', 'my-element/biz.jpg', 'local');
+    testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'remote');
+    testPath('#foo', '#foo', 'hash');
+  });
+
+  test('Rewrite Paths with absolute paths', function() {
+    pathresolver.setOptions({abspath: true});
+    testPath('biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
+    testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
+    testPath('#foo', '#foo', 'hash');
+    pathresolver.setOptions({});
   });
 
   test('Resolve Paths', function() {
@@ -267,9 +216,10 @@ suite('Vulcan', function() {
   var hyd = require('hydrolysis');
   var doc;
 
-  function process(inputPath, cb) {
+  function process(inputPath, cb, loaderOptions) {
+    var options = loaderOptions || {};
     var loader = new hyd.Loader();
-    loader.addResolver(new hyd.FSResolver({}));
+    loader.addResolver(new hyd.FSResolver(options));
     vulcan.process(inputPath, loader, function(err, content) {
       if (err) {
         return cb(err);
@@ -378,6 +328,34 @@ suite('Vulcan', function() {
       assert.ok(a);
       done();
     });
+  });
+
+  test('Output with Absolute paths with abspath', function(done) {
+    var root = path.resolve(inputPath, '../..');
+    var target = '/html/default.html';
+    vulcan.setOptions({abspath: true});
+    var options = {
+      basePath: '/',
+      root: root
+    };
+    var domModule = preds.AND(
+      preds.hasTagName('dom-module'),
+      preds.hasAttrValue('assetpath', '/html/imports/')
+    );
+    var stylesheet = preds.AND(
+      preds.hasTagName('link'),
+      preds.hasAttrValue('rel', 'stylesheet'),
+      preds.hasAttrValue('href', '/html/imports/simple-style.css')
+    );
+    var callback = function(err, doc) {
+      if (err) {
+        return done(err);
+      }
+      assert.ok(dom5.query(doc, domModule));
+      assert.ok(dom5.query(doc, stylesheet));
+      done();
+    };
+    process(target, callback, options);
   });
 
 });
