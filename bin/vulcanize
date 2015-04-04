@@ -26,6 +26,7 @@ var help = [
   '  -h: print this message',
   '  -v: print version number',
   '  -p <arg>: use <arg> as the "webserver root", make all adjusted urls absolute',
+  '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths.',
   'Examples:',
   '  The command',
   '',
@@ -44,7 +45,8 @@ var args = nopt(
   {
     help: Boolean,
     version: Boolean,
-    abspath: String
+    abspath: String,
+    exclude: [String, Array]
   },
   {
     '-h': ['--help'],
@@ -96,8 +98,21 @@ if (abspath) {
   vulcan.setOptions({abspath: true});
 }
 
+// escape a string to be used in new RegExp
+function escapeForRegExp(str) {
+  return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+}
+
 var loader = new hyd.Loader();
 loader.addResolver(new hyd.FSResolver(options));
+
+if (args.exclude) {
+  args.exclude.forEach(function(ex) {
+    var excludeRegexp = escapeForRegExp(ex);
+    var noopResolver = new hyd.NoopResolver(excludeRegexp);
+    loader.addResolver(noopResolver);
+  });
+}
 
 vulcan.process(target, loader, function(err, content) {
   if (err) {
