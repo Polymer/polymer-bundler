@@ -78,6 +78,11 @@ suite('Path Resolver', function() {
   var inputPath = '/foo/bar/my-element/index.html';
   var outputPath = '/foo/bar/index.html';
 
+  setup(function() {
+    pathresolver.setOptions({});
+  });
+
+
   test('Rewrite URLs', function() {
     var css = [
       'x-element {',
@@ -123,7 +128,6 @@ suite('Path Resolver', function() {
     testPath('biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
     testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
     testPath('#foo', '#foo', 'hash');
-    pathresolver.setOptions({});
   });
 
   test('Resolve Paths', function() {
@@ -216,11 +220,10 @@ suite('Vulcan', function() {
   var hyd = require('hydrolysis');
   var doc;
 
-  function process(inputPath, cb, loaderOptions) {
-    var options = loaderOptions || {};
-    var loader = new hyd.Loader();
-    loader.addResolver(new hyd.FSResolver(options));
-    vulcan.process(inputPath, loader, function(err, content) {
+  function process(inputPath, cb, vulcanizeOptions) {
+    var options = vulcanizeOptions || {};
+    vulcan.setOptions(options);
+    vulcan.process(inputPath, function(err, content) {
       if (err) {
         return cb(err);
       }
@@ -333,10 +336,8 @@ suite('Vulcan', function() {
   test('Output with Absolute paths with abspath', function(done) {
     var root = path.resolve(inputPath, '../..');
     var target = '/html/default.html';
-    vulcan.setOptions({abspath: true});
     var options = {
-      basePath: '/',
-      root: root
+      abspath: root
     };
     var domModule = preds.AND(
       preds.hasTagName('dom-module'),

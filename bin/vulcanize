@@ -12,9 +12,8 @@
 // jshint node: true
 'use strict';
 
-var hyd = require('hydrolysis');
-var vulcan = require('../lib/vulcan');
 var nopt = require('nopt');
+var vulcan = require('../lib/vulcan');
 
 var help = [
   'vulcanize: Reduce an HTML file and its dependent HTML Imports into one file',
@@ -26,7 +25,8 @@ var help = [
   '  -h: print this message',
   '  -v: print version number',
   '  -p <arg>: use <arg> as the "webserver root", make all adjusted urls absolute',
-  '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths.',
+  '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.',
+  '  --strip-excludes: Remove tags to external resources.',
   'Examples:',
   '  The command',
   '',
@@ -46,7 +46,8 @@ var args = nopt(
     help: Boolean,
     version: Boolean,
     abspath: String,
-    exclude: [String, Array]
+    exclude: [String, Array],
+    'strip-excludes': Boolean
   },
   {
     '-h': ['--help'],
@@ -86,35 +87,16 @@ if (args['update-notifier'] !== false) {
   })();
 }
 
-var abspath = args.abspath;
-
-var options = {};
-
-if (abspath) {
-  var path = require('path');
-  options.root = path.resolve(abspath);
-  options.basePath = '/';
-  target = path.join('/', target);
-  vulcan.setOptions({abspath: true});
+// escape a regex string and return a new RegExp
+function stringToRegExp(str) {
+  return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
 }
 
-// escape a string to be used in new RegExp
-function escapeForRegExp(str) {
-  return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-}
+args.excludes = args.exclude ? args.exclude.map(stringToRegExp) : [];
+args.stripExcludes = args['strip-excludes'];
 
-var loader = new hyd.Loader();
-loader.addResolver(new hyd.FSResolver(options));
-
-if (args.exclude) {
-  args.exclude.forEach(function(ex) {
-    var excludeRegexp = escapeForRegExp(ex);
-    var noopResolver = new hyd.NoopResolver(excludeRegexp);
-    loader.addResolver(noopResolver);
-  });
-}
-
-vulcan.process(target, loader, function(err, content) {
+vulcan.setOptions(args);
+vulcan.process(target, function(err, content) {
   if (err) {
     console.error(err);
     console.error(err.stack);
