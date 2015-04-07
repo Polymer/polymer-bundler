@@ -32,26 +32,44 @@ var inlineScriptFinder = pred.AND(
   )
 );
 
-var target = process.argv[2];
-var outhtml = path.resolve(process.argv[3]);
-var outscript = path.resolve(process.argv[4]);
+var outhtml = path.resolve(process.argv[2]);
+var outscript = path.resolve(process.argv[3]);
 
-var html = fs.readFileSync(target, 'utf-8');
+if (!outhtml) {
+  console.log('Missing output html file!');
+  process.exit(1);
+}
 
-var doc = dom5.parse(html);
-var head = dom5.query(doc, pred.hasTagName('head'));
-var body = dom5.query(doc, pred.hasTagName('body'));
-var scripts = dom5.queryAll(doc, inlineScriptFinder);
+if (!outscript) {
+  console.log('Missing output js file!');
+  process.exit(1);
+}
 
-var contents = [];
-scripts.forEach(function(sn) {
-  dom5.remove(sn);
-  contents.push(dom5.getTextContent(sn));
+var docText = '';
+process.stdin.setEncoding('utf-8');
+process.stdin.on('readable', function() {
+  var chunk = process.stdin.read();
+  if (chunk !== null) {
+    docText += chunk;
+  }
+});
+process.stdin.on('end', function() {
+  var doc = dom5.parse(docText);
+  var head = dom5.query(doc, pred.hasTagName('head'));
+  var body = dom5.query(doc, pred.hasTagName('body'));
+  var scripts = dom5.queryAll(doc, inlineScriptFinder);
+
+  var contents = [];
+  scripts.forEach(function(sn) {
+    dom5.remove(sn);
+    contents.push(dom5.getTextContent(sn));
+  });
+
+  var newScript = dom5.constructors.element('script');
+  dom5.setAttribute(newScript, 'src', path.relative(path.dirname(outhtml), outscript));
+  dom5.append(body, newScript);
+
+  fs.writeFileSync(outhtml, dom5.serialize(doc), 'utf-8');
+  fs.writeFileSync(outscript, contents.join(';'), 'utf-8');
 });
 
-var newScript = dom5.constructors.element('script');
-dom5.setAttribute(newScript, 'src', path.relative(path.dirname(outhtml), outscript));
-dom5.append(body, newScript);
-
-fs.writeFileSync(outhtml, dom5.serialize(doc), 'utf-8');
-fs.writeFileSync(outscript, contents.join(';'), 'utf-8');
