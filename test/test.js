@@ -124,7 +124,9 @@ suite('Path Resolver', function() {
   });
 
   test('Rewrite Paths with absolute paths', function() {
-    pathresolver.setOptions({abspath: true});
+    pathresolver.setOptions({
+      abspath: true
+    });
     testPath('biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
     testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
     testPath('#foo', '#foo', 'hash');
@@ -232,131 +234,173 @@ suite('Vulcan', function() {
     });
   }
 
-  test('imports removed', function(done) {
-    var imports = preds.AND(
+  suite('Default Options', function() {
+    test('imports removed', function(done) {
+      var imports = preds.AND(
+        preds.hasTagName('link'),
+        preds.hasAttrValue('rel', 'import'),
+        preds.hasAttr('href')
+      );
+      process(inputPath, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert.equal(dom5.queryAll(doc, imports).length, 0);
+        done();
+      });
+    });
+
+    test('imports were deduplicated', function() {
+      process(inputPath, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert.equal(dom5.queryAll(doc, preds.hasTagName('dom-module')).length, 1);
+        done();
+      });
+    });
+
+    test('svg is nested correctly', function(done) {
+      process(inputPath, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var svg = dom5.query(doc, preds.hasTagName('svg'));
+        assert.equal(svg.childNodes.filter(dom5.isElement).length, 6);
+        done();
+      });
+    });
+
+    test('import bodies are in one hidden div', function(done) {
+      var hiddenDiv = preds.AND(
+        preds.hasTagName('div'),
+        preds.hasAttr('hidden'),
+        preds.hasAttr('by-vulcanize')
+      );
+
+      process(inputPath, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert.equal(dom5.queryAll(doc, hiddenDiv).length, 1);
+        done();
+      });
+    });
+
+    test('dom-modules have assetpath', function(done) {
+      var assetpath = preds.AND(
+        preds.hasTagName('dom-module'),
+        preds.hasAttrValue('assetpath', 'imports/')
+      );
+      process(inputPath, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert.ok(dom5.query(doc, assetpath), 'assetpath set');
+        done();
+      });
+    });
+
+    test('output file is forced utf-8', function() {
+      var meta = preds.AND(
+        preds.hasTagName('meta'),
+        preds.hasAttrValue('charset', 'UTF-8')
+      );
+      process(inputPath, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert.ok(dom5.query(doc, meta));
+        done();
+      });
+    });
+
+    test('Handle <base> tag', function(done) {
+      var span = preds.AND(
+        preds.hasTagName('span'),
+        preds.hasAttrValue('href', 'imports/hello')
+      );
+      var a = preds.AND(
+        preds.hasTagName('a'),
+        preds.hasAttrValue('href', 'imports/sub-base/sub-base.html')
+      );
+      process('test/html/base.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var spanHref = dom5.query(doc, span);
+        assert.ok(spanHref);
+        var anchorRef = dom5.query(doc, a);
+        assert.ok(a);
+        done();
+      });
+    });
+  });
+
+  suite('Absolue Paths', function() {
+    test('Output with Absolute paths with abspath', function(done) {
+      var root = path.resolve(inputPath, '../..');
+      var target = '/html/default.html';
+      var options = {
+        abspath: root
+      };
+      var domModule = preds.AND(
+        preds.hasTagName('dom-module'),
+        preds.hasAttrValue('assetpath', '/html/imports/')
+      );
+      var stylesheet = preds.AND(
+        preds.hasTagName('link'),
+        preds.hasAttrValue('rel', 'stylesheet'),
+        preds.hasAttrValue('href', '/html/imports/simple-style.css')
+      );
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert.ok(dom5.query(doc, domModule));
+        assert.ok(dom5.query(doc, stylesheet));
+        done();
+      };
+      process(target, callback, options);
+    });
+  });
+
+  suite('Excludes', function() {
+
+    var excluded = preds.AND(
       preds.hasTagName('link'),
       preds.hasAttrValue('rel', 'import'),
-      preds.hasAttr('href')
-    );
-    process(inputPath, function(err, doc) {
-      if (err) {
-        return done(err);
-      }
-      assert.equal(dom5.queryAll(doc, imports).length, 0);
-      done();
-    });
-  });
-
-  test('imports were deduplicated', function() {
-    process(inputPath, function(err, doc) {
-      if (err) {
-        return done(err);
-      }
-      assert.equal(dom5.queryAll(doc, preds.hasTagName('dom-module')).length, 1);
-      done();
-    });
-  });
-
-  test('svg is nested correctly', function(done) {
-    process(inputPath, function(err, doc) {
-      if (err) {
-        return done(err);
-      }
-      var svg = dom5.query(doc, preds.hasTagName('svg'));
-      assert.equal(svg.childNodes.filter(dom5.isElement).length, 6);
-      done();
-    });
-  });
-
-  test('import bodies are in one hidden div', function(done) {
-    var hiddenDiv = preds.AND(
-      preds.hasTagName('div'),
-      preds.hasAttr('hidden'),
-      preds.hasAttr('by-vulcanize')
+      preds.hasAttrValue('href', 'imports/simple-import.html')
     );
 
-    process(inputPath, function(err, doc) {
-      if (err) {
-        return done(err);
-      }
-      assert.equal(dom5.queryAll(doc, hiddenDiv).length, 1);
-      done();
-    });
-  });
-
-  test('dom-modules have assetpath', function(done) {
-    var assetpath = preds.AND(
-      preds.hasTagName('dom-module'),
-      preds.hasAttrValue('assetpath', 'imports/')
-    );
-    process(inputPath, function(err, doc) {
-      if (err) {
-        return done(err);
-      }
-      assert.ok(dom5.query(doc, assetpath), 'assetpath set');
-      done();
-    });
-  });
-
-  test('output file is forced utf-8', function() {
-    var meta = preds.AND(
-      preds.hasTagName('meta'),
-      preds.hasAttrValue('charset', 'UTF-8')
-    );
-    process(inputPath, function(err, doc) {
-      if (err) {
-        return done(err);
-      }
-      assert.ok(dom5.query(doc, meta));
-      done();
-    });
-  });
-
-  test('Handle <base> tag', function(done) {
-    var span = preds.AND(
-      preds.hasTagName('span'),
-      preds.hasAttrValue('href', 'imports/hello')
-    );
-    var a = preds.AND(
-      preds.hasTagName('a'),
-      preds.hasAttrValue('href', 'imports/sub-base/sub-base.html')
-    );
-    process('test/html/base.html', function(err, doc) {
-      if (err) {
-        return done(err);
-      }
-      var spanHref = dom5.query(doc, span);
-      assert.ok(spanHref);
-      var anchorRef = dom5.query(doc, a);
-      assert.ok(a);
-      done();
-    });
-  });
-
-  test('Output with Absolute paths with abspath', function(done) {
-    var root = path.resolve(inputPath, '../..');
-    var target = '/html/default.html';
     var options = {
-      abspath: root
+      excludes: [
+        /simple-import\.html$/
+      ]
     };
-    var domModule = preds.AND(
-      preds.hasTagName('dom-module'),
-      preds.hasAttrValue('assetpath', '/html/imports/')
-    );
-    var stylesheet = preds.AND(
-      preds.hasTagName('link'),
-      preds.hasAttrValue('rel', 'stylesheet'),
-      preds.hasAttrValue('href', '/html/imports/simple-style.css')
-    );
-    var callback = function(err, doc) {
-      if (err) {
-        return done(err);
-      }
-      assert.ok(dom5.query(doc, domModule));
-      assert.ok(dom5.query(doc, stylesheet));
-      done();
-    };
-    process(target, callback, options);
-  });
 
+    test('Excluded imports are not inlined', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var imports = dom5.queryAll(doc, excluded);
+        assert.ok(imports.length, 1);
+        done();
+      };
+      process(inputPath, callback, options);
+    });
+
+    test('Excluded imports with "Strip Excludes" are removed', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var imports = dom5.queryAll(doc, excluded);
+        assert.ok(imports.length, 0);
+        done();
+      };
+      process(inputPath, callback, options);
+    });
+  });
 });
