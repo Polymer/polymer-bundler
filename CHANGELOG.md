@@ -1,3 +1,20 @@
+### 1.0.0
+- Rewrite on top of [hydrolysis](https://github.com/PolymerLabs/hydrolysis) and
+[dom5](https://github.com/PolymerLabs/dom5)
+- Factor out `--csp` flag into [crisper](https://github.com/PolymerLabs/crisper)
+- Remove html and javascript minification
+### 0.7.10
+- Collapse whitespace instead of removing it
+- Keep unique license comments
+### 0.7.9
+- Honor <base> urls in inline styles
+### 0.7.8
+- Update to whacko 0.17.3
+### 0.7.7
+- Honor <base> tag
+- Make all schemas "absolute" urls
+### 0.7.6
+- Don't rewrite urls starting with '#'
 ### 0.7.5
 - Remove cssom, just use regexes
 ### 0.7.4
