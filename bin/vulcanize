@@ -25,6 +25,7 @@ var help = [
   '  -h|--help: print this message',
   '  -v|--version: print version number',
   '  -p <arg>|--abspath <arg>: use <arg> as the "webserver root", make all adjusted urls absolute',
+  '  --inline-scripts: Inline external scripts',
   '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.',
   '  --strip-excludes: Remove tags to external resources.',
   'Examples:',
@@ -52,7 +53,13 @@ var help = [
   '',
   '  will inline the HTML Imports of `target.html` that are not in the directory `path/to/target/subpath` nor `path/to/target/subpath2`.',
   '',
-  '  If the `--strip-excludes` flag is used, the HTML Import `<link>` tags that point to resources in `path/totarget/subpath` and `path/to/target/subpath2/` will also be removed.'
+  '  If the `--strip-excludes` flag is used, the HTML Import `<link>` tags that point to resources in `path/totarget/subpath` and `path/to/target/subpath2/` will also be removed.',
+  '',
+  '  The command',
+  '',
+  '    vulcanize --inline-scripts target.html',
+  '',
+  '  will inline scripts in `target.html` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.'
 ].join('\n');
 
 var args = nopt(
@@ -61,7 +68,8 @@ var args = nopt(
     version: Boolean,
     abspath: require('path'),
     exclude: [String, Array],
-    'strip-excludes': Boolean
+    'strip-excludes': Boolean,
+    'inline-scripts': Boolean
   },
   {
     '-h': ['--help'],
@@ -108,6 +116,7 @@ function stringToRegExp(str) {
 
 args.excludes = args.exclude ? args.exclude.map(stringToRegExp) : [];
 args.stripExcludes = args['strip-excludes'];
+args.inlineScripts = args['inline-scripts'];
 
 vulcan.setOptions(args);
 vulcan.process(target, function(err, content) {
