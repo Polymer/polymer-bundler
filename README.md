@@ -16,6 +16,13 @@ materials.
 
 This will install `vulcanize` to `/usr/local/bin/vulcanize`.
 
+## Options
+- `-h`|`--help`: print this message
+- `-v`|`--version`: print version number
+- `-p <arg>`|`--abspath <arg>`: use <arg> as the "webserver root", make all adjusted urls absolute
+- `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.
+- `--strip-excludes`: Remove tags to external resources.
+
 ## Usage
 The command
 
@@ -31,29 +38,51 @@ The command
 will inline the HTML Imports of `target.html` and print the result to
 `build.html`.
 
+The command
+
+    vulcanize -p "path/to/target/" /target.html
+
+will inline the HTML Imports of `target.html`, treat `path/to/target/` as the
+webroot of target.html, and make all urls absolute to the provided webroot.
+
+The command
+
+    vulcanize --exclude "path/to/target/subpath/" --exclude "path/to/target/subpath2/" target.html
+
+will inline the HTML Imports of `target.html` that are not in the directory
+`path/to/target/subpath` nor `path/to/target/subpath2`.
+
+If the `--strip-excludes` flag is used, the HTML Import `<link>` tags that
+point to resources in `path/totarget/subpath` and `path/to/target/subpath2/`
+will also be removed.
+
 ## Using vulcanize programmatically
 
-Vulcanize as a library has only one exported function.
+Vulcanize as a library has two exported function.
 
-`vulcanize.process` takes a `target` path to `target.html`, a `output directory`
-path for rebasing urls in the main document, a hydrolysis loader (more on that
-later), and a callback.
+`vulcanize.setOptions` takes an object of options similar to the command line
+options.
+- `abspath`: A folder to treat as "webroot".
+  - When specified, use an absolute path to `target`.
+- `excludes`: An array of RegExp objects to exclude paths from being inlined.
+- `stripExcludes`: Remove paths that were excluded by the regexes in `excludes`.
+
+`vulcanize.process` takes a `target` path to `target.html` and a callback.
 
 Example:
 ```js
 var vulcan = require('vulcanize');
 var hydrolysis = require('hydrolysis');
 
-var loader = new hydrolysis.Loader();
-loader.addResolver(new hydrolysis.FSResolver({}));
+vulcan.setOptions({
+  abspath: '',
+  excludes: [
+  ],
+  stripExcludes: false
+});
 
-vulcan.process(target, process.cwd(), loader, function(err, inlinedHtml) {
+vulcan.process(target, function(err, inlinedHtml) {
 });
 ```
-
-`vulcanize` depends on `hydrolysis` to crawl the tree of HTML Imports, and
-`vulcanize.process` depends on being given a `hydrolysis` loader to resolve
-files.
-**Note: fill this in later**
 
 [![Analytics](https://ga-beacon.appspot.com/UA-39334307-2/Polymer/vulcanize/README)](https://github.com/igrigorik/ga-beacon)
