@@ -1,3 +1,6 @@
+### 1.1.0
+- Add `--inline-scripts` option to inline external scripts
+
 ### 1.0.0
 - Rewrite on top of [hydrolysis](https://github.com/PolymerLabs/hydrolysis) and
 [dom5](https://github.com/PolymerLabs/dom5)
