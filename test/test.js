@@ -373,31 +373,55 @@ suite('Vulcan', function() {
       preds.hasAttrValue('href', 'imports/simple-import.html')
     );
 
-    var options = {
-      excludes: [
-        /simple-import\.html$/
-      ]
-    };
+    var excludes =[/simple-import\.html$/];
 
     test('Excluded imports are not inlined', function(done) {
+      var options = {
+        excludes: excludes
+      };
+
       var callback = function(err, doc) {
         if (err) {
           return done(err);
         }
         var imports = dom5.queryAll(doc, excluded);
-        assert.ok(imports.length, 1);
+        assert.equal(imports.length, 1);
         done();
       };
       process(inputPath, callback, options);
     });
 
     test('Excluded imports with "Strip Excludes" are removed', function(done) {
+      var options = {
+        excludes: excludes,
+        stripExcludes: true
+      };
+
       var callback = function(err, doc) {
         if (err) {
           return done(err);
         }
         var imports = dom5.queryAll(doc, excluded);
-        assert.ok(imports.length, 0);
+        assert.equal(imports.length, 0);
+        done();
+      };
+      process(inputPath, callback, options);
+    });
+  });
+
+  suite('Inline Scripts', function(done) {
+    var options = {
+      inlineScripts: true
+    };
+    var matchers = require('../lib/matchers');
+
+    test('All scripts are inlined', function() {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var scripts = dom5.queryAll(doc, matchers.JS_SRC);
+        assert.equal(scripts.length, 0);
         done();
       };
       process(inputPath, callback, options);
