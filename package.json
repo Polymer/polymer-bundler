@@ -19,7 +19,10 @@
     "test": "node_modules/.bin/jshint --verbose lib/*.js bin/* test/*.js && node_modules/.bin/mocha"
   },
   "author": "Daniel Freedman",
-  "license": "BSD",
+  "license": {
+    "type": "BSD",
+    "url": "http://polymer.github.io/LICENSE.txt"
+  },
   "directories": {
     "test": "test"
   },
