@@ -22,6 +22,7 @@ This will install `vulcanize` to `/usr/local/bin/vulcanize`.
 - `-p <arg>`|`--abspath <arg>`: use <arg> as the "webserver root", make all adjusted urls absolute
 - `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.
 - `--strip-excludes`: Remove tags to external resources.
+- `--inline-scripts`: Inline external scripts.
 
 ## Usage
 The command
@@ -56,6 +57,12 @@ If the `--strip-excludes` flag is used, the HTML Import `<link>` tags that
 point to resources in `path/totarget/subpath` and `path/to/target/subpath2/`
 will also be removed.
 
+The command
+
+    vulcanize --inline-scripts target.html
+
+will inline scripts in `target.html` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.
+
 ## Using vulcanize programmatically
 
 Vulcanize as a library has two exported function.
@@ -66,6 +73,7 @@ options.
   - When specified, use an absolute path to `target`.
 - `excludes`: An array of RegExp objects to exclude paths from being inlined.
 - `stripExcludes`: Remove paths that were excluded by the regexes in `excludes`.
+- `inlineScripts`: Inline external scripts
 
 `vulcanize.process` takes a `target` path to `target.html` and a callback.
 
@@ -78,7 +86,8 @@ vulcan.setOptions({
   abspath: '',
   excludes: [
   ],
-  stripExcludes: false
+  stripExcludes: false,
+  inlineScripts: false
 });
 
 vulcan.process(target, function(err, inlinedHtml) {
