@@ -1,39 +1,59 @@
+### 1.0.0
+- Rewrite on top of [hydrolysis](https://github.com/PolymerLabs/hydrolysis) and
+[dom5](https://github.com/PolymerLabs/dom5)
+- Factor out `--csp` flag into [crisper](https://github.com/PolymerLabs/crisper)
+- Remove html and javascript minification
+
 ### 0.7.10
 - Collapse whitespace instead of removing it
 - Keep unique license comments
+
 ### 0.7.9
-- Honor <base> urls in inline styles
+- Honor `<base>` urls in inline styles
+
 ### 0.7.8
 - Update to whacko 0.17.3
+
 ### 0.7.7
-- Honor <base> tag
+- Honor `<base>` tag
 - Make all schemas "absolute" urls
+
 ### 0.7.6
 - Don't rewrite urls starting with '#'
+
 ### 0.7.5
 - Remove cssom, just use regexes
+
 ### 0.7.4
-- Workaround for cssom not liking '{{ }}' bindings in <style> tags (unsupported, use <core-style> instead)
+- Workaround for cssom not liking '{{ }}' bindings in `<style>` tags (unsupported, use `<core-style>` instead)
+
 ### 0.7.3
 - Replace clean-css with cssom, which does less "optimizations"
+
 ### 0.7.2
 - Disable css number rounding for crazy-sad flexbox hacks in IE 10
 - Add charset=utf-8 to all scripts
 - Better comment removal codepath
+
 ### 0.7.1
 - Support for mobile URL Schemes "tel:" and "sms:"
 - Better reporting of javascript error messages with `--strip`
 - Handle buffers as input with `inputSrc`
 - Rename `outputSrc` to `outputHandler`
+
 ### 0.7.0
 - Upgrade to whacko 0.17.2 with template support
 - add utils.searchAll to make a query that walks into `<template>` elements
+
 ### 0.6.2
 - stick to whacko 0.17.1 until `<template>` support is complete
+
 ### 0.6.1
 - fix bug with removing absolute imports
+
 ### 0.6.0
 - Strip excluded imports by default (old behavior accessible with --no-strip-excludes flag)
+
 ### 0.5.0
 - finally switch to new-world polymer license
 - Add a bunch of tests for lib/vulcan
@@ -67,6 +87,7 @@
 - resolve webAbsPath if relative path provided
 - added recognition of double-slash paths as a remote absolute URL
 - applied webAbsPath option for handling absolute paths (based on jongeho1's pull request: https://github.com/Polymer/vulcanize/pull/36)
+
 ### 0.4.3
 - Release 0.4.3
 - Mailto: is an absolute path
@@ -79,28 +100,36 @@
 - audit license headers
 - fixed cheerio options to perform the same parsing while reading and writing
 - Never decode entities
+
 ### 0.4.2
 - Fix inline svgs
 - Update README with --strip functionality
+
 ### 0.4.1
 - Bump version to 0.4.1
 - Strip comments and whitespace from all nodes
+
 ### 0.4.0
 - Bump to version 0.4.0
 - Replace noscript with explicit Polymer invocation, to ensure correct element registration order when CSP'ed.
+
 ### 0.3.1
 - remove extraneous async module
 - Fixes #34
+
 ### 0.3.0
 - Hide import content from view in the main document
+
 ### 0.2.7
 - always add name to polymer invocation
+
 ### 0.2.6
 - bump version
 - add small usage block to help
 - Make --strip work with --csp
 - Clean up use of get/setTextContent
 - Inline stylesheet happens after import path fixup, so outputPath of rewriteURL should be the overall outputPath
+
 ### 0.2.5
 - update to 0.2.5
 - .text() was decoding HTML entities, read raw script node content for CSP
@@ -111,16 +140,21 @@
 - Fix #29
 - Print help dialog if called without arguments
 - update dependencies
+
 ### 0.2.4
 - Treat config file as "defaults", commandline flags override
 - Do path resolution before import processing and style inlining
+
 ### 0.2.3
 - A few bug fixes
+
 ### 0.2.2
 - Don't recalculate assetpath for handled elements
 - Bump to 0.2.1
+
 ### 0.2.1
 - unbreak assetpath generation
+
 ### 0.2.0
 - Prepare vulcanize 0.2.0
 - Merge pull request #25 from lborgav/patch-1
@@ -146,7 +180,7 @@
 - Include excluded script instead of its contents
 - Only put a trailing slash into assetpath attribute if there is a path
 - bump version
-- clone all styles (minus href and rel) from <link> to <style>
+- clone all styles (minus href and rel) from `<link>` to `<style>`
 - update to 0.1.13
 - Skip non-JS scripts and non-CSS styles
 - bump version
@@ -163,52 +197,66 @@
 - cheerio 0.13 seems to work just fine
 - inline stylesheets in the main page when using --inline
 - README: add ga beacon
+
 ### 0.1.9
 - Reset excludes on each run
+
 ### 0.1.8
 - Bump version
 - add "strip comments" functionality
 - fix minor typo in helep text: s/defualts/defaults
+
 ### 0.1.7
 - bump version
 - add sub-import test to the top level import
 - Add --config option to specify user defined excludes
 - Add user-defined excludes from inling.
+
 ### 0.1.6
 - bump version
 - test with absolute urls
 - remove console.log
 - Deduplicate absolute url imports
 - fix missing absolute imports
+
 ### 0.1.5
 - bump to 0.1.5
 - Revert "polymer-scope is no longer supported"
+
 ### 0.1.4
 - reset shared buffers on each handleMainDocument call
+
 ### 0.1.3
 - bump version
 - move option checking to setOptions, not the bin
 - Add npm installation instructions
 - polymer-scope is no longer supported
+
 ### 0.1.2
+
 ### 0.1.15
 - Only put a trailing slash into assetpath attribute if there is a path
+
 ### 0.1.14
 - bump version
-- clone all styles (minus href and rel) from <link> to <style>
+- clone all styles (minus href and rel) from `<link>` to `<style>`
+
 ### 0.1.13
 - update to 0.1.13
 - Skip non-JS scripts and non-CSS styles
+
 ### 0.1.12
 - bump version
 - Make sure to CSPify main document first, load platform.js first in the output js file.
 - add test config for excluding polymer.html
 - Refactor handling of inlined and excluded import insertion
+
 ### 0.1.11
 - bump version
 - Fix subtle path bug in stylesheets
 - use uglify and clean-css to strip comments from js and css when using --strip
 - Clean up
+
 ### 0.1.10
 - bump version
 - --csp will now operate on the input html file as well
@@ -239,6 +287,7 @@
 - bump version
 - update README to be more approachable
 - add a help dialog, fix "main" in package.json
+
 ### 0.1.1
 - Bump version to 0.1.1
 - Fix paths from main html file if input or output directories are not current working directory
@@ -251,9 +300,11 @@
 - resolving script path from outputDir  during concatenation
 - Merge pull request #1 from addyosmani/patch-1
 - Adds npm install snippet, minor formatting changes.
+
 ### 0.1.0
 - semver recommends starting at 0.1.0
 - add repo info to package.json
+
 ### 0.0.1
 - Update README.md
 - add license top
@@ -290,4 +341,4 @@
 - Update README for polymer-element
 - update for polymer-element
 - Much more useful README
-- use assetpath attribute on <element> to fix resolvePath usage in Polymer elements
+- use assetpath attribute on `<element>` to fix resolvePath usage in Polymer elements

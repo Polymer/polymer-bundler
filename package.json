@@ -1,15 +1,15 @@
 {
   "name": "vulcanize",
-  "version": "0.7.10",
+  "version": "1.0.0",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "bin": {
     "vulcanize": "bin/vulcanize"
   },
   "dependencies": {
-    "nopt": "^3.0.1",
-    "uglify-js": "^2.4.15",
-    "whacko": "0.17.3"
+    "dom5": "^1.0.1",
+    "hydrolysis": "^1.0.2",
+    "nopt": "^3.0.1"
   },
   "devDependencies": {
     "jshint": "^2.5.6",
