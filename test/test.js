@@ -335,6 +335,34 @@ suite('Vulcan', function() {
         done();
       });
     });
+
+    test('Imports in <body> are handled correctly', function(done) {
+      var importMatcher = preds.AND(
+        preds.hasTagName('link'),
+        preds.hasAttrValue('rel', 'import')
+      );
+
+      var headMatcher = preds.hasTagName('head');
+      var bodyMatcher = preds.hasTagName('body');
+
+      var headExpected = preds.hasTagName('script');
+      var bodyExpected = preds.hasTagName('div');
+
+      process('test/html/import-in-body.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var imports = dom5.queryAll(doc, importMatcher);
+        assert.equal(imports.length, 0);
+        var head = dom5.query(doc, headMatcher);
+        var body = dom5.query(doc, bodyMatcher);
+        var headActual = dom5.query(doc, headExpected).parentNode;
+        var bodyActual = dom5.query(doc, bodyExpected).parentNode;
+        assert.equal(head, headActual);
+        assert.equal(body, bodyActual);
+        done();
+      });
+    });
   });
 
   suite('Absolue Paths', function() {
