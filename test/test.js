@@ -461,7 +461,7 @@ suite('Vulcan', function() {
       assert.equal(searchAll($, 'head > link[rel="import"]:not([href^="http://"])').length, 0, 'all relative imports removed');
       assert.equal(searchAll($, 'dom-module').length, 1, 'imports were deduplicated');
       assert.equal($('link', $('dom-module > template').get(0).children[0]).length, 0, 'external styles removed');
-      assert.equal($('style', $('dom-module > template').get(0).children[0]).length, 1, 'styles inlined');
+      assert.equal($('style', $('dom-module > template').get(0).children[0]).length, 2, 'styles inlined');
       assert.equal($('svg > *', $('dom-module > template').get(0).children[0]).length, 6, 'svg children propery nested');
       assert.equal(searchAll($, 'dom-module').attr('assetpath'), 'imports/', 'assetpath set');
       done();
