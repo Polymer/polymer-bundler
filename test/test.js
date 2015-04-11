@@ -401,7 +401,7 @@ suite('Vulcan', function() {
       preds.hasAttrValue('href', 'imports/simple-import.html')
     );
 
-    var excludes =[/simple-import\.html$/];
+    var excludes =["simple-import.html"];
 
     test('Excluded imports are not inlined', function(done) {
       var options = {
@@ -421,8 +421,7 @@ suite('Vulcan', function() {
 
     test('Excluded imports with "Strip Excludes" are removed', function(done) {
       var options = {
-        excludes: excludes,
-        stripExcludes: true
+        stripExcludes: excludes
       };
 
       var callback = function(err, doc) {
