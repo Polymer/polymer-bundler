@@ -27,7 +27,8 @@ var help = [
   '  -p <arg>|--abspath <arg>: use <arg> as the "webserver root", make all adjusted urls absolute',
   '  --inline-scripts: Inline external scripts',
   '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.',
-  '  --strip-excludes: Remove tags to external resources.',
+  '  --strip-exclude: Exclude a subpath and strip the link that includes it.',
+  '  --implicit-strip: Equivalent to setting --strip-excludes for the transitive dependencies of imports specified in --exclude',
   'Examples:',
   '  The command',
   '',
@@ -68,7 +69,8 @@ var args = nopt(
     version: Boolean,
     abspath: require('path'),
     exclude: [String, Array],
-    'strip-excludes': Boolean,
+    'strip-exclude': [String, Array],
+    'implicit-strip': Boolean,
     'inline-scripts': Boolean
   },
   {
@@ -114,8 +116,9 @@ function stringToRegExp(str) {
   return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
 }
 
-args.excludes = args.exclude ? args.exclude.map(stringToRegExp) : [];
-args.stripExcludes = args['strip-excludes'];
+args.excludes = args.exclude || [];
+args.stripExcludes = args['strip-exclude'] || [];
+args.implicitStrip = args['implicit-strip'];
 args.inlineScripts = args['inline-scripts'];
 
 vulcan.setOptions(args);
