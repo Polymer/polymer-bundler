@@ -1,8 +1,8 @@
 node_modules
 
-
 # npmignore
 example
-CHANGELOG
+CHANGELOG.md
+README.md
 util
 test

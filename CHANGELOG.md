@@ -1,3 +1,7 @@
+### 1.2.0
+- Change `--strip-exclude` to be an array of excludes to strip
+- `--implicit-strip` is the old `--strip-excludes` behavior
+
 ### 1.1.0
 - Add `--inline-scripts` option to inline external scripts
 
