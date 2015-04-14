@@ -21,7 +21,8 @@ This will install `vulcanize` to `/usr/local/bin/vulcanize`.
 - `-v`|`--version`: print version number
 - `-p <arg>`|`--abspath <arg>`: use <arg> as the "webserver root", make all adjusted urls absolute
 - `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.
-- `--strip-excludes`: Remove tags to external resources.
+- `--strip-excludes`: Exclude a subpath and remove any links referencing it.
+- `--implicit-strip`: Like specifying --strip-excludes for all the transitive dependencies of imports specified with `--exclude`.
 - `--inline-scripts`: Inline external scripts.
 
 ## Usage
