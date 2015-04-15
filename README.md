@@ -95,4 +95,8 @@ vulcan.process(target, function(err, inlinedHtml) {
 });
 ```
 
+## What happened to [feature]?
+- `--csp` mode has been moved into [crisper](https://github.com/PolymerLabs/crisper)
+- `--strip` mode was removed, use something like [html-minifier](https://github.com/kangax/html-minifier) or [minimize](https://github.com/Moveo/minimize)
+
 [![Analytics](https://ga-beacon.appspot.com/UA-39334307-2/Polymer/vulcanize/README)](https://github.com/igrigorik/ga-beacon)
