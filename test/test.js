@@ -16,6 +16,7 @@ var dom5 = require('dom5');
 function parse(text) {
   return dom5.parse(text);
 }
+
 function serialize(ast) {
   return dom5.serialize(ast);
 }
@@ -401,7 +402,7 @@ suite('Vulcan', function() {
       preds.hasAttrValue('href', 'imports/simple-import.html')
     );
 
-    var excludes =["simple-import.html"];
+    var excludes = ["simple-import.html"];
 
     test('Excluded imports are not inlined', function(done) {
       var options = {
