@@ -26,6 +26,7 @@ var help = [
   '  -v|--version: print version number',
   '  -p <arg>|--abspath <arg>: use <arg> as the "webserver root", make all adjusted urls absolute',
   '  --inline-scripts: Inline external scripts',
+  '  --inline-css: Inline external stylesheets',
   '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.',
   '  --strip-exclude: Exclude a subpath and strip the link that includes it.',
   '  --implicit-strip: Equivalent to setting --strip-excludes for the transitive dependencies of imports specified in --exclude',
@@ -71,7 +72,8 @@ var args = nopt(
     exclude: [String, Array],
     'strip-exclude': [String, Array],
     'implicit-strip': Boolean,
-    'inline-scripts': Boolean
+    'inline-scripts': Boolean,
+    'inline-css': Boolean
   },
   {
     '-h': ['--help'],
@@ -120,6 +122,7 @@ args.excludes = args.exclude || [];
 args.stripExcludes = args['strip-exclude'] || [];
 args.implicitStrip = args['implicit-strip'];
 args.inlineScripts = args['inline-scripts'];
+args.inlineCss = args['inline-css'];
 
 vulcan.setOptions(args);
 vulcan.process(target, function(err, content) {
