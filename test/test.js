@@ -239,7 +239,8 @@ suite('Vulcan', function() {
       var imports = preds.AND(
         preds.hasTagName('link'),
         preds.hasAttrValue('rel', 'import'),
-        preds.hasAttr('href')
+        preds.hasAttr('href'),
+        preds.NOT(preds.hasAttrValue('type', 'css'))
       );
       process(inputPath, function(err, doc) {
         if (err) {
@@ -378,7 +379,8 @@ suite('Vulcan', function() {
       );
       var stylesheet = preds.AND(
         preds.hasTagName('link'),
-        preds.hasAttrValue('rel', 'stylesheet'),
+        preds.hasAttrValue('rel', 'import'),
+        preds.hasAttrValue('type', 'css'),
         preds.hasAttrValue('href', '/html/imports/simple-style.css')
       );
       var callback = function(err, doc) {
@@ -436,19 +438,37 @@ suite('Vulcan', function() {
     });
   });
 
-  suite('Inline Scripts', function(done) {
+  suite('Inline Scripts', function() {
     var options = {
       inlineScripts: true
     };
     var matchers = require('../lib/matchers');
 
-    test('All scripts are inlined', function() {
+    test('All scripts are inlined', function(done) {
       var callback = function(err, doc) {
         if (err) {
           return done(err);
         }
         var scripts = dom5.queryAll(doc, matchers.JS_SRC);
         assert.equal(scripts.length, 0);
+        done();
+      };
+      process(inputPath, callback, options);
+    });
+  });
+
+  suite('Inline CSS', function() {
+    var options = {
+      inlineCss: true
+    };
+    var matchers = require('../lib/matchers');
+    test('All styles are inlined', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var links = dom5.queryAll(doc, matchers.POLY_CSS_LINK);
+        assert.equal(links.length, 0);
         done();
       };
       process(inputPath, callback, options);

@@ -7,9 +7,9 @@
     "vulcanize": "bin/vulcanize"
   },
   "dependencies": {
-    "dom5": "^1.0.1",
+    "dom5": "^1.0.2",
     "es6-promise": "^2.1.0",
-    "hydrolysis": "^1.1.0",
+    "hydrolysis": "^1.3.0",
     "nopt": "^3.0.1"
   },
   "devDependencies": {

@@ -24,6 +24,7 @@ This will install `vulcanize` to `/usr/local/bin/vulcanize`.
 - `--strip-excludes`: Exclude a subpath and remove any links referencing it.
 - `--implicit-strip`: Like specifying --strip-excludes for all the transitive dependencies of imports specified with `--exclude`.
 - `--inline-scripts`: Inline external scripts.
+- `--inline-css`: Inline external stylesheets.
 
 ## Usage
 The command
