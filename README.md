@@ -25,6 +25,7 @@ This will install `vulcanize` to `/usr/local/bin/vulcanize`.
 - `--implicit-strip`: Like specifying --strip-excludes for all the transitive dependencies of imports specified with `--exclude`.
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
+- `--strip-comments`: Strips all HTML comments not containing an @license from the document.
 
 ## Usage
 The command

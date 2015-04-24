@@ -436,6 +436,22 @@ suite('Vulcan', function() {
       };
       process(inputPath, callback, options);
     });
+
+    test('Excluded comments are removed', function(done) {
+      var options = {
+        stripComments: true
+      };
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
+        assert.equal(comments.length, 1);
+        done();
+      };
+      console.log(inputPath);
+      process(inputPath, callback, options);
+    });
   });
 
   suite('Inline Scripts', function() {
