@@ -29,8 +29,8 @@ var help = [
   '  --inline-css: Inline external stylesheets',
   '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.',
   '  --strip-exclude: Exclude a subpath and strip the link that includes it.',
-  '  --implicit-strip: Equivalent to setting --strip-excludes for the transitive dependencies of imports specified in --exclude',
   '  --strip-comments: Strips all HTML comments not containing an @license from the document',
+  '  --no-implicit-strip: DANGEROUS! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.',
   'Examples:',
   '  The command',
   '',
@@ -73,7 +73,7 @@ var args = nopt(
     exclude: [String, Array],
     'strip-exclude': [String, Array],
     'strip-comments': Boolean,
-    'implicit-strip': Boolean,
+    'no-implicit-strip': Boolean,
     'inline-scripts': Boolean,
     'inline-css': Boolean
   },
@@ -123,7 +123,7 @@ function stringToRegExp(str) {
 args.excludes = args.exclude || [];
 args.stripExcludes = args['strip-exclude'] || [];
 args.stripComments = args['strip-comments'];
-args.implicitStrip = args['implicit-strip'];
+args.implicitStrip = !args['no-implicit-strip'];
 args.inlineScripts = args['inline-scripts'];
 args.inlineCss = args['inline-css'];
 
