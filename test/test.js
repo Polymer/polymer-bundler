@@ -449,7 +449,6 @@ suite('Vulcan', function() {
         assert.equal(comments.length, 1);
         done();
       };
-      console.log(inputPath);
       process(inputPath, callback, options);
     });
   });
