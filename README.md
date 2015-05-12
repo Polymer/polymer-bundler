@@ -14,7 +14,8 @@ materials.
 
     npm install -g vulcanize
 
-This will install `vulcanize` to `/usr/local/bin/vulcanize`.
+This will install `vulcanize` to `/usr/local/bin/vulcanize` (you may need `sudo`
+for this step).
 
 ## Options
 - `-h`|`--help`: print this message
@@ -66,6 +67,19 @@ The command
 
 will inline scripts in `target.html` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.
 
+The command
+
+    vulcanize --inline-css target.html
+
+will inline Polymerized stylesheets, `<link rel="import" type="css">`
+
+The command
+
+    vulcanize --strip-comments target.html
+
+will remove HTML comments, except for those that begin with `@license`.
+License comments will be deduplicated.
+
 ## Using vulcanize programmatically
 
 Vulcanize as a library has two exported function.
@@ -76,7 +90,13 @@ options.
   - When specified, use an absolute path to `target`.
 - `excludes`: An array of RegExp objects to exclude paths from being inlined.
 - `stripExcludes`: Remove paths that were excluded by the regexes in `excludes`.
-- `inlineScripts`: Inline external scripts
+- `inlineScripts`: Inline external scripts.
+- `inlineCss`: Inline external stylesheets.
+- `stripComments`: Remove non-license HTML comments.
+- `loader`: A [hydrolysis](https://www.npmjs.com/package/hydrolysis) loader.
+    This loader is generated with the `target` argument to `vulcan.process` and
+    the `exclude` paths. A custom loader can be given if more advanced setups
+    are necesssary.
 
 `vulcanize.process` takes a `target` path to `target.html` and a callback.
 
@@ -90,15 +110,24 @@ vulcan.setOptions({
   excludes: [
   ],
   stripExcludes: false,
-  inlineScripts: false
+  inlineScripts: false,
+  inlineCss: false,
+  implicitStrip: true,
+  stripComments: false
+  loader: /* a Hydrolysis loader object */
 });
 
 vulcan.process(target, function(err, inlinedHtml) {
 });
 ```
 
-## What happened to [feature]?
+## What happened to [feature] from 0.X?
 - `--csp` mode has been moved into [crisper](https://github.com/PolymerLabs/crisper)
 - `--strip` mode was removed, use something like [html-minifier](https://github.com/kangax/html-minifier) or [minimize](https://github.com/Moveo/minimize)
+
+## What about build tools
+- [grunt-vulcanize](https://www.npmjs.com/package/grunt-vulcanize)
+- [gulp-vulcanize](https://www.npmjs.com/package/gulp-vulcanize)
+- [broccoli-vulcanize](https://www.npmjs.com/package/broccoli-vulcanize)
 
 [![Analytics](https://ga-beacon.appspot.com/UA-39334307-2/Polymer/vulcanize/README)](https://github.com/igrigorik/ga-beacon)
