@@ -8,6 +8,10 @@
 >Named for the [Vulcanization](http://en.wikipedia.org/wiki/Vulcanization) process that turns polymers into more durable
 materials.
 
+Web pages that use multiple [HTML Imports](http://www.html5rocks.com/en/tutorials/webcomponents/imports/) to load dependencies may end up making lots of network round-trips. In many cases, this can lead to long initial load times and unnecessary bandwidth usage. The Vulcanize tool follows HTML Imports and `<script>` tags to inline these external assets into a single page, to be used in production.
+
+In the future, technologies such as [HTTP/2](http://en.wikipedia.org/wiki/HTTP/2) and [Server Push](https://http2.github.io/faq/#whats-the-benefit-of-server-push) will likely obsolete the need for a tool like vulcanize for production uses.
+
 ## Installation
 
 `vulcanize` is available on npm. For maximium utility, `vulcanize` should be installed globally.
