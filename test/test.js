@@ -364,6 +364,23 @@ suite('Vulcan', function() {
         done();
       });
     });
+
+    test('Old Polymer is detected and warns', function(done) {
+      var constants = require('../lib/constants');
+      process('test/html/old-polymer.html', function(err, doc) {
+        try {
+          if (err) {
+            // check err message
+            assert.equal(err.message, constants.OLD_POLYMER);
+            done();
+          } else {
+            throw new Error('expected error');
+          }
+        } catch(e) {
+          done(e);
+        }
+      });
+    });
   });
 
   suite('Absolue Paths', function() {
