@@ -1,3 +1,27 @@
+### 1.4.4
+- Make sure excluded js files are totally removed (they inserted blank script
+    tags)
+
+### 1.4.3
+- Update dependencies and docs
+- Dependency update fixes cyclic dependencies
+
+### 1.4.2
+- Fix URL rewriting from parts of imports that end up in `<body>`
+
+### 1.4.1
+- `--implicit-strip` is default
+- Remove "comment normalization" when stripping, it was not self-stable
+
+### 1.4.0
+- Add `--strip-comments` to remove unnecessary comments
+
+### 1.3.0
+- Add `--inline-css` option to inline external stylesheets
+
+### 1.2.1
+- Update dependencies
+
 ### 1.2.0
 - Change `--strip-exclude` to be an array of excludes to strip
 - `--implicit-strip` is the old `--strip-excludes` behavior
