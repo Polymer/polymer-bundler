@@ -367,17 +367,18 @@ suite('Vulcan', function() {
 
     test('Old Polymer is detected and warns', function(done) {
       var constants = require('../lib/constants');
-      process('test/html/old-polymer.html', function(err, doc) {
-        try {
-          if (err) {
+      var input = 'test/html/old-polymer.html';
+      process(input, function(err, doc) {
+        if (err) {
+          try {
             // check err message
-            assert.equal(err.message, constants.OLD_POLYMER);
+            assert.equal(err.message, constants.OLD_POLYMER + ' File: ' + input);
             done();
-          } else {
-            throw new Error('expected error');
+          } catch(e) {
+            done(e);
           }
-        } catch(e) {
-          done(e);
+        } else {
+          done(new Error('should have thrown'));
         }
       });
     });
