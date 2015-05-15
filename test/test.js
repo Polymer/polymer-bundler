@@ -382,6 +382,20 @@ suite('Vulcan', function() {
         }
       });
     });
+
+    test('Paths for import bodies are resolved correctly', function(done) {
+      var anchorMatcher = preds.hasTagName('a');
+      var input = 'test/html/multiple-imports.html';
+      process(input, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var anchor = dom5.query(doc, anchorMatcher);
+        var href = dom5.getAttribute(anchor, 'href');
+        assert.equal(href, 'imports/target.html');
+        done();
+      });
+    });
   });
 
   suite('Absolue Paths', function() {
