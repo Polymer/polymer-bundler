@@ -1,3 +1,8 @@
+### 1.5.0
+- Error on the use of old Polymer elements. Vulcanize 0.7.x is the last version
+    that will handle &lt; Polymer 0.8.
+- Rewrite urls for inlined styles
+
 ### 1.4.4
 - Make sure excluded js files are totally removed (they inserted blank script
     tags)
