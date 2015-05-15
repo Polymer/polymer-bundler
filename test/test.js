@@ -505,5 +505,19 @@ suite('Vulcan', function() {
       };
       process(inputPath, callback, options);
     });
+
+    test('Inlined styles have proper paths', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var style = dom5.query(doc, matchers.CSS);
+        assert(style);
+        var content = dom5.getTextContent(style);
+        assert(content.search('imports/foo.jpg') > -1, 'path adjusted');
+        done();
+      };
+      process('test/html/inline-styles.html', callback, options);
+    });
   });
 });
