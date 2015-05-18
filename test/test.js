@@ -502,6 +502,18 @@ suite('Vulcan', function() {
       };
       process(inputPath, callback, options);
     });
+
+    test('External scripts are kept', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var scripts = dom5.queryAll(doc, matchers.JS_SRC);
+        assert.equal(scripts.length, 1);
+        done();
+      };
+      process('test/html/external-script.html', callback, options);
+    });
   });
 
   suite('Inline CSS', function() {

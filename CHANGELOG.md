@@ -1,3 +1,6 @@
+### 1.5.1
+- Ignore external (http and https) resources from inlining
+
 ### 1.5.0
 - Error on the use of old Polymer elements. Vulcanize 0.7.x is the last version
     that will handle &lt; Polymer 0.8.
