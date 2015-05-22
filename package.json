@@ -1,6 +1,6 @@
 {
   "name": "vulcanize",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "bin": {
