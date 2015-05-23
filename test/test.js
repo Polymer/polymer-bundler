@@ -467,7 +467,8 @@ suite('Vulcan', function() {
         if (err) {
           return done(err);
         }
-        var links = dom5.queryAll(doc, matchers.POLY_CSS_LINK);
+        var links = dom5.queryAll(doc, matchers.POLY_CSS_LINK)
+          .concat(dom5.queryAll(doc, matchers.CSS_LINK));
         assert.equal(links.length, 0);
         done();
       };
