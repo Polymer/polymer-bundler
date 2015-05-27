@@ -526,7 +526,7 @@ suite('Vulcan', function() {
         if (err) {
           return done(err);
         }
-        var links = dom5.queryAll(doc, matchers.POLY_CSS_LINK);
+        var links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
         assert.equal(links.length, 0);
         done();
       };
@@ -538,9 +538,9 @@ suite('Vulcan', function() {
         if (err) {
           return done(err);
         }
-        var style = dom5.query(doc, matchers.CSS);
-        assert(style);
-        var content = dom5.getTextContent(style);
+        var styles = dom5.queryAll(doc, matchers.CSS);
+        assert.equal(styles.length, 2);
+        var content = dom5.getTextContent(styles[1]);
         assert(content.search('imports/foo.jpg') > -1, 'path adjusted');
         done();
       };

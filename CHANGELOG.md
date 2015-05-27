@@ -1,3 +1,10 @@
+### 1.7.0
+- Inline link[rel="stylesheet"] css as well as polymer import stylesheets
+
+### 1.6.0
+- Update usage of private API of hydrolysis
+- Correctly set 'implicit strip' option when used programatically
+
 ### 1.5.1
 - Ignore external (http and https) resources from inlining
 
