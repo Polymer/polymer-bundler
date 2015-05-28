@@ -546,5 +546,18 @@ suite('Vulcan', function() {
       };
       process('test/html/inline-styles.html', callback, options);
     });
+
+    test('External Scripts and Stylesheets are not removed', function(done) {
+      var matchers = require('../lib/matchers');
+      var input = 'test/html/external-stylesheet.html';
+      process(input, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var link = dom5.query(doc, matchers.CSS_LINK);
+        assert(link);
+        done();
+      }, options);
+    });
   });
 });
