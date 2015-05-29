@@ -1,3 +1,6 @@
+### 1.7.1
+- Don't try to inline styles from external sources
+
 ### 1.7.0
 - Inline link[rel="stylesheet"] css as well as polymer import stylesheets
 
