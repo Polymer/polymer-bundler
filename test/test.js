@@ -683,4 +683,16 @@ suite('Vulcan', function() {
     });
   });
 
+  test('Error on newer Polymer', function(done) {
+    var options = {inputSrc: '<dom-module id="x-foo"><template></template><script>Polymer({is: "x-foo"})</script></dom-module>', output: outputPath};
+    vulcan.setOptions(options, function(err) {
+      assert.ifError(err);
+      assert.throws(vulcan.processDocument, function(err) {
+        assert.ok(err.message.indexOf('dom-module') > -1);
+        return true;
+      });
+      done();
+    });
+  });
+
 });
