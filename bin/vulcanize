@@ -78,9 +78,9 @@ var args = nopt(
     'inline-css': Boolean
   },
   {
-    '-h': ['--help'],
-    '-v': ['--version'],
-    '-p': ['--abspath']
+    'h': ['--help'],
+    'v': ['--version'],
+    'p': ['--abspath']
   }
 );
 
