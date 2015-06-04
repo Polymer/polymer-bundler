@@ -12,6 +12,7 @@ var assert = require('assert');
 var path = require('path');
 
 var dom5 = require('dom5');
+var PathResolver = require('../lib/pathresolver.js');
 
 function parse(text) {
   return dom5.parse(text);
@@ -74,12 +75,12 @@ suite('constants', function() {
 });
 
 suite('Path Resolver', function() {
-  var pathresolver = require('../lib/pathresolver.js');
+  var pathresolver;
   var inputPath = '/foo/bar/my-element/index.html';
   var outputPath = '/foo/bar/index.html';
 
   setup(function() {
-    pathresolver.setOptions({});
+    pathresolver = new PathResolver();
   });
 
 
@@ -124,9 +125,7 @@ suite('Path Resolver', function() {
   });
 
   test('Rewrite Paths with absolute paths', function() {
-    pathresolver.setOptions({
-      abspath: true
-    });
+    pathresolver = new PathResolver(true);
     testPath('biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
     testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
     testPath('#foo', '#foo', 'hash');
