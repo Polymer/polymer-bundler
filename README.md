@@ -106,10 +106,13 @@ options.
 
 Example:
 ```js
-var vulcan = require('vulcanize');
+var Vulcanize = require('vulcanize');
 var hydrolysis = require('hydrolysis');
 
-vulcan.setOptions({
+/* a Hydrolysis loader object (optional) */
+var loader = new hydrolysis.loader(...)
+
+var vulcan = new Vulcanize({
   abspath: '',
   excludes: [
   ],
@@ -118,7 +121,8 @@ vulcan.setOptions({
   inlineCss: false,
   implicitStrip: true,
   stripComments: false
-  loader: /* a Hydrolysis loader object */
+  // optional
+  loader: loader
 });
 
 vulcan.process(target, function(err, inlinedHtml) {

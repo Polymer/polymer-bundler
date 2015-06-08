@@ -1,3 +1,21 @@
+### 1.9.1
+- Fix `implicitStrip` in new Class based API
+
+### 1.9.0
+- New class based API:
+```js
+var Vulcanize = require('vulcanize');
+
+var vulcan = new Vulcanize(options);
+vulcan.process(...);
+```
+- `vulcanize.setOptions` and `vulcanize.process` are deprecated
+### 1.8.1
+- Bump hydrolysis to 1.12.0 with proper ordering
+
+### 1.8.0
+- Make stripComments work more reliably
+
 ### 1.7.1
 - Don't try to inline styles from external sources
 

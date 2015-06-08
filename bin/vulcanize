@@ -127,8 +127,7 @@ args.implicitStrip = !args['no-implicit-strip'];
 args.inlineScripts = args['inline-scripts'];
 args.inlineCss = args['inline-css'];
 
-vulcan.setOptions(args);
-vulcan.process(target, function(err, content) {
+(new vulcan(args)).process(target, function(err, content) {
   if (err) {
     console.error(err);
     console.error(err.stack);
