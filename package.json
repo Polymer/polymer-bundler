@@ -20,11 +20,8 @@
   "scripts": {
     "test": "node_modules/.bin/jshint --verbose lib/*.js bin/* test/*.js && node_modules/.bin/mocha"
   },
-  "author": "Daniel Freedman",
-  "license": {
-    "type": "BSD",
-    "url": "http://polymer.github.io/LICENSE.txt"
-  },
+  "author": "The Polymer Project Authors",
+  "license": "BSD-3-Clause",
   "directories": {
     "test": "test"
   },
