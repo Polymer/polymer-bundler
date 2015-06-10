@@ -26,7 +26,7 @@ for this step).
 - `-v`|`--version`: print version number
 - `-p <arg>`|`--abspath <arg>`: use <arg> as the "webserver root", make all adjusted urls absolute
 - `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.
-- `--strip-excludes`: Exclude a subpath and remove any links referencing it.
+- `--strip-exclude`: Exclude a subpath and remove any links referencing it.
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
 - `--strip-comments`: Strips all HTML comments not containing an @license from the document.
@@ -61,7 +61,7 @@ The command
 will inline the HTML Imports of `target.html` that are not in the directory
 `path/to/target/subpath` nor `path/to/target/subpath2`.
 
-If the `--strip-excludes` flag is used, the HTML Import `<link>` tags that
+If the `--strip-exclude` flag is used, the HTML Import `<link>` tags that
 point to resources in `path/totarget/subpath` and `path/to/target/subpath2/`
 will also be removed.
 
