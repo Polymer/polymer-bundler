@@ -395,6 +395,19 @@ suite('Vulcan', function() {
         done();
       });
     });
+
+    test('Spaces in paths are handled correctly', function(done) {
+      var input = 'test/html/spaces.html';
+      var spacesMatcher = preds.AND(preds.hasTagName('dom-module'), preds.hasAttrValue('id', 'space-element'));
+      process(input, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var module = dom5.query(doc, spacesMatcher);
+        assert.ok(module);
+        done();
+      });
+    });
   });
 
   suite('Absolue Paths', function() {
