@@ -69,7 +69,7 @@ var args = nopt(
   {
     help: Boolean,
     version: Boolean,
-    abspath: require('path'),
+    abspath: String,
     exclude: [String, Array],
     'strip-exclude': [String, Array],
     'strip-comments': Boolean,
