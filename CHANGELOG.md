@@ -1,3 +1,10 @@
+### 1.9.3
+- Fix abspath bug on windows machines
+
+### 1.9.2
+- Use new class API in binary
+- Update dependencies
+
 ### 1.9.1
 - Fix `implicitStrip` in new Class based API
 
