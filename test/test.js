@@ -572,4 +572,20 @@ suite('Vulcan', function() {
       }, options);
     });
   });
+
+  suite('Input URL', function() {
+    var options = {
+      inputUrl: 'test/html/default.html'
+    };
+
+    test('inputURL is used instead of argument to process', function(done) {
+      process('flibflabfloom!', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        done();
+      }, options);
+    });
+  });
 });
