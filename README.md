@@ -97,6 +97,12 @@ options.
 - `inlineScripts`: Inline external scripts.
 - `inlineCss`: Inline external stylesheets.
 - `stripComments`: Remove non-license HTML comments.
+- `inputUrl`: A URL string that will override the `target` argument to
+    `vulcanize.process()`.
+    By design, gulp and grunt plugins expect to work on the given file path.
+    `vulcanize` has its own file loader, and expects to be given URLs. In
+    instances where the filename cannot be used as a URL `inputUrl` will
+    override the filename.
 - `loader`: A [hydrolysis](https://www.npmjs.com/package/hydrolysis) loader.
     This loader is generated with the `target` argument to `vulcan.process` and
     the `exclude` paths. A custom loader can be given if more advanced setups
@@ -122,7 +128,8 @@ var vulcan = new Vulcanize({
   implicitStrip: true,
   stripComments: false
   // optional
-  loader: loader
+  loader: loader,
+  inputUrl: ''
 });
 
 vulcan.process(target, function(err, inlinedHtml) {

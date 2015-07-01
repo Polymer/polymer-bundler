@@ -1,3 +1,7 @@
+### 1.10.0
+- Add `inputUrl` option to work around grunt and gulp plugins providing
+  filepaths that cannot be used as URLs to `vulcanize.process()`
+
 ### 1.9.3
 - Fix abspath bug on windows machines
 
