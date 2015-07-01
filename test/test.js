@@ -447,7 +447,7 @@ suite('Vulcan', function() {
       preds.hasAttrValue('href', 'imports/simple-import.html')
     );
 
-    var excludes = [path.resolve("test/html/imports/simple-import.html")];
+    var excludes = ["test/html/imports/simple-import.html"];
 
     test('Excluded imports are not inlined', function(done) {
       var options = {
