@@ -587,5 +587,20 @@ suite('Vulcan', function() {
         done();
       }, options);
     });
+
+    test('gulp-vulcanize invocation with abspath', function(done) {
+      var options = {
+        abspath: path.resolve('test/html'),
+        inputUrl: '/default.html'
+      };
+
+      process('C:\\Users\\VulcanizeTester\\vulcanize\\test\\html\\default.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        done();
+      }, options);
+    });
   });
 });
