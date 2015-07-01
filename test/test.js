@@ -447,7 +447,7 @@ suite('Vulcan', function() {
       preds.hasAttrValue('href', 'imports/simple-import.html')
     );
 
-    var excludes = [path.resolve("test/html/imports/simple-import.html")];
+    var excludes = ["test/html/imports/simple-import.html"];
 
     test('Excluded imports are not inlined', function(done) {
       var options = {
@@ -568,6 +568,37 @@ suite('Vulcan', function() {
         }
         var link = dom5.query(doc, matchers.CSS_LINK);
         assert(link);
+        done();
+      }, options);
+    });
+  });
+
+  suite('Input URL', function() {
+    var options = {
+      inputUrl: 'test/html/default.html'
+    };
+
+    test('inputURL is used instead of argument to process', function(done) {
+      process('flibflabfloom!', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        done();
+      }, options);
+    });
+
+    test('gulp-vulcanize invocation with abspath', function(done) {
+      var options = {
+        abspath: path.resolve('test/html'),
+        inputUrl: '/default.html'
+      };
+
+      process('C:\\Users\\VulcanizeTester\\vulcanize\\test\\html\\default.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
         done();
       }, options);
     });
