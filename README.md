@@ -139,6 +139,7 @@ vulcan.process(target, function(err, inlinedHtml) {
 ## What happened to [feature] from 0.X?
 - `--csp` mode has been moved into [crisper](https://github.com/PolymerLabs/crisper)
 - `--strip` mode was removed, use something like [html-minifier](https://github.com/kangax/html-minifier) or [minimize](https://github.com/Moveo/minimize)
+  - Use these at your own risk, they may not understand all of Polymer's uses of HTML or CSS (https://github.com/kangax/html-minifier/issues/377)
 
 ## What about build tools
 - [grunt-vulcanize](https://www.npmjs.com/package/grunt-vulcanize)
