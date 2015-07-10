@@ -196,6 +196,25 @@ suite('Path Resolver', function() {
     assert.equal(actual, expectedBase, 'base');
   });
 
+  test('Resolve <base target>', function() {
+    var htmlBase = [
+      '<base target="_blank">',
+      '<a href="foo.html">LINK</a>'
+    ].join('\n');
+
+    var expectedBase = [
+      '<html><head>',
+      '</head><body><a href="my-element/foo.html" target="_blank">LINK</a></body></html>'
+    ].join('\n');
+
+    var ast = parse(htmlBase);
+    pathresolver.acid(ast, inputPath);
+    pathresolver.resolvePaths(ast, inputPath, outputPath);
+
+    var actual = serialize(ast);
+    assert.equal(actual, expectedBase, 'base target');
+  });
+
   test('Leave Templated Urls', function() {
     var base = [
       '<html><head></head><body>',
