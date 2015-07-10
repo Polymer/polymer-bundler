@@ -93,7 +93,8 @@ options.
 - `abspath`: A folder to treat as "webroot".
   - When specified, use an absolute path to `target`.
 - `excludes`: An array of RegExp objects to exclude paths from being inlined.
-- `stripExcludes`: Remove paths that were excluded by the regexes in `excludes`.
+- `stripExcludes`: Similar to `excludes`, but strips the imports from the output entirely.
+    - If `stripExcludes` is empty, it will be set the value of `excludes` by default.
 - `inlineScripts`: Inline external scripts.
 - `inlineCss`: Inline external stylesheets.
 - `stripComments`: Remove non-license HTML comments.

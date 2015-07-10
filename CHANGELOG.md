@@ -1,3 +1,7 @@
+### 1.10.1
+- Typecheck inputs in library usage
+- Fix README to say that `stripExcludes` is an Array not a Boolean
+
 ### 1.10.0
 - Add `inputUrl` option to work around grunt and gulp plugins providing
   filepaths that cannot be used as URLs to `vulcanize.process()`
