@@ -408,6 +408,32 @@ suite('Vulcan', function() {
         done();
       });
     });
+
+    test('Handle Wrong inputs', function(done) {
+      var options = {
+        inputUrl: true,
+        stripExcludes: false,
+        excludes: 'everything!',
+        implicitStript: {},
+        abspath: {}
+      };
+
+      process(inputPath, function(err, expectedDoc) {
+        if (err) {
+          return done(err);
+        }
+        var expected = dom5.serialize(expectedDoc);
+        process(inputPath, function(err, actualDoc) {
+          if (err) {
+            return done(err);
+          }
+          var actual = dom5.serialize(actualDoc);
+          assert.equal(expected, actual, 'bad inputs were corrected');
+          done();
+        }, options);
+      });
+
+    });
   });
 
   suite('Absolue Paths', function() {
@@ -603,4 +629,5 @@ suite('Vulcan', function() {
       }, options);
     });
   });
+
 });

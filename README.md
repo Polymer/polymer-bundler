@@ -122,7 +122,8 @@ var vulcan = new Vulcanize({
   abspath: '',
   excludes: [
   ],
-  stripExcludes: false,
+  stripExcludes: [
+  ],
   inlineScripts: false,
   inlineCss: false,
   implicitStrip: true,
