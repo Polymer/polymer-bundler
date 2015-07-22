@@ -1,3 +1,7 @@
+### 1.10.2
+- Use URLs internally until calling hydrolysis
+- Fixes a bunch of inline issues for Windows
+
 ### 1.10.1
 - Typecheck inputs in library usage
 - Fix README to say that `stripExcludes` is an Array not a Boolean
