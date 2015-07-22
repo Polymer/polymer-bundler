@@ -129,9 +129,8 @@ args.inlineCss = args['inline-css'];
 
 (new vulcan(args)).process(target, function(err, content) {
   if (err) {
-    console.error(err);
-    console.error(err.stack);
+    process.stderr.write(require('util').inspect(err));
     process.exit(1);
   }
-  console.log(content);
+  process.stdout.write(content);
 });
