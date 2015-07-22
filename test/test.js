@@ -385,7 +385,7 @@ suite('Vulcan', function() {
 
     test('Old Polymer is detected and warns', function(done) {
       var constants = require('../lib/constants');
-      var input = 'test/html/old-polymer.html';
+      var input = path.resolve('test/html/old-polymer.html');
       process(input, function(err, doc) {
         if (err) {
           try {
