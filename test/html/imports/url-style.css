@@ -10,3 +10,6 @@
 :host {
   background-image: url('foo.jpg');
 }
+.rows {
+  @apply(--layout-vertical);
+}

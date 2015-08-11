@@ -540,6 +540,23 @@ suite('Vulcan', function() {
       };
       process(inputPath, callback, options);
     });
+
+    test('Comments are kept by default', function(done) {
+      var options = {
+        stripComments: false
+      };
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
+        assert.equal(comments.length, 2);
+        assert.equal(dom5.getTextContent(comments[0]).trim(), 'comment in import');
+        assert.equal(dom5.getTextContent(comments[1]).trim(), 'comment in main');
+        done();
+      };
+      process('test/html/comments.html', callback, options);
+    });
   });
 
   suite('Inline Scripts', function() {
@@ -599,6 +616,7 @@ suite('Vulcan', function() {
         assert.equal(styles.length, 2);
         var content = dom5.getTextContent(styles[1]);
         assert(content.search('imports/foo.jpg') > -1, 'path adjusted');
+        assert(content.search('@apply') > -1, '@apply kept');
         done();
       };
       process('test/html/inline-styles.html', callback, options);

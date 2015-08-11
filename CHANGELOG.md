@@ -1,3 +1,6 @@
+### 1.10.3
+- Fix regression in --strip-comments from 1.9.0
+
 ### 1.10.2
 - Use URLs internally until calling hydrolysis
 - Fixes a bunch of inline issues for Windows
