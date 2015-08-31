@@ -557,6 +557,23 @@ suite('Vulcan', function() {
       };
       process('test/html/comments.html', callback, options);
     });
+
+    test('Folder can be excluded', function(done) {
+      var linkMatcher = preds.hasTagName('link');
+      var options = {
+        excludes: ['test/html/imports/']
+      };
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var links = dom5.queryAll(doc, linkMatcher);
+        // one duplicate import is removed
+        assert.equal(links.length, 2);
+        done();
+      };
+      process('test/html/default.html', callback, options);
+    });
   });
 
   suite('Inline Scripts', function() {
