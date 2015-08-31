@@ -1,3 +1,6 @@
+### 1.10.4
+- Fix excludes for js files and folders
+
 ### 1.10.3
 - Fix regression in --strip-comments from 1.9.0
 
