@@ -1,3 +1,7 @@
+### 1.10.5
+- Fix a dumb unix path assumption for --inline-scripts and --inline-css +
+    absolute paths on windows.
+
 ### 1.10.4
 - Fix excludes for js files and folders
 
