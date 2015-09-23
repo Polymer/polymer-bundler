@@ -605,6 +605,24 @@ suite('Vulcan', function() {
       };
       process('test/html/external-script.html', callback, options);
     });
+
+    test('Absolute paths are correct', function(done) {
+      var root = path.resolve(inputPath, '../..');
+      var target = '/html/default.html';
+      var options = {
+        abspath: root,
+        inlineScripts: true
+      };
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var scripts = dom5.queryAll(doc, matchers.JS_SRC);
+        assert.equal(scripts.length, 0);
+        done();
+      };
+      process(target, callback, options);
+    });
   });
 
   suite('Inline CSS', function() {
@@ -650,6 +668,23 @@ suite('Vulcan', function() {
         assert(link);
         done();
       }, options);
+    });
+
+    test('Absolute paths are correct', function(done) {
+      var root = path.resolve(inputPath, '../..');
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
+        assert.equal(links.length, 0);
+        done();
+      };
+      var options = {
+        abspath: root,
+        inlineCss: true
+      };
+      process('/html/default.html', callback, options);
     });
   });
 
