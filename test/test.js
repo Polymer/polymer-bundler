@@ -390,7 +390,7 @@ suite('Vulcan', function() {
         if (err) {
           try {
             // check err message
-            assert.equal(err.message, constants.OLD_POLYMER + ' File: ' + input);
+            assert.equal(err.message.toLowerCase(), (constants.OLD_POLYMER + ' File: ' + input).toLowerCase());
             done();
           } catch(e) {
             done(e);
