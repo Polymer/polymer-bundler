@@ -688,6 +688,23 @@ suite('Vulcan', function() {
     });
   });
 
+  suite('Add import', function(){
+    var options = {
+      addedImports: ['imports/comment-in-import.html']
+    };
+    test('added import is added to vulcanized doc', function(done) {
+      process('test/html/default.html', function(err, doc) {
+      if (err) {
+        return done(err);
+      }
+      assert(doc);
+      var hasAddedImport = preds.hasAttrValue('href', 'imports/comment-in-import.html');
+      assert.equal(dom5.queryAll(doc, hasAddedImport).length, 1);
+      done();
+    }, options);
+    });
+  });
+
   suite('Input URL', function() {
     var options = {
       inputUrl: 'test/html/default.html'

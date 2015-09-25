@@ -27,6 +27,7 @@ var help = [
   '  -p <arg>|--abspath <arg>: use <arg> as the "webserver root", make all adjusted urls absolute',
   '  --inline-scripts: Inline external scripts',
   '  --inline-css: Inline external stylesheets',
+  '  --add-import <path>: Add this import to the target HTML before vulcanizing. Can be used multiple times.',
   '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.',
   '  --strip-exclude: Exclude a subpath and strip the link that includes it.',
   '  --strip-comments: Strips all HTML comments not containing an @license from the document',
@@ -71,6 +72,7 @@ var args = nopt(
     version: Boolean,
     abspath: String,
     exclude: [String, Array],
+    'add-import': [String, Array],
     'strip-exclude': [String, Array],
     'strip-comments': Boolean,
     'no-implicit-strip': Boolean,
@@ -120,6 +122,7 @@ function stringToRegExp(str) {
   return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
 }
 
+args.addedImports = args['add-import'] || [];
 args.excludes = args.exclude || [];
 args.stripExcludes = args['strip-exclude'] || [];
 args.stripComments = args['strip-comments'];
