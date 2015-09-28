@@ -657,7 +657,7 @@ suite('Vulcan', function() {
       process('test/html/inline-styles.html', callback, options);
     });
 
-    test('External Scripts and Stylesheets are not removed', function(done) {
+    test('External Scripts and Stylesheets are not removed and media queries are retained', function(done) {
       var matchers = require('../lib/matchers');
       var input = 'test/html/external-stylesheet.html';
       process(input, function(err, doc) {
@@ -666,6 +666,10 @@ suite('Vulcan', function() {
         }
         var link = dom5.query(doc, matchers.CSS_LINK);
         assert(link);
+        var styles = dom5.queryAll(doc, matchers.CSS);
+        assert.equal(styles.length, 1);
+        var content = dom5.getTextContent(styles[0]);
+        assert(content.search(new RegExp(/@media \(min-width: 800px\) /g)) > -1, 'media query retained');
         done();
       }, options);
     });
