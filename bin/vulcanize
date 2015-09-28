@@ -27,6 +27,7 @@ var help = [
   '  -p <arg>|--abspath <arg>: use <arg> as the "webserver root", make all adjusted urls absolute',
   '  --inline-scripts: Inline external scripts',
   '  --inline-css: Inline external stylesheets',
+  '  --inline-svg: Inline external svgs',
   '  --add-import <path>: Add this import to the target HTML before vulcanizing. Can be used multiple times.',
   '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.',
   '  --strip-exclude: Exclude a subpath and strip the link that includes it.',
@@ -77,7 +78,8 @@ var args = nopt(
     'strip-comments': Boolean,
     'no-implicit-strip': Boolean,
     'inline-scripts': Boolean,
-    'inline-css': Boolean
+    'inline-css': Boolean,
+    'inline-svg': Boolean
   },
   {
     'h': ['--help'],

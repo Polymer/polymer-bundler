@@ -29,6 +29,7 @@ for this step).
 - `--strip-exclude`: Exclude a subpath and remove any links referencing it.
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
+- `--inline-svg`: Inline external svg.
 - `--strip-comments`: Strips all HTML comments not containing an @license from the document.
 - `--no-implicit-strip`: *DANGEROUS*! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.
 
@@ -79,6 +80,12 @@ will inline Polymerized stylesheets, `<link rel="import" type="css">`
 
 The command
 
+    vulcanize --inline-svg target.html
+
+will inline Polymerized svg, `<link rel="import" type="svg">`
+
+The command
+
     vulcanize --strip-comments target.html
 
 will remove HTML comments, except for those that begin with `@license`.
@@ -97,6 +104,7 @@ options.
     - If `stripExcludes` is empty, it will be set the value of `excludes` by default.
 - `inlineScripts`: Inline external scripts.
 - `inlineCss`: Inline external stylesheets.
+- `inlineSvg`: Inline external svg.
 - `stripComments`: Remove non-license HTML comments.
 - `inputUrl`: A URL string that will override the `target` argument to
     `vulcanize.process()`.
@@ -127,6 +135,7 @@ var vulcan = new Vulcanize({
   ],
   inlineScripts: false,
   inlineCss: false,
+  inlineSvg: false,
   implicitStrip: true,
   stripComments: false
   // optional
