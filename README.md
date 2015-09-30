@@ -29,6 +29,7 @@ for this step).
 - `--strip-exclude`: Exclude a subpath and remove any links referencing it.
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
+- `--add-import <path>`: Add this import to the target HTML before vulcanizing. Can be used multiple times.
 - `--strip-comments`: Strips all HTML comments not containing an @license from the document.
 - `--no-implicit-strip`: *DANGEROUS*! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.
 
@@ -88,7 +89,7 @@ License comments will be deduplicated.
 
 Vulcanize as a library has two exported function.
 
-`vulcanize.setOptions` takes an object of options similar to the command line
+`vulcanize` constructor takes an object of options similar to the command line
 options.
 - `abspath`: A folder to treat as "webroot".
   - When specified, use an absolute path to `target`.
@@ -97,6 +98,8 @@ options.
     - If `stripExcludes` is empty, it will be set the value of `excludes` by default.
 - `inlineScripts`: Inline external scripts.
 - `inlineCss`: Inline external stylesheets.
+- `adddedImports`: Additional HTML imports to inline, added to the end of the
+    target file
 - `stripComments`: Remove non-license HTML comments.
 - `inputUrl`: A URL string that will override the `target` argument to
     `vulcanize.process()`.
@@ -127,6 +130,8 @@ var vulcan = new Vulcanize({
   ],
   inlineScripts: false,
   inlineCss: false,
+  addedImports: [
+  ],
   implicitStrip: true,
   stripComments: false
   // optional

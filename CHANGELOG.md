@@ -1,3 +1,9 @@
+### 1.11.0
+- New `-add-import` flag and `addedImports` argument to add additional imports
+    to the target file.
+- Copy `@media` queries on external CSS files into inlined styles.
+- Fix excluding css files from computing dependencies.
+
 ### 1.10.5
 - Fix a dumb unix path assumption for --inline-scripts and --inline-css +
     absolute paths on windows.
