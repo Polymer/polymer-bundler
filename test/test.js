@@ -484,6 +484,26 @@ suite('Vulcan', function() {
     });
   });
 
+  suite('Redirect', function() {
+    test('Redirected paths load properly', function(done) {
+      var options = {
+        redirects: [
+          'chrome://imports/|test/html/imports/',
+          'biz://cool/|test/html'
+        ]
+      };
+
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        done();
+      };
+      process(path.resolve('test/html/custom-protocol.html'), callback, options);
+    });
+  });
+
   suite('Excludes', function() {
 
     var excluded = preds.AND(
