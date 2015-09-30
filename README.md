@@ -30,6 +30,7 @@ for this step).
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
 - `--add-import <path>`: Add this import to the target HTML before vulcanizing. Can be used multiple times.
+- `--redirect <uri>|<path>`: Takes an argument in the form of URI|PATH where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.
 - `--strip-comments`: Strips all HTML comments not containing an @license from the document.
 - `--no-implicit-strip`: *DANGEROUS*! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.
 
