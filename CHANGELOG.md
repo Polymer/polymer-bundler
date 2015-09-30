@@ -1,3 +1,6 @@
+### 1.12.0
+- New `--redirect` flag and `redirect` argument to set up custom path mappings
+
 ### 1.11.0
 - New `-add-import` flag and `addedImports` argument to add additional imports
     to the target file.
