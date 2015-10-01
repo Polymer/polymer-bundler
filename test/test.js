@@ -506,6 +506,11 @@ suite('Vulcan', function() {
 
   suite('Excludes', function() {
 
+    var htmlImport = preds.AND(
+      preds.hasTagName('link'),
+      preds.hasAttrValue('rel', 'import')
+    );
+
     var excluded = preds.AND(
       preds.hasTagName('link'),
       preds.hasAttrValue('rel', 'import'),
@@ -529,6 +534,33 @@ suite('Vulcan', function() {
       };
       process(inputPath, callback, options);
     });
+
+    var cssFromExclude = preds.AND(
+      preds.hasTagName('link'),
+      preds.hasAttrValue('rel', 'import'),
+      preds.hasAttrValue('type', 'css')
+    );
+
+    // TODO(ajo): Fix test with hydrolysis upgrades.
+    // test('Excluded imports are not when behind a redirected URL.', function(done) {
+    //   var options = {
+    //     excludes: ["test/html/imports/simple-import.html"],
+    //     redirects: ["red://herring/at|test/html/imports"]
+    //   };
+
+    //   var callback = function(err, doc) {
+    //     if (err) {
+    //       return done(err);
+    //     }
+    //     var imports = dom5.queryAll(doc, htmlImport);
+    //     assert.equal(imports.length, 2);
+    //     var badCss = dom5.queryAll(doc, cssFromExclude);
+    //     console.log(badCss[0].attrs);
+    //     assert.equal(badCss.length, 0);
+    //     done();
+    //   };
+    //   process(path.resolve('test/html/custom-protocol-excluded.html'), callback, options);
+    // });
 
     test('Excluded imports with "Strip Excludes" are removed', function(done) {
       var options = {
