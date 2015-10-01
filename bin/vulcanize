@@ -126,7 +126,7 @@ function stringToRegExp(str) {
 
 args.addedImports = args['add-import'] || [];
 args.excludes = args.exclude || [];
-args.redirect = args.redirect || [];
+args.redirects = args.redirect || [];
 args.stripExcludes = args['strip-exclude'] || [];
 args.stripComments = args['strip-comments'];
 args.implicitStrip = !args['no-implicit-strip'];
