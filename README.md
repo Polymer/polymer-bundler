@@ -101,7 +101,7 @@ options.
 - `inlineCss`: Inline external stylesheets.
 - `addedImports`: Additional HTML imports to inline, added to the end of the
     target file
-- `redirect`: An array of strings with the format `URI|PATH` where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.
+- `redirects`: An array of strings with the format `URI|PATH` where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.
 - `stripComments`: Remove non-license HTML comments.
 - `inputUrl`: A URL string that will override the `target` argument to
     `vulcanize.process()`.
@@ -134,7 +134,7 @@ var vulcan = new Vulcanize({
   inlineCss: false,
   addedImports: [
   ],
-  redirect:[
+  redirects: [
   ],
   implicitStrip: true,
   stripComments: false

@@ -1,3 +1,6 @@
+### 1.12.1
+- Fix misspelling of `redirects` in library options
+
 ### 1.12.0
 - New `--redirect` flag and `redirect` argument to set up custom path mappings
 
