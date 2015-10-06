@@ -578,6 +578,23 @@ suite('Vulcan', function() {
       process(inputPath, callback, options);
     });
 
+    test('Strip Excludes does not have to be exact', function(done) {
+      var options = {
+        stripExcludes: ['simple-import']
+      };
+
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var imports = dom5.queryAll(doc, excluded);
+        assert.equal(imports.length, 0);
+        done();
+      };
+
+      process(inputPath, callback, options);
+    });
+
     test('Excluded comments are removed', function(done) {
       var options = {
         stripComments: true
