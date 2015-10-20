@@ -13,6 +13,7 @@
 'use strict';
 
 var nopt = require('nopt');
+var fs = require('fs');
 var vulcan = require('../lib/vulcan');
 
 var help = [
@@ -33,6 +34,7 @@ var help = [
   '  --strip-comments: Strips all HTML comments not containing an @license from the document',
   '  --redirect <uri>|<path>: Takes an argument in the form of URI|PATH where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.',
   '  --no-implicit-strip: DANGEROUS! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.',
+  '  --out-html <path>: If specified, output will be written to <path> instead of stdout.',
   'Examples:',
   '  The command',
   '',
@@ -79,7 +81,8 @@ var args = nopt(
     'strip-comments': Boolean,
     'no-implicit-strip': Boolean,
     'inline-scripts': Boolean,
-    'inline-css': Boolean
+    'inline-css': Boolean,
+    'out-html': String
   },
   {
     'h': ['--help'],
@@ -138,5 +141,11 @@ args.inlineCss = args['inline-css'];
     process.stderr.write(require('util').inspect(err));
     process.exit(1);
   }
-  process.stdout.write(content);
+  if (args['out-html']) {
+      var fd = fs.openSync(args['out-html'], 'w');
+      fs.writeSync(fd, content + "\n");
+      fs.closeSync(fd);
+  } else {
+    process.stdout.write(content);
+  }
 });
