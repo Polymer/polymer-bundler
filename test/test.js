@@ -8,7 +8,7 @@
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
 // jshint node: true
-var assert = require('assert');
+var chai = require('chai');
 var path = require('path');
 
 var dom5 = require('dom5');
@@ -21,7 +21,9 @@ function serialize(ast) {
   return dom5.serialize(ast);
 }
 
-assert.AssertionError.prototype.showDiff = true;
+chai.config.showDiff = true;
+
+var assert = chai.assert;
 
 suite('constants', function() {
   var constants = require('../lib/constants.js');
@@ -691,6 +693,18 @@ suite('Vulcan', function() {
         done();
       };
       process(target, callback, options);
+    });
+
+    test('Escape inline <script>', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var script = dom5.query(doc, matchers.JS_INLINE);
+        assert.include(dom5.getTextContent(script), 'var b = 0<\\/script><script>alert(\'XSS\'); //2;', 'Inline <script> should be escaped');
+        done();
+      };
+      process('test/html/xss.html', callback, options);
     });
   });
 
