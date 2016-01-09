@@ -25,7 +25,7 @@ for this step).
 - `-h`|`--help`: print this message
 - `-v`|`--version`: print version number
 - `-p <arg>`|`--abspath <arg>`: use <arg> as the "webserver root", make all adjusted urls absolute
-- `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.
+- `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--strip-exclude`: Exclude a subpath and remove any links referencing it.
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
