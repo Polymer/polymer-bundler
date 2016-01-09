@@ -95,7 +95,7 @@ Vulcanize as a library has two exported function.
 options.
 - `abspath`: A folder to treat as "webroot".
   - When specified, use an absolute path to `target`.
-- `excludes`: An array of RegExp objects to exclude paths from being inlined.
+- `excludes`: An array of strings with regular expressions to exclude paths from being inlined.
 - `stripExcludes`: Similar to `excludes`, but strips the imports from the output entirely.
     - If `stripExcludes` is empty, it will be set the value of `excludes` by default.
 - `inlineScripts`: Inline external scripts.
@@ -128,6 +128,7 @@ var loader = new hydrolysis.loader(...)
 var vulcan = new Vulcanize({
   abspath: '',
   excludes: [
+    '\\.css$'
   ],
   stripExcludes: [
   ],
