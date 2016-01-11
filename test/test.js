@@ -607,7 +607,7 @@ suite('Vulcan', function() {
         assert.equal(comments.length, 1);
         done();
       };
-      process(inputPath, callback, options);
+      process('test/html/comments.html', callback, options);
     });
 
     test('Comments are kept by default', function(done) {
@@ -619,9 +619,18 @@ suite('Vulcan', function() {
           return done(err);
         }
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-        assert.equal(comments.length, 2);
-        assert.equal(dom5.getTextContent(comments[0]).trim(), 'comment in import');
-        assert.equal(dom5.getTextContent(comments[1]).trim(), 'comment in main');
+        assert.equal(comments.length, 5);
+        var expectedComments = [
+          '@license test',
+          'comment in import',
+          '@license test',
+          'comment in import',
+          'comment in main'
+        ];
+        var actualComments = comments.map(function(c) {
+          return dom5.getTextContent(c).trim();
+        });
+        assert.deepEqual(expectedComments, actualComments);
         done();
       };
       process('test/html/comments.html', callback, options);
