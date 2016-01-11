@@ -605,6 +605,8 @@ suite('Vulcan', function() {
         }
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
         assert.equal(comments.length, 1);
+        var commentActual = dom5.getTextContent(comments[0]).trim();
+        assert.equal('@license test', commentActual);
         done();
       };
       process('test/html/comments.html', callback, options);
