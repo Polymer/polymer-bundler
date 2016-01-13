@@ -148,6 +148,15 @@ vulcan.process(target, function(err, inlinedHtml) {
 });
 ```
 
+## Caveats
+
+Because HTML Imports changes the order of execution scripts can have, Vulcanize
+has to make a few compromises to achieve that same script execution order.
+
+1. Contents of all HTML Import documents will be moved to `<body>`
+
+1. Any scripts after a `<link rel="import">` node in `<head>` will be moved to `<body>` after the contents of the HTML Import.
+
 ## What happened to [feature] from 0.X?
 - `--csp` mode has been moved into [crisper](https://github.com/PolymerLabs/crisper)
 - `--strip` mode was removed, use something like [html-minifier](https://github.com/kangax/html-minifier) or [minimize](https://github.com/Moveo/minimize)
