@@ -383,6 +383,31 @@ suite('Vulcan', function() {
       });
     });
 
+    test('Imports and scripts are ordered correctly', function(done) {
+      var expected = [
+        'first-script',
+        'first-import-script',
+        'second-import-script',
+        'second-script',
+        'third-script'
+      ];
+
+      var scriptMatcher = preds.hasTagName('script');
+
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var scripts = dom5.queryAll(doc, scriptMatcher).map(function(s) {
+          return dom5.getAttribute(s, 'id');
+        });
+        assert.deepEqual(scripts, expected);
+        done();
+      };
+
+      process('test/html/order-test.html', callback);
+    });
+
     test('Old Polymer is detected and warns', function(done) {
       var constants = require('../lib/constants');
       var input = path.resolve('test/html/old-polymer.html');
