@@ -383,7 +383,7 @@ suite('Vulcan', function() {
       });
     });
 
-    test('Imports and scripts are ordered correctly', function(done) {
+    test.skip('Imports and scripts are ordered correctly', function(done) {
       var expected = [
         'first-script',
         'first-import-script',
