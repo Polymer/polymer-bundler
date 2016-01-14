@@ -1,3 +1,23 @@
+### 1.14.1
+- Escape inline scripts
+- Strip Excludes fixed to have higher precedence than Excludes
+- Fix script execution order with imports, once and for all!
+
+### 1.14.0
+- Add `output` option to write file from CLI
+
+### 1.13.1
+- Strip Excludes should be fuzzy
+
+### 1.13.0
+- Support custom hydrolysis file loaders
+
+### 1.12.3
+- Make sure `excludes` works with `redirects`
+
+### 1.12.2
+- Fix CLI spelling of `redirects`
+
 ### 1.12.1
 - Fix misspelling of `redirects` in library options
 
