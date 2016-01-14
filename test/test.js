@@ -363,11 +363,10 @@ suite('Vulcan', function() {
         preds.hasAttrValue('rel', 'import')
       );
 
-      var headMatcher = preds.hasTagName('head');
-      var bodyMatcher = preds.hasTagName('body');
+      var bodyContainerMatcher = preds.AND(preds.hasTagName('div'), preds.hasAttr('hidden'), preds.hasAttr('by-vulcanize'));
 
-      var headExpected = preds.hasTagName('script');
-      var bodyExpected = preds.hasTagName('div');
+      var scriptExpected = preds.hasTagName('script');
+      var divExpected = preds.AND(preds.hasTagName('div'), preds.hasAttrValue('id', 'imported'));
 
       process('test/html/import-in-body.html', function(err, doc) {
         if (err) {
@@ -375,14 +374,38 @@ suite('Vulcan', function() {
         }
         var imports = dom5.queryAll(doc, importMatcher);
         assert.equal(imports.length, 0);
-        var head = dom5.query(doc, headMatcher);
-        var body = dom5.query(doc, bodyMatcher);
-        var headActual = dom5.query(doc, headExpected).parentNode;
-        var bodyActual = dom5.query(doc, bodyExpected).parentNode;
-        assert.equal(head, headActual);
-        assert.equal(body, bodyActual);
+        var bodyContainer = dom5.query(doc, bodyContainerMatcher);
+        var scriptActual = dom5.query(doc, scriptExpected).parentNode;
+        var divActual = dom5.query(doc, divExpected).parentNode;
+        assert.equal(bodyContainer, scriptActual);
+        assert.equal(bodyContainer, divActual);
         done();
       });
+    });
+
+    test('Imports and scripts are ordered correctly', function(done) {
+      var expected = [
+        'first-script',
+        'first-import-script',
+        'second-import-script',
+        'second-script',
+        'third-script'
+      ];
+
+      var scriptMatcher = preds.hasTagName('script');
+
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var scripts = dom5.queryAll(doc, scriptMatcher).map(function(s) {
+          return dom5.getAttribute(s, 'id');
+        });
+        assert.deepEqual(scripts, expected);
+        done();
+      };
+
+      process('test/html/order-test.html', callback);
     });
 
     test('Old Polymer is detected and warns', function(done) {
@@ -625,9 +648,11 @@ suite('Vulcan', function() {
         }
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
         assert.equal(comments.length, 1);
+        var commentActual = dom5.getTextContent(comments[0]).trim();
+        assert.equal('@license test', commentActual);
         done();
       };
-      process(inputPath, callback, options);
+      process('test/html/comments.html', callback, options);
     });
 
     test('Comments are kept by default', function(done) {
@@ -639,9 +664,18 @@ suite('Vulcan', function() {
           return done(err);
         }
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-        assert.equal(comments.length, 2);
-        assert.equal(dom5.getTextContent(comments[0]).trim(), 'comment in import');
-        assert.equal(dom5.getTextContent(comments[1]).trim(), 'comment in main');
+        assert.equal(comments.length, 5);
+        var expectedComments = [
+          '@license test',
+          'comment in import',
+          '@license test',
+          'comment in import',
+          'comment in main'
+        ];
+        var actualComments = comments.map(function(c) {
+          return dom5.getTextContent(c).trim();
+        });
+        assert.deepEqual(expectedComments, actualComments);
         done();
       };
       process('test/html/comments.html', callback, options);
@@ -723,6 +757,21 @@ suite('Vulcan', function() {
         done();
       };
       process('test/html/xss.html', callback, options);
+    });
+
+    test('Inlined Scripts are in the expected order', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var scripts = dom5.queryAll(doc, matchers.JS_INLINE);
+        var contents = scripts.map(function(script) {
+          return dom5.getTextContent(script);
+        });
+        assert.deepEqual(['"First"', '"Second"'], contents);
+        done();
+      };
+      process('test/html/reordered/in.html', callback, options);
     });
   });
 
