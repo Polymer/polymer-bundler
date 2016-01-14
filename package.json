@@ -38,6 +38,6 @@
     "url": "https://github.com/Polymer/vulcanize/issues"
   },
   "optionalDependencies": {
-    "update-notifier": "^0.5.0"
+    "update-notifier": "^0.6.0"
   }
 }
