@@ -597,6 +597,24 @@ suite('Vulcan', function() {
       process(inputPath, callback, options);
     });
 
+    test('Strip Excludes has more precedence than Excludes', function(done) {
+      var options = {
+        excludes: excludes,
+        stripExcludes: excludes
+      };
+
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var imports = dom5.queryAll(doc, excluded);
+        assert.equal(imports.length, 0);
+        done();
+      };
+
+      process(inputPath, callback, options);
+    });
+
     test('Excluded comments are removed', function(done) {
       var options = {
         stripComments: true
