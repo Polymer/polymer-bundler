@@ -384,12 +384,24 @@ suite('Vulcan', function() {
     });
 
     test('Imports and scripts are ordered correctly', function(done) {
-      var expected = [
+      var expectedOrder = [
         'first-script',
-        'first-import-script',
-        'second-import-script',
+        'second-import-first-script',
+        'second-import-second-script',
+        'first-import-first-script',
+        'first-import-second-script',
         'second-script',
         'third-script'
+      ];
+
+      var expectedSrc = [
+        'order/first-script.js',
+        'order/second-import/first-script.js',
+        'order/second-import/second-script.js',
+        'order/first-import/first-script.js',
+        'order/first-import/second-script.js',
+        'order/second-script.js',
+        'order/third-script.js'
       ];
 
       var scriptMatcher = preds.hasTagName('script');
@@ -398,10 +410,14 @@ suite('Vulcan', function() {
         if (err) {
           return done(err);
         }
-        var scripts = dom5.queryAll(doc, scriptMatcher).map(function(s) {
-          return dom5.getAttribute(s, 'id');
+        var scripts = dom5.queryAll(doc, scriptMatcher);
+        var actualOrder = [], actualSrc = [];
+        scripts.forEach(function(s) {
+          actualOrder.push(dom5.getAttribute(s, 'id'));
+          actualSrc.push(dom5.getAttribute(s, 'src'));
         });
-        assert.deepEqual(scripts, expected);
+        assert.deepEqual(actualOrder, expectedOrder, 'order is not as expected');
+        assert.deepEqual(actualSrc, expectedSrc, 'srcs are not preserved correctly');
         done();
       };
 
