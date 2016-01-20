@@ -1,3 +1,6 @@
+### 1.14.3
+- Fix for trailing slash in `<base>` tag
+
 ### 1.14.2
 - Fix paths when preserving execution order moves scripts to body
 
