@@ -1,3 +1,6 @@
+### 1.14.2
+- Fix paths when preserving execution order moves scripts to body
+
 ### 1.14.1
 - Escape inline scripts
 - Strip Excludes fixed to have higher precedence than Excludes
