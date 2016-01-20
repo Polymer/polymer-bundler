@@ -198,6 +198,39 @@ suite('Path Resolver', function() {
     assert.equal(actual, expectedBase, 'base');
   });
 
+  test('Resolve Paths with <base> having a trailing /', function() {
+    var htmlBase = [
+      '<base href="zork/">',
+      '<link rel="import" href="../polymer/polymer.html">',
+      '<link rel="stylesheet" href="my-element.css">',
+      '<dom-module id="my-element">',
+      '<template>',
+      '<style>:host { background-image: url(background.svg); }</style>',
+      '</template>',
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script>'
+    ].join('\n');
+
+    var expectedBase = [
+      '<html><head>',
+      '<link rel="import" href="my-element/polymer/polymer.html">',
+      '<link rel="stylesheet" href="my-element/zork/my-element.css">',
+      '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
+      '<template>',
+      '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
+      '</template>',
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script></body></html>'
+    ].join('\n');
+
+    var ast = parse(htmlBase);
+    pathresolver.acid(ast, inputPath);
+    pathresolver.resolvePaths(ast, inputPath, outputPath);
+
+    var actual = serialize(ast);
+    assert.equal(actual, expectedBase, 'base');
+  });
+
   test('Resolve <base target>', function() {
     var htmlBase = [
       '<base target="_blank">',
