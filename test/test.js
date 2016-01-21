@@ -857,7 +857,6 @@ suite('Vulcan', function() {
     });
 
     test('External Scripts and Stylesheets are not removed and media queries are retained', function(done) {
-      var matchers = require('../lib/matchers');
       var input = 'test/html/external-stylesheet.html';
       process(input, function(err, doc) {
         if (err) {
@@ -888,6 +887,38 @@ suite('Vulcan', function() {
         inlineCss: true
       };
       process('/html/default.html', callback, options);
+    });
+
+    test('Inlined Polymer styles are moved into the <template>', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var domModule = dom5.query(doc, dom5.predicates.hasTagName('dom-module'));
+        assert(domModule);
+        var template = dom5.query(domModule, dom5.predicates.hasTagName('template'));
+        assert(template);
+        var style = dom5.query(template.childNodes[0], matchers.CSS);
+        assert(style);
+        done();
+      };
+      process('test/html/default.html', callback, options);
+    });
+
+    test('Inlined Polymer styles will force a dom-module to have a template', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var domModule = dom5.query(doc, dom5.predicates.hasTagName('dom-module'));
+        assert(domModule);
+        var template = dom5.query(domModule, dom5.predicates.hasTagName('template'));
+        assert(template);
+        var style = dom5.query(template.childNodes[0], matchers.CSS);
+        assert(style);
+        done();
+      };
+      process('test/html/inline-styles.html', callback, options);
     });
   });
 
