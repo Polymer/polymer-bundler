@@ -1,3 +1,7 @@
+### 1.14.4
+- Make sure `<link rel="import type="css">` inlining is placed into a
+  `<dom-module>`'s `<template>`
+
 ### 1.14.3
 - Fix for trailing slash in `<base>` tag
 
