@@ -1,3 +1,6 @@
+### 1.14.5
+- Fix dom5 dependency to 1.3+
+
 ### 1.14.4
 - Make sure `<link rel="import type="css">` inlining is placed into a
   `<dom-module>`'s `<template>`
