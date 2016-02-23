@@ -696,9 +696,15 @@ suite('Vulcan', function() {
           return done(err);
         }
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-        assert.equal(comments.length, 1);
-        var commentActual = dom5.getTextContent(comments[0]).trim();
-        assert.equal('@license test', commentActual);
+        assert.equal(comments.length, 2);
+        var commentsExpected = [
+          '@license import',
+          '@license main'
+        ];
+        var commentsActual = comments.map(function(c) {
+          return dom5.getTextContent(c).trim();
+        });
+        assert.deepEqual(commentsExpected, commentsActual);
         done();
       };
       process('test/html/comments.html', callback, options);
@@ -713,11 +719,11 @@ suite('Vulcan', function() {
           return done(err);
         }
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-        assert.equal(comments.length, 5);
         var expectedComments = [
-          '@license test',
+          '@license main',
+          '@license import',
           'comment in import',
-          '@license test',
+          '@license import',
           'comment in import',
           'comment in main'
         ];
