@@ -1,3 +1,10 @@
+### 1.14.7
+- Fix inlining for firebase and other scripts that use `\\x3c/script` syntax
+  when making more scripts
+
+### 1.14.6
+- Make sure `@license` comments always are maintained
+
 ### 1.14.5
 - Fix dom5 dependency to 1.3+
 
