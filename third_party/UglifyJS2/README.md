@@ -12,6 +12,7 @@ https://raw.githubusercontent.com/mishoo/UglifyJS2/v2.6.1/lib/output.js
 - Added CommonJS `module.exports` line
 - Added `jshint` settins line
 - Removed semicolon from defintion of `encode_string`
+- Escape scripts with `\x3c/script` syntax
 
 # License
 BSD-2-Clause: [License](https://raw.githubusercontent.com/mishoo/UglifyJS2/v2.6.1/LICENSE)

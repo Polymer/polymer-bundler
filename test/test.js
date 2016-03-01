@@ -828,6 +828,20 @@ suite('Vulcan', function() {
       };
       process('test/html/reordered/in.html', callback, options);
     });
+
+    test('Firebase works inlined', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var scripts = dom5.queryAll(doc, matchers.JS_INLINE);
+        assert.equal(scripts.length, 1);
+        var idx = dom5.getTextContent(scripts[0]).indexOf('</script>');
+        assert(idx === -1, '/script found, should be escaped');
+        done();
+      };
+      process('test/html/firebase.html', callback, options);
+    });
   });
 
   suite('Inline CSS', function() {
