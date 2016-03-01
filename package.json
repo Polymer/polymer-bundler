@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "chai": "^3.4.1",
+    "firebase": "^2.4.1",
     "jshint": "^2.7.0",
     "mocha": "^2.2.4"
   },
