@@ -468,6 +468,8 @@ suite('Vulcan', function() {
         var afterLoc = serialized.indexOf("BeforeJs.value");
         assert.isBelow(beforeLoc, afterLoc);
         done();
+      }, {
+        inlineScripts: true
       });
     });
 
