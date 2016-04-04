@@ -457,6 +457,20 @@ suite('Vulcan', function() {
       process('test/html/order-test.html', callback);
     });
 
+    test('exhaustive script order testing', function(done) {
+      process('test/html/scriptorder/index.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        var serialized = dom5.serialize(doc);
+        var beforeLoc = serialized.indexOf("window.BeforeJs");
+        var afterLoc = serialized.indexOf("BeforeJs.value");
+        assert.isBelow(beforeLoc, afterLoc);
+        done();
+      });
+    });
+
     test('Old Polymer is detected and warns', function(done) {
       var constants = require('../lib/constants');
       var input = path.resolve('test/html/old-polymer.html');
@@ -958,6 +972,7 @@ suite('Vulcan', function() {
     }, options);
     });
   });
+
 
   suite('Input URL', function() {
     var options = {
