@@ -457,6 +457,22 @@ suite('Vulcan', function() {
       process('test/html/order-test.html', callback);
     });
 
+    test('exhaustive script order testing', function(done) {
+      process('test/html/scriptorder/index.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        var serialized = dom5.serialize(doc);
+        var beforeLoc = serialized.indexOf("window.BeforeJs");
+        var afterLoc = serialized.indexOf("BeforeJs.value");
+        assert.isBelow(beforeLoc, afterLoc);
+        done();
+      }, {
+        inlineScripts: true
+      });
+    });
+
     test('Old Polymer is detected and warns', function(done) {
       var constants = require('../lib/constants');
       var input = path.resolve('test/html/old-polymer.html');
@@ -696,9 +712,10 @@ suite('Vulcan', function() {
           return done(err);
         }
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-        assert.equal(comments.length, 2);
+        assert.equal(comments.length, 3);
         var commentsExpected = [
-          '@license import',
+          '@license import 2',
+          '@license import 1',
           '@license main'
         ];
         var commentsActual = comments.map(function(c) {
@@ -721,10 +738,10 @@ suite('Vulcan', function() {
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
         var expectedComments = [
           '@license main',
-          '@license import',
-          'comment in import',
-          '@license import',
-          'comment in import',
+          '@license import 1',
+          'comment in import 1',
+          '@license import 2',
+          'comment in import 2',
           'comment in main'
         ];
         var actualComments = comments.map(function(c) {
@@ -958,6 +975,7 @@ suite('Vulcan', function() {
     }, options);
     });
   });
+
 
   suite('Input URL', function() {
     var options = {
