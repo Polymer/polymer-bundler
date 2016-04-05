@@ -712,9 +712,10 @@ suite('Vulcan', function() {
           return done(err);
         }
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-        assert.equal(comments.length, 2);
+        assert.equal(comments.length, 3);
         var commentsExpected = [
-          '@license import',
+          '@license import 2',
+          '@license import 1',
           '@license main'
         ];
         var commentsActual = comments.map(function(c) {
@@ -737,10 +738,10 @@ suite('Vulcan', function() {
         var comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
         var expectedComments = [
           '@license main',
-          '@license import',
-          'comment in import',
-          '@license import',
-          'comment in import',
+          '@license import 1',
+          'comment in import 1',
+          '@license import 2',
+          'comment in import 2',
           'comment in main'
         ];
         var actualComments = comments.map(function(c) {
