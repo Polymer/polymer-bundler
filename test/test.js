@@ -416,60 +416,20 @@ suite('Vulcan', function() {
       });
     });
 
-    test('Imports and scripts are ordered correctly', function(done) {
-      var expectedOrder = [
-        'first-script',
-        'second-import-first-script',
-        'second-import-second-script',
-        'first-import-first-script',
-        'first-import-second-script',
-        'second-script',
-        'third-script'
-      ];
+    test('Scripts are not inlined by default', function(done) {
+      var matchers = require('../lib/matchers');
+      var externalJS = matchers.JS_SRC;
 
-      var expectedSrc = [
-        'order/first-script.js',
-        'order/second-import/first-script.js',
-        'order/second-import/second-script.js',
-        'order/first-import/first-script.js',
-        'order/first-import/second-script.js',
-        'order/second-script.js',
-        'order/third-script.js'
-      ];
-
-      var scriptMatcher = preds.hasTagName('script');
-
-      var callback = function(err, doc) {
+      process('test/html/external.html', function(err, doc) {
         if (err) {
-          return done(err);
+          done(err);
         }
-        var scripts = dom5.queryAll(doc, scriptMatcher);
-        var actualOrder = [], actualSrc = [];
+        var scripts = dom5.queryAll(doc, externalJS);
+        assert.isAbove(scripts.length, 0, 'scripts were inlined');
         scripts.forEach(function(s) {
-          actualOrder.push(dom5.getAttribute(s, 'id'));
-          actualSrc.push(dom5.getAttribute(s, 'src'));
+          assert.equal(dom5.getTextContent(s), '', 'script src should be empty');
         });
-        assert.deepEqual(actualOrder, expectedOrder, 'order is not as expected');
-        assert.deepEqual(actualSrc, expectedSrc, 'srcs are not preserved correctly');
         done();
-      };
-
-      process('test/html/order-test.html', callback);
-    });
-
-    test('exhaustive script order testing', function(done) {
-      process('test/html/scriptorder/index.html', function(err, doc) {
-        if (err) {
-          return done(err);
-        }
-        assert(doc);
-        var serialized = dom5.serialize(doc);
-        var beforeLoc = serialized.indexOf("window.BeforeJs");
-        var afterLoc = serialized.indexOf("BeforeJs.value");
-        assert.isBelow(beforeLoc, afterLoc);
-        done();
-      }, {
-        inlineScripts: true
       });
     });
 
@@ -545,7 +505,81 @@ suite('Vulcan', function() {
     });
   });
 
-  suite('Absolue Paths', function() {
+  suite('Script Ordering', function() {
+    test('Imports and scripts are ordered correctly', function(done) {
+      var expectedOrder = [
+        'first-script',
+        'second-import-first-script',
+        'second-import-second-script',
+        'first-import-first-script',
+        'first-import-second-script',
+        'second-script',
+        'third-script'
+      ];
+
+      var expectedSrc = [
+        'order/first-script.js',
+        'order/second-import/first-script.js',
+        'order/second-import/second-script.js',
+        'order/first-import/first-script.js',
+        'order/first-import/second-script.js',
+        'order/second-script.js',
+        'order/third-script.js'
+      ];
+
+      var scriptMatcher = preds.hasTagName('script');
+
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var scripts = dom5.queryAll(doc, scriptMatcher);
+        var actualOrder = [], actualSrc = [];
+        scripts.forEach(function(s) {
+          actualOrder.push(dom5.getAttribute(s, 'id'));
+          actualSrc.push(dom5.getAttribute(s, 'src'));
+        });
+        assert.deepEqual(actualOrder, expectedOrder, 'order is not as expected');
+        assert.deepEqual(actualSrc, expectedSrc, 'srcs are not preserved correctly');
+        done();
+      };
+
+      process('test/html/order-test.html', callback);
+    });
+
+    test('exhaustive script order testing', function(done) {
+      process('test/html/scriptorder/index.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        var serialized = dom5.serialize(doc);
+        var beforeLoc = serialized.indexOf("window.BeforeJs");
+        var afterLoc = serialized.indexOf("BeforeJs.value");
+        assert.isBelow(beforeLoc, afterLoc);
+        done();
+      }, {
+        inlineScripts: true
+      });
+    });
+
+    test('Paths are correct when maintaining order', function(done) {
+      process('test/html/recursion/import.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        var scripts = dom5.queryAll(doc, preds.AND(preds.hasTagName('script'), preds.hasAttr('src')));
+        scripts.forEach(function(s) {
+          var src = dom5.getAttribute(s, 'src');
+          assert.equal(src.indexOf('../order'), 0, 'path should start with ../order');
+        });
+        done();
+      });
+    });
+  });
+
+  suite('Absolute Paths', function() {
     test('Output with Absolute paths with abspath', function(done) {
       var root = path.resolve(inputPath, '../..');
       var target = '/html/default.html';
@@ -631,26 +665,26 @@ suite('Vulcan', function() {
       preds.hasAttrValue('type', 'css')
     );
 
-    // TODO(ajo): Fix test with hydrolysis upgrades.
-    // test('Excluded imports are not when behind a redirected URL.', function(done) {
-    //   var options = {
-    //     excludes: ["test/html/imports/simple-import.html"],
-    //     redirects: ["red://herring/at|test/html/imports"]
-    //   };
+    //TODO(ajo): Fix test with hydrolysis upgrades.
+    test.skip('Excluded imports are not when behind a redirected URL.', function(done) {
+      var options = {
+        excludes: ["test/html/imports/simple-import.html"],
+        redirects: ["red://herring/at|test/html/imports"]
+      };
 
-    //   var callback = function(err, doc) {
-    //     if (err) {
-    //       return done(err);
-    //     }
-    //     var imports = dom5.queryAll(doc, htmlImport);
-    //     assert.equal(imports.length, 2);
-    //     var badCss = dom5.queryAll(doc, cssFromExclude);
-    //     console.log(badCss[0].attrs);
-    //     assert.equal(badCss.length, 0);
-    //     done();
-    //   };
-    //   process(path.resolve('test/html/custom-protocol-excluded.html'), callback, options);
-    // });
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var imports = dom5.queryAll(doc, htmlImport);
+        assert.equal(imports.length, 2);
+        var badCss = dom5.queryAll(doc, cssFromExclude);
+        console.log(badCss[0].attrs);
+        assert.equal(badCss.length, 0);
+        done();
+      };
+      process(path.resolve('test/html/custom-protocol-excluded.html'), callback, options);
+    });
 
     test('Excluded imports with "Strip Excludes" are removed', function(done) {
       var options = {
