@@ -1042,4 +1042,28 @@ suite('Vulcan', function() {
     });
   });
 
+  suite('Regression Testing', function() {
+    test('Complicated Ordering', function(done) {
+      process('test/html/complicated/A.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        var expected = [
+          'A1',
+          'C',
+          'E',
+          'B',
+          'D',
+          'A2'
+        ];
+        var scripts = dom5.queryAll(doc, preds.hasTagName('script'));
+        var contents = scripts.map(function(s){
+          return dom5.getTextContent(s).trim();
+        });
+        assert.deepEqual(contents, expected);
+        done();
+      }, {inlineScripts: true});
+    });
+  });
 });
