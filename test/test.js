@@ -1042,4 +1042,30 @@ suite('Vulcan', function() {
     });
   });
 
+  suite('Regression Testing', function() {
+    test('Complicated Ordering', function(done) {
+      // refer to https://github.com/Polymer/vulcanize/tree/master/test/html/complicated/ordering.svg
+      // for visual reference on the document structure for this example
+      process('test/html/complicated/A.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        var expected = [
+          'A1',
+          'C',
+          'E',
+          'B',
+          'D',
+          'A2'
+        ];
+        var scripts = dom5.queryAll(doc, preds.hasTagName('script'));
+        var contents = scripts.map(function(s){
+          return dom5.getTextContent(s).trim();
+        });
+        assert.deepEqual(contents, expected);
+        done();
+      }, {inlineScripts: true});
+    });
+  });
 });

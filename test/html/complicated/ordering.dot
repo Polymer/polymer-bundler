@@ -1,0 +1,32 @@
+digraph imports {
+  fontname="sans-serif"
+  node [shape="record"];
+  edge [label="link rel='import'"]
+
+  title [shape="plaintext" label="Complicated Setup\nScripts should be executed in-order for all documents";]
+
+  A [label="A.html|{<js> A.js | <B> B/B.html | <C> C/C.html | 'A2'}"]
+  A:js -> A_js [label="script src"]
+  A:B -> B
+  A:C -> C
+
+  A_js [label="A.js|'A1'"]
+
+  B [label="B.html|{<E> ../E/E.html | 'B' | <D> ../D/D.html}"]
+  B:E -> E
+  B:D -> D
+
+  C [label="C.html|<js> C.js"]
+  C:js -> C_js [label="script src"]
+
+  C_js [label="C.js|'C'"]
+
+  D [label="D.html|{<E> ../E/E.html | 'D'}"]
+  D:E -> E
+
+  E [label="E.html|{<C> ../C/C.html | 'E'}"]
+  E:C -> C
+
+  build [label="build.html|{'A1'|'C'|'E'|'B'|'D'|'A2'}"]
+  A -> build [color="red"; label="inlined"]
+}
