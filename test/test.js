@@ -1044,7 +1044,7 @@ suite('Vulcan', function() {
 
   suite('Regression Testing', function() {
     test('Complicated Ordering', function(done) {
-      // refer to https://github.com/Polymer/vulcanize/tree/master/test/html/ordering/ordering.svg
+      // refer to https://github.com/Polymer/vulcanize/tree/master/test/html/complicated/ordering.svg
       // for visual reference on the document structure for this example
       process('test/html/complicated/A.html', function(err, doc) {
         if (err) {
