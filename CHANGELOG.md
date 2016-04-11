@@ -1,3 +1,18 @@
+### 1.14.11
+- Radically simpler inlining design. Move all imports and scripts into document
+  body, replace imports inline.
+- Add tests for more complicated inlining scenarios
+
+### 1.14.10
+- Must use path resolution when moving `<head>` nodes
+
+### 1.14.9
+- Try harder to preserve script ordering, move nodes from `<head>` of current
+  document into import inlining fragment
+
+### 1.14.8
+- Undo hydrolysis inlining scripts
+
 ### 1.14.7
 - Fix inlining for firebase and other scripts that use `\\x3c/script` syntax
   when making more scripts
