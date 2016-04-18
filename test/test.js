@@ -96,7 +96,7 @@ suite('Path Resolver', function() {
       '}',
       'x-quuz {',
       '  background-image: url(\'https://foo.bar/baz.jpg\');',
-      '}',
+      '}'
     ].join('\n');
 
     var expected = [
@@ -108,7 +108,7 @@ suite('Path Resolver', function() {
       '}',
       'x-quuz {',
       '  background-image: url("https://foo.bar/baz.jpg");',
-      '}',
+      '}'
     ].join('\n');
 
     var actual = pathresolver.rewriteURL(inputPath, outputPath, css);
@@ -272,7 +272,6 @@ suite('Vulcan', function() {
   var inputPath = path.resolve('test/html/default.html');
 
   var preds = dom5.predicates;
-  var hyd = require('hydrolysis');
   var doc;
 
   function process(inputPath, cb, vulcanizeOptions) {
@@ -304,7 +303,7 @@ suite('Vulcan', function() {
       });
     });
 
-    test('imports were deduplicated', function() {
+    test('imports were deduplicated', function(done) {
       process(inputPath, function(err, doc) {
         if (err) {
           return done(err);
@@ -355,7 +354,7 @@ suite('Vulcan', function() {
       });
     });
 
-    test('output file is forced utf-8', function() {
+    test('output file is forced utf-8', function(done) {
       var meta = preds.AND(
         preds.hasTagName('meta'),
         preds.hasAttrValue('charset', 'UTF-8')
@@ -385,7 +384,7 @@ suite('Vulcan', function() {
         var spanHref = dom5.query(doc, span);
         assert.ok(spanHref);
         var anchorRef = dom5.query(doc, a);
-        assert.ok(a);
+        assert.ok(anchorRef);
         done();
       });
     });
@@ -436,7 +435,7 @@ suite('Vulcan', function() {
     test('Old Polymer is detected and warns', function(done) {
       var constants = require('../lib/constants');
       var input = path.resolve('test/html/old-polymer.html');
-      process(input, function(err, doc) {
+      process(input, function(err) {
         if (err) {
           try {
             // check err message
