@@ -678,7 +678,6 @@ suite('Vulcan', function() {
         var imports = dom5.queryAll(doc, htmlImport);
         assert.equal(imports.length, 2);
         var badCss = dom5.queryAll(doc, cssFromExclude);
-        console.log(badCss[0].attrs);
         assert.equal(badCss.length, 0);
         done();
       };
