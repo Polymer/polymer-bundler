@@ -112,16 +112,6 @@ if (args.help || !target) {
   process.exit(0);
 }
 
-if (args['update-notifier'] !== false) {
-  (function() {
-    try {
-      require('update-notifier')({
-        pkg: pkg
-      }).notify();
-    } catch(_) {}
-  })();
-}
-
 // escape a regex string and return a new RegExp
 function stringToRegExp(str) {
   return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
