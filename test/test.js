@@ -1065,5 +1065,22 @@ suite('Vulcan', function() {
         done();
       }, {inlineScripts: true});
     });
+
+    test('Imports in templates should not inline', function(done) {
+      process('test/html/inside-template.html', function(err, doc) {
+        var importMatcher = preds.AND(
+          preds.hasTagName('link'),
+          preds.hasAttrValue('rel', 'import'),
+          preds.hasAttr('href')
+        );
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        var imports = dom5.queryAll(doc, importMatcher);
+        assert.equal(imports.length, 1, 'import in template was inlined');
+        done();
+      });
+    });
   });
 });
