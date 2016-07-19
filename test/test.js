@@ -1065,5 +1065,28 @@ suite('Vulcan', function() {
         done();
       }, {inlineScripts: true});
     });
+
+    test('Imports in templates should not inline', function(done) {
+      process('test/html/inside-template.html', function(err, doc) {
+        var importMatcher = preds.AND(
+          preds.hasTagName('link'),
+          preds.hasAttrValue('rel', 'import'),
+          preds.hasAttr('href')
+        );
+        var externalScriptMatcher = preds.AND(
+          preds.hasTagName('script'),
+          preds.hasAttrValue('src', 'external/external.js')
+        );
+        if (err) {
+          return done(err);
+        }
+        assert(doc);
+        var imports = dom5.queryAll(doc, importMatcher);
+        assert.equal(imports.length, 1, 'import in template was inlined');
+        var unexpectedScript = dom5.query(doc, externalScriptMatcher);
+        assert.equal(unexpectedScript, null, 'script in external.html should not be present');
+        done();
+      });
+    });
   });
 });
