@@ -8,13 +8,12 @@
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
 
-// jshint node: true
+/// <reference path="../node_modules/@types/node/index.d.ts" />
 'use strict';
 
 var path = require('path');
 var url = require('url');
 var pathPosix = path.posix || require('path-posix');
-var hyd = require('hydrolysis');
 var dom5 = require('dom5');
 var CommentMap = require('./comment-map');
 var constants = require('./constants');
@@ -22,7 +21,11 @@ var matchers = require('./matchers');
 var PathResolver = require('./pathresolver');
 var encodeString = require('../third_party/UglifyJS2/output');
 
-var Promise = global.Promise || require('es6-promise').Promise;
+// let Promise = global.Promise;
+
+import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
+import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
+import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
 /**
  * This is the copy of vulcanize we keep to simulate the setOptions api.
@@ -31,54 +34,16 @@ var Promise = global.Promise || require('es6-promise').Promise;
  */
 var singleton;
 
-function buildLoader(config) {
+function buildLoader(config): UrlLoader {
   var abspath = config.abspath;
   var excludes = config.excludes;
   var fsResolver = config.fsResolver;
   var redirects = config.redirects;
-  var loader = new hyd.Loader();
-  if (fsResolver) {
-    loader.addResolver(fsResolver);
-  } else {
-  var fsOptions = {};
-    if (abspath) {
-      fsOptions.root = path.resolve(abspath);
-      fsOptions.basePath = '/';
-    }
-    loader.addResolver(new hyd.FSResolver(fsOptions));
-  }
-  // build null HTTPS? resolver to skip external scripts
-  loader.addResolver(new hyd.NoopResolver(constants.EXTERNAL_URL));
-  var redirectOptions = {};
-  if (abspath) {
-    redirectOptions.root =  path.resolve(abspath);
-    redirectOptions.basePath = '/';
-  }
-  var redirectConfigs = [];
-  for (var i = 0; i < redirects.length; i++) {
-    var split = redirects[i].split('|');
-    var uri = url.parse(split[0]);
-    var replacement = split[1];
-    if (!uri || !replacement) {
-      throw new Error("Invalid redirect config: " + redirects[i]);
-    }
-    var redirectConfig = new hyd.RedirectResolver.ProtocolRedirect({
-        protocol: uri.protocol,
-        hostname: uri.hostname,
-        path: uri.pathname,
-        redirectPath: replacement
-      });
-    redirectConfigs.push(redirectConfig);
-  }
-  if (redirectConfigs.length > 0) {
-    redirectOptions.redirects = redirectConfigs;
-    loader.addResolver(new hyd.RedirectResolver(redirectOptions));
-  }
-  if (excludes) {
-    excludes.forEach(function(r) {
-      loader.addResolver(new hyd.NoopResolver(r));
-    });
-  }
+  let root = abspath && path.resolve(abspath) || process.cwd;
+  let loader = new FSUrlLoader(root);
+  // TODO(garlicnation): Add noopResolver for external urls.
+  // TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
+  // TODO(garlicnation): Add noopResolver for excluded urls.
   return loader;
 }
 
@@ -387,7 +352,7 @@ Vulcan.prototype = {
       fsResolver: this.fsResolver,
       redirects: this.redirects
     });
-    var analyzer = new hyd.Analyzer(true, loader);
+    var analyzer = new analyzer.Analyzer(true, loader);
     var analyzedExcludes = [];
     excludes.forEach(function(exclude) {
       if (exclude.match(/.js$/)) {
@@ -426,7 +391,7 @@ Vulcan.prototype = {
         }.bind(this));
       }.bind(this));
     }
-    var analyzer = new hyd.Analyzer(true, this.loader);
+    var analyzer = new analyzer.Analyzer(true, this.loader);
     chain = chain.then(function(){
       return analyzer.metadataTree(target);
     }).then(function(tree) {

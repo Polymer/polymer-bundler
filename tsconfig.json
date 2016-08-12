@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es6",
+        "target": "es2015",
         "module": "commonjs",
         "moduleResolution": "node",
         "isolatedModules": false,
@@ -10,7 +10,7 @@
         "removeComments": false,
         "preserveConstEnums": true,
         "suppressImplicitAnyIndexErrors": true,
-        "lib": ["es2017"],
+        "lib": ["es2017", "es2015.promise"],
         "outDir": "./lib",
         "declaration": true,
         "sourceMap": true
