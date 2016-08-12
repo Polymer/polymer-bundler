@@ -1,11 +1,15 @@
 /**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * This code may only be used under the BSD style license found at
+ * http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at
+ * http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at
+ * http://polymer.github.io/CONTRIBUTORS.txt
  * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ * subject to an additional IP rights grant found at
+ * http://polymer.github.io/PATENTS.txt
  */
 
 // jshint node:true
@@ -13,7 +17,7 @@
 
 import * as path from 'path';
 import * as url from 'url';
-import * as  dom5 from 'dom5';
+import * as dom5 from 'dom5';
 import * as matchers from './matchers';
 import constants from './constants';
 
@@ -83,20 +87,19 @@ class PathResolver {
     }
     const parsedFrom = url.parse(mainDocUrl);
     const parsedTo = url.parse(absUrl);
-    if (parsedFrom.protocol === parsedTo.protocol && parsedFrom.host === parsedTo.host) {
-      const pathname = pathPosix.relative(pathPosix.dirname(parsedFrom.pathname), parsedTo.pathname);
-      return url.format({
-        pathname: pathname,
-        search: parsedTo.search,
-        hash: parsedTo.hash
-      });
+    if (parsedFrom.protocol === parsedTo.protocol &&
+        parsedFrom.host === parsedTo.host) {
+      const pathname = pathPosix.relative(
+          pathPosix.dirname(parsedFrom.pathname), parsedTo.pathname);
+      return url.format(
+          {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
     }
     return absUrl;
   }
 
   rewriteURL(importUrl, mainDocUrl, cssText) {
     return cssText.replace(constants.URL, match => {
-      let path = match.replace(/["']/g, "").slice(4, -1);
+      let path = match.replace(/["']/g, '').slice(4, -1);
       path = this.rewriteRelPath(importUrl, mainDocUrl, path);
       return 'url("' + path + '")';
     });

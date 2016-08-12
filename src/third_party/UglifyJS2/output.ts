@@ -43,13 +43,13 @@
 
 // jshint node: true
 
-"use strict";
+'use strict';
 export function encodeString(str, quote, inline_script: Boolean): String {
   var ret = str;
   if (inline_script) {
-    ret = ret.replace(/(<|\\x3c)\x2fscript([>\/\t\n\f\r ])/gi, "$1\\/script$2");
-    ret = ret.replace(/\x3c!--/g, "\\x3c!--");
-    ret = ret.replace(/--\x3e/g, "--\\x3e");
+    ret = ret.replace(/(<|\\x3c)\x2fscript([>\/\t\n\f\r ])/gi, '$1\\/script$2');
+    ret = ret.replace(/\x3c!--/g, '\\x3c!--');
+    ret = ret.replace(/--\x3e/g, '--\\x3e');
   }
   return ret;
 }

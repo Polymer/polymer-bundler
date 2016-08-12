@@ -1,11 +1,15 @@
 /**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * This code may only be used under the BSD style license found at
+ * http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at
+ * http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at
+ * http://polymer.github.io/CONTRIBUTORS.txt
  * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ * subject to an additional IP rights grant found at
+ * http://polymer.github.io/PATENTS.txt
  */
 
 /// <reference path="../node_modules/@types/node/index.d.ts" />
@@ -13,9 +17,9 @@
 'use strict';
 
 import * as path from 'path';
-import  * as url from 'url';
+import * as url from 'url';
 const pathPosix = path.posix;
-import  * as dom5 from 'dom5';
+import * as dom5 from 'dom5';
 import {encodeString} from './third_party/UglifyJS2/output';
 
 import constants from './constants';
@@ -28,7 +32,7 @@ import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
 declare module 'dom5' {
   interface constructors {
-      element: (tagName: string, namespace?: string) => ASTNode;
+    element: (tagName: string, namespace?: string) => ASTNode;
   }
 }
 
@@ -47,17 +51,24 @@ function buildLoader(config: any) {
 
 class Bundler {
   constructor(opts: any) {
-      // implicitStrip should be true by default
-    this.implicitStrip = opts.implicitStrip === undefined ? true : Boolean(opts.implicitStrip);
-    this.abspath = (String(opts.abspath) === opts.abspath && String(opts.abspath).trim() !== '') ? path.resolve(opts.abspath) : null;
+    // implicitStrip should be true by default
+    this.implicitStrip =
+        opts.implicitStrip === undefined ? true : Boolean(opts.implicitStrip);
+    this.abspath = (String(opts.abspath) === opts.abspath &&
+                    String(opts.abspath).trim() !== '') ?
+        path.resolve(opts.abspath) :
+        null;
     this.pathResolver = new PathResolver(this.abspath);
-    this.addedImports = Array.isArray(opts.addedImports) ? opts.addedImports : [];
+    this.addedImports =
+        Array.isArray(opts.addedImports) ? opts.addedImports : [];
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
-    this.stripExcludes = Array.isArray(opts.stripExcludes) ? opts.stripExcludes : [];
+    this.stripExcludes =
+        Array.isArray(opts.stripExcludes) ? opts.stripExcludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
-    this.inputUrl = String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
+    this.inputUrl =
+        String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
     this.fsResolver = opts.fsResolver;
     this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
     if (opts.loader) {
@@ -113,7 +124,8 @@ class Bundler {
   }
 
   isBlankTextNode(node) {
-    return node && dom5.isTextNode(node) && !/\S/.test(dom5.getTextContent(node));
+    return node && dom5.isTextNode(node) &&
+        !/\S/.test(dom5.getTextContent(node));
   }
 
   hasOldPolymer(doc) {
@@ -143,18 +155,14 @@ class Bundler {
     return false;
   }
 
-  moveToBodyMatcher =  dom5.predicates.AND(
-    dom5.predicates.OR(
-      dom5.predicates.hasTagName('script'),
-      dom5.predicates.hasTagName('link')
-    ),
-    dom5.predicates.NOT(
-      matchers.polymerExternalStyle
-    )
-  )
+  moveToBodyMatcher = dom5.predicates.AND(
+      dom5.predicates.OR(
+          dom5.predicates.hasTagName('script'),
+          dom5.predicates.hasTagName('link')),
+      dom5.predicates.NOT(matchers.polymerExternalStyle))
 
   ancestorWalk(node, target) {
-    while(node) {
+    while (node) {
       if (node === target) {
         return true;
       }
@@ -164,7 +172,7 @@ class Bundler {
   }
 
   isTemplated(node) {
-    while(node) {
+    while (node) {
       if (dom5.isDocumentFragment(node)) {
         return true;
       }
@@ -181,7 +189,9 @@ class Bundler {
     const importNodes = tree.html.import;
     // early check for old polymer versions
     if (this.hasOldPolymer(doc)) {
-      throw new Error(constants.OLD_POLYMER + ' File: ' + this.pathResolver.urlToPath(tree.href));
+      throw new Error(
+          constants.OLD_POLYMER + ' File: ' +
+          this.pathResolver.urlToPath(tree.href));
     }
     this.fixFakeExternalScripts(doc);
     this.pathResolver.acid(doc, tree.href);
@@ -269,10 +279,7 @@ class Bundler {
       });
     });
     // When all scripts are read, return the document
-    return Promise.all(scriptPromises).then(() => ({
-      doc: doc,
-      href: href
-    }));
+    return Promise.all(scriptPromises).then(() => ({doc: doc, href: href}));
   }
 
 
@@ -303,9 +310,11 @@ class Bundler {
           if (isPolymerExternalStyle) {
             // a polymer expternal style <link type="css" rel="import"> must be
             // in a <dom-module> to be processed
-            const ownerDomModule = dom5.nodeWalkPrior(tag, dom5.predicates.hasTagName('dom-module'));
+            const ownerDomModule = dom5.nodeWalkPrior(
+                tag, dom5.predicates.hasTagName('dom-module'));
             if (ownerDomModule) {
-              let domTemplate = dom5.query(ownerDomModule, dom5.predicates.hasTagName('template'));
+              let domTemplate = dom5.query(
+                  ownerDomModule, dom5.predicates.hasTagName('template'));
               if (!domTemplate) {
                 // create a <template>, which has a fragment as childNodes[0]
                 domTemplate = dom5.constructors.element('template');
@@ -323,14 +332,12 @@ class Bundler {
       });
     });
     // When all style imports are read, return the document
-    return Promise.all(cssPromises).then(() => ({
-      doc: doc,
-      href: href
-    }));
+    return Promise.all(cssPromises).then(() => ({doc: doc, href: href}));
   }
 
   getImplicitExcludes(excludes) {
-    // Build a loader that doesn't have to stop at our excludes, since we need them.
+    // Build a loader that doesn't have to stop at our excludes, since we need
+    // them.
     const loader = buildLoader({
       abspath: this.abspath,
       fsResolver: this.fsResolver,
@@ -351,7 +358,8 @@ class Bundler {
       const depPromise = analyzer._getDependencies(exclude);
       depPromise.catch(err => {
         // include that this was an excluded url in the error message.
-        err.message += '. Could not read dependencies for excluded URL: ' + exclude;
+        err.message +=
+            '. Could not read dependencies for excluded URL: ' + exclude;
       });
       analyzedExcludes.push(depPromise);
     });
@@ -411,8 +419,8 @@ class Bundler {
           dom5.remove(comment);
         });
         // Deduplicate license comments
-        comments.keys().forEach(function (commentData) {
-          if (commentData.indexOf("@license") == -1) {
+        comments.keys().forEach(function(commentData) {
+          if (commentData.indexOf('@license') == -1) {
             return;
           }
           this.prepend(head, comments.get(commentData));
@@ -420,9 +428,11 @@ class Bundler {
         return docObj;
       });
     }
-    chain.then(docObj => {
-      cb(null, dom5.serialize(docObj.doc));
-    }).catch(cb);
+    chain
+        .then(docObj => {
+          cb(null, dom5.serialize(docObj.doc));
+        })
+        .catch(cb);
   }
 
   process(target, cb) {
