@@ -19,48 +19,39 @@ import constants from './constants';
 import {predicates as p} from 'dom5';
 import {ASTNode} from 'parse5';
 
-export const urlAttrMatchers = constants.URL_ATTR.map(attr => p.hasAttr(attr));
+export interface Matcher { (node: ASTNode): boolean };
 
-export const urlAttrs = p.OR.apply(null, urlAttrMatchers);
+export const urlAttrMatchers: (Matcher)[] =
+    constants.URL_ATTR.map(attr => p.hasAttr(attr));
 
-export const jsMatcher = p.AND(
+export const urlAttrs: Matcher = p.OR.apply(null, urlAttrMatchers);
+
+export const jsMatcher: Matcher = p.AND(
     p.hasTagName('script'),
     p.OR(
         p.NOT(p.hasAttr('type')), p.hasAttrValue('type', 'text/javascript'),
         p.hasAttrValue('type', 'application/javascript')));
 
-export const externalStyle =
+export const externalStyle: Matcher =
     p.AND(p.hasTagName('link'), p.hasAttrValue('rel', 'stylesheet'));
 // polymer specific external stylesheet
-export const polymerExternalStyle = p.AND(
+export const polymerExternalStyle: Matcher = p.AND(
     p.hasTagName('link'), p.hasAttrValue('rel', 'import'),
     p.hasAttrValue('type', 'css'));
 
-export const styleMatcher = p.AND(
+export const styleMatcher: Matcher = p.AND(
     p.hasTagName('style'),
     p.OR(p.NOT(p.hasAttr('type')), p.hasAttrValue('type', 'text/css')));
 
-export const targetMatcher = p.AND(
+export const targetMatcher: Matcher = p.AND(
     p.OR(p.hasTagName('a'), p.hasTagName('form')), p.NOT(p.hasAttr('target')));
 
-export const head = p.hasTagName('head');
-export const body = p.hasTagName('body');
-export const base = p.hasTagName('base');
-export const domModule = p.AND(
+export const head: Matcher = p.hasTagName('head');
+export const body: Matcher = p.hasTagName('body');
+export const base: Matcher = p.hasTagName('base');
+export const domModule: Matcher = p.AND(
     p.hasTagName('dom-module'), p.hasAttr('id'), p.NOT(p.hasAttr('assetpath')));
-export const meta = p.AND(p.hasTagName('meta'), p.hasAttr('charset'));
-export const polymerElement = p.hasTagName('polymer-element');
-export const ALL_CSS_LINK = p.OR(externalStyle, polymerExternalStyle);
-export const JS_SRC = p.AND(p.hasAttr('src'), jsMatcher);
-export const JS_INLINE = p.AND(p.NOT(p.hasAttr('src')), jsMatcher);
-export polymerElement = p.hasTagName('polymer-element');
-export urlAttrs = urlAttrs;
-export targetMatcher = targetMatcher;
-export polymerExternalStyle = polymerExternalStyle;
-export JS = jsMatcher;
-export CSS = styleMatcher;
-export CSS_LINK = externalStyle;
-export POLY_CSS_LINK = polymerExternalStyle;
-export ALL_CSS_LINK = p.OR(externalStyle, polymerExternalStyle);
-export JS_SRC = p.AND(p.hasAttr('src'), jsMatcher);
-export JS_INLINE = p.AND(p.NOT(p.hasAttr('src')), jsMatcher);
+export const meta: Matcher = p.AND(p.hasTagName('meta'), p.hasAttr('charset'));
+export const polymerElement: Matcher = p.hasTagName('polymer-element');
+export const externalJavascript: Matcher = p.AND(p.hasAttr('src'), jsMatcher);
+export const inlineJavascript: Matcher = p.AND(p.NOT(p.hasAttr('src')), jsMatcher);

@@ -30,12 +30,6 @@ import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
 import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
-declare module 'dom5' {
-  interface constructors {
-    element: (tagName: string, namespace?: string) => ASTNode;
-  }
-}
-
 function buildLoader(config: any) {
   const abspath: string = config.abspath;
   const excludes = config.excludes;

@@ -19,20 +19,18 @@ import * as path from 'path';
 import * as url from 'url';
 import * as dom5 from 'dom5';
 import * as matchers from './matchers';
+import {ASTNode} from 'parse5';
 import constants from './constants';
 
 class PathResolver {
-  constructor(abspath) {
-    if (abspath) {
-      this.abspath = abspath;
-    }
+  constructor(public abspath) {
   }
 
   isTemplatedUrl(href) {
     return href.search(constants.URL_TEMPLATE) >= 0;
   }
 
-  resolvePaths(importDoc, importUrl, mainDocUrl) {
+  resolvePaths(importDoc: ASTNode, importUrl, mainDocUrl) {
     // rewrite URLs in element attributes
     const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
     let attrValue;
