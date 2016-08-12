@@ -8,7 +8,7 @@
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
 
-module.exports = {
+export default {
   EXTERNAL_URL: /^(?:https?:)?\/\//,
   ABS_URL: /(^\/)|(^#)|(^[\w-\d]*:)/,
   URL: /url\([^)]*\)/g,

@@ -11,13 +11,13 @@
 // jshint node:true
 'use strict';
 
-const path = require('path');
+import path from 'path';
 // use path.posix on Node > 0.12+, path-posix on 0.10
 const pathPosix = path.posix || require('path-posix');
-const url = require('url');
-const dom5 = require('dom5');
-const matchers = require('./matchers');
-const constants = require('./constants');
+import url from 'url';
+import dom5 from 'dom5';
+import matchers from './matchers';
+import constants from './constants';
 
 class PathResolver {
   constructor(abspath) {
@@ -147,4 +147,4 @@ class PathResolver {
   }
 }
 
-module.exports = PathResolver;
+export default PathResolver;

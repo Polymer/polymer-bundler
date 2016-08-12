@@ -25,4 +25,4 @@ class CommentMap {
   }
 }
 
-module.exports = CommentMap;
+export default CommentMap;

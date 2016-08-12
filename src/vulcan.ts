@@ -11,15 +11,15 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 'use strict';
 
-const path = require('path');
-const url = require('url');
+import path from 'path';
+import url from 'url';
 const pathPosix = path.posix || require('path-posix');
-const dom5 = require('dom5');
-const CommentMap = require('./comment-map');
-const constants = require('./constants');
-const matchers = require('./matchers');
-const PathResolver = require('./pathresolver');
-const encodeString = require('../third_party/UglifyJS2/output');
+import dom5 from 'dom5';
+import CommentMap from './comment-map';
+import constants from './constants';
+import matchers from './matchers';
+import PathResolver from './pathresolver';
+import encodeString from '../third_party/UglifyJS2/output';
 
 // let Promise = global.Promise;
 
@@ -471,4 +471,4 @@ Vulcan.prototype = {
   }
 };
 
-module.exports = Vulcan;
+export default Vulcan;

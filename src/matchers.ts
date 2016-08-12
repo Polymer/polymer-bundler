@@ -11,8 +11,8 @@
 // jshint node: true
 'use strict';
 
-const constants = require('./constants');
-const dom5 = require('dom5');
+import constants from './constants';
+import dom5 from 'dom5';
 const p = dom5.predicates;
 
 const urlAttrMatchers = constants.URL_ATTR.map(function(attr) {
@@ -36,7 +36,7 @@ const externalStyle = p.AND(
   p.hasTagName('link'),
   p.hasAttrValue('rel', 'stylesheet')
 );
-  // polymer specific external stylesheet
+// polymer specific external stylesheet
 const polymerExternalStyle = p.AND(
   p.hasTagName('link'),
   p.hasAttrValue('rel', 'import'),
@@ -61,7 +61,7 @@ const targetMatcher = p.AND(
   p.NOT(p.hasAttr('target'))
 );
 
-module.exports = {
+export default {
   head: p.hasTagName('head'),
   body: p.hasTagName('body'),
   base: p.hasTagName('base'),
