@@ -11,11 +11,9 @@
 // jshint node:true
 'use strict';
 
-import path from 'path';
-// use path.posix on Node > 0.12+, path-posix on 0.10
-const pathPosix = path.posix || require('path-posix');
-import url from 'url';
-import dom5 from 'dom5';
+import * as path from 'path';
+import * as url from 'url';
+import * as  dom5 from 'dom5';
 import matchers from './matchers';
 import constants from './constants';
 
