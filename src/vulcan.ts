@@ -84,21 +84,21 @@ class Vulcan {
 }
 
 Vulcan.prototype = {
-  isDuplicateImport: function isDuplicateImport(importMeta) {
+  isDuplicateImport(importMeta) {
     return !importMeta.href;
   },
 
-  reparent: function reparent(newParent) {
+  reparent(newParent) {
     return node => {
       node.parentNode = newParent;
     };
   },
 
-  isExcludedImport: function isExcludedImport(importMeta) {
+  isExcludedImport(importMeta) {
     return this.isExcludedHref(importMeta.href);
   },
 
-  isExcludedHref: function isExcludedHref(href) {
+  isExcludedHref(href) {
     if (constants.EXTERNAL_URL.test(href)) {
       return true;
     }
@@ -108,7 +108,7 @@ Vulcan.prototype = {
     return this.excludes.some(r => href.search(r) >= 0);
   },
 
-  isStrippedImport: function isStrippedImport(importMeta) {
+  isStrippedImport(importMeta) {
     if (!this.stripExcludes.length) {
       return false;
     }
@@ -116,15 +116,15 @@ Vulcan.prototype = {
     return this.stripExcludes.some(r => href.search(r) >= 0);
   },
 
-  isBlankTextNode: function isBlankTextNode(node) {
+  isBlankTextNode(node) {
     return node && dom5.isTextNode(node) && !/\S/.test(dom5.getTextContent(node));
   },
 
-  hasOldPolymer: function hasOldPolymer(doc) {
+  hasOldPolymer(doc) {
     return Boolean(dom5.query(doc, matchers.polymerElement));
   },
 
-  removeElementAndNewline: function removeElementAndNewline(node, replacement) {
+  removeElementAndNewline(node, replacement) {
     // when removing nodes, remove the newline after it as well
     const parent = node.parentNode;
     const nextIdx = parent.childNodes.indexOf(node) + 1;
@@ -140,7 +140,7 @@ Vulcan.prototype = {
     }
   },
 
-  isLicenseComment: function(node) {
+  isLicenseComment(node) {
     if (dom5.isCommentNode(node)) {
       return dom5.getTextContent(node).indexOf('@license') > -1;
     }
@@ -157,7 +157,7 @@ Vulcan.prototype = {
     )
   ),
 
-  ancestorWalk: function(node, target) {
+  ancestorWalk(node, target) {
     while(node) {
       if (node === target) {
         return true;
@@ -167,7 +167,7 @@ Vulcan.prototype = {
     return false;
   },
 
-  isTemplated: function(node) {
+  isTemplated(node) {
     while(node) {
       if (dom5.isDocumentFragment(node)) {
         return true;
@@ -177,7 +177,7 @@ Vulcan.prototype = {
     return false;
   },
 
-  flatten: function flatten(tree, isMainDoc) {
+  flatten(tree, isMainDoc) {
     const doc = tree.html.ast;
     const imports = tree.imports;
     const head = dom5.query(doc, matchers.head);
@@ -252,7 +252,7 @@ Vulcan.prototype = {
     return doc;
   },
 
-  hide: function(node) {
+  hide(node) {
     const hidden = dom5.constructors.element('div');
     dom5.setAttribute(hidden, 'hidden', '');
     dom5.setAttribute(hidden, 'by-vulcanize', '');
@@ -260,7 +260,7 @@ Vulcan.prototype = {
     dom5.append(hidden, node);
   },
 
-  prepend: function prepend(parent, node) {
+  prepend(parent, node) {
     if (parent.childNodes.length) {
       dom5.insertBefore(parent, parent.childNodes[0], node);
     } else {
@@ -268,7 +268,7 @@ Vulcan.prototype = {
     }
   },
 
-  fixFakeExternalScripts: function fixFakeExternalScripts(doc) {
+  fixFakeExternalScripts(doc) {
     const scripts = dom5.queryAll(doc, matchers.JS_INLINE);
     scripts.forEach(script => {
       if (script.__hydrolysisInlined) {
@@ -279,7 +279,7 @@ Vulcan.prototype = {
   },
 
   // inline scripts into document, returns a promise resolving to document.
-  inlineScripts: function inlineScripts(doc, href) {
+  inlineScripts(doc, href) {
     const scripts = dom5.queryAll(doc, matchers.JS_SRC);
     const scriptPromises = scripts.map(script => {
       const src = dom5.getAttribute(script, 'src');
@@ -305,7 +305,7 @@ Vulcan.prototype = {
 
 
   // inline scripts into document, returns a promise resolving to document.
-  inlineCss: function inlineCss(doc, href) {
+  inlineCss(doc, href) {
     const css_links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
     const cssPromises = css_links.map(link => {
       const tag = link;
@@ -357,7 +357,7 @@ Vulcan.prototype = {
     }));
   },
 
-  getImplicitExcludes: function getImplicitExcludes(excludes) {
+  getImplicitExcludes(excludes) {
     // Build a loader that doesn't have to stop at our excludes, since we need them.
     const loader = buildLoader({
       abspath: this.abspath,
@@ -394,7 +394,7 @@ Vulcan.prototype = {
     });
   },
 
-  _process: function _process(target, cb) {
+  _process(target, cb) {
     let chain = Promise.resolve(true);
     if (this.implicitStrip && this.excludes) {
       chain = this.getImplicitExcludes(this.excludes).then(implicitExcludes => {
@@ -453,7 +453,7 @@ Vulcan.prototype = {
     }).catch(cb);
   },
 
-  process: function process(target, cb) {
+  process(target, cb) {
     if (this.inputUrl) {
       this._process(this.inputUrl, cb);
     } else {
