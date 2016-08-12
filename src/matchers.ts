@@ -15,9 +15,7 @@ import constants from './constants';
 import dom5 from 'dom5';
 const p = dom5.predicates;
 
-const urlAttrMatchers = constants.URL_ATTR.map(function(attr) {
-  return p.hasAttr(attr);
-});
+const urlAttrMatchers = constants.URL_ATTR.map(attr => p.hasAttr(attr));
 
 const urlAttrs = p.OR.apply(null, urlAttrMatchers);
 

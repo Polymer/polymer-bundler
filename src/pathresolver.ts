@@ -97,11 +97,11 @@ class PathResolver {
   }
 
   rewriteURL(importUrl, mainDocUrl, cssText) {
-    return cssText.replace(constants.URL, function(match) {
+    return cssText.replace(constants.URL, match => {
       let path = match.replace(/["']/g, "").slice(4, -1);
       path = this.rewriteRelPath(importUrl, mainDocUrl, path);
       return 'url("' + path + '")';
-    }.bind(this));
+    });
   }
 
   // remove effects of <base>
@@ -120,7 +120,7 @@ class PathResolver {
       }
       if (baseTarget) {
         const elementsNeedTarget = dom5.queryAll(doc, matchers.targetMatcher);
-        elementsNeedTarget.forEach(function(el) {
+        elementsNeedTarget.forEach(el => {
           dom5.setAttribute(el, 'target', baseTarget);
         });
       }

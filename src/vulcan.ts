@@ -89,7 +89,7 @@ Vulcan.prototype = {
   },
 
   reparent: function reparent(newParent) {
-    return function(node) {
+    return node => {
       node.parentNode = newParent;
     };
   },
@@ -105,9 +105,7 @@ Vulcan.prototype = {
     if (!this.excludes) {
       return false;
     }
-    return this.excludes.some(function(r) {
-      return href.search(r) >= 0;
-    });
+    return this.excludes.some(r => href.search(r) >= 0);
   },
 
   isStrippedImport: function isStrippedImport(importMeta) {
@@ -115,9 +113,7 @@ Vulcan.prototype = {
       return false;
     }
     const href = importMeta.href;
-    return this.stripExcludes.some(function(r) {
-      return href.search(r) >= 0;
-    });
+    return this.stripExcludes.some(r => href.search(r) >= 0);
   },
 
   isBlankTextNode: function isBlankTextNode(node) {
@@ -274,7 +270,7 @@ Vulcan.prototype = {
 
   fixFakeExternalScripts: function fixFakeExternalScripts(doc) {
     const scripts = dom5.queryAll(doc, matchers.JS_INLINE);
-    scripts.forEach(function(script) {
+    scripts.forEach(script => {
       if (script.__hydrolysisInlined) {
         dom5.setAttribute(script, 'src', script.__hydrolysisInlined);
         dom5.setTextContent(script, '');
@@ -285,30 +281,33 @@ Vulcan.prototype = {
   // inline scripts into document, returns a promise resolving to document.
   inlineScripts: function inlineScripts(doc, href) {
     const scripts = dom5.queryAll(doc, matchers.JS_SRC);
-    const scriptPromises = scripts.map(function(script) {
+    const scriptPromises = scripts.map(script => {
       const src = dom5.getAttribute(script, 'src');
       const uri = url.resolve(href, src);
       // let the loader handle the requests
       if (this.isExcludedHref(src)) {
         return Promise.resolve(true);
       }
-      return this.loader.request(uri).then(function(content) {
+      return this.loader.request(uri).then(content => {
         if (content) {
           content = encodeString(content);
           dom5.removeAttribute(script, 'src');
           dom5.setTextContent(script, content);
         }
       });
-    }.bind(this));
+    });
     // When all scripts are read, return the document
-    return Promise.all(scriptPromises).then(function(){ return {doc: doc, href: href}; });
+    return Promise.all(scriptPromises).then(() => ({
+      doc: doc,
+      href: href
+    }));
   },
 
 
   // inline scripts into document, returns a promise resolving to document.
   inlineCss: function inlineCss(doc, href) {
     const css_links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
-    const cssPromises = css_links.map(function(link) {
+    const cssPromises = css_links.map(link => {
       const tag = link;
       const src = dom5.getAttribute(tag, 'href');
       const media = dom5.getAttribute(tag, 'media');
@@ -320,7 +319,7 @@ Vulcan.prototype = {
         return Promise.resolve(true);
       }
       // let the loader handle the requests
-      return this.loader.request(uri).then(function(content) {
+      return this.loader.request(uri).then(content => {
         if (content) {
           content = this.pathResolver.rewriteURL(uri, href, content);
           if (media) {
@@ -349,10 +348,13 @@ Vulcan.prototype = {
             dom5.replace(tag, style);
           }
         }
-      }.bind(this));
-    }.bind(this));
+      });
+    });
     // When all style imports are read, return the document
-    return Promise.all(cssPromises).then(function(){ return {doc: doc, href: href}; });
+    return Promise.all(cssPromises).then(() => ({
+      doc: doc,
+      href: href
+    }));
   },
 
   getImplicitExcludes: function getImplicitExcludes(excludes) {
@@ -364,7 +366,7 @@ Vulcan.prototype = {
     });
     const analyzer = new analyzer.Analyzer(true, loader);
     const analyzedExcludes = [];
-    excludes.forEach(function(exclude) {
+    excludes.forEach(exclude => {
       if (exclude.match(/.js$/)) {
         return;
       }
@@ -375,16 +377,16 @@ Vulcan.prototype = {
         return;
       }
       const depPromise = analyzer._getDependencies(exclude);
-      depPromise.catch(function(err) {
+      depPromise.catch(err => {
         // include that this was an excluded url in the error message.
         err.message += '. Could not read dependencies for excluded URL: ' + exclude;
       });
       analyzedExcludes.push(depPromise);
     });
-    return Promise.all(analyzedExcludes).then(function(strippedExcludes) {
+    return Promise.all(analyzedExcludes).then(strippedExcludes => {
       const dedupe = {};
-      strippedExcludes.forEach(function(excludeList){
-        excludeList.forEach(function(exclude) {
+      strippedExcludes.forEach(excludeList => {
+        excludeList.forEach(exclude => {
           dedupe[exclude] = true;
         });
       });
@@ -395,16 +397,14 @@ Vulcan.prototype = {
   _process: function _process(target, cb) {
     let chain = Promise.resolve(true);
     if (this.implicitStrip && this.excludes) {
-      chain = this.getImplicitExcludes(this.excludes).then(function(implicitExcludes) {
-        implicitExcludes.forEach(function(strippedExclude) {
+      chain = this.getImplicitExcludes(this.excludes).then(implicitExcludes => {
+        implicitExcludes.forEach(strippedExclude => {
           this.stripExcludes.push(strippedExclude);
-        }.bind(this));
-      }.bind(this));
+        });
+      });
     }
     const analyzer = new analyzer.Analyzer(true, this.loader);
-    chain = chain.then(function(){
-      return analyzer.metadataTree(target);
-    }).then(function(tree) {
+    chain = chain.then(() => analyzer.metadataTree(target)).then(tree => {
       const flatDoc = this.flatten(tree, true);
       // make sure there's a <meta charset> in the page to force UTF-8
       let meta = dom5.query(flatDoc, matchers.meta);
@@ -421,24 +421,20 @@ Vulcan.prototype = {
         this.prepend(head, meta);
       }
       return {doc: flatDoc, href: tree.href};
-    }.bind(this));
+    });
     if (this.enableScriptInlining) {
-      chain = chain.then(function(docObj) {
-        return this.inlineScripts(docObj.doc, docObj.href);
-      }.bind(this));
+      chain = chain.then(docObj => this.inlineScripts(docObj.doc, docObj.href));
     }
     if (this.enableCssInlining) {
-      chain = chain.then(function(docObj) {
-        return this.inlineCss(docObj.doc, docObj.href);
-      }.bind(this));
+      chain = chain.then(docObj => this.inlineCss(docObj.doc, docObj.href));
     }
     if (this.stripComments) {
-      chain = chain.then(function(docObj) {
+      chain = chain.then(docObj => {
         const comments = new CommentMap();
         const doc = docObj.doc;
         const head = dom5.query(doc, matchers.head);
         // remove all comments
-        dom5.nodeWalkAll(doc, dom5.isCommentNode).forEach(function(comment) {
+        dom5.nodeWalkAll(doc, dom5.isCommentNode).forEach(comment => {
           comments.set(comment.data, comment);
           dom5.remove(comment);
         });
@@ -450,9 +446,9 @@ Vulcan.prototype = {
           this.prepend(head, comments.get(commentData));
         }, this);
         return docObj;
-      }.bind(this));
+      });
     }
-    chain.then(function(docObj) {
+    chain.then(docObj => {
       cb(null, dom5.serialize(docObj.doc));
     }).catch(cb);
   },
