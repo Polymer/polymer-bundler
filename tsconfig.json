@@ -4,13 +4,13 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "isolatedModules": false,
-        "noImplicitAny": true,
         // TODO: enable these
+        // "noImplicitAny": false,
         // "strictNullChecks": true,
         "removeComments": false,
         "preserveConstEnums": true,
         "suppressImplicitAnyIndexErrors": true,
-        "lib": ["es2017", "es2015.promise"],
+        "lib": ["es2017"],
         "outDir": "./lib",
         "declaration": true,
         "sourceMap": true

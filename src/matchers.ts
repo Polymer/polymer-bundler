@@ -12,8 +12,7 @@
 'use strict';
 
 import constants from './constants';
-import dom5 from 'dom5';
-const p = dom5.predicates;
+import {predicates as p} from 'dom5';
 
 const urlAttrMatchers = constants.URL_ATTR.map(attr => p.hasAttr(attr));
 
