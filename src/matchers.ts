@@ -11,17 +11,17 @@
 // jshint node: true
 'use strict';
 
-var constants = require('./constants');
-var dom5 = require('dom5');
-var p = dom5.predicates;
+const constants = require('./constants');
+const dom5 = require('dom5');
+const p = dom5.predicates;
 
-var urlAttrMatchers = constants.URL_ATTR.map(function(attr) {
+const urlAttrMatchers = constants.URL_ATTR.map(function(attr) {
   return p.hasAttr(attr);
 });
 
-var urlAttrs = p.OR.apply(null, urlAttrMatchers);
+const urlAttrs = p.OR.apply(null, urlAttrMatchers);
 
-var jsMatcher = p.AND(
+const jsMatcher = p.AND(
   p.hasTagName('script'),
   p.OR(
     p.NOT(
@@ -32,18 +32,18 @@ var jsMatcher = p.AND(
   )
 );
 
-var externalStyle = p.AND(
+const externalStyle = p.AND(
   p.hasTagName('link'),
   p.hasAttrValue('rel', 'stylesheet')
 );
   // polymer specific external stylesheet
-var polymerExternalStyle = p.AND(
+const polymerExternalStyle = p.AND(
   p.hasTagName('link'),
   p.hasAttrValue('rel', 'import'),
   p.hasAttrValue('type', 'css')
 );
 
-var styleMatcher = p.AND(
+const styleMatcher = p.AND(
   p.hasTagName('style'),
   p.OR(
     p.NOT(
@@ -53,7 +53,7 @@ var styleMatcher = p.AND(
   )
 );
 
-var targetMatcher = p.AND(
+const targetMatcher = p.AND(
   p.OR(
     p.hasTagName('a'),
     p.hasTagName('form')

@@ -11,36 +11,36 @@
 // jshint node:true
 'use strict';
 
-var path = require('path');
+const path = require('path');
 // use path.posix on Node > 0.12+, path-posix on 0.10
-var pathPosix = path.posix || require('path-posix');
-var url = require('url');
-var dom5 = require('dom5');
-var matchers = require('./matchers');
-var constants = require('./constants');
+const pathPosix = path.posix || require('path-posix');
+const url = require('url');
+const dom5 = require('dom5');
+const matchers = require('./matchers');
+const constants = require('./constants');
 
-var PathResolver = function PathResolver(abspath) {
-  if (abspath) {
-    this.abspath = abspath;
+class PathResolver {
+  constructor(abspath) {
+    if (abspath) {
+      this.abspath = abspath;
+    }
   }
-};
 
-PathResolver.prototype = {
-  isTemplatedUrl: function isTemplatedUrl(href) {
+  isTemplatedUrl(href) {
     return href.search(constants.URL_TEMPLATE) >= 0;
-  },
+  }
 
-  resolvePaths: function resolvePaths(importDoc, importUrl, mainDocUrl) {
+  resolvePaths(importDoc, importUrl, mainDocUrl) {
     // rewrite URLs in element attributes
-    var nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
-    var attrValue;
-    for (var i = 0, node; i < nodes.length; i++) {
+    const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
+    let attrValue;
+    for (let i = 0, node; i < nodes.length; i++) {
       node = nodes[i];
-      for (var j = 0, attr; j < constants.URL_ATTR.length; j++) {
+      for (let j = 0, attr; j < constants.URL_ATTR.length; j++) {
         attr = constants.URL_ATTR[j];
         attrValue = dom5.getAttribute(node, attr);
         if (attrValue && !this.isTemplatedUrl(attrValue)) {
-          var relUrl;
+          let relUrl;
           if (attr === 'style') {
             relUrl = this.rewriteURL(importUrl, mainDocUrl, attrValue);
           } else {
@@ -54,39 +54,39 @@ PathResolver.prototype = {
       }
     }
     // rewrite URLs in stylesheets
-    var styleNodes = dom5.queryAll(importDoc, matchers.CSS);
-    for (i = 0, node; i < styleNodes.length; i++) {
+    const styleNodes = dom5.queryAll(importDoc, matchers.CSS);
+    for (let i = 0, node; i < styleNodes.length; i++) {
       node = styleNodes[i];
-      var styleText = dom5.getTextContent(node);
+      let styleText = dom5.getTextContent(node);
       styleText = this.rewriteURL(importUrl, mainDocUrl, styleText);
       dom5.setTextContent(node, styleText);
     }
     // add assetpath to dom-modules in importDoc
-    var domModules = dom5.queryAll(importDoc, matchers.domModule);
-    for (i = 0, node; i < domModules.length; i++) {
+    const domModules = dom5.queryAll(importDoc, matchers.domModule);
+    for (let i = 0, node; i < domModules.length; i++) {
       node = domModules[i];
-      var assetPathUrl = this.rewriteRelPath(importUrl, mainDocUrl, '');
+      let assetPathUrl = this.rewriteRelPath(importUrl, mainDocUrl, '');
       assetPathUrl = pathPosix.dirname(assetPathUrl) + '/';
       dom5.setAttribute(node, 'assetpath', assetPathUrl);
     }
-  },
+  }
 
-  isAbsoluteUrl: function isAbsoluteUrl(href) {
+  isAbsoluteUrl(href) {
     return constants.ABS_URL.test(href);
-  },
+  }
 
-  rewriteRelPath: function rewriteRelPath(importUrl, mainDocUrl, relUrl) {
+  rewriteRelPath(importUrl, mainDocUrl, relUrl) {
     if (this.isAbsoluteUrl(relUrl)) {
       return relUrl;
     }
-    var absUrl = url.resolve(importUrl, relUrl);
+    const absUrl = url.resolve(importUrl, relUrl);
     if (this.abspath) {
       return url.resolve('/', absUrl);
     }
-    var parsedFrom = url.parse(mainDocUrl);
-    var parsedTo = url.parse(absUrl);
+    const parsedFrom = url.parse(mainDocUrl);
+    const parsedTo = url.parse(absUrl);
     if (parsedFrom.protocol === parsedTo.protocol && parsedFrom.host === parsedTo.host) {
-      var pathname = pathPosix.relative(pathPosix.dirname(parsedFrom.pathname), parsedTo.pathname);
+      const pathname = pathPosix.relative(pathPosix.dirname(parsedFrom.pathname), parsedTo.pathname);
       return url.format({
         pathname: pathname,
         search: parsedTo.search,
@@ -94,56 +94,57 @@ PathResolver.prototype = {
       });
     }
     return absUrl;
-  },
+  }
 
-  rewriteURL: function rewriteURL(importUrl, mainDocUrl, cssText) {
+  rewriteURL(importUrl, mainDocUrl, cssText) {
     return cssText.replace(constants.URL, function(match) {
-      var path = match.replace(/["']/g, "").slice(4, -1);
+      let path = match.replace(/["']/g, "").slice(4, -1);
       path = this.rewriteRelPath(importUrl, mainDocUrl, path);
       return 'url("' + path + '")';
     }.bind(this));
-  },
+  }
 
   // remove effects of <base>
-  acid: function acid(doc, docUrl) {
-    var base = dom5.query(doc, matchers.base);
+  acid(doc, docUrl) {
+    const base = dom5.query(doc, matchers.base);
     if (base) {
-      var baseUrl = dom5.getAttribute(base, 'href');
-      var baseTarget = dom5.getAttribute(base, 'target');
+      let baseUrl = dom5.getAttribute(base, 'href');
+      const baseTarget = dom5.getAttribute(base, 'target');
       dom5.remove(base);
       if (baseUrl) {
         if (baseUrl.slice(-1) === '/') {
           baseUrl = baseUrl.slice(0, -1);
         }
-        var docBaseUrl = url.resolve(docUrl, baseUrl + '/.index.html');
+        const docBaseUrl = url.resolve(docUrl, baseUrl + '/.index.html');
         this.resolvePaths(doc, docBaseUrl, docUrl);
       }
       if (baseTarget) {
-        var elementsNeedTarget = dom5.queryAll(doc, matchers.targetMatcher);
+        const elementsNeedTarget = dom5.queryAll(doc, matchers.targetMatcher);
         elementsNeedTarget.forEach(function(el) {
           dom5.setAttribute(el, 'target', baseTarget);
         });
       }
     }
-  },
+  }
 
-  pathToUrl: function pathToUrl(filePath) {
-    var absolutePath = path.resolve(filePath);
+  pathToUrl(filePath) {
+    const absolutePath = path.resolve(filePath);
     if (process.platform === 'win32') {
       // encode C:\foo\ as C:/foo/
       return absolutePath.split('\\').join('/');
     } else {
       return absolutePath;
     }
-  },
-  urlToPath: function urlToPath(uri) {
-    var parsed = url.parse(uri);
+  }
+
+  urlToPath(uri) {
+    const parsed = url.parse(uri);
     if (process.platform === 'win32') {
       return parsed.protocol + parsed.pathname.split('/').join('\\');
     } else {
       return (parsed.protocol || '') + parsed.pathname;
     }
   }
-};
+}
 
 module.exports = PathResolver;

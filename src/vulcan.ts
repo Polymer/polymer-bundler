@@ -11,15 +11,15 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 'use strict';
 
-var path = require('path');
-var url = require('url');
-var pathPosix = path.posix || require('path-posix');
-var dom5 = require('dom5');
-var CommentMap = require('./comment-map');
-var constants = require('./constants');
-var matchers = require('./matchers');
-var PathResolver = require('./pathresolver');
-var encodeString = require('../third_party/UglifyJS2/output');
+const path = require('path');
+const url = require('url');
+const pathPosix = path.posix || require('path-posix');
+const dom5 = require('dom5');
+const CommentMap = require('./comment-map');
+const constants = require('./constants');
+const matchers = require('./matchers');
+const PathResolver = require('./pathresolver');
+const encodeString = require('../third_party/UglifyJS2/output');
 
 // let Promise = global.Promise;
 
@@ -32,13 +32,13 @@ import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
  *
  * TODO(garlicnation): deprecate and remove setOptions API in favor of constructor.
  */
-var singleton;
+let singleton;
 
-function buildLoader(config): UrlLoader {
-  var abspath = config.abspath;
-  var excludes = config.excludes;
-  var fsResolver = config.fsResolver;
-  var redirects = config.redirects;
+function buildLoader(config) {
+  const abspath = config.abspath;
+  const excludes = config.excludes;
+  const fsResolver = config.fsResolver;
+  const redirects = config.redirects;
   let root = abspath && path.resolve(abspath) || process.cwd;
   let loader = new FSUrlLoader(root);
   // TODO(garlicnation): Add noopResolver for external urls.
@@ -47,31 +47,41 @@ function buildLoader(config): UrlLoader {
   return loader;
 }
 
-var Vulcan = function Vulcan(opts) {
-    // implicitStrip should be true by default
-  this.implicitStrip = opts.implicitStrip === undefined ? true : Boolean(opts.implicitStrip);
-  this.abspath = (String(opts.abspath) === opts.abspath && String(opts.abspath).trim() !== '') ? path.resolve(opts.abspath) : null;
-  this.pathResolver = new PathResolver(this.abspath);
-  this.addedImports = Array.isArray(opts.addedImports) ? opts.addedImports : [];
-  this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
-  this.stripExcludes = Array.isArray(opts.stripExcludes) ? opts.stripExcludes : [];
-  this.stripComments = Boolean(opts.stripComments);
-  this.enableCssInlining = Boolean(opts.inlineCss);
-  this.enableScriptInlining = Boolean(opts.inlineScripts);
-  this.inputUrl = String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
-  this.fsResolver = opts.fsResolver;
-  this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
-  if (opts.loader) {
-    this.loader = opts.loader;
-  } else {
-    this.loader = buildLoader({
-      abspath: this.abspath,
-      fsResolver: this.fsResolver,
-      excludes: this.excludes,
-      redirects: this.redirects
-    });
+class Vulcan {
+  constructor(opts) {
+      // implicitStrip should be true by default
+    this.implicitStrip = opts.implicitStrip === undefined ? true : Boolean(opts.implicitStrip);
+    this.abspath = (String(opts.abspath) === opts.abspath && String(opts.abspath).trim() !== '') ? path.resolve(opts.abspath) : null;
+    this.pathResolver = new PathResolver(this.abspath);
+    this.addedImports = Array.isArray(opts.addedImports) ? opts.addedImports : [];
+    this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
+    this.stripExcludes = Array.isArray(opts.stripExcludes) ? opts.stripExcludes : [];
+    this.stripComments = Boolean(opts.stripComments);
+    this.enableCssInlining = Boolean(opts.inlineCss);
+    this.enableScriptInlining = Boolean(opts.inlineScripts);
+    this.inputUrl = String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
+    this.fsResolver = opts.fsResolver;
+    this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
+    if (opts.loader) {
+      this.loader = opts.loader;
+    } else {
+      this.loader = buildLoader({
+        abspath: this.abspath,
+        fsResolver: this.fsResolver,
+        excludes: this.excludes,
+        redirects: this.redirects
+      });
+    }
   }
-};
+
+  static process(target, cb) {
+    singleton.process(target, cb);
+  }
+
+  static setOptions(opts) {
+    singleton = new Vulcan(opts);
+  }
+}
 
 Vulcan.prototype = {
   isDuplicateImport: function isDuplicateImport(importMeta) {
@@ -104,7 +114,7 @@ Vulcan.prototype = {
     if (!this.stripExcludes.length) {
       return false;
     }
-    var href = importMeta.href;
+    const href = importMeta.href;
     return this.stripExcludes.some(function(r) {
       return href.search(r) >= 0;
     });
@@ -120,9 +130,9 @@ Vulcan.prototype = {
 
   removeElementAndNewline: function removeElementAndNewline(node, replacement) {
     // when removing nodes, remove the newline after it as well
-    var parent = node.parentNode;
-    var nextIdx = parent.childNodes.indexOf(node) + 1;
-    var next = parent.childNodes[nextIdx];
+    const parent = node.parentNode;
+    const nextIdx = parent.childNodes.indexOf(node) + 1;
+    const next = parent.childNodes[nextIdx];
     // remove next node if it is blank text
     if (this.isBlankTextNode(next)) {
       dom5.remove(next);
@@ -172,18 +182,18 @@ Vulcan.prototype = {
   },
 
   flatten: function flatten(tree, isMainDoc) {
-    var doc = tree.html.ast;
-    var imports = tree.imports;
-    var head = dom5.query(doc, matchers.head);
-    var body = dom5.query(doc, matchers.body);
-    var importNodes = tree.html.import;
+    const doc = tree.html.ast;
+    const imports = tree.imports;
+    const head = dom5.query(doc, matchers.head);
+    const body = dom5.query(doc, matchers.body);
+    const importNodes = tree.html.import;
     // early check for old polymer versions
     if (this.hasOldPolymer(doc)) {
       throw new Error(constants.OLD_POLYMER + ' File: ' + this.pathResolver.urlToPath(tree.href));
     }
     this.fixFakeExternalScripts(doc);
     this.pathResolver.acid(doc, tree.href);
-    var moveTarget;
+    let moveTarget;
     if (isMainDoc) {
       // hide bodies of imports from rendering in main document
       moveTarget = dom5.constructors.element('div');
@@ -198,7 +208,7 @@ Vulcan.prototype = {
     }, this);
     this.prepend(body, moveTarget);
     if (imports) {
-      for (var i = 0, im, thisImport; i < imports.length; i++) {
+      for (let i = 0, im, thisImport; i < imports.length; i++) {
         im = imports[i];
         thisImport = importNodes[i];
         if (this.isDuplicateImport(im) || this.isStrippedImport(im)) {
@@ -211,20 +221,20 @@ Vulcan.prototype = {
         if (this.isTemplated(thisImport)) {
           continue;
         }
-        var bodyFragment = dom5.constructors.fragment();
-        var importDoc = this.flatten(im);
+        const bodyFragment = dom5.constructors.fragment();
+        const importDoc = this.flatten(im);
         // rewrite urls
         this.pathResolver.resolvePaths(importDoc, im.href, tree.href);
-        var importHead = dom5.query(importDoc, matchers.head);
-        var importBody = dom5.query(importDoc, matchers.body);
+        const importHead = dom5.query(importDoc, matchers.head);
+        const importBody = dom5.query(importDoc, matchers.body);
         // merge head and body tags for imports into main document
-        var importHeadChildren = importHead.childNodes;
-        var importBodyChildren = importBody.childNodes;
+        const importHeadChildren = importHead.childNodes;
+        const importBodyChildren = importBody.childNodes;
         // make sure @license comments from import document make it into the import
-        var importHtml = importHead.parentNode;
-        var licenseComments = importDoc.childNodes.concat(importHtml.childNodes).filter(this.isLicenseComment);
+        const importHtml = importHead.parentNode;
+        const licenseComments = importDoc.childNodes.concat(importHtml.childNodes).filter(this.isLicenseComment);
         // move children of <head> and <body> into importer's <body>
-        var reparentFn = this.reparent(bodyFragment);
+        const reparentFn = this.reparent(bodyFragment);
         importHeadChildren.forEach(reparentFn);
         importBodyChildren.forEach(reparentFn);
         bodyFragment.childNodes = bodyFragment.childNodes.concat(
@@ -247,7 +257,7 @@ Vulcan.prototype = {
   },
 
   hide: function(node) {
-    var hidden = dom5.constructors.element('div');
+    const hidden = dom5.constructors.element('div');
     dom5.setAttribute(hidden, 'hidden', '');
     dom5.setAttribute(hidden, 'by-vulcanize', '');
     this.removeElementAndNewline(node, hidden);
@@ -263,7 +273,7 @@ Vulcan.prototype = {
   },
 
   fixFakeExternalScripts: function fixFakeExternalScripts(doc) {
-    var scripts = dom5.queryAll(doc, matchers.JS_INLINE);
+    const scripts = dom5.queryAll(doc, matchers.JS_INLINE);
     scripts.forEach(function(script) {
       if (script.__hydrolysisInlined) {
         dom5.setAttribute(script, 'src', script.__hydrolysisInlined);
@@ -274,10 +284,10 @@ Vulcan.prototype = {
 
   // inline scripts into document, returns a promise resolving to document.
   inlineScripts: function inlineScripts(doc, href) {
-    var scripts = dom5.queryAll(doc, matchers.JS_SRC);
-    var scriptPromises = scripts.map(function(script) {
-      var src = dom5.getAttribute(script, 'src');
-      var uri = url.resolve(href, src);
+    const scripts = dom5.queryAll(doc, matchers.JS_SRC);
+    const scriptPromises = scripts.map(function(script) {
+      const src = dom5.getAttribute(script, 'src');
+      const uri = url.resolve(href, src);
       // let the loader handle the requests
       if (this.isExcludedHref(src)) {
         return Promise.resolve(true);
@@ -297,13 +307,13 @@ Vulcan.prototype = {
 
   // inline scripts into document, returns a promise resolving to document.
   inlineCss: function inlineCss(doc, href) {
-    var css_links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
-    var cssPromises = css_links.map(function(link) {
-      var tag = link;
-      var src = dom5.getAttribute(tag, 'href');
-      var media = dom5.getAttribute(tag, 'media');
-      var uri = url.resolve(href, src);
-      var isPolymerExternalStyle = matchers.polymerExternalStyle(tag);
+    const css_links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
+    const cssPromises = css_links.map(function(link) {
+      const tag = link;
+      const src = dom5.getAttribute(tag, 'href');
+      const media = dom5.getAttribute(tag, 'media');
+      const uri = url.resolve(href, src);
+      const isPolymerExternalStyle = matchers.polymerExternalStyle(tag);
 
       // let the loader handle the requests
       if (this.isExcludedHref(src)) {
@@ -316,15 +326,15 @@ Vulcan.prototype = {
           if (media) {
             content = '@media ' + media + ' {' + content + '}';
           }
-          var style = dom5.constructors.element('style');
+          const style = dom5.constructors.element('style');
           dom5.setTextContent(style, '\n' + content + '\n');
 
           if (isPolymerExternalStyle) {
             // a polymer expternal style <link type="css" rel="import"> must be
             // in a <dom-module> to be processed
-            var ownerDomModule = dom5.nodeWalkPrior(tag, dom5.predicates.hasTagName('dom-module'));
+            const ownerDomModule = dom5.nodeWalkPrior(tag, dom5.predicates.hasTagName('dom-module'));
             if (ownerDomModule) {
-              var domTemplate = dom5.query(ownerDomModule, dom5.predicates.hasTagName('template'));
+              let domTemplate = dom5.query(ownerDomModule, dom5.predicates.hasTagName('template'));
               if (!domTemplate) {
                 // create a <template>, which has a fragment as childNodes[0]
                 domTemplate = dom5.constructors.element('template');
@@ -347,13 +357,13 @@ Vulcan.prototype = {
 
   getImplicitExcludes: function getImplicitExcludes(excludes) {
     // Build a loader that doesn't have to stop at our excludes, since we need them.
-    var loader = buildLoader({
+    const loader = buildLoader({
       abspath: this.abspath,
       fsResolver: this.fsResolver,
       redirects: this.redirects
     });
-    var analyzer = new analyzer.Analyzer(true, loader);
-    var analyzedExcludes = [];
+    const analyzer = new analyzer.Analyzer(true, loader);
+    const analyzedExcludes = [];
     excludes.forEach(function(exclude) {
       if (exclude.match(/.js$/)) {
         return;
@@ -364,7 +374,7 @@ Vulcan.prototype = {
       if (exclude.slice(-1) === '/') {
         return;
       }
-      var depPromise = analyzer._getDependencies(exclude);
+      const depPromise = analyzer._getDependencies(exclude);
       depPromise.catch(function(err) {
         // include that this was an excluded url in the error message.
         err.message += '. Could not read dependencies for excluded URL: ' + exclude;
@@ -372,7 +382,7 @@ Vulcan.prototype = {
       analyzedExcludes.push(depPromise);
     });
     return Promise.all(analyzedExcludes).then(function(strippedExcludes) {
-      var dedupe = {};
+      const dedupe = {};
       strippedExcludes.forEach(function(excludeList){
         excludeList.forEach(function(exclude) {
           dedupe[exclude] = true;
@@ -383,7 +393,7 @@ Vulcan.prototype = {
   },
 
   _process: function _process(target, cb) {
-    var chain = Promise.resolve(true);
+    let chain = Promise.resolve(true);
     if (this.implicitStrip && this.excludes) {
       chain = this.getImplicitExcludes(this.excludes).then(function(implicitExcludes) {
         implicitExcludes.forEach(function(strippedExclude) {
@@ -391,16 +401,16 @@ Vulcan.prototype = {
         }.bind(this));
       }.bind(this));
     }
-    var analyzer = new analyzer.Analyzer(true, this.loader);
+    const analyzer = new analyzer.Analyzer(true, this.loader);
     chain = chain.then(function(){
       return analyzer.metadataTree(target);
     }).then(function(tree) {
-      var flatDoc = this.flatten(tree, true);
+      const flatDoc = this.flatten(tree, true);
       // make sure there's a <meta charset> in the page to force UTF-8
-      var meta = dom5.query(flatDoc, matchers.meta);
-      var head = dom5.query(flatDoc, matchers.head);
-      for (var i = 0; i < this.addedImports.length; i++) {
-        var newImport = dom5.constructors.element('link');
+      let meta = dom5.query(flatDoc, matchers.meta);
+      const head = dom5.query(flatDoc, matchers.head);
+      for (let i = 0; i < this.addedImports.length; i++) {
+        const newImport = dom5.constructors.element('link');
         dom5.setAttribute(newImport, 'rel', 'import');
         dom5.setAttribute(newImport, 'href', this.addedImports[i]);
         this.prepend(head, newImport);
@@ -424,9 +434,9 @@ Vulcan.prototype = {
     }
     if (this.stripComments) {
       chain = chain.then(function(docObj) {
-        var comments = new CommentMap();
-        var doc = docObj.doc;
-        var head = dom5.query(doc, matchers.head);
+        const comments = new CommentMap();
+        const doc = docObj.doc;
+        const head = dom5.query(doc, matchers.head);
         // remove all comments
         dom5.nodeWalkAll(doc, dom5.isCommentNode).forEach(function(comment) {
           comments.set(comment.data, comment);
@@ -459,14 +469,6 @@ Vulcan.prototype = {
       this._process(target, cb);
     }
   }
-};
-
-Vulcan.process = function process(target, cb) {
-  singleton.process(target, cb);
-};
-
-Vulcan.setOptions = function setOptions(opts) {
-  singleton = new Vulcan(opts);
 };
 
 module.exports = Vulcan;

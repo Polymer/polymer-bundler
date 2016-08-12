@@ -7,20 +7,22 @@
  * Code distributed by Google as part of the polymer project is also
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
-function CommentMap() {
-  this.commentMap = Object.create(null);
-}
+class CommentMap {
+  constructor() {
+    this.commentMap = Object.create(null);
+  }
 
-CommentMap.prototype = {
-  get: function(comment) {
+  get(comment) {
     return this.commentMap[comment];
-  },
-  set: function(comment, value) {
+  }
+
+  set(comment, value) {
     this.commentMap[comment] = value;
-  },
-  keys: function() {
+  }
+
+  keys() {
     return Object.keys(this.commentMap);
   }
-};
+}
 
 module.exports = CommentMap;
