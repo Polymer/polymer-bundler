@@ -17,6 +17,7 @@
   "devDependencies": {
     "@types/node": "^6.0.33",
     "@types/promise": "^7.1.27",
+    "clang-format": "^1.0.42",
     "chai": "^3.4.1",
     "eslint": "^2.8.0",
     "firebase": "^2.4.1",

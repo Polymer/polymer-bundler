@@ -14,7 +14,7 @@
 import * as path from 'path';
 import * as url from 'url';
 import * as  dom5 from 'dom5';
-import matchers from './matchers';
+import * as matchers from './matchers';
 import constants from './constants';
 
 class PathResolver {

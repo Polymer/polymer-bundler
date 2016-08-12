@@ -13,12 +13,13 @@
 
 import constants from './constants';
 import {predicates as p} from 'dom5';
+import {ASTNode} from 'parse5';
 
-const urlAttrMatchers = constants.URL_ATTR.map(attr => p.hasAttr(attr));
+export const urlAttrMatchers = constants.URL_ATTR.map(attr => p.hasAttr(attr));
 
-const urlAttrs = p.OR.apply(null, urlAttrMatchers);
+export const urlAttrs = p.OR.apply(null, urlAttrMatchers);
 
-const jsMatcher = p.AND(
+export const jsMatcher = p.AND(
   p.hasTagName('script'),
   p.OR(
     p.NOT(
@@ -29,18 +30,18 @@ const jsMatcher = p.AND(
   )
 );
 
-const externalStyle = p.AND(
+export const externalStyle = p.AND(
   p.hasTagName('link'),
   p.hasAttrValue('rel', 'stylesheet')
 );
 // polymer specific external stylesheet
-const polymerExternalStyle = p.AND(
+export const polymerExternalStyle = p.AND(
   p.hasTagName('link'),
   p.hasAttrValue('rel', 'import'),
   p.hasAttrValue('type', 'css')
 );
 
-const styleMatcher = p.AND(
+export const styleMatcher = p.AND(
   p.hasTagName('style'),
   p.OR(
     p.NOT(
@@ -50,7 +51,7 @@ const styleMatcher = p.AND(
   )
 );
 
-const targetMatcher = p.AND(
+export const targetMatcher = p.AND(
   p.OR(
     p.hasTagName('a'),
     p.hasTagName('form')
@@ -58,30 +59,31 @@ const targetMatcher = p.AND(
   p.NOT(p.hasAttr('target'))
 );
 
-export default {
-  head: p.hasTagName('head'),
-  body: p.hasTagName('body'),
-  base: p.hasTagName('base'),
-  domModule: p.AND(
-    p.hasTagName('dom-module'),
-    p.hasAttr('id'),
-    p.NOT(
-      p.hasAttr('assetpath')
-    )
-  ),
-  meta: p.AND(
+export const  head = p.hasTagName('head');
+export const  body = p.hasTagName('body');
+export const  base = p.hasTagName('base');
+export const  domModule = p.AND(
+  p.hasTagName('dom-module'),
+  p.hasAttr('id'),
+  p.NOT(
+    p.hasAttr('assetpath')
+  ));
+export const meta = p.AND(
     p.hasTagName('meta'),
     p.hasAttr('charset')
-  ),
-  polymerElement: p.hasTagName('polymer-element'),
-  urlAttrs: urlAttrs,
-  targetMatcher: targetMatcher,
-  polymerExternalStyle: polymerExternalStyle,
-  JS: jsMatcher,
-  CSS: styleMatcher,
-  CSS_LINK: externalStyle,
-  POLY_CSS_LINK: polymerExternalStyle,
-  ALL_CSS_LINK: p.OR(externalStyle, polymerExternalStyle),
-  JS_SRC: p.AND(p.hasAttr('src'), jsMatcher),
-  JS_INLINE: p.AND(p.NOT(p.hasAttr('src')), jsMatcher)
-};
+);
+export const polymerElement = p.hasTagName('polymer-element');
+export const ALL_CSS_LINK = p.OR(externalStyle, polymerExternalStyle);
+export const JS_SRC = p.AND(p.hasAttr('src'), jsMatcher);
+export const JS_INLINE = p.AND(p.NOT(p.hasAttr('src')), jsMatcher);
+export polymerElement = p.hasTagName('polymer-element');
+export urlAttrs = urlAttrs;
+export targetMatcher = targetMatcher;
+export polymerExternalStyle = polymerExternalStyle;
+export JS = jsMatcher;
+export CSS = styleMatcher;
+export CSS_LINK = externalStyle;
+export POLY_CSS_LINK = polymerExternalStyle;
+export ALL_CSS_LINK = p.OR(externalStyle, polymerExternalStyle);
+export JS_SRC = p.AND(p.hasAttr('src'), jsMatcher);
+export JS_INLINE = p.AND(p.NOT(p.hasAttr('src')), jsMatcher);
