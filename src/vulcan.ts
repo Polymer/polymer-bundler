@@ -23,7 +23,7 @@ import * as dom5 from 'dom5';
 import {encodeString} from './third_party/UglifyJS2/output';
 
 import constants from './constants';
-import matchers from './matchers';
+import * as matchers from './matchers';
 import PathResolver from './pathresolver';
 import {ASTNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
@@ -149,7 +149,7 @@ class Bundler {
     return false;
   }
 
-  moveToBodyMatcher = dom5.predicates.AND(
+  moveToBodyMatcher: matchers.Matcher = dom5.predicates.AND(
       dom5.predicates.OR(
           dom5.predicates.hasTagName('script'),
           dom5.predicates.hasTagName('link')),
@@ -214,11 +214,7 @@ class Bundler {
         // TODO(garlicnation): deduplicate license comments
         // TODO(garlicnation): resolve paths.
         // TODO(garlicnation): reparent <link> and subsequent nodes to <body>
-        // hide imports in main document, unless already hidden
-        if (isMainDoc && !this.ancestorWalk(thisImport, moveTarget)) {
-          this.hide(thisImport);
-        }
-        this.removeElementAndNewline(thisImport, bodyFragment);
+        // TODO(garlicnation): hide imports in main document, unless already hidden
       }
     }
     // If hidden node is empty, remove it
@@ -245,7 +241,7 @@ class Bundler {
   }
 
   fixFakeExternalScripts(doc) {
-    const scripts = dom5.queryAll(doc, matchers.JS_INLINE);
+    const scripts = dom5.queryAll(doc, matchers.inlineJavascript);
     scripts.forEach(script => {
       if (script.__hydrolysisInlined) {
         dom5.setAttribute(script, 'src', script.__hydrolysisInlined);
@@ -256,7 +252,7 @@ class Bundler {
 
   // inline scripts into document, returns a promise resolving to document.
   inlineScripts(doc, href) {
-    const scripts = dom5.queryAll(doc, matchers.JS_SRC);
+    const scripts = dom5.queryAll(doc, matchers.externalJavascript);
     const scriptPromises = scripts.map(script => {
       const src = dom5.getAttribute(script, 'src');
       const uri = url.resolve(href, src);
@@ -404,7 +400,7 @@ class Bundler {
     }
     if (this.stripComments) {
       chain = chain.then(docObj => {
-        const comments = new CommentMap();
+        const comments = new Map();
         const doc = docObj.doc;
         const head = dom5.query(doc, matchers.head);
         // remove all comments

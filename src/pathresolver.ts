@@ -22,6 +22,8 @@ import * as matchers from './matchers';
 import {ASTNode} from 'parse5';
 import constants from './constants';
 
+const pathPosix = path.posix;
+
 class PathResolver {
   constructor(public abspath) {
   }
@@ -54,7 +56,7 @@ class PathResolver {
       }
     }
     // rewrite URLs in stylesheets
-    const styleNodes = dom5.queryAll(importDoc, matchers.CSS);
+    const styleNodes = dom5.queryAll(importDoc, matchers.styleMatcher);
     for (let i = 0, node; i < styleNodes.length; i++) {
       node = styleNodes[i];
       let styleText = dom5.getTextContent(node);
@@ -101,29 +103,6 @@ class PathResolver {
       path = this.rewriteRelPath(importUrl, mainDocUrl, path);
       return 'url("' + path + '")';
     });
-  }
-
-  // remove effects of <base>
-  acid(doc, docUrl) {
-    const base = dom5.query(doc, matchers.base);
-    if (base) {
-      let baseUrl = dom5.getAttribute(base, 'href');
-      const baseTarget = dom5.getAttribute(base, 'target');
-      dom5.remove(base);
-      if (baseUrl) {
-        if (baseUrl.slice(-1) === '/') {
-          baseUrl = baseUrl.slice(0, -1);
-        }
-        const docBaseUrl = url.resolve(docUrl, baseUrl + '/.index.html');
-        this.resolvePaths(doc, docBaseUrl, docUrl);
-      }
-      if (baseTarget) {
-        const elementsNeedTarget = dom5.queryAll(doc, matchers.targetMatcher);
-        elementsNeedTarget.forEach(el => {
-          dom5.setAttribute(el, 'target', baseTarget);
-        });
-      }
-    }
   }
 
   pathToUrl(filePath) {
