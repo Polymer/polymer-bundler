@@ -275,7 +275,7 @@ class Bundler {
 
   // inline scripts into document, returns a promise resolving to document.
   inlineCss(doc, href) {
-    const css_links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
+    const css_links = dom5.queryAll(doc, matchers.externalStyle);
     const cssPromises = css_links.map(link => {
       const tag = link;
       const src = dom5.getAttribute(tag, 'href');
