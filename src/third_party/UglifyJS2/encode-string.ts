@@ -44,7 +44,7 @@
 // jshint node: true
 
 'use strict';
-export default function encodeString(str, quote, inline_script: Boolean): String {
+export default function encodeString(str, inline_script?: Boolean): String {
   var ret = str;
   if (inline_script) {
     ret = ret.replace(/(<|\\x3c)\x2fscript([>\/\t\n\f\r ])/gi, '$1\\/script$2');

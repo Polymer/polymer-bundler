@@ -3,3 +3,4 @@ example/bower_components
 **/.DS_Store
 typings
 lib
+.vscode
