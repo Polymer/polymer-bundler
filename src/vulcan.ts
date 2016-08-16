@@ -24,7 +24,7 @@ import encodeString from './third_party/UglifyJS2/encode-string';
 
 import constants from './constants';
 import * as matchers from './matchers';
-import PathResolver from './pathresolver';
+import PathResolver from './pathresolver'
 import {ASTNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
 import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
