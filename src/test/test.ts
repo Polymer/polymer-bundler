@@ -7,12 +7,13 @@
  * Code distributed by Google as part of the polymer project is also
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
-// jshint node: true
-var chai = require('chai');
-var path = require('path');
-
-var dom5 = require('dom5');
-var PathResolver = require('../lib/pathresolver.js');
+/// <reference path="../../node_modules/@types/chai/index.d.ts" />
+/// <reference path="../../node_modules/@types/node/index.d.ts" />
+/// <reference path="../../node_modules/@types/mocha/index.d.ts" />
+import * as chai from 'chai';
+import * as path from 'path';
+import * as dom5 from 'dom5';
+import * as PathResolver from '../pathresolver';
 
 function parse(text) {
   return dom5.parse(text);
@@ -26,7 +27,7 @@ chai.config.showDiff = true;
 var assert = chai.assert;
 
 suite('constants', function() {
-  var constants = require('../lib/constants.js');
+  var constants = require('../constants.js');
 
   suite('URLs', function() {
 
@@ -268,7 +269,7 @@ suite('Path Resolver', function() {
 });
 
 suite('Vulcan', function() {
-  var vulcan = require('../lib/vulcan.js');
+  var vulcan = require('../vulcan.js');
   var inputPath = path.resolve('test/html/default.html');
 
   var preds = dom5.predicates;
@@ -416,7 +417,7 @@ suite('Vulcan', function() {
     });
 
     test('Scripts are not inlined by default', function(done) {
-      var matchers = require('../lib/matchers');
+      var matchers = require('../matchers');
       var externalJS = matchers.JS_SRC;
 
       process('test/html/external.html', function(err, doc) {
@@ -433,7 +434,7 @@ suite('Vulcan', function() {
     });
 
     test('Old Polymer is detected and warns', function(done) {
-      var constants = require('../lib/constants');
+      var constants = require('../constants');
       var input = path.resolve('test/html/old-polymer.html');
       process(input, function(err) {
         if (err) {
@@ -807,7 +808,7 @@ suite('Vulcan', function() {
     var options = {
       inlineScripts: true
     };
-    var matchers = require('../lib/matchers');
+    var matchers = require('../matchers');
 
     test('All scripts are inlined', function(done) {
       var callback = function(err, doc) {
@@ -897,7 +898,7 @@ suite('Vulcan', function() {
     var options = {
       inlineCss: true
     };
-    var matchers = require('../lib/matchers');
+    var matchers = require('../matchers');
     test('All styles are inlined', function(done) {
       var callback = function(err, doc) {
         if (err) {
