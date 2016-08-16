@@ -138,30 +138,33 @@ class Bundler {
     dom5.append(hidden, node);
   }
 
+  moveRemainderToBody(node, head, body) {
+    const siblings = node.parentNode.childNodes;
+    const importIndex = siblings.indexOf(node);
+    let moveIndex = siblings.length - 1;
+    while (moveIndex >= importIndex) {
+      const nodeToMove = siblings[moveIndex];
+      dom5.remove(nodeToMove);
+      this.prepend(body, nodeToMove);
+      moveIndex--;
+    }
+  }
+
   async bundle(url: string): Promise<parse5.ASTNode> {
     const analyzer: Analyzer = new Analyzer(this.opts);
     const analyzed: Document = await analyzer.analyzeRoot(url);
     console.log('Root analyzed', analyzed.url);
     const newDocument = dom5.cloneNode(analyzed.parsedDocument.ast);
     const body = dom5.query(newDocument, matchers.body);
+    const head = dom5.query(newDocument, matchers.head);
     const getNextImport = () => dom5.query(newDocument, matchers.htmlImport);
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
     const inlinedImports = new Set<string>();
-    let nextImport;
-    while (nextImport = getNextImport()) {
+    let c = 1;
+    for (let nextImport; nextImport = getNextImport(); c++) {
       // If the import is in head, move all subsequent nodes to body.
       if (elementInHead(nextImport)) {
-        const siblings = nextImport.parentNode.childNodes;
-        const importIndex = siblings.indexOf(nextImport);
-        let moveIndex = siblings.length - 1;
-        while (moveIndex >= importIndex) {
-          const nodeToMove = siblings[moveIndex];
-          dom5.remove(nodeToMove);
-          this.prepend(body, nodeToMove);
-          moveIndex--;
-        }
-        console.log(dom5.serialize(analyzed.parsedDocument.ast));
-        console.log(dom5.serialize(newDocument));
+        this.moveRemainderToBody(nextImport, head, body);
         // We've trashed our current references. Let's iterate again.
         continue;
       }

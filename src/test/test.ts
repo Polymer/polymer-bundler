@@ -273,14 +273,14 @@ suite('Vulcan', function() {
       const imports = preds.AND(
           preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
           preds.hasAttr('href'), preds.NOT(preds.hasAttrValue('type', 'css')));
-      process(inputPath).then((doc) => {
-        console.log('import removed promise??');
-          assert.equal(dom5.queryAll(doc, imports).length, 0);
-          done(err);
-        }
-      }).catch((error) => {
-        done(error);
-      });
+      process(inputPath)
+          .then((doc) => {
+            assert.equal(dom5.queryAll(doc, imports).length, 0);
+            done();
+          })
+          .catch((error) => {
+            done(error);
+          });
     });
 
     test('imports were deduplicated', function(done) {
