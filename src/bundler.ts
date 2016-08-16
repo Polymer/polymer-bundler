@@ -25,8 +25,10 @@ import * as matchers from './matchers';
 import PathResolver from './pathresolver';
 import * as parse5 from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
+import {Document} from 'polymer-analyzer/lib/ast/ast';
 import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
+
 
 function buildLoader(config: any) {
   const abspath: string = config.abspath;
@@ -64,8 +66,7 @@ class Bundler {
     this.fsResolver = opts.fsResolver;
     this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
     this.opts = {
-      urlLoader: new FSUrlLoader(opts.root),
-
+      urlLoader: new FSUrlLoader(opts.root || process.cwd()),
     };
   }
   implicitStrip: Boolean;
@@ -96,6 +97,14 @@ class Bundler {
   isBlankTextNode(node) {
     return node && dom5.isTextNode(node) &&
         !/\S/.test(dom5.getTextContent(node));
+  }
+
+  prepend(parent, node) {
+    if (parent.childNodes.length) {
+      dom5.insertBefore(parent, parent.childNodes[0], node);
+    } else {
+      dom5.append(parent, node);
+    }
   }
 
   removeElementAndNewline(node, replacement) {
@@ -130,26 +139,54 @@ class Bundler {
   }
 
   async bundle(url: string): Promise<parse5.ASTNode> {
-    var analyzer = new Analyzer({
-      urlLoader: this.loader
-    });
-    analyzer.analyzeRoot(url);
+    const analyzer: Analyzer = new Analyzer(this.opts);
+    const analyzed: Document = await analyzer.analyzeRoot(url);
+    console.log('Root analyzed', analyzed.url);
+    const newDocument = dom5.cloneNode(analyzed.parsedDocument.ast);
+    const body = dom5.query(newDocument, matchers.body);
+    const getNextImport = () => dom5.query(newDocument, matchers.htmlImport);
+    const elementInHead = dom5.predicates.parentMatches(matchers.head);
+    const inlinedImports = new Set<string>();
+    let nextImport;
+    while (nextImport = getNextImport()) {
+      // If the import is in head, move all subsequent nodes to body.
+      if (elementInHead(nextImport)) {
+        const siblings = nextImport.parentNode.childNodes;
+        const importIndex = siblings.indexOf(nextImport);
+        let moveIndex = siblings.length - 1;
+        while (moveIndex >= importIndex) {
+          const nodeToMove = siblings[moveIndex];
+          dom5.remove(nodeToMove);
+          this.prepend(body, nodeToMove);
+          moveIndex--;
+        }
+        console.log(dom5.serialize(analyzed.parsedDocument.ast));
+        console.log(dom5.serialize(newDocument));
+        // We've trashed our current references. Let's iterate again.
+        continue;
+      }
+      break;
+    }
+    return newDocument;
+    // TODO(garlicnation): inline HTML.
+    // TODO(garlicnation): resolve paths.
+    // TODO(garlicnation): inline CSS
+    // TODO(garlicnation): inline javascript
+    // TODO(garlicnation): reparent <link> and subsequent nodes to <body>
+
+    // LATER
     // TODO(garlicnation): resolve <base> tags.
     // TODO(garlicnation): deduplicate imports
     // TODO(garlicnation): Ignore stripped imports
     // TODO(garlicnation): preserve excluded imports
-    // TODO(garlicnation): find transitive dependencies of specified excluded files.
+    // TODO(garlicnation): find transitive dependencies of specified excluded
+    // files.
     // TODO(garlicnation): ignore <link> in <template>
     // TODO(garlicnation): deduplicate license comments
     // TODO(garlicnation): optionally strip non-license comments
-    // TODO(garlicnation): inline CSS
-    // TODO(garlicnation): inline javascript
-    // TODO(garlicnation): resolve paths.
-    // TODO(garlicnation): reparent <link> and subsequent nodes to <body>
     // TODO(garlicnation): hide imports in main document, unless already hidden}
     // TODO(garlicnation): Support addedImports
   }
-
 }
 
 export default Bundler;
