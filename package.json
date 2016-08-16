@@ -28,7 +28,7 @@
     "typings": "^1.3.2"
   },
   "scripts": {
-    "test": "tsc; tslint src/**.ts; mocha --opts testdata/mocha.opts lib/test",
+    "test": "tsc; tslint src/{*,test/*}.ts; mocha --opts testdata/mocha.opts lib/test",
     "format": "find src test | grep '\\.js$\\|\\.ts$' | xargs ./node_modules/.bin/clang-format --style=file -i"
   },
   "author": "The Polymer Project Authors",
