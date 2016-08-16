@@ -25,7 +25,7 @@ import constants from './constants';
 const pathPosix = path.posix;
 
 class PathResolver {
-  constructor(public abspath) {
+  constructor(public abspath?: boolean) {
   }
 
   isTemplatedUrl(href) {

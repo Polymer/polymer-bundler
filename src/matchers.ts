@@ -19,7 +19,7 @@ import constants from './constants';
 import {predicates as p} from 'dom5';
 import * as parse5 from 'parse5';
 
-export interface Matcher { (node: parse5.ASTNode): boolean };
+export interface Matcher { (node: parse5.ASTNode): boolean; };
 
 export const urlAttrMatchers: (Matcher)[] =
     constants.URL_ATTR.map(attr => p.hasAttr(attr));
