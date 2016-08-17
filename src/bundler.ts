@@ -133,6 +133,17 @@ class Bundler {
     dom5.append(hidden, node);
   }
 
+  /**
+   * Replace htmlImport
+   */
+  async inlineImport(
+      documentUrl: string, htmlImport: ASTNode,
+      analyzer: Analyzer): Promise<void> {
+    const rawUrl: string = dom5.getAttribute(htmlImport, 'href');
+    const resolved = url.resolve(documentUrl, rawUrl);
+    console.log(rawUrl, resolved);
+  }
+
   async bundle(url: string): Promise<ASTNode> {
     const analyzer: Analyzer = new Analyzer(this.opts);
     const analyzed: Document = await analyzer.analyzeRoot(url);
@@ -144,7 +155,7 @@ class Bundler {
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
     const inlinedImports = new Set<string>();
     let c = 1;
-    for (let nextImport; nextImport = getNextImport(); c++) {
+    for (let nextImport; nextImport = getNextImport();) {
       // If the import is in head, move all subsequent nodes to body.
       if (elementInHead(nextImport)) {
         // This function needs a better name.
@@ -152,7 +163,7 @@ class Bundler {
         // nextImport has moved, but we should be able to continue.
         continue;
       }
-      debugger;
+      await this.inlineImport(url, nextImport, analyzer);
       break;
     }
     return newDocument;
