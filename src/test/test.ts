@@ -581,10 +581,8 @@ suite('Vulcan', function() {
   suite('Redirect', function() {
     test('Redirected paths load properly', function(done) {
       const options = {
-        redirects: [
-          'chrome://imports/|test/html/imports/',
-          'biz://cool/|test/html'
-        ]
+        redirects:
+            ['chrome://imports/|test/html/imports/', 'biz://cool/|test/html']
       };
 
       const callback = function(err, doc) {
@@ -595,8 +593,7 @@ suite('Vulcan', function() {
         done();
       };
       process(
-          path.resolve('test/html/custom-protocol.html'), callback,
-          options);
+          path.resolve('test/html/custom-protocol.html'), callback, options);
     });
   });
 
@@ -649,8 +646,8 @@ suite('Vulcan', function() {
             done();
           };
           process(
-              path.resolve('test/html/custom-protocol-excluded.html'),
-              callback, options);
+              path.resolve('test/html/custom-protocol-excluded.html'), callback,
+              options);
         });
 
     test('Excluded imports with "Strip Excludes" are removed', function(done) {
