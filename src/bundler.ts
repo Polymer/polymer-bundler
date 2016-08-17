@@ -20,14 +20,17 @@ const pathPosix = path.posix;
 import * as dom5 from 'dom5';
 import encodeString from './third_party/UglifyJS2/encode-string';
 
-import constants from './constants';
-import * as matchers from './matchers';
-import PathResolver from './pathresolver';
 import * as parse5 from 'parse5';
+import {ASTNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
 import {Document} from 'polymer-analyzer/lib/ast/ast';
 import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
+
+import constants from './constants';
+import * as matchers from './matchers';
+import PathResolver from './pathresolver';
+import AstUtils from './ast-utils';
 
 
 function buildLoader(config: any) {
@@ -99,14 +102,6 @@ class Bundler {
         !/\S/.test(dom5.getTextContent(node));
   }
 
-  prepend(parent, node) {
-    if (parent.childNodes.length) {
-      dom5.insertBefore(parent, parent.childNodes[0], node);
-    } else {
-      dom5.append(parent, node);
-    }
-  }
-
   removeElementAndNewline(node, replacement) {
     // when removing nodes, remove the newline after it as well
     const parent = node.parentNode;
@@ -138,19 +133,7 @@ class Bundler {
     dom5.append(hidden, node);
   }
 
-  moveRemainderToBody(node, head, body) {
-    const siblings = node.parentNode.childNodes;
-    const importIndex = siblings.indexOf(node);
-    let moveIndex = siblings.length - 1;
-    while (moveIndex >= importIndex) {
-      const nodeToMove = siblings[moveIndex];
-      dom5.remove(nodeToMove);
-      this.prepend(body, nodeToMove);
-      moveIndex--;
-    }
-  }
-
-  async bundle(url: string): Promise<parse5.ASTNode> {
+  async bundle(url: string): Promise<ASTNode> {
     const analyzer: Analyzer = new Analyzer(this.opts);
     const analyzed: Document = await analyzer.analyzeRoot(url);
     console.log('Root analyzed', analyzed.url);
@@ -164,10 +147,12 @@ class Bundler {
     for (let nextImport; nextImport = getNextImport(); c++) {
       // If the import is in head, move all subsequent nodes to body.
       if (elementInHead(nextImport)) {
-        this.moveRemainderToBody(nextImport, head, body);
-        // We've trashed our current references. Let's iterate again.
+        // This function needs a better name.
+        AstUtils.moveRemainderToTarget(nextImport, body);
+        // nextImport has moved, but we should be able to continue.
         continue;
       }
+      debugger;
       break;
     }
     return newDocument;

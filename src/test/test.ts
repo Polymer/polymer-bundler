@@ -251,7 +251,7 @@ suite('Path Resolver', function() {
 
 suite('Vulcan', function() {
   let bundler: Bundler;
-  const inputPath = 'testdata/html/default.html';
+  const inputPath = 'test/html/default.html';
 
   const preds = dom5.predicates;
   let doc;
@@ -351,7 +351,7 @@ suite('Vulcan', function() {
       const a = preds.AND(
           preds.hasTagName('a'),
           preds.hasAttrValue('href', 'imports/sub-base/sub-base.html'));
-      process('testdata/html/base.html', function(err, doc) {
+      process('test/html/base.html', function(err, doc) {
         if (err) {
           return done(err);
         }
@@ -375,7 +375,7 @@ suite('Vulcan', function() {
       const divExpected = preds.AND(
           preds.hasTagName('div'), preds.hasAttrValue('id', 'imported'));
 
-      process('testdata/html/import-in-body.html', function(err, doc) {
+      process('test/html/import-in-body.html', function(err, doc) {
         if (err) {
           return done(err);
         }
@@ -394,7 +394,7 @@ suite('Vulcan', function() {
       const matchers = require('../matchers');
       const externalJS = matchers.JS_SRC;
 
-      process('testdata/html/external.html', function(err, doc) {
+      process('test/html/external.html', function(err, doc) {
         if (err) {
           done(err);
         }
@@ -410,7 +410,7 @@ suite('Vulcan', function() {
 
     test('Old Polymer is detected and warns', function(done) {
       const constants = require('../constants');
-      const input = path.resolve('testdata/html/old-polymer.html');
+      const input = path.resolve('test/html/old-polymer.html');
       process(input, function(err) {
         if (err) {
           try {
@@ -430,7 +430,7 @@ suite('Vulcan', function() {
 
     test('Paths for import bodies are resolved correctly', function(done) {
       const anchorMatcher = preds.hasTagName('a');
-      const input = 'testdata/html/multiple-imports.html';
+      const input = 'test/html/multiple-imports.html';
       process(input, function(err, doc) {
         if (err) {
           return done(err);
@@ -443,7 +443,7 @@ suite('Vulcan', function() {
     });
 
     test('Spaces in paths are handled correctly', function(done) {
-      const input = 'testdata/html/spaces.html';
+      const input = 'test/html/spaces.html';
       const spacesMatcher = preds.AND(
           preds.hasTagName('dom-module'),
           preds.hasAttrValue('id', 'space-element'));
@@ -519,11 +519,11 @@ suite('Vulcan', function() {
         done();
       };
 
-      process('testdata/html/order-test.html', callback);
+      process('test/html/order-test.html', callback);
     });
 
     test('exhaustive script order testing', function(done) {
-      process('testdata/html/scriptorder/index.html', function(err, doc) {
+      process('test/html/scriptorder/index.html', function(err, doc) {
         if (err) {
           return done(err);
         }
@@ -537,7 +537,7 @@ suite('Vulcan', function() {
     });
 
     test('Paths are correct when maintaining order', function(done) {
-      process('testdata/html/recursion/import.html', function(err, doc) {
+      process('test/html/recursion/import.html', function(err, doc) {
         if (err) {
           return done(err);
         }
@@ -582,8 +582,8 @@ suite('Vulcan', function() {
     test('Redirected paths load properly', function(done) {
       const options = {
         redirects: [
-          'chrome://imports/|testdata/html/imports/',
-          'biz://cool/|testdata/html'
+          'chrome://imports/|test/html/imports/',
+          'biz://cool/|test/html'
         ]
       };
 
@@ -595,7 +595,7 @@ suite('Vulcan', function() {
         done();
       };
       process(
-          path.resolve('testdata/html/custom-protocol.html'), callback,
+          path.resolve('test/html/custom-protocol.html'), callback,
           options);
     });
   });
@@ -609,7 +609,7 @@ suite('Vulcan', function() {
         preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
         preds.hasAttrValue('href', 'imports/simple-import.html'));
 
-    const excludes = ['testdata/html/imports/simple-import.html'];
+    const excludes = ['test/html/imports/simple-import.html'];
 
     test('Excluded imports are not inlined', function(done) {
       const options = {excludes: excludes};
@@ -634,8 +634,8 @@ suite('Vulcan', function() {
         'Excluded imports are not when behind a redirected URL.',
         function(done) {
           const options = {
-            excludes: ['testdata/html/imports/simple-import.html'],
-            redirects: ['red://herring/at|testdata/html/imports']
+            excludes: ['test/html/imports/simple-import.html'],
+            redirects: ['red://herring/at|test/html/imports']
           };
 
           const callback = function(err, doc) {
@@ -649,7 +649,7 @@ suite('Vulcan', function() {
             done();
           };
           process(
-              path.resolve('testdata/html/custom-protocol-excluded.html'),
+              path.resolve('test/html/custom-protocol-excluded.html'),
               callback, options);
         });
 
@@ -713,7 +713,7 @@ suite('Vulcan', function() {
         assert.deepEqual(commentsExpected, commentsActual);
         done();
       };
-      process('testdata/html/comments.html', callback, options);
+      process('test/html/comments.html', callback, options);
     });
 
     test('Comments are kept by default', function(done) {
@@ -733,12 +733,12 @@ suite('Vulcan', function() {
         assert.deepEqual(expectedComments, actualComments);
         done();
       };
-      process('testdata/html/comments.html', callback, options);
+      process('test/html/comments.html', callback, options);
     });
 
     test('Folder can be excluded', function(done) {
       const linkMatcher = preds.hasTagName('link');
-      const options = {excludes: ['testdata/html/imports/']};
+      const options = {excludes: ['test/html/imports/']};
       const callback = function(err, doc) {
         if (err) {
           return done(err);
@@ -748,7 +748,7 @@ suite('Vulcan', function() {
         assert.equal(links.length, 2);
         done();
       };
-      process('testdata/html/default.html', callback, options);
+      process('test/html/default.html', callback, options);
     });
   });
 
@@ -777,7 +777,7 @@ suite('Vulcan', function() {
         assert.equal(scripts.length, 1);
         done();
       };
-      process('testdata/html/external-script.html', callback, options);
+      process('test/html/external-script.html', callback, options);
     });
 
     test('Absolute paths are correct', function(done) {
@@ -807,7 +807,7 @@ suite('Vulcan', function() {
             'Inline <script> should be escaped');
         done();
       };
-      process('testdata/html/xss.html', callback, options);
+      process('test/html/xss.html', callback, options);
     });
 
     test('Inlined Scripts are in the expected order', function(done) {
@@ -822,7 +822,7 @@ suite('Vulcan', function() {
         assert.deepEqual(['"First"', '"Second"'], contents);
         done();
       };
-      process('testdata/html/reordered/in.html', callback, options);
+      process('test/html/reordered/in.html', callback, options);
     });
 
     test('Firebase works inlined', function(done) {
@@ -836,7 +836,7 @@ suite('Vulcan', function() {
         assert(idx === -1, '/script found, should be escaped');
         done();
       };
-      process('testdata/html/firebase.html', callback, options);
+      process('test/html/firebase.html', callback, options);
     });
   });
 
@@ -867,13 +867,13 @@ suite('Vulcan', function() {
         assert(content.search('@apply') > -1, '@apply kept');
         done();
       };
-      process('testdata/html/inline-styles.html', callback, options);
+      process('test/html/inline-styles.html', callback, options);
     });
 
     test(
         'External Scripts and Stylesheets are not removed and media queries are retained',
         function(done) {
-          const input = 'testdata/html/external-stylesheet.html';
+          const input = 'test/html/external-stylesheet.html';
           process(input, function(err, doc) {
             if (err) {
               return done(err);
@@ -920,7 +920,7 @@ suite('Vulcan', function() {
             assert(style);
             done();
           };
-          process('testdata/html/default.html', callback, options);
+          process('test/html/default.html', callback, options);
         });
 
     test(
@@ -940,14 +940,14 @@ suite('Vulcan', function() {
             assert(style);
             done();
           };
-          process('testdata/html/inline-styles.html', callback, options);
+          process('test/html/inline-styles.html', callback, options);
         });
   });
 
   suite('Add import', function() {
     const options = {addedImports: ['imports/comment-in-import.html']};
     test('added import is added to vulcanized doc', function(done) {
-      process('testdata/html/default.html', function(err, doc) {
+      process('test/html/default.html', function(err, doc) {
         if (err) {
           return done(err);
         }
@@ -962,7 +962,7 @@ suite('Vulcan', function() {
 
 
   suite('Input URL', function() {
-    const options = {inputUrl: 'testdata/html/default.html'};
+    const options = {inputUrl: 'test/html/default.html'};
 
     test('inputURL is used instead of argument to process', function(done) {
       process('flibflabfloom!', function(err, doc) {
@@ -976,7 +976,7 @@ suite('Vulcan', function() {
 
     test('gulp-vulcanize invocation with abspath', function(done) {
       const options = {
-        abspath: path.resolve('testdata/html'),
+        abspath: path.resolve('test/html'),
         inputUrl: '/default.html'
       };
 
@@ -996,9 +996,9 @@ suite('Vulcan', function() {
   suite('Regression Testing', function() {
     test('Complicated Ordering', function(done) {
       // refer to
-      // https://github.com/Polymer/vulcanize/tree/master/testdata/html/complicated/ordering.svg
+      // https://github.com/Polymer/vulcanize/tree/master/test/html/complicated/ordering.svg
       // for visual reference on the document structure for this example
-      process('testdata/html/complicated/A.html', function(err, doc) {
+      process('test/html/complicated/A.html', function(err, doc) {
         if (err) {
           return done(err);
         }
@@ -1014,7 +1014,7 @@ suite('Vulcan', function() {
     });
 
     test('Imports in templates should not inline', function(done) {
-      process('testdata/html/inside-template.html', function(err, doc) {
+      process('test/html/inside-template.html', function(err, doc) {
         const importMatcher = preds.AND(
             preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
             preds.hasAttr('href'));
