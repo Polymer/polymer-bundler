@@ -15,7 +15,7 @@
 import * as dom5 from 'dom5';
 import {ASTNode} from 'parse5';
 
-export default class AstUtils {
+export default class ASTUtils {
   static prepend(parent, node) {
     if (parent.childNodes && parent.childNodes.length) {
       dom5.insertBefore(parent, parent.childNodes[0], node);
@@ -24,18 +24,23 @@ export default class AstUtils {
     }
   }
 
+  static prependMultiple(target, nodes: ASTNode[]) {
+    let moveIndex = nodes.length - 1;
+    while (moveIndex >= 0) {
+      const nodeToMove = nodes[moveIndex];
+      dom5.remove(nodeToMove);
+      ASTUtils.prepend(target, nodeToMove);
+      moveIndex--;
+    }
+  }
+
   /**
    * Move node and its subsequent siblings to target.
    */
   static moveRemainderToTarget(node: ASTNode, target: ASTNode) {
-    const siblings = node.parentNode.childNodes;
+    const siblings: Array<ASTNode> = node.parentNode.childNodes;
     const importIndex = siblings.indexOf(node);
-    let moveIndex = siblings.length - 1;
-    while (moveIndex >= importIndex) {
-      const nodeToMove = siblings[moveIndex];
-      dom5.remove(nodeToMove);
-      AstUtils.prepend(target, nodeToMove);
-      moveIndex--;
-    }
+    const nodesToMove = siblings.slice(importIndex);
+    ASTUtils.prependMultiple(target, nodesToMove);
   }
 }

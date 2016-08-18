@@ -23,14 +23,14 @@ import encodeString from './third_party/UglifyJS2/encode-string';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
-import {Document} from 'polymer-analyzer/lib/ast/ast';
+import {Document, ScannedDocument} from 'polymer-analyzer/lib/ast/ast';
 import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
 import constants from './constants';
 import * as matchers from './matchers';
 import PathResolver from './pathresolver';
-import AstUtils from './ast-utils';
+import ASTUtils from './ast-utils';
 
 
 function buildLoader(config: any) {
@@ -74,7 +74,7 @@ class Bundler {
   }
   implicitStrip: Boolean;
   abspath;
-  pathResolver;
+  pathResolver: PathResolver;
   addedImports;
   excludes;
   stripExcludes;
@@ -133,27 +133,47 @@ class Bundler {
     dom5.append(hidden, node);
   }
 
+  /**
+   * Replace htmlImport
+   */
+  async inlineImport(
+      documentUrl: string, htmlImport: ASTNode, analyzer: Analyzer,
+      inlined: Set<string>): Promise<void> {
+    const rawUrl: string = dom5.getAttribute(htmlImport, 'href');
+    const resolved = url.resolve(documentUrl, rawUrl);
+    if (inlined.has(resolved)) {
+      dom5.remove(htmlImport);
+      return;
+    }
+    inlined.add(resolved);
+    const backingDocument: ScannedDocument =
+        await analyzer._analyzeResolved(resolved);
+    const documentAst = dom5.parseFragment(backingDocument.document.contents);
+    this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
+    const importParent = htmlImport.parentNode;
+    dom5.remove(htmlImport);
+    ASTUtils.prependMultiple(importParent, documentAst.childNodes);
+  }
+
   async bundle(url: string): Promise<ASTNode> {
     const analyzer: Analyzer = new Analyzer(this.opts);
     const analyzed: Document = await analyzer.analyzeRoot(url);
-    console.log('Root analyzed', analyzed.url);
-    const newDocument = dom5.cloneNode(analyzed.parsedDocument.ast);
+    const newDocument = dom5.parse(analyzed.parsedDocument.contents);
     const body = dom5.query(newDocument, matchers.body);
     const head = dom5.query(newDocument, matchers.head);
     const getNextImport = () => dom5.query(newDocument, matchers.htmlImport);
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
     const inlinedImports = new Set<string>();
     let c = 1;
-    for (let nextImport; nextImport = getNextImport(); c++) {
+    for (let nextImport; nextImport = getNextImport();) {
       // If the import is in head, move all subsequent nodes to body.
       if (elementInHead(nextImport)) {
         // This function needs a better name.
-        AstUtils.moveRemainderToTarget(nextImport, body);
+        ASTUtils.moveRemainderToTarget(nextImport, body);
         // nextImport has moved, but we should be able to continue.
         continue;
       }
-      debugger;
-      break;
+      await this.inlineImport(url, nextImport, analyzer, inlinedImports);
     }
     return newDocument;
     // TODO(garlicnation): inline HTML.
