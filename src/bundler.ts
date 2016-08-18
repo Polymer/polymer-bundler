@@ -158,7 +158,6 @@ class Bundler {
   async bundle(url: string): Promise<ASTNode> {
     const analyzer: Analyzer = new Analyzer(this.opts);
     const analyzed: Document = await analyzer.analyzeRoot(url);
-    console.log('Root analyzed', analyzed.url);
     const newDocument = dom5.parse(analyzed.parsedDocument.contents);
     const body = dom5.query(newDocument, matchers.body);
     const head = dom5.query(newDocument, matchers.head);
