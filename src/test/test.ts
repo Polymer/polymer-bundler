@@ -386,6 +386,7 @@ suite('Vulcan', function() {
 
       process('test/html/import-in-body.html')
           .then(function(doc) {
+            console.log(dom5.serialize(doc));
             const imports = dom5.queryAll(doc, importMatcher);
             assert.equal(imports.length, 0);
             const bodyContainer = dom5.query(doc, bodyContainerMatcher);

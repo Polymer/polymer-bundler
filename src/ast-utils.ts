@@ -24,13 +24,21 @@ export default class ASTUtils {
     }
   }
 
-  static prependMultiple(target, nodes: ASTNode[]) {
+  private static prependMultiple(target, nodes: ASTNode[]) {
     let moveIndex = nodes.length - 1;
     while (moveIndex >= 0) {
       const nodeToMove = nodes[moveIndex];
       dom5.remove(nodeToMove);
       ASTUtils.prepend(target, nodeToMove);
       moveIndex--;
+    }
+  }
+
+  static insertAllBefore(target, oldNode: ASTNode, nodes: ASTNode[]) {
+    let lastNode = oldNode;
+    for (let node of nodes) {
+      dom5.insertBefore(target, lastNode, node);
+      lastNode = node;
     }
   }
 

@@ -125,12 +125,11 @@ class Bundler {
     return false;
   }
 
-  prependHiddenNode(target): ASTNode {
+  getHiddenNode(): ASTNode {
     const hidden = dom5.constructors.element('div');
     dom5.setAttribute(hidden, 'hidden', '');
     dom5.setAttribute(hidden, 'by-vulcanize', '');
-    ASTUtils.prepend(target, hidden);
-    return hidden
+    return hidden;
   }
 
   /**
@@ -180,9 +179,18 @@ class Bundler {
         await analyzer._analyzeResolved(resolved);
     const documentAst = dom5.parseFragment(backingDocument.document.contents);
     this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
-    const importParent = htmlImport.parentNode;
+    let importParent;
+    let hiddenDiv: ASTNode;
+    if (!matchers.inHiddenDiv(htmlImport)) {
+      hiddenDiv = this.getHiddenNode();
+      dom5.replace(htmlImport, hiddenDiv);
+      dom5.append(hiddenDiv, htmlImport);
+      importParent = hiddenDiv;
+    } else {
+      importParent = htmlImport.parentNode;
+    }
+    ASTUtils.insertAllBefore(importParent, htmlImport, documentAst.childNodes);
     dom5.remove(htmlImport);
-    ASTUtils.prependMultiple(importParent, documentAst.childNodes);
   }
 
   async bundle(url: string): Promise<ASTNode> {
@@ -192,7 +200,8 @@ class Bundler {
 
     // Create a hidden div to target.
     const body = dom5.query(newDocument, matchers.body);
-    const hiddenDiv = this.prependHiddenNode(body);
+    const hiddenDiv = this.getHiddenNode();
+    ASTUtils.prepend(body, hiddenDiv);
 
     const getNextImport = () => dom5.query(newDocument, matchers.htmlImport);
     const elementInHead = dom5.predicates.parentMatches(matchers.head);

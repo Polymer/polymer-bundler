@@ -69,8 +69,8 @@ export const htmlImport: Matcher = predicates.AND(
     predicates.hasTagName('link'), predicates.hasAttrValue('rel', 'import'),
     predicates.hasAttr('href'));
 
-const hiddenDiv = predicates.AND(
+export const hiddenDiv = predicates.AND(
     predicates.hasTagName('div'), predicates.hasAttr('hidden'),
     predicates.hasAttr('by-vulcanize'));
 
-const inHiddenDiv = predicates.parentMatches(hiddenDiv);
+export const inHiddenDiv = predicates.parentMatches(hiddenDiv);
