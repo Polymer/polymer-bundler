@@ -23,14 +23,14 @@ import encodeString from './third_party/UglifyJS2/encode-string';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
-import {Document} from 'polymer-analyzer/lib/ast/ast';
+import {Document, ScannedDocument} from 'polymer-analyzer/lib/ast/ast';
 import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
 import constants from './constants';
 import * as matchers from './matchers';
 import PathResolver from './pathresolver';
-import AstUtils from './ast-utils';
+import ASTUtils from './ast-utils';
 
 
 function buildLoader(config: any) {
@@ -74,7 +74,7 @@ class Bundler {
   }
   implicitStrip: Boolean;
   abspath;
-  pathResolver;
+  pathResolver: PathResolver;
   addedImports;
   excludes;
   stripExcludes;
@@ -137,11 +137,35 @@ class Bundler {
    * Replace htmlImport
    */
   async inlineImport(
-      documentUrl: string, htmlImport: ASTNode,
-      analyzer: Analyzer): Promise<void> {
+      documentUrl: string, htmlImport: ASTNode, analyzer: Analyzer,
+      inlined: Set<string>): Promise<void> {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href');
     const resolved = url.resolve(documentUrl, rawUrl);
-    console.log(rawUrl, resolved);
+    if (inlined.has(resolved)) {
+      dom5.remove(htmlImport);
+      return;
+    }
+    inlined.add(resolved);
+    const backingDocument: ScannedDocument =
+        await analyzer._analyzeResolved(resolved);
+    const documentAst = dom5.cloneNode(backingDocument.document.ast);
+    console.log(dom5.serialize(documentAst));
+    this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
+    // Concat head and body.
+    const resolver = new PathResolver(this.abspath);
+    const body: ASTNode = dom5.query(documentAst, matchers.body);
+    const head: ASTNode = dom5.query(documentAst, matchers.head);
+    let nodesToInline = [];
+    if (head && head.childNodes) {
+      nodesToInline = nodesToInline.concat(head.childNodes);
+    }
+    if (body && body.childNodes) {
+      nodesToInline = nodesToInline.concat(body.childNodes);
+    }
+    console.log('Inlining: ', nodesToInline, head, body);
+    const importParent = htmlImport.parentNode;
+    dom5.remove(htmlImport);
+    ASTUtils.prependMultiple(importParent, nodesToInline);
   }
 
   async bundle(url: string): Promise<ASTNode> {
@@ -159,12 +183,11 @@ class Bundler {
       // If the import is in head, move all subsequent nodes to body.
       if (elementInHead(nextImport)) {
         // This function needs a better name.
-        AstUtils.moveRemainderToTarget(nextImport, body);
+        ASTUtils.moveRemainderToTarget(nextImport, body);
         // nextImport has moved, but we should be able to continue.
         continue;
       }
-      await this.inlineImport(url, nextImport, analyzer);
-      break;
+      await this.inlineImport(url, nextImport, analyzer, inlinedImports);
     }
     return newDocument;
     // TODO(garlicnation): inline HTML.

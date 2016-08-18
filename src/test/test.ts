@@ -284,14 +284,17 @@ suite('Vulcan', function() {
     });
 
     test('imports were deduplicated', function(done) {
-      process(inputPath, function(err, doc) {
-        if (err) {
-          return done(err);
-        }
-        assert.equal(
-            dom5.queryAll(doc, preds.hasTagName('dom-module')).length, 1);
-        done();
-      });
+      process(inputPath)
+          .then((doc) => {
+            console.log(doc);
+            console.log(dom5.serialize(doc));
+            assert.equal(
+                dom5.queryAll(doc, preds.hasTagName('dom-module')).length, 1);
+            done();
+          })
+          .catch((error) => {
+            done(error);
+          });
     });
 
     test('svg is nested correctly', function(done) {
