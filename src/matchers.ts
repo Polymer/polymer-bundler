@@ -16,46 +16,61 @@
 'use strict';
 
 import constants from './constants';
-import {predicates as p} from 'dom5';
+import {predicates} from 'dom5';
 import * as parse5 from 'parse5';
 
 export interface Matcher { (node: parse5.ASTNode): boolean; }
 ;
 
 export const urlAttrMatchers: (Matcher)[] =
-    constants.URL_ATTR.map(attr => p.hasAttr(attr));
+    constants.URL_ATTR.map(attr => predicates.hasAttr(attr));
 
-export const urlAttrs: Matcher = p.OR.apply(null, urlAttrMatchers);
+export const urlAttrs: Matcher = predicates.OR.apply(null, urlAttrMatchers);
 
-export const jsMatcher: Matcher = p.AND(
-    p.hasTagName('script'),
-    p.OR(
-        p.NOT(p.hasAttr('type')), p.hasAttrValue('type', 'text/javascript'),
-        p.hasAttrValue('type', 'application/javascript')));
+export const jsMatcher: Matcher = predicates.AND(
+    predicates.hasTagName('script'),
+    predicates.OR(
+        predicates.NOT(predicates.hasAttr('type')),
+        predicates.hasAttrValue('type', 'text/javascript'),
+        predicates.hasAttrValue('type', 'application/javascript')));
 
-export const externalStyle: Matcher =
-    p.AND(p.hasTagName('link'), p.hasAttrValue('rel', 'stylesheet'));
+export const externalStyle: Matcher = predicates.AND(
+    predicates.hasTagName('link'),
+    predicates.hasAttrValue('rel', 'stylesheet'));
 // polymer specific external stylesheet
-export const polymerExternalStyle: Matcher = p.AND(
-    p.hasTagName('link'), p.hasAttrValue('rel', 'import'),
-    p.hasAttrValue('type', 'css'));
+export const polymerExternalStyle: Matcher = predicates.AND(
+    predicates.hasTagName('link'), predicates.hasAttrValue('rel', 'import'),
+    predicates.hasAttrValue('type', 'css'));
 
-export const styleMatcher: Matcher = p.AND(
-    p.hasTagName('style'),
-    p.OR(p.NOT(p.hasAttr('type')), p.hasAttrValue('type', 'text/css')));
+export const styleMatcher: Matcher = predicates.AND(
+    predicates.hasTagName('style'),
+    predicates.OR(
+        predicates.NOT(predicates.hasAttr('type')),
+        predicates.hasAttrValue('type', 'text/css')));
 
-export const targetMatcher: Matcher = p.AND(
-    p.OR(p.hasTagName('a'), p.hasTagName('form')), p.NOT(p.hasAttr('target')));
+export const targetMatcher: Matcher = predicates.AND(
+    predicates.OR(predicates.hasTagName('a'), predicates.hasTagName('form')),
+    predicates.NOT(predicates.hasAttr('target')));
 
-export const head: Matcher = p.hasTagName('head');
-export const body: Matcher = p.hasTagName('body');
-export const base: Matcher = p.hasTagName('base');
-export const domModule: Matcher = p.AND(
-    p.hasTagName('dom-module'), p.hasAttr('id'), p.NOT(p.hasAttr('assetpath')));
-export const meta: Matcher = p.AND(p.hasTagName('meta'), p.hasAttr('charset'));
-export const polymerElement: Matcher = p.hasTagName('polymer-element');
-export const externalJavascript: Matcher = p.AND(p.hasAttr('src'), jsMatcher);
+export const head: Matcher = predicates.hasTagName('head');
+export const body: Matcher = predicates.hasTagName('body');
+export const base: Matcher = predicates.hasTagName('base');
+export const domModule: Matcher = predicates.AND(
+    predicates.hasTagName('dom-module'), predicates.hasAttr('id'),
+    predicates.NOT(predicates.hasAttr('assetpath')));
+export const meta: Matcher = predicates.AND(
+    predicates.hasTagName('meta'), predicates.hasAttr('charset'));
+export const polymerElement: Matcher = predicates.hasTagName('polymer-element');
+export const externalJavascript: Matcher =
+    predicates.AND(predicates.hasAttr('src'), jsMatcher);
 export const inlineJavascript: Matcher =
-    p.AND(p.NOT(p.hasAttr('src')), jsMatcher);
-export const htmlImport: Matcher = p.AND(
-    p.hasTagName('link'), p.hasAttrValue('rel', 'import'), p.hasAttr('href'));
+    predicates.AND(predicates.NOT(predicates.hasAttr('src')), jsMatcher);
+export const htmlImport: Matcher = predicates.AND(
+    predicates.hasTagName('link'), predicates.hasAttrValue('rel', 'import'),
+    predicates.hasAttr('href'));
+
+const hiddenDiv = predicates.AND(
+    predicates.hasTagName('div'), predicates.hasAttr('hidden'),
+    predicates.hasAttr('by-vulcanize'));
+
+const inHiddenDiv = predicates.parentMatches(hiddenDiv);

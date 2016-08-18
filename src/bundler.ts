@@ -125,12 +125,42 @@ class Bundler {
     return false;
   }
 
-  hide(node) {
+  prependHiddenNode(target): ASTNode {
     const hidden = dom5.constructors.element('div');
     dom5.setAttribute(hidden, 'hidden', '');
     dom5.setAttribute(hidden, 'by-vulcanize', '');
-    this.removeElementAndNewline(node, hidden);
-    dom5.append(hidden, node);
+    ASTUtils.prepend(target, hidden);
+    return hidden
+  }
+
+  /**
+   * Replace htmlImport
+   */
+  async inlineScript(
+      documentUrl: string, externalScript: ASTNode,
+      analyzer: Analyzer): Promise<void> {
+    const rawUrl: string = dom5.getAttribute(externalScript, 'src');
+    const resolved = url.resolve(documentUrl, rawUrl);
+    const backingScript: ScannedDocument =
+        await analyzer._analyzeResolved(resolved);
+    const scriptContent = backingScript.document.contents;
+    dom5.removeAttribute(externalScript, 'src');
+    dom5.setTextContent(externalScript, scriptContent);
+  }
+
+  /**
+   * Replace htmlImport
+   */
+  async inlineCss(
+      documentUrl: string, externalScript: ASTNode,
+      analyzer: Analyzer): Promise<void> {
+    const rawUrl: string = dom5.getAttribute(externalScript, 'src');
+    const resolved = url.resolve(documentUrl, rawUrl);
+    const backingScript: ScannedDocument =
+        await analyzer._analyzeResolved(resolved);
+    const scriptContent = backingScript.document.contents;
+    dom5.removeAttribute(externalScript, 'src');
+    dom5.setTextContent(externalScript, scriptContent);
   }
 
   /**
@@ -157,10 +187,13 @@ class Bundler {
 
   async bundle(url: string): Promise<ASTNode> {
     const analyzer: Analyzer = new Analyzer(this.opts);
-    const analyzed: Document = await analyzer.analyzeRoot(url);
-    const newDocument = dom5.parse(analyzed.parsedDocument.contents);
+    const analyzedRoot: Document = await analyzer.analyzeRoot(url);
+    const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
+
+    // Create a hidden div to target.
     const body = dom5.query(newDocument, matchers.body);
-    const head = dom5.query(newDocument, matchers.head);
+    const hiddenDiv = this.prependHiddenNode(body);
+
     const getNextImport = () => dom5.query(newDocument, matchers.htmlImport);
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
     const inlinedImports = new Set<string>();
@@ -169,11 +202,17 @@ class Bundler {
       // If the import is in head, move all subsequent nodes to body.
       if (elementInHead(nextImport)) {
         // This function needs a better name.
-        ASTUtils.moveRemainderToTarget(nextImport, body);
+        ASTUtils.moveRemainderToTarget(nextImport, hiddenDiv);
         // nextImport has moved, but we should be able to continue.
         continue;
       }
       await this.inlineImport(url, nextImport, analyzer, inlinedImports);
+    }
+    const getNextExternalScript = () =>
+        dom5.query(newDocument, matchers.externalJavascript);
+    for (let nextScript; nextScript = getNextImport();) {
+      console.log('Inlining script: ', nextScript);
+      await this.inlineScript(url, nextScript, analyzer);
     }
     return newDocument;
     // TODO(garlicnation): inline HTML.

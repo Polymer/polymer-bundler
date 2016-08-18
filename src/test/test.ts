@@ -262,12 +262,19 @@ suite('Vulcan', function() {
     bundler = new Bundler(opts);
     let promise = bundler.bundle(inputPath);
     if (done) {
-      let err, doc;
-      promise = promise.then((document) => {
-        doc = document;
-      }).catch((error) => {
-        err = error;
-      }).then(() => done(err, doc));
+      console.log('Callback test deprecated, please update to promise API.')
+          let err,
+          doc;
+      promise = promise
+                    .then((document) => {
+                      doc = document;
+                    })
+                    .catch((error) => {
+                      err = error;
+                    })
+                    .then(() => done(err, doc))
+                    // Call the callback again to report errors.
+                    .catch((error) => done(error));
     }
     return promise;
   }
@@ -311,15 +318,12 @@ suite('Vulcan', function() {
     });
 
     test.skip('import bodies are in one hidden div', function(done) {
-      const hiddenDiv = preds.AND(
-          preds.hasTagName('div'), preds.hasAttr('hidden'),
-          preds.hasAttr('by-vulcanize'));
 
       process(inputPath, function(err, doc) {
         if (err) {
           return done(err);
         }
-        assert.equal(dom5.queryAll(doc, hiddenDiv).length, 1);
+        assert.equal(dom5.queryAll(doc, matchers.hiddenDiv).length, 1);
         done();
       });
     });
@@ -380,19 +384,22 @@ suite('Vulcan', function() {
       const divExpected = preds.AND(
           preds.hasTagName('div'), preds.hasAttrValue('id', 'imported'));
 
-      process('test/html/import-in-body.html', function(err, doc) {
-        if (err) {
-          return done(err);
-        }
-        const imports = dom5.queryAll(doc, importMatcher);
-        assert.equal(imports.length, 0);
-        const bodyContainer = dom5.query(doc, bodyContainerMatcher);
-        const scriptActual = dom5.query(doc, scriptExpected).parentNode;
-        const divActual = dom5.query(doc, divExpected).parentNode;
-        assert.equal(bodyContainer, scriptActual);
-        assert.equal(bodyContainer, divActual);
-        done();
-      });
+      process('test/html/import-in-body.html')
+          .then(function(doc) {
+            const imports = dom5.queryAll(doc, importMatcher);
+            assert.equal(imports.length, 0);
+            const bodyContainer = dom5.query(doc, bodyContainerMatcher);
+            const scriptActual = dom5.query(doc, scriptExpected).parentNode;
+            const divActual = dom5.query(doc, divExpected).parentNode;
+            assert.equal(bodyContainer, scriptActual);
+            assert.equal(bodyContainer, divActual);
+            done();
+          })
+          .catch((err) => {
+            if (err) {
+              return done(err);
+            }
+          });
     });
 
     test('Scripts are not inlined by default', function(done) {
