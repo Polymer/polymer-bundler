@@ -148,31 +148,18 @@ class Bundler {
     inlined.add(resolved);
     const backingDocument: ScannedDocument =
         await analyzer._analyzeResolved(resolved);
-    const documentAst = dom5.cloneNode(backingDocument.document.ast);
-    console.log(dom5.serialize(documentAst));
+    const documentAst = dom5.parseFragment(backingDocument.document.contents);
     this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
-    // Concat head and body.
-    const resolver = new PathResolver(this.abspath);
-    const body: ASTNode = dom5.query(documentAst, matchers.body);
-    const head: ASTNode = dom5.query(documentAst, matchers.head);
-    let nodesToInline = [];
-    if (head && head.childNodes) {
-      nodesToInline = nodesToInline.concat(head.childNodes);
-    }
-    if (body && body.childNodes) {
-      nodesToInline = nodesToInline.concat(body.childNodes);
-    }
-    console.log('Inlining: ', nodesToInline, head, body);
     const importParent = htmlImport.parentNode;
     dom5.remove(htmlImport);
-    ASTUtils.prependMultiple(importParent, nodesToInline);
+    ASTUtils.prependMultiple(importParent, documentAst.childNodes);
   }
 
   async bundle(url: string): Promise<ASTNode> {
     const analyzer: Analyzer = new Analyzer(this.opts);
     const analyzed: Document = await analyzer.analyzeRoot(url);
     console.log('Root analyzed', analyzed.url);
-    const newDocument = dom5.cloneNode(analyzed.parsedDocument.ast);
+    const newDocument = dom5.parse(analyzed.parsedDocument.contents);
     const body = dom5.query(newDocument, matchers.body);
     const head = dom5.query(newDocument, matchers.head);
     const getNextImport = () => dom5.query(newDocument, matchers.htmlImport);
