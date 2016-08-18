@@ -180,9 +180,17 @@ class Bundler {
     const documentAst = dom5.parseFragment(backingDocument.document.contents);
     this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
     let importParent;
-    let hiddenDiv: ASTNode;
-    if (!matchers.inHiddenDiv(htmlImport)) {
-      hiddenDiv = this.getHiddenNode();
+    if (matchers.afterHiddenDiv(htmlImport)) {
+      importParent = dom5.nodeWalkPrior(htmlImport, matchers.hiddenDiv);
+      dom5.remove(htmlImport);
+      dom5.append(importParent, htmlImport);
+    } else if (matchers.beforeHiddenDiv(htmlImport)) {
+      const index = htmlImport.parentNodes.indexOf(htmlImport);
+      importParent = htmlImport.parentNodes[index + 1];
+      dom5.remove(htmlImport);
+      ASTUtils.prepend(importParent, htmlImport);
+    } else if (!matchers.inHiddenDiv(htmlImport)) {
+      let hiddenDiv = this.getHiddenNode();
       dom5.replace(htmlImport, hiddenDiv);
       dom5.append(hiddenDiv, htmlImport);
       importParent = hiddenDiv;
