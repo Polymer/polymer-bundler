@@ -318,6 +318,7 @@ suite('Vulcan', function() {
     });
 
     test.skip('import bodies are in one hidden div', function(done) {
+      const matchers = require('../matchers');
 
       process(inputPath, function(err, doc) {
         if (err) {
