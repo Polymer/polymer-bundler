@@ -36,7 +36,8 @@ export default class ASTUtils {
 
   static insertAllBefore(target, oldNode: ASTNode, nodes: ASTNode[]) {
     let lastNode = oldNode;
-    for (let node of nodes) {
+    for (let n = nodes.length - 1; n >= 0; n--) {
+      let node = nodes[n];
       dom5.insertBefore(target, lastNode, node);
       lastNode = node;
     }
