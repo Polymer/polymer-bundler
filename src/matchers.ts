@@ -77,12 +77,12 @@ export const inHiddenDiv = predicates.parentMatches(hiddenDiv);
 const nextToHiddenDiv = (offset) => {
   return (node) => {
     const siblings = node.parentNode.childNodes;
-    const index = siblings.indexOf(node) + offset;
-    if (index < 0 || index >= siblings.length) {
+    const hiddenDivIndex = siblings.indexOf(node) + offset;
+    if (hiddenDivIndex < 0 || hiddenDivIndex >= siblings.length) {
       return false;
     }
-    return hiddenDiv(siblings[index]);
+    return hiddenDiv(siblings[hiddenDivIndex]);
   };
 };
-export const beforeHiddenDiv = nextToHiddenDiv(-1);
-export const afterHiddenDiv = nextToHiddenDiv(1);
+export const beforeHiddenDiv = nextToHiddenDiv(1);
+export const afterHiddenDiv = nextToHiddenDiv(-1);
