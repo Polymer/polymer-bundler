@@ -185,8 +185,8 @@ class Bundler {
       dom5.remove(htmlImport);
       dom5.append(importParent, htmlImport);
     } else if (matchers.beforeHiddenDiv(htmlImport)) {
-      const index = htmlImport.parentNodes.indexOf(htmlImport);
-      importParent = htmlImport.parentNodes[index + 1];
+      const index = htmlImport.parentNode.childNodes.indexOf(htmlImport);
+      importParent = htmlImport.parentNode.childNodes[index + 1];
       dom5.remove(htmlImport);
       ASTUtils.prepend(importParent, htmlImport);
     } else if (!matchers.inHiddenDiv(htmlImport)) {
@@ -197,6 +197,7 @@ class Bundler {
     } else {
       importParent = htmlImport.parentNode;
     }
+
     ASTUtils.insertAllBefore(importParent, htmlImport, documentAst.childNodes);
     dom5.remove(htmlImport);
   }
@@ -209,15 +210,18 @@ class Bundler {
     // Create a hidden div to target.
     const body = dom5.query(newDocument, matchers.body);
     const hiddenDiv = this.getHiddenNode();
-    ASTUtils.prepend(body, hiddenDiv);
 
     const getNextImport = () => dom5.query(newDocument, matchers.htmlImport);
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
     const inlinedImports = new Set<string>();
-    let c = 1;
+
     for (let nextImport; nextImport = getNextImport();) {
       // If the import is in head, move all subsequent nodes to body.
       if (elementInHead(nextImport)) {
+        // Put the hiddenDiv in the body the first time we need it.
+        if (!hiddenDiv.parentNode) {
+          ASTUtils.prepend(body, hiddenDiv);
+        }
         // This function needs a better name.
         ASTUtils.moveRemainderToTarget(nextImport, hiddenDiv);
         // nextImport has moved, but we should be able to continue.
@@ -225,11 +229,13 @@ class Bundler {
       }
       await this.inlineImport(url, nextImport, analyzer, inlinedImports);
     }
-    const getNextExternalScript = () =>
-        dom5.query(newDocument, matchers.externalJavascript);
-    for (let nextScript; nextScript = getNextImport();) {
-      console.log('Inlining script: ', nextScript);
-      await this.inlineScript(url, nextScript, analyzer);
+
+    if (this.enableScriptInlining) {
+      const getNextExternalScript = () =>
+          dom5.query(newDocument, matchers.externalJavascript);
+      for (let nextScript; nextScript = getNextExternalScript();) {
+        await this.inlineScript(url, nextScript, analyzer);
+      }
     }
     return newDocument;
     // TODO(garlicnation): inline HTML.
