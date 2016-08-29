@@ -297,7 +297,7 @@ suite('Vulcan', function() {
         .catch(done);
   });
 
-  test.skip('import bodies are in one hidden div', function(done) {
+  test('import bodies are in one hidden div', function(done) {
     bundle(inputPath)
         .then((doc) => {
           assert.equal(dom5.queryAll(doc, matchers.hiddenDiv).length, 1);

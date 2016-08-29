@@ -55,7 +55,7 @@ class Bundler {
                     String(opts.abspath).trim() !== '') ?
         path.resolve(opts.abspath) :
         null;
-    this.pathResolver = new PathResolver(this.abspath);
+    this.pathResolver = new PathResolver(Boolean(this.abspath));
     this.addedImports =
         Array.isArray(opts.addedImports) ? opts.addedImports : [];
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
@@ -69,7 +69,7 @@ class Bundler {
     this.fsResolver = opts.fsResolver;
     this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
     this.opts = {
-      urlLoader: new FSUrlLoader(opts.root || process.cwd()),
+      urlLoader: new FSUrlLoader(opts.root || this.abspath || process.cwd()),
     };
   }
   implicitStrip: Boolean;
@@ -133,7 +133,7 @@ class Bundler {
   }
 
   /**
-   * Replace htmlImport
+   * Inline external scripts <script src="*">
    */
   async inlineScript(
       documentUrl: string, externalScript: ASTNode,
@@ -141,31 +141,33 @@ class Bundler {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src');
     const resolved = url.resolve(documentUrl, rawUrl);
     const backingScript: ScannedDocument =
-        await analyzer._analyzeResolved(resolved);
+        await analyzer._scanResolved(resolved);
     const scriptContent = backingScript.document.contents;
     dom5.removeAttribute(externalScript, 'src');
     dom5.setTextContent(externalScript, scriptContent);
   }
 
   /**
-   * Replace htmlImport
+   * Inline external stylesheets <link type="text/css" href="*">
    */
   async inlineCss(
-      documentUrl: string, externalScript: ASTNode,
+      documentUrl: string, externalStylesheet: ASTNode,
       analyzer: Analyzer): Promise<void> {
-    const rawUrl: string = dom5.getAttribute(externalScript, 'src');
+    const rawUrl: string = dom5.getAttribute(externalStylesheet, 'href');
     const resolved = url.resolve(documentUrl, rawUrl);
-    const backingScript: ScannedDocument =
-        await analyzer._analyzeResolved(resolved);
-    const scriptContent = backingScript.document.contents;
-    dom5.removeAttribute(externalScript, 'src');
-    dom5.setTextContent(externalScript, scriptContent);
+    const backingStylesheet: ScannedDocument =
+        await analyzer._scanResolved(resolved);
+    const stylesheetContent = backingStylesheet.document.contents;
+    dom5.removeAttribute(externalStylesheet, 'href');
+    dom5.setTextContent(externalStylesheet, stylesheetContent);
   }
 
   /**
-   * Replace htmlImport
+   * Inline external HTML files <link type="import" href="*">
+   * TODO(usergenic): Refactor method to simplify and encapsulate case handling
+   *     for hidden div adjacency etc.
    */
-  async inlineImport(
+  async inlineHtmlImport(
       documentUrl: string, htmlImport: ASTNode, analyzer: Analyzer,
       inlined: Set<string>): Promise<void> {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href');
@@ -176,7 +178,7 @@ class Bundler {
     }
     inlined.add(resolved);
     const backingDocument: ScannedDocument =
-        await analyzer._analyzeResolved(resolved);
+        await analyzer._scanResolved(resolved);
     const documentAst = dom5.parseFragment(backingDocument.document.contents);
     this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
     let importParent;
@@ -211,23 +213,26 @@ class Bundler {
     const body = dom5.query(newDocument, matchers.body);
     const hiddenDiv = this.getHiddenNode();
 
-    const getNextImport = () => dom5.query(newDocument, matchers.htmlImport);
+    const getNextHtmlImport = () =>
+        dom5.query(newDocument, matchers.htmlImport);
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
-    const inlinedImports = new Set<string>();
+    const inlinedHtmlImports = new Set<string>();
 
-    for (let nextImport; nextImport = getNextImport();) {
+    let nextHtmlImport;
+    while (nextHtmlImport = getNextHtmlImport()) {
       // If the import is in head, move all subsequent nodes to body.
-      if (elementInHead(nextImport)) {
+      if (elementInHead(nextHtmlImport)) {
         // Put the hiddenDiv in the body the first time we need it.
         if (!hiddenDiv.parentNode) {
           ASTUtils.prepend(body, hiddenDiv);
         }
         // This function needs a better name.
-        ASTUtils.moveRemainderToTarget(nextImport, hiddenDiv);
-        // nextImport has moved, but we should be able to continue.
+        ASTUtils.moveRemainderToTarget(nextHtmlImport, hiddenDiv);
+        // nextHtmlImport has moved, but we should be able to continue.
         continue;
       }
-      await this.inlineImport(url, nextImport, analyzer, inlinedImports);
+      await this.inlineHtmlImport(
+          url, nextHtmlImport, analyzer, inlinedHtmlImports);
     }
 
     if (this.enableScriptInlining) {
