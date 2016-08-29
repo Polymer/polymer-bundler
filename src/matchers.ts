@@ -19,7 +19,8 @@ import constants from './constants';
 import {predicates as p} from 'dom5';
 import * as parse5 from 'parse5';
 
-export interface Matcher { (node: parse5.ASTNode): boolean };
+export interface Matcher { (node: parse5.ASTNode): boolean; }
+;
 
 export const urlAttrMatchers: (Matcher)[] =
     constants.URL_ATTR.map(attr => p.hasAttr(attr));
@@ -54,4 +55,7 @@ export const domModule: Matcher = p.AND(
 export const meta: Matcher = p.AND(p.hasTagName('meta'), p.hasAttr('charset'));
 export const polymerElement: Matcher = p.hasTagName('polymer-element');
 export const externalJavascript: Matcher = p.AND(p.hasAttr('src'), jsMatcher);
-export const inlineJavascript: Matcher = p.AND(p.NOT(p.hasAttr('src')), jsMatcher);
+export const inlineJavascript: Matcher =
+    p.AND(p.NOT(p.hasAttr('src')), jsMatcher);
+export const htmlImport: Matcher = p.AND(
+    p.hasTagName('link'), p.hasAttrValue('rel', 'import'), p.hasAttr('href'));

@@ -12,8 +12,6 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-/// <reference path="../node_modules/@types/node/index.d.ts" />
-/// <reference path="../node_modules/@types/parse5/index.d.ts" />
 'use strict';
 
 import * as path from 'path';
@@ -22,13 +20,18 @@ const pathPosix = path.posix;
 import * as dom5 from 'dom5';
 import encodeString from './third_party/UglifyJS2/encode-string';
 
+import * as parse5 from 'parse5';
+import {ASTNode} from 'parse5';
+import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
+import {Document, ScannedDocument} from 'polymer-analyzer/lib/ast/ast';
+import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
+import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
+
 import constants from './constants';
 import * as matchers from './matchers';
 import PathResolver from './pathresolver';
-import {ASTNode} from 'parse5';
-import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
-import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
-import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
+import ASTUtils from './ast-utils';
+
 
 function buildLoader(config: any) {
   const abspath: string = config.abspath;
@@ -66,13 +69,12 @@ class Bundler {
     this.fsResolver = opts.fsResolver;
     this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
     this.opts = {
-      urlLoader: new FSUrlLoader(opts.root),
-
+      urlLoader: new FSUrlLoader(opts.root || process.cwd()),
     };
   }
   implicitStrip: Boolean;
   abspath;
-  pathResolver;
+  pathResolver: PathResolver;
   addedImports;
   excludes;
   stripExcludes;
@@ -131,23 +133,68 @@ class Bundler {
     dom5.append(hidden, node);
   }
 
-  bundle(target) {
+  /**
+   * Replace htmlImport
+   */
+  async inlineImport(
+      documentUrl: string, htmlImport: ASTNode, analyzer: Analyzer,
+      inlined: Set<string>): Promise<void> {
+    const rawUrl: string = dom5.getAttribute(htmlImport, 'href');
+    const resolved = url.resolve(documentUrl, rawUrl);
+    if (inlined.has(resolved)) {
+      dom5.remove(htmlImport);
+      return;
+    }
+    inlined.add(resolved);
+    const backingDocument: ScannedDocument =
+        await analyzer._analyzeResolved(resolved);
+    const documentAst = dom5.parseFragment(backingDocument.document.contents);
+    this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
+    const importParent = htmlImport.parentNode;
+    dom5.remove(htmlImport);
+    ASTUtils.prependMultiple(importParent, documentAst.childNodes);
+  }
+
+  async bundle(url: string): Promise<ASTNode> {
+    const analyzer: Analyzer = new Analyzer(this.opts);
+    const analyzed: Document = await analyzer.analyzeRoot(url);
+    const newDocument = dom5.parse(analyzed.parsedDocument.contents);
+    const body = dom5.query(newDocument, matchers.body);
+    const head = dom5.query(newDocument, matchers.head);
+    const getNextImport = () => dom5.query(newDocument, matchers.htmlImport);
+    const elementInHead = dom5.predicates.parentMatches(matchers.head);
+    const inlinedImports = new Set<string>();
+    let c = 1;
+    for (let nextImport; nextImport = getNextImport();) {
+      // If the import is in head, move all subsequent nodes to body.
+      if (elementInHead(nextImport)) {
+        // This function needs a better name.
+        ASTUtils.moveRemainderToTarget(nextImport, body);
+        // nextImport has moved, but we should be able to continue.
+        continue;
+      }
+      await this.inlineImport(url, nextImport, analyzer, inlinedImports);
+    }
+    return newDocument;
+    // TODO(garlicnation): inline HTML.
+    // TODO(garlicnation): resolve paths.
+    // TODO(garlicnation): inline CSS
+    // TODO(garlicnation): inline javascript
+    // TODO(garlicnation): reparent <link> and subsequent nodes to <body>
+
+    // LATER
     // TODO(garlicnation): resolve <base> tags.
     // TODO(garlicnation): deduplicate imports
     // TODO(garlicnation): Ignore stripped imports
     // TODO(garlicnation): preserve excluded imports
-    // TODO(garlicnation): find transitive dependencies of specified excluded files.
+    // TODO(garlicnation): find transitive dependencies of specified excluded
+    // files.
     // TODO(garlicnation): ignore <link> in <template>
     // TODO(garlicnation): deduplicate license comments
     // TODO(garlicnation): optionally strip non-license comments
-    // TODO(garlicnation): inline CSS
-    // TODO(garlicnation): inline javascript
-    // TODO(garlicnation): resolve paths.
-    // TODO(garlicnation): reparent <link> and subsequent nodes to <body>
     // TODO(garlicnation): hide imports in main document, unless already hidden}
     // TODO(garlicnation): Support addedImports
-}
-
+  }
 }
 
 export default Bundler;
