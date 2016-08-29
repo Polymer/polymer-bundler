@@ -125,6 +125,11 @@ class Bundler {
     return false;
   }
 
+  /**
+   * Creates a hidden container <div> to which inlined content will be
+   * appended.
+   * TODO(usergenic): Give this a more intention-revealing name.
+   */
   getHiddenNode(): ASTNode {
     const hidden = dom5.constructors.element('div');
     dom5.setAttribute(hidden, 'hidden', '');
@@ -181,7 +186,7 @@ class Bundler {
         await analyzer._scanResolved(resolved);
     const documentAst = dom5.parseFragment(backingDocument.document.contents);
     this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
-    let importParent;
+    let importParent: ASTNode;
     if (matchers.afterHiddenDiv(htmlImport)) {
       importParent = dom5.nodeWalkPrior(htmlImport, matchers.hiddenDiv);
       dom5.remove(htmlImport);
