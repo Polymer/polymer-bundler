@@ -30,7 +30,7 @@ import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import constants from './constants';
 import * as matchers from './matchers';
 import PathResolver from './pathresolver';
-import ASTUtils from './ast-utils';
+import * as ASTUtils from './ast-utils';
 
 
 function buildLoader(config: any) {

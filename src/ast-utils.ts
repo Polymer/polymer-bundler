@@ -15,41 +15,39 @@
 import * as dom5 from 'dom5';
 import {ASTNode} from 'parse5';
 
-export default class ASTUtils {
-  static prepend(parent, node) {
-    if (parent.childNodes && parent.childNodes.length) {
-      dom5.insertBefore(parent, parent.childNodes[0], node);
-    } else {
-      dom5.append(parent, node);
-    }
+export function prepend(parent, node) {
+  if (parent.childNodes && parent.childNodes.length) {
+    dom5.insertBefore(parent, parent.childNodes[0], node);
+  } else {
+    dom5.append(parent, node);
   }
+}
 
-  private static prependMultiple(target, nodes: ASTNode[]) {
-    let moveIndex = nodes.length - 1;
-    while (moveIndex >= 0) {
-      const nodeToMove = nodes[moveIndex];
-      dom5.remove(nodeToMove);
-      ASTUtils.prepend(target, nodeToMove);
-      moveIndex--;
-    }
+function _prependMultiple(target, nodes: ASTNode[]) {
+  let moveIndex = nodes.length - 1;
+  while (moveIndex >= 0) {
+    const nodeToMove = nodes[moveIndex];
+    dom5.remove(nodeToMove);
+    prepend(target, nodeToMove);
+    moveIndex--;
   }
+}
 
-  static insertAllBefore(target, oldNode: ASTNode, nodes: ASTNode[]) {
-    let lastNode = oldNode;
-    for (let n = nodes.length - 1; n >= 0; n--) {
-      let node = nodes[n];
-      dom5.insertBefore(target, lastNode, node);
-      lastNode = node;
-    }
+export function insertAllBefore(target, oldNode: ASTNode, nodes: ASTNode[]) {
+  let lastNode = oldNode;
+  for (let n = nodes.length - 1; n >= 0; n--) {
+    let node = nodes[n];
+    dom5.insertBefore(target, lastNode, node);
+    lastNode = node;
   }
+}
 
-  /**
-   * Move node and its subsequent siblings to target.
-   */
-  static moveRemainderToTarget(node: ASTNode, target: ASTNode) {
-    const siblings: Array<ASTNode> = node.parentNode.childNodes;
-    const importIndex = siblings.indexOf(node);
-    const nodesToMove = siblings.slice(importIndex);
-    ASTUtils.prependMultiple(target, nodesToMove);
-  }
+/**
+ * Move node and its subsequent siblings to target.
+ */
+export function moveRemainderToTarget(node: ASTNode, target: ASTNode) {
+  const siblings: Array<ASTNode> = node.parentNode.childNodes;
+  const importIndex = siblings.indexOf(node);
+  const nodesToMove = siblings.slice(importIndex);
+  _prependMultiple(target, nodesToMove);
 }
