@@ -197,7 +197,7 @@ class Bundler {
       dom5.remove(htmlImport);
       ASTUtils.prepend(importParent, htmlImport);
     } else if (!matchers.inHiddenDiv(htmlImport)) {
-      let hiddenDiv = this.getHiddenNode();
+      const hiddenDiv = this.getHiddenNode();
       dom5.replace(htmlImport, hiddenDiv);
       dom5.append(hiddenDiv, htmlImport);
       importParent = hiddenDiv;
@@ -209,6 +209,10 @@ class Bundler {
     dom5.remove(htmlImport);
   }
 
+  /**
+   * Given a URL to an entry-point html document, produce a single document
+   * suitable for deployment.
+   */
   async bundle(url: string): Promise<ASTNode> {
     const analyzer: Analyzer = new Analyzer(this.opts);
     const analyzedRoot: Document = await analyzer.analyzeRoot(url);

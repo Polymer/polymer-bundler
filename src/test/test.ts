@@ -360,24 +360,18 @@ suite('Vulcan', function() {
     })
   });
 
-  test.skip('Old Polymer is detected and warns', function(done) {
+  test.skip('Old Polymer is detected and warns', function() {
 
-    bundle('test/html/old-polymer.html')
+    return bundle('test/html/polymer.html')
         .then((doc) => {
-          done(new Error('should have thrown'));
+          throw new Error('should have thrown');
         })
         .catch((err) => {
-          try {
-            // check err message
-            assert.equal(
-                err.message.toLowerCase(),
-                (constants.OLD_POLYMER + ' File: test/html/old-polymer.html')
-                    .toLowerCase());
-            done();
-          } catch (e) {
-            done(e);
-          }
-        })
+          assert.equal(
+              err.message.toLowerCase(),
+              (constants.OLD_POLYMER + ' File: test/html/old-polymer.html')
+                  .toLowerCase());
+        });
   });
 
   test('Paths for import bodies are resolved correctly', function() {
@@ -500,7 +494,7 @@ suite('Vulcan', function() {
         redirects:
             ['chrome://imports/|test/html/imports/', 'biz://cool/|test/html']
       };
-      return bundle(path.resolve('test/html/custom-protocol.html'), options)
+      return bundle('test/html/custom-protocol.html', options)
           .then((doc) => assert(doc));
     });
   });
