@@ -214,6 +214,9 @@ class Bundler {
    */
   async bundle(url: string): Promise<ASTNode> {
     const analyzedRoot: Document = await this.analyzer.analyzeRoot(url);
+    // TODO(usergenic): Don't re-parse this document if you already have an AST
+    // in parsedDocument.  Try cloning or even building newDocument as analyzed
+    // document is walked.
     const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
 
     // Create a hidden div to target.
