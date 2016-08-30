@@ -33,18 +33,6 @@ import PathResolver from './pathresolver';
 import * as ASTUtils from './ast-utils';
 
 
-function buildLoader(config: any) {
-  const abspath: string = config.abspath;
-  const excludes = config.excludes;
-  const fsResolver = config.fsResolver;
-  const redirects = config.redirects;
-  let root = abspath && path.resolve(abspath) || process.cwd();
-  let loader = new FSUrlLoader(root);
-  // TODO(garlicnation): Add noopResolver for external urls.
-  // TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
-  // TODO(garlicnation): Add noopResolver for excluded urls.
-  return loader;
-}
 
 class Bundler {
   constructor(opts: any) {
@@ -270,6 +258,11 @@ class Bundler {
     // TODO(garlicnation): optionally strip non-license comments
     // TODO(garlicnation): hide imports in main document, unless already hidden}
     // TODO(garlicnation): Support addedImports
+
+    // SAVED FROM buildLoader COMMENTS
+    // TODO(garlicnation): Add noopResolver for external urls.
+    // TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
+    // TODO(garlicnation): Add noopResolver for excluded urls.
   }
 }
 
