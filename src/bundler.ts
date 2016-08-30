@@ -33,9 +33,25 @@ import PathResolver from './pathresolver';
 import * as ASTUtils from './ast-utils';
 
 
+export interface Options {
+  analyzer?: Analyzer;
+  implicitStrip?: boolean;
+  abspath?: string;
+  addedImports?: string[];
+  excludes?: string[];
+  stripExcludes?: string[];
+  stripComments?: boolean;
+  inlineCss?: boolean;
+  inlineScripts?: boolean;
+  inputUrl?: string;
+  fsResolver?: any;
+  redirects?: string[];
+}
+
 
 class Bundler {
-  constructor(opts: any) {
+  constructor(opts: Options) {
+    this.analyzer = opts.analyzer;
     // implicitStrip should be true by default
     this.implicitStrip =
         opts.implicitStrip === undefined ? true : Boolean(opts.implicitStrip);
@@ -56,24 +72,21 @@ class Bundler {
         String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
     this.fsResolver = opts.fsResolver;
     this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
-    this.opts = {
-      urlLoader: new FSUrlLoader(opts.root || this.abspath || process.cwd()),
-    };
   }
-  implicitStrip: Boolean;
-  abspath;
+  abspath: string;
+  analyzer: Analyzer;
   pathResolver: PathResolver;
-  addedImports;
-  excludes;
-  stripExcludes;
-  stripComments;
-  enableCssInlining;
-  enableScriptInlining;
-  inputUrl;
+  addedImports: string[];
+  excludes: string[];
+  stripExcludes: string[];
+  stripComments: boolean;
+  enableCssInlining: boolean;
+  enableScriptInlining: boolean;
+  implicitStrip: boolean;
+  inputUrl: string;
   fsResolver;
-  redirects;
+  redirects: string[];
   loader;
-  opts: AnalyzerOptions;
 
   isExcludedHref(href) {
     if (constants.EXTERNAL_URL.test(href)) {
@@ -128,13 +141,12 @@ class Bundler {
   /**
    * Inline external scripts <script src="*">
    */
-  async inlineScript(
-      documentUrl: string, externalScript: ASTNode,
-      analyzer: Analyzer): Promise<void> {
+  async inlineScript(documentUrl: string, externalScript: ASTNode):
+      Promise<void> {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src');
     const resolved = url.resolve(documentUrl, rawUrl);
     const backingScript: ScannedDocument =
-        await analyzer._scanResolved(resolved);
+        await this.analyzer._scanResolved(resolved);
     const scriptContent = backingScript.document.contents;
     dom5.removeAttribute(externalScript, 'src');
     dom5.setTextContent(externalScript, scriptContent);
@@ -143,13 +155,12 @@ class Bundler {
   /**
    * Inline external stylesheets <link type="text/css" href="*">
    */
-  async inlineCss(
-      documentUrl: string, externalStylesheet: ASTNode,
-      analyzer: Analyzer): Promise<void> {
+  async inlineCss(documentUrl: string, externalStylesheet: ASTNode):
+      Promise<void> {
     const rawUrl: string = dom5.getAttribute(externalStylesheet, 'href');
     const resolved = url.resolve(documentUrl, rawUrl);
     const backingStylesheet: ScannedDocument =
-        await analyzer._scanResolved(resolved);
+        await this.analyzer._scanResolved(resolved);
     const stylesheetContent = backingStylesheet.document.contents;
     dom5.removeAttribute(externalStylesheet, 'href');
     dom5.setTextContent(externalStylesheet, stylesheetContent);
@@ -161,7 +172,7 @@ class Bundler {
    *     for hidden div adjacency etc.
    */
   async inlineHtmlImport(
-      documentUrl: string, htmlImport: ASTNode, analyzer: Analyzer,
+      documentUrl: string, htmlImport: ASTNode,
       inlined: Set<string>): Promise<void> {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href');
     const resolved = url.resolve(documentUrl, rawUrl);
@@ -171,7 +182,7 @@ class Bundler {
     }
     inlined.add(resolved);
     const backingDocument: ScannedDocument =
-        await analyzer._scanResolved(resolved);
+        await this.analyzer._scanResolved(resolved);
     const documentAst = dom5.parseFragment(backingDocument.document.contents);
     this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
     let importParent: ASTNode;
@@ -202,8 +213,7 @@ class Bundler {
    * suitable for deployment.
    */
   async bundle(url: string): Promise<ASTNode> {
-    const analyzer: Analyzer = new Analyzer(this.opts);
-    const analyzedRoot: Document = await analyzer.analyzeRoot(url);
+    const analyzedRoot: Document = await this.analyzer.analyzeRoot(url);
     const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
 
     // Create a hidden div to target.
@@ -228,15 +238,14 @@ class Bundler {
         // nextHtmlImport has moved, but we should be able to continue.
         continue;
       }
-      await this.inlineHtmlImport(
-          url, nextHtmlImport, analyzer, inlinedHtmlImports);
+      await this.inlineHtmlImport(url, nextHtmlImport, inlinedHtmlImports);
     }
 
     if (this.enableScriptInlining) {
       const getNextExternalScript = () =>
           dom5.query(newDocument, matchers.externalJavascript);
       for (let nextScript; nextScript = getNextExternalScript();) {
-        await this.inlineScript(url, nextScript, analyzer);
+        await this.inlineScript(url, nextScript);
       }
     }
     return newDocument;
