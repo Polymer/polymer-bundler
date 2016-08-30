@@ -235,7 +235,7 @@ class Bundler {
         if (!hiddenDiv.parentNode) {
           ASTUtils.prepend(body, hiddenDiv);
         }
-        // This function needs a better name.
+        // TODO(usergenic): This function needs a better name.
         ASTUtils.moveRemainderToTarget(nextHtmlImport, hiddenDiv);
         // nextHtmlImport has moved, but we should be able to continue.
         continue;
