@@ -264,89 +264,68 @@ suite('Vulcan', function() {
   }
 
   suite('Default Options', function() {
-    test('imports removed', function(done) {
+    test('imports removed', function() {
       const imports = preds.AND(
           preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
           preds.hasAttr('href'), preds.NOT(preds.hasAttrValue('type', 'css')));
-      bundle(inputPath)
-          .then((doc) => {
-            assert.equal(dom5.queryAll(doc, imports).length, 0);
-            done();
-          })
-          .catch(done);
+      bundle(inputPath).then((doc) => {
+        assert.equal(dom5.queryAll(doc, imports).length, 0);
+      });
     });
 
-    test('imports were deduplicated', function(done) {
-      bundle(inputPath)
-          .then((doc) => {
-            assert.equal(
-                dom5.queryAll(doc, preds.hasTagName('dom-module')).length, 1);
-            done();
-          })
-          .catch(done);
+    test('imports were deduplicated', function() {
+      bundle(inputPath).then((doc) => {
+        assert.equal(
+            dom5.queryAll(doc, preds.hasTagName('dom-module')).length, 1);
+      });
     });
   });
 
-  test('svg is nested correctly', function(done) {
-    bundle(inputPath)
-        .then((doc) => {
-          const svg = dom5.query(doc, preds.hasTagName('svg'));
-          assert.equal(svg.childNodes.filter(dom5.isElement).length, 6);
-          done();
-        })
-        .catch(done);
+  test('svg is nested correctly', function() {
+    bundle(inputPath).then((doc) => {
+      const svg = dom5.query(doc, preds.hasTagName('svg'));
+      assert.equal(svg.childNodes.filter(dom5.isElement).length, 6);
+    });
   });
 
-  test('import bodies are in one hidden div', function(done) {
-    bundle(inputPath)
-        .then((doc) => {
-          assert.equal(dom5.queryAll(doc, matchers.hiddenDiv).length, 1);
-          done();
-        })
-        .catch(done);
+  test('import bodies are in one hidden div', function() {
+    bundle(inputPath).then((doc) => {
+      assert.equal(dom5.queryAll(doc, matchers.hiddenDiv).length, 1);
+    });
   });
 
-  test('dom-modules have assetpath', function(done) {
+  test('dom-modules have assetpath', function() {
     const assetpath = preds.AND(
         preds.hasTagName('dom-module'),
         preds.hasAttrValue('assetpath', 'imports/'));
-    bundle(inputPath)
-        .then((doc) => {
-          assert.ok(dom5.query(doc, assetpath), 'assetpath set');
-          done();
-        })
-        .catch(done);
+    bundle(inputPath).then((doc) => {
+      assert.ok(dom5.query(doc, assetpath), 'assetpath set');
+    });
   });
 
-  test('output file is forced utf-8', function(done) {
+  test('output file is forced utf-8', function() {
     const meta = preds.AND(
         preds.hasTagName('meta'), preds.hasAttrValue('charset', 'UTF-8'));
-    bundle(inputPath)
-        .then((doc) => {
-          assert.ok(dom5.query(doc, meta));
-          done();
-        })
-        .catch(done);
+    bundle(inputPath).then((doc) => {
+      assert.ok(dom5.query(doc, meta));
+    });
   });
 
-  test.skip('Handle <base> tag', function(done) {
+  test.skip('Handle <base> tag', function() {
     const span = preds.AND(
         preds.hasTagName('span'), preds.hasAttrValue('href', 'imports/hello'));
     const a = preds.AND(
         preds.hasTagName('a'),
         preds.hasAttrValue('href', 'imports/sub-base/sub-base.html'));
-    bundle('test/html/base.html')
-        .then((doc) => {
-          const spanHref = dom5.query(doc, span);
-          assert.ok(spanHref);
-          const anchorRef = dom5.query(doc, a);
-          assert.ok(anchorRef);
-          done();
-        })
-        .catch(done);
+    bundle('test/html/base.html').then((doc) => {
+      const spanHref = dom5.query(doc, span);
+      assert.ok(spanHref);
+      const anchorRef = dom5.query(doc, a);
+      assert.ok(anchorRef);
+    });
   });
 
-  test('Imports in <body> are handled correctly', function(done) {
+  test('Imports in <body> are handled correctly', function() {
     const importMatcher = preds.AND(
         preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
 
@@ -358,38 +337,27 @@ suite('Vulcan', function() {
     const divExpected = preds.AND(
         preds.hasTagName('div'), preds.hasAttrValue('id', 'imported'));
 
-    bundle('test/html/import-in-body.html')
-        .then(function(doc) {
-          const imports = dom5.queryAll(doc, importMatcher);
-          assert.equal(imports.length, 0);
-          const bodyContainer = dom5.query(doc, bodyContainerMatcher);
-          const scriptActual = dom5.query(doc, scriptExpected).parentNode;
-          const divActual = dom5.query(doc, divExpected).parentNode;
-          assert.equal(bodyContainer, scriptActual);
-          assert.equal(bodyContainer, divActual);
-          done();
-        })
-        .catch((err) => {
-          if (err) {
-            return done(err);
-          }
-        });
+    bundle('test/html/import-in-body.html').then(function(doc) {
+      const imports = dom5.queryAll(doc, importMatcher);
+      assert.equal(imports.length, 0);
+      const bodyContainer = dom5.query(doc, bodyContainerMatcher);
+      const scriptActual = dom5.query(doc, scriptExpected).parentNode;
+      const divActual = dom5.query(doc, divExpected).parentNode;
+      assert.equal(bodyContainer, scriptActual);
+      assert.equal(bodyContainer, divActual);
+    });
   });
 
-  test('Scripts are not inlined by default', function(done) {
+  test('Scripts are not inlined by default', function() {
     const externalJS = matchers.externalJavascript;
 
-    bundle('test/html/external.html')
-        .then((doc) => {
-          const scripts = dom5.queryAll(doc, externalJS);
-          assert.isAbove(scripts.length, 0, 'scripts were inlined');
-          scripts.forEach(function(s) {
-            assert.equal(
-                dom5.getTextContent(s), '', 'script src should be empty');
-          });
-          done();
-        })
-        .catch(done);
+    return bundle('test/html/external.html').then((doc) => {
+      const scripts = dom5.queryAll(doc, externalJS);
+      assert.isAbove(scripts.length, 0, 'scripts were inlined');
+      scripts.forEach(function(s) {
+        assert.equal(dom5.getTextContent(s), '', 'script src should be empty');
+      });
+    })
   });
 
   test.skip('Old Polymer is detected and warns', function(done) {
@@ -412,34 +380,28 @@ suite('Vulcan', function() {
         })
   });
 
-  test('Paths for import bodies are resolved correctly', function(done) {
+  test('Paths for import bodies are resolved correctly', function() {
     const anchorMatcher = preds.hasTagName('a');
     const input = 'test/html/multiple-imports.html';
-    bundle(input)
-        .then((doc) => {
-          const anchor = dom5.query(doc, anchorMatcher);
-          const href = dom5.getAttribute(anchor, 'href');
-          assert.equal(href, 'imports/target.html');
-          done();
-        })
-        .catch(done);
+    return bundle(input).then((doc) => {
+      const anchor = dom5.query(doc, anchorMatcher);
+      const href = dom5.getAttribute(anchor, 'href');
+      assert.equal(href, 'imports/target.html');
+    })
   });
 
-  test('Spaces in paths are handled correctly', function(done) {
+  test('Spaces in paths are handled correctly', function() {
     const input = 'test/html/spaces.html';
     const spacesMatcher = preds.AND(
         preds.hasTagName('dom-module'),
         preds.hasAttrValue('id', 'space-element'));
-    bundle(input)
-        .then((doc) => {
-          const module = dom5.query(doc, spacesMatcher);
-          assert.ok(module);
-          done();
-        })
-        .catch(done);
+    return bundle(input).then((doc) => {
+      const module = dom5.query(doc, spacesMatcher);
+      assert.ok(module);
+    })
   });
 
-  test('Handle Wrong inputs', function(done) {
+  test('Handle Wrong inputs', function() {
     const options = {
       inputUrl: true,
       stripExcludes: false,
@@ -448,89 +410,73 @@ suite('Vulcan', function() {
       abspath: {}
     };
 
-    bundle(inputPath, options)
-        .then((expectedDoc) => {
-          const expected = dom5.serialize(expectedDoc);
-          bundle(inputPath)
-              .then((actualDoc) => {
-                const actual = dom5.serialize(actualDoc);
-                assert.equal(expected, actual, 'bad inputs were corrected');
-                done();
-              })
-              .catch(done);
-        })
-        .catch(done);
+    return bundle(inputPath, options).then((expectedDoc) => {
+      const expected = dom5.serialize(expectedDoc);
+      return bundle(inputPath).then((actualDoc) => {
+        const actual = dom5.serialize(actualDoc);
+        assert.equal(expected, actual, 'bad inputs were corrected');
+      });
+    })
   });
 
   suite('Script Ordering', function() {
-    test('Imports and scripts are ordered correctly', function(done) {
-      bundle('test/html/order-test.html')
-          .then((doc) => {
-            const expectedOrder = [
-              'first-script', 'second-import-first-script',
-              'second-import-second-script', 'first-import-first-script',
-              'first-import-second-script', 'second-script', 'third-script'
-            ];
+    test('Imports and scripts are ordered correctly', function() {
+      return bundle('test/html/order-test.html').then((doc) => {
+        const expectedOrder = [
+          'first-script', 'second-import-first-script',
+          'second-import-second-script', 'first-import-first-script',
+          'first-import-second-script', 'second-script', 'third-script'
+        ];
 
-            const expectedSrc = [
-              'order/first-script.js', 'order/second-import/first-script.js',
-              'order/second-import/second-script.js',
-              'order/first-import/first-script.js',
-              'order/first-import/second-script.js', 'order/second-script.js',
-              'order/third-script.js'
-            ];
+        const expectedSrc = [
+          'order/first-script.js', 'order/second-import/first-script.js',
+          'order/second-import/second-script.js',
+          'order/first-import/first-script.js',
+          'order/first-import/second-script.js', 'order/second-script.js',
+          'order/third-script.js'
+        ];
 
-            const scriptMatcher = preds.hasTagName('script');
-            const scripts = dom5.queryAll(doc, scriptMatcher);
-            const actualOrder = [], actualSrc = [];
-            scripts.forEach(function(s) {
-              actualOrder.push(dom5.getAttribute(s, 'id'));
-              actualSrc.push(dom5.getAttribute(s, 'src'));
-            });
-            assert.deepEqual(
-                actualOrder, expectedOrder, 'order is not as expected');
-            assert.deepEqual(
-                actualSrc, expectedSrc, 'srcs are not preserved correctly');
-            done();
-
-          })
-          .catch(done);
+        const scriptMatcher = preds.hasTagName('script');
+        const scripts = dom5.queryAll(doc, scriptMatcher);
+        const actualOrder = [], actualSrc = [];
+        scripts.forEach(function(s) {
+          actualOrder.push(dom5.getAttribute(s, 'id'));
+          actualSrc.push(dom5.getAttribute(s, 'src'));
+        });
+        assert.deepEqual(
+            actualOrder, expectedOrder, 'order is not as expected');
+        assert.deepEqual(
+            actualSrc, expectedSrc, 'srcs are not preserved correctly');
+      });
     });
 
-    test('exhaustive script order testing', function(done) {
-      bundle('test/html/scriptorder/index.html', {inlineScripts: true})
+    test('exhaustive script order testing', function() {
+      return bundle('test/html/scriptorder/index.html', {inlineScripts: true})
           .then((doc) => {
             assert(doc);
             const serialized = dom5.serialize(doc);
             const beforeLoc = serialized.indexOf('window.BeforeJs');
             const afterLoc = serialized.indexOf('BeforeJs.value');
             assert.isBelow(beforeLoc, afterLoc);
-            done();
-          })
-          .catch(done);
+          });
     });
 
-    test('Paths are correct when maintaining order', function(done) {
-      bundle('test/html/recursion/import.html')
-          .then((doc) => {
-            assert(doc);
-            const scripts = dom5.queryAll(
-                doc,
-                preds.AND(preds.hasTagName('script'), preds.hasAttr('src')));
-            scripts.forEach(function(s) {
-              const src = dom5.getAttribute(s, 'src');
-              assert.equal(
-                  src.indexOf('../order'), 0,
-                  'path should start with ../order');
-            });
-            done();
-          })
-          .catch(done);
+    test('Paths are correct when maintaining order', function() {
+      return bundle('test/html/recursion/import.html').then((doc) => {
+        assert(doc);
+        const scripts = dom5.queryAll(
+            doc, preds.AND(preds.hasTagName('script'), preds.hasAttr('src')));
+        scripts.forEach(function(s) {
+          const src = dom5.getAttribute(s, 'src');
+          assert.equal(
+              src.indexOf('../order'), 0, 'path should start with ../order');
+        });
+      });
     });
   });
 
   suite('Absolute Paths', function() {
-    test('Output with Absolute paths with abspath', function(done) {
+    test('Output with Absolute paths with abspath', function() {
       const root = path.resolve(inputPath, '../..');
       const target = '/html/default.html';
       const options = {abspath: root};
@@ -541,28 +487,21 @@ suite('Vulcan', function() {
           preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
           preds.hasAttrValue('type', 'css'),
           preds.hasAttrValue('href', '/html/imports/simple-style.css'));
-      bundle(target, options)
-          .then((doc) => {
-            assert.ok(dom5.query(doc, domModule));
-            assert.ok(dom5.query(doc, stylesheet));
-            done();
-          })
-          .catch(done);
+      return bundle(target, options).then((doc) => {
+        assert.ok(dom5.query(doc, domModule));
+        assert.ok(dom5.query(doc, stylesheet));
+      });
     });
   });
 
   suite('Redirect', function() {
-    test('Redirected paths load properly', function(done) {
+    test('Redirected paths load properly', function() {
       const options = {
         redirects:
             ['chrome://imports/|test/html/imports/', 'biz://cool/|test/html']
       };
-      bundle(path.resolve('test/html/custom-protocol.html'), options)
-          .then((doc) => {
-            assert(doc);
-            done();
-          })
-          .catch(done);
+      return bundle(path.resolve('test/html/custom-protocol.html'), options)
+          .then((doc) => assert(doc));
     });
   });
 
@@ -577,16 +516,13 @@ suite('Vulcan', function() {
 
     const excludes = ['test/html/imports/simple-import.html'];
 
-    test('Excluded imports are not inlined', function(done) {
+    test('Excluded imports are not inlined', function() {
       const options = {excludes: excludes};
 
-      bundle(inputPath, options)
-          .then((doc) => {
-            const imports = dom5.queryAll(doc, excluded);
-            assert.equal(imports.length, 1);
-            done();
-          })
-          .catch(done);
+      return bundle(inputPath, options).then((doc) => {
+        const imports = dom5.queryAll(doc, excluded);
+        assert.equal(imports.length, 1);
+      });
     });
 
     const cssFromExclude = preds.AND(
@@ -595,327 +531,260 @@ suite('Vulcan', function() {
 
     // TODO(ajo): Fix test with hydrolysis upgrades.
     test.skip(
-        'Excluded imports are not when behind a redirected URL.',
-        function(done) {
+        'Excluded imports are not when behind a redirected URL.', function() {
           const options = {
             excludes: ['test/html/imports/simple-import.html'],
             redirects: ['red://herring/at|test/html/imports']
           };
-          bundle(
-              path.resolve('test/html/custom-protocol-excluded.html'), options)
+          return bundle(
+                     path.resolve('test/html/custom-protocol-excluded.html'),
+                     options)
               .then((doc) => {
                 const imports = dom5.queryAll(doc, htmlImport);
                 assert.equal(imports.length, 2);
                 const badCss = dom5.queryAll(doc, cssFromExclude);
                 assert.equal(badCss.length, 0);
-                done();
-              })
-              .catch(done);
+              });
         });
 
-    test('Excluded imports with "Strip Excludes" are removed', function(done) {
+    test('Excluded imports with "Strip Excludes" are removed', function() {
       const options = {stripExcludes: excludes};
 
-      bundle(inputPath, options)
-          .then((doc) => {
-            const imports = dom5.queryAll(doc, excluded);
-            assert.equal(imports.length, 0);
-            done();
-          })
-          .catch(done);
+      return bundle(inputPath, options).then((doc) => {
+        const imports = dom5.queryAll(doc, excluded);
+        assert.equal(imports.length, 0);
+      });
     });
 
-    test('Strip Excludes does not have to be exact', function(done) {
+    test('Strip Excludes does not have to be exact', function() {
       const options = {stripExcludes: ['simple-import']};
 
-      bundle(inputPath, options)
-          .then((doc) => {
-            const imports = dom5.queryAll(doc, excluded);
-            assert.equal(imports.length, 0);
-            done();
-          })
-          .catch(done);
+      return bundle(inputPath, options).then((doc) => {
+        const imports = dom5.queryAll(doc, excluded);
+        assert.equal(imports.length, 0);
+      });
     });
 
-    test('Strip Excludes has more precedence than Excludes', function(done) {
+    test('Strip Excludes has more precedence than Excludes', function() {
       const options = {excludes: excludes, stripExcludes: excludes};
 
-      bundle(inputPath, options)
-          .then((doc) => {
-            const imports = dom5.queryAll(doc, excluded);
-            assert.equal(imports.length, 0);
-            done();
-          })
-          .catch(done);
+      return bundle(inputPath, options).then((doc) => {
+        const imports = dom5.queryAll(doc, excluded);
+        assert.equal(imports.length, 0);
+      });
     });
 
-    test('Excluded comments are removed', function(done) {
+    test('Excluded comments are removed', function() {
       const options = {stripComments: true};
-      bundle('test/html/comments.html', options)
-          .then((doc) => {
-            const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-            assert.equal(comments.length, 3);
-            const commentsExpected =
-                ['@license import 2', '@license import 1', '@license main'];
-            const commentsActual = comments.map(function(c) {
-              return dom5.getTextContent(c).trim();
-            });
-            assert.deepEqual(commentsExpected, commentsActual);
-            done();
-          })
-          .catch(done);
+      return bundle('test/html/comments.html', options).then((doc) => {
+        const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
+        assert.equal(comments.length, 3);
+        const commentsExpected =
+            ['@license import 2', '@license import 1', '@license main'];
+        const commentsActual = comments.map(function(c) {
+          return dom5.getTextContent(c).trim();
+        });
+        assert.deepEqual(commentsExpected, commentsActual);
+      });
     });
 
-    test('Comments are kept by default', function(done) {
+    test('Comments are kept by default', function() {
       const options = {stripComments: false};
-      bundle('test/html/comments.html', options)
-          .then((doc) => {
-            const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-            const expectedComments = [
-              '@license main', '@license import 1', 'comment in import 1',
-              '@license import 2', 'comment in import 2', 'comment in main'
-            ];
-            const actualComments = comments.map(function(c) {
-              return dom5.getTextContent(c).trim();
-            });
-            assert.deepEqual(expectedComments, actualComments);
-            done();
-          })
-          .catch(done);
+      return bundle('test/html/comments.html', options).then((doc) => {
+        const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
+        const expectedComments = [
+          '@license main', '@license import 1', 'comment in import 1',
+          '@license import 2', 'comment in import 2', 'comment in main'
+        ];
+        const actualComments = comments.map(function(c) {
+          return dom5.getTextContent(c).trim();
+        });
+        assert.deepEqual(expectedComments, actualComments);
+      });
     });
 
-    test('Folder can be excluded', function(done) {
+    test('Folder can be excluded', function() {
       const linkMatcher = preds.hasTagName('link');
       const options = {excludes: ['test/html/imports/']};
-      bundle('test/html/default.html', options)
-          .then((doc) => {
-            const links = dom5.queryAll(doc, linkMatcher);
-            // one duplicate import is removed
-            assert.equal(links.length, 2);
-            done();
-          })
-          .catch(done);
+      return bundle('test/html/default.html', options).then((doc) => {
+        const links = dom5.queryAll(doc, linkMatcher);
+        // one duplicate import is removed
+        assert.equal(links.length, 2);
+      });
     });
   });
 
   suite('Inline Scripts', function() {
     const options = {inlineScripts: true};
 
-    test('All scripts are inlined', function(done) {
-      bundle(inputPath, options)
-          .then((doc) => {
-            const scripts = dom5.queryAll(doc, matchers.JS_SRC);
-            assert.equal(scripts.length, 0);
-            done();
-          })
-          .catch(done);
+    test('All scripts are inlined', function() {
+      return bundle(inputPath, options).then((doc) => {
+        const scripts = dom5.queryAll(doc, matchers.JS_SRC);
+        assert.equal(scripts.length, 0);
+      });
     });
 
-    test('External scripts are kept', function(done) {
-      bundle('test/html/external-script.html', options)
-          .then((doc) => {
-            const scripts = dom5.queryAll(doc, matchers.JS_SRC);
-            assert.equal(scripts.length, 1);
-            done();
-          })
-          .catch(done);
+    test('External scripts are kept', function() {
+      return bundle('test/html/external-script.html', options).then((doc) => {
+        const scripts = dom5.queryAll(doc, matchers.JS_SRC);
+        assert.equal(scripts.length, 1);
+      });
     });
 
-    test('Absolute paths are correct', function(done) {
+    test('Absolute paths are correct', function() {
       const root = path.resolve(inputPath, '../..');
       const target = '/html/default.html';
       const options = {abspath: root, inlineScripts: true};
-      bundle(target, options)
-          .then((doc) => {
-            const scripts = dom5.queryAll(doc, matchers.JS_SRC);
-            assert.equal(scripts.length, 0);
-            done();
-          })
-          .catch(done);
+      return bundle(target, options).then((doc) => {
+        const scripts = dom5.queryAll(doc, matchers.JS_SRC);
+        assert.equal(scripts.length, 0);
+      });
     });
 
-    test('Escape inline <script>', function(done) {
-      bundle('test/html/xss.html', options)
-          .then((doc) => {
-            const script = dom5.query(doc, matchers.JS_INLINE);
-            assert.include(
-                dom5.getTextContent(script),
-                'var b = 0<\\/script><script>alert(\'XSS\'); //2;',
-                'Inline <script> should be escaped');
-            done();
-          })
-          .catch(done);
+    test('Escape inline <script>', function() {
+      return bundle('test/html/xss.html', options).then((doc) => {
+        const script = dom5.query(doc, matchers.JS_INLINE);
+        assert.include(
+            dom5.getTextContent(script),
+            'var b = 0<\\/script><script>alert(\'XSS\'); //2;',
+            'Inline <script> should be escaped');
+      });
     });
 
-    test('Inlined Scripts are in the expected order', function(done) {
-      bundle('test/html/reordered/in.html', options)
-          .then((doc) => {
-            const scripts = dom5.queryAll(doc, matchers.JS_INLINE);
-            const contents = scripts.map(function(script) {
-              return dom5.getTextContent(script);
-            });
-            assert.deepEqual(['"First"', '"Second"'], contents);
-            done();
-          })
-          .catch(done);
+    test('Inlined Scripts are in the expected order', function() {
+      return bundle('test/html/reordered/in.html', options).then((doc) => {
+        const scripts = dom5.queryAll(doc, matchers.JS_INLINE);
+        const contents = scripts.map(function(script) {
+          return dom5.getTextContent(script);
+        });
+        assert.deepEqual(['"First"', '"Second"'], contents);
+      });
     });
 
-    test('Firebase works inlined', function(done) {
-      bundle('test/html/firebase.html', options)
-          .then((doc) => {
-            const scripts = dom5.queryAll(doc, matchers.JS_INLINE);
-            assert.equal(scripts.length, 1);
-            const idx = dom5.getTextContent(scripts[0]).indexOf('</script>');
-            assert(idx === -1, '/script found, should be escaped');
-            done();
-          })
-          .catch(done);
+    test('Firebase works inlined', function() {
+      return bundle('test/html/firebase.html', options).then((doc) => {
+        const scripts = dom5.queryAll(doc, matchers.JS_INLINE);
+        assert.equal(scripts.length, 1);
+        const idx = dom5.getTextContent(scripts[0]).indexOf('</script>');
+        assert(idx === -1, '/script found, should be escaped');
+      });
     });
   });
 
   suite('Inline CSS', function() {
     const options = {inlineCss: true};
 
-    test('All styles are inlined', function(done) {
-      bundle(inputPath, options)
-          .then((doc) => {
-            const links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
-            assert.equal(links.length, 0);
-            done();
-          })
-          .catch(done);
+    test('All styles are inlined', function() {
+      return bundle(inputPath, options).then((doc) => {
+        const links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
+        assert.equal(links.length, 0);
+      });
     });
 
-    test('Inlined styles have proper paths', function(done) {
-      bundle('test/html/inline-styles.html', options)
-          .then((doc) => {
-            const styles = dom5.queryAll(doc, matchers.CSS);
-            assert.equal(styles.length, 2);
-            const content = dom5.getTextContent(styles[1]);
-            assert(content.search('imports/foo.jpg') > -1, 'path adjusted');
-            assert(content.search('@apply') > -1, '@apply kept');
-            done();
-          })
-          .catch(done);
+    test('Inlined styles have proper paths', function() {
+      return bundle('test/html/inline-styles.html', options).then((doc) => {
+        const styles = dom5.queryAll(doc, matchers.CSS);
+        assert.equal(styles.length, 2);
+        const content = dom5.getTextContent(styles[1]);
+        assert(content.search('imports/foo.jpg') > -1, 'path adjusted');
+        assert(content.search('@apply') > -1, '@apply kept');
+      });
     });
 
     test(
         'External Scripts and Stylesheets are not removed and media queries are retained',
-        function(done) {
+        function() {
           const input = 'test/html/external-stylesheet.html';
-          bundle(input, options)
-              .then((doc) => {
-                const link = dom5.query(doc, matchers.CSS_LINK);
-                assert(link);
-                const styles = dom5.queryAll(doc, matchers.CSS);
-                assert.equal(styles.length, 1);
-                const content = dom5.getTextContent(styles[0]);
-                assert(
-                    content.search(/@media \(min-width: 800px\) /g) > -1,
-                    'media query retained');
-                done();
-              })
-              .catch(done);
+          return bundle(input, options).then((doc) => {
+            const link = dom5.query(doc, matchers.CSS_LINK);
+            assert(link);
+            const styles = dom5.queryAll(doc, matchers.CSS);
+            assert.equal(styles.length, 1);
+            const content = dom5.getTextContent(styles[0]);
+            assert(
+                content.search(/@media \(min-width: 800px\) /g) > -1,
+                'media query retained');
+          });
         });
 
-    test('Absolute paths are correct', function(done) {
+    test('Absolute paths are correct', function() {
       const root = path.resolve(inputPath, '../..');
       const options = {abspath: root, inlineCss: true};
-      bundle('/html/default.html', options)
-          .then((doc) => {
-            const links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
-            assert.equal(links.length, 0);
-            done();
-          })
-          .catch(done);
+      return bundle('/html/default.html', options).then((doc) => {
+        const links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
+        assert.equal(links.length, 0);
+      });
+    });
+
+    test('Inlined Polymer styles are moved into the <template>', function() {
+      return bundle('test/html/default.html', options).then((doc) => {
+        const domModule =
+            dom5.query(doc, dom5.predicates.hasTagName('dom-module'));
+        assert(domModule);
+        const template =
+            dom5.query(domModule, dom5.predicates.hasTagName('template'));
+        assert(template);
+        const style = dom5.query(template.childNodes[0], matchers.CSS);
+        assert(style);
+      });
     });
 
     test(
-        'Inlined Polymer styles are moved into the <template>', function(done) {
-          bundle('test/html/default.html', options)
-              .then((doc) => {
-                const domModule =
-                    dom5.query(doc, dom5.predicates.hasTagName('dom-module'));
-                assert(domModule);
-                const template = dom5.query(
-                    domModule, dom5.predicates.hasTagName('template'));
-                assert(template);
-                const style = dom5.query(template.childNodes[0], matchers.CSS);
-                assert(style);
-                done();
-              })
-              .catch(done);
-        });
-
-    test(
         'Inlined Polymer styles will force a dom-module to have a template',
-        function(done) {
-          bundle('test/html/inline-styles.html', options)
-              .then((doc) => {
-                const domModule =
-                    dom5.query(doc, dom5.predicates.hasTagName('dom-module'));
-                assert(domModule);
-                const template = dom5.query(
-                    domModule, dom5.predicates.hasTagName('template'));
-                assert(template);
-                const style = dom5.query(template.childNodes[0], matchers.CSS);
-                assert(style);
-                done();
-              })
-              .catch(done);
+        function() {
+          return bundle('test/html/inline-styles.html', options).then((doc) => {
+            const domModule =
+                dom5.query(doc, dom5.predicates.hasTagName('dom-module'));
+            assert(domModule);
+            const template =
+                dom5.query(domModule, dom5.predicates.hasTagName('template'));
+            assert(template);
+            const style = dom5.query(template.childNodes[0], matchers.CSS);
+            assert(style);
+          });
         });
   });
 
   suite('Add import', function() {
     const options = {addedImports: ['imports/comment-in-import.html']};
-    test('added import is added to vulcanized doc', function(done) {
-      bundle('test/html/default.html', options)
-          .then((doc) => {
-            assert(doc);
-            const hasAddedImport =
-                preds.hasAttrValue('href', 'imports/comment-in-import.html');
-            assert.equal(dom5.queryAll(doc, hasAddedImport).length, 1);
-            done();
-          })
-          .catch(done);
+    test('added import is added to vulcanized doc', function() {
+      return bundle('test/html/default.html', options).then((doc) => {
+        assert(doc);
+        const hasAddedImport =
+            preds.hasAttrValue('href', 'imports/comment-in-import.html');
+        assert.equal(dom5.queryAll(doc, hasAddedImport).length, 1);
+      });
     });
   });
 
   suite('Input URL', function() {
     const options = {inputUrl: 'test/html/default.html'};
 
-    test('inputURL is used instead of argument to process', function(done) {
-      bundle('flibflabfloom!', options)
-          .then((doc) => {
-            assert(doc);
-            done();
-          })
-          .catch(done);
+    test('inputURL is used instead of argument to process', function() {
+      return bundle('flibflabfloom!', options).then((doc) => {
+        assert(doc);
+      });
     });
 
-    test('gulp-vulcanize invocation with abspath', function(done) {
+    test('gulp-vulcanize invocation with abspath', function() {
       const options = {
         abspath: path.resolve('test/html'),
         inputUrl: '/default.html'
       };
 
-      bundle(
-          'C:\\Users\\VulcanizeTester\\vulcanize\\test\\html\\default.html',
-          options)
-          .then((doc) => {
-            assert(doc);
-            done();
-          })
-          .catch(done);
+      return bundle(
+                 'C:\\Users\\VulcanizeTester\\vulcanize\\test\\html\\default.html',
+                 options)
+          .then((doc) => assert(doc));
     });
   });
 
   suite('Regression Testing', function() {
-    test('Complicated Ordering', function(done) {
+    test('Complicated Ordering', function() {
       // refer to
       // https://github.com/Polymer/vulcanize/tree/master/test/html/complicated/ordering.svg
       // for visual reference on the document structure for this example
-      bundle('test/html/complicated/A.html', {inlineScripts: true})
+      return bundle('test/html/complicated/A.html', {inlineScripts: true})
           .then((doc) => {
             assert(doc);
             const expected = ['A1', 'C', 'E', 'B', 'D', 'A2'];
@@ -924,30 +793,25 @@ suite('Vulcan', function() {
               return dom5.getTextContent(s).trim();
             });
             assert.deepEqual(contents, expected);
-            done();
-          })
-          .catch(done);
+          });
     });
 
-    test('Imports in templates should not inline', function(done) {
-      bundle('test/html/inside-template.html')
-          .then((doc) => {
-            const importMatcher = preds.AND(
-                preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
-                preds.hasAttr('href'));
-            const externalScriptMatcher = preds.AND(
-                preds.hasTagName('script'),
-                preds.hasAttrValue('src', 'external/external.js'));
-            assert(doc);
-            const imports = dom5.queryAll(doc, importMatcher);
-            assert.equal(imports.length, 1, 'import in template was inlined');
-            const unexpectedScript = dom5.query(doc, externalScriptMatcher);
-            assert.equal(
-                unexpectedScript, null,
-                'script in external.html should not be present');
-            done();
-          })
-          .catch(done);
+    test('Imports in templates should not inline', function() {
+      return bundle('test/html/inside-template.html').then((doc) => {
+        const importMatcher = preds.AND(
+            preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
+            preds.hasAttr('href'));
+        const externalScriptMatcher = preds.AND(
+            preds.hasTagName('script'),
+            preds.hasAttrValue('src', 'external/external.js'));
+        assert(doc);
+        const imports = dom5.queryAll(doc, importMatcher);
+        assert.equal(imports.length, 1, 'import in template was inlined');
+        const unexpectedScript = dom5.query(doc, externalScriptMatcher);
+        assert.equal(
+            unexpectedScript, null,
+            'script in external.html should not be present');
+      });
     });
   });
 });
