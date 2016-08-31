@@ -49,6 +49,19 @@ export interface Options {
 
 
 class Bundler {
+  abspath?: string;
+  addedImports: string[];
+  analyzer: Analyzer;
+  enableCssInlining: boolean;
+  enableScriptInlining: boolean;
+  excludes: string[];
+  implicitStrip: boolean;
+  inputUrl: string;
+  pathResolver: PathResolver;
+  redirects: string[];
+  stripComments: boolean;
+  stripExcludes: string[];
+
   constructor(opts: Options) {
     this.analyzer = opts.analyzer!;
     // implicitStrip should be true by default
@@ -71,19 +84,6 @@ class Bundler {
         String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
     this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
   }
-
-  abspath?: string;
-  addedImports: string[];
-  analyzer: Analyzer;
-  enableCssInlining: boolean;
-  enableScriptInlining: boolean;
-  excludes: string[];
-  implicitStrip: boolean;
-  inputUrl: string;
-  pathResolver: PathResolver;
-  redirects: string[];
-  stripComments: boolean;
-  stripExcludes: string[];
 
   isExcludedHref(href: string) {
     if (constants.EXTERNAL_URL.test(href)) {
@@ -207,7 +207,8 @@ class Bundler {
 
   /**
    * Given a URL to an entry-point html document, produce a single document
-   * suitable for deployment.
+   * with HTML imports, external stylesheets and external scripts inlined,
+   * according to the options for this Bundler.
    */
   async bundle(url: string): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyzeRoot(url);
