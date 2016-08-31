@@ -221,6 +221,9 @@ class Bundler {
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;
     const hiddenDiv = this.getHiddenNode();
 
+    // TODO(usergenic): This will query from the root of the document each time
+    // it is called.  We should be able to handle nested imports in a more
+    // optimal way than walking the whole tree for each <link>.
     const getNextHtmlImport = () =>
         dom5.query(newDocument, matchers.htmlImport);
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
@@ -243,6 +246,9 @@ class Bundler {
     }
 
     if (this.enableScriptInlining) {
+      // TODO(usergenic): This will query from the root of the document each
+      // time it is called.  There's no need for that, we should be able to run
+      // a loop on collection of all external scripts encountered.
       const getNextExternalScript = () =>
           dom5.query(newDocument, matchers.externalJavascript);
       let nextExternalScript: ASTNode|null;
