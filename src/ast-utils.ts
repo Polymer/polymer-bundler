@@ -15,7 +15,7 @@
 import * as dom5 from 'dom5';
 import {ASTNode} from 'parse5';
 
-export function prepend(parent, node) {
+export function prepend(parent: ASTNode, node: ASTNode) {
   if (parent.childNodes && parent.childNodes.length) {
     dom5.insertBefore(parent, parent.childNodes[0], node);
   } else {
@@ -23,7 +23,7 @@ export function prepend(parent, node) {
   }
 }
 
-function _prependMultiple(target, nodes: ASTNode[]) {
+function _prependMultiple(target: ASTNode, nodes: ASTNode[]) {
   let moveIndex = nodes.length - 1;
   while (moveIndex >= 0) {
     const nodeToMove = nodes[moveIndex];
@@ -33,7 +33,8 @@ function _prependMultiple(target, nodes: ASTNode[]) {
   }
 }
 
-export function insertAllBefore(target, oldNode: ASTNode, nodes: ASTNode[]) {
+export function insertAllBefore(
+    target: ASTNode, oldNode: ASTNode, nodes: ASTNode[]) {
   let lastNode = oldNode;
   for (let n = nodes.length - 1; n >= 0; n--) {
     const node = nodes[n];

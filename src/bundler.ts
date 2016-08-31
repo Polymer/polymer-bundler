@@ -88,7 +88,7 @@ class Bundler {
   redirects: string[];
   loader;
 
-  isExcludedHref(href) {
+  isExcludedHref(href: string) {
     if (constants.EXTERNAL_URL.test(href)) {
       return true;
     }
@@ -98,12 +98,12 @@ class Bundler {
     return this.excludes.some(r => href.search(r) >= 0);
   }
 
-  isBlankTextNode(node) {
+  isBlankTextNode(node: ASTNode): boolean {
     return node && dom5.isTextNode(node) &&
         !/\S/.test(dom5.getTextContent(node));
   }
 
-  removeElementAndNewline(node, replacement) {
+  removeElementAndNewline(node: ASTNode, replacement?: ASTNode) {
     // when removing nodes, remove the newline after it as well
     const parent = node.parentNode;
     const nextIdx = parent.childNodes.indexOf(node) + 1;
@@ -119,7 +119,7 @@ class Bundler {
     }
   }
 
-  isLicenseComment(node) {
+  isLicenseComment(node: ASTNode): boolean {
     if (dom5.isCommentNode(node)) {
       return dom5.getTextContent(node).indexOf('@license') > -1;
     }

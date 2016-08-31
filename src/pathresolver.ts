@@ -28,11 +28,11 @@ class PathResolver {
   constructor(public abspath?: boolean) {
   }
 
-  isTemplatedUrl(href) {
+  isTemplatedUrl(href: string): boolean {
     return href.search(constants.URL_TEMPLATE) >= 0;
   }
 
-  resolvePaths(importDoc: ASTNode, importUrl, mainDocUrl) {
+  resolvePaths(importDoc: ASTNode, importUrl: string, mainDocUrl: string) {
     // rewrite URLs in element attributes
     const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
     let attrValue;
@@ -73,11 +73,12 @@ class PathResolver {
     }
   }
 
-  isAbsoluteUrl(href) {
+  isAbsoluteUrl(href: string): boolean {
     return constants.ABS_URL.test(href);
   }
 
-  rewriteRelPath(importUrl, mainDocUrl, relUrl) {
+  rewriteRelPath(importUrl: string, mainDocUrl: string, relUrl: string):
+      string {
     if (this.isAbsoluteUrl(relUrl)) {
       return relUrl;
     }
@@ -97,7 +98,7 @@ class PathResolver {
     return absUrl;
   }
 
-  rewriteURL(importUrl, mainDocUrl, cssText) {
+  rewriteURL(importUrl: string, mainDocUrl: string, cssText: string): string {
     return cssText.replace(constants.URL, match => {
       let path = match.replace(/["']/g, '').slice(4, -1);
       path = this.rewriteRelPath(importUrl, mainDocUrl, path);
@@ -105,7 +106,7 @@ class PathResolver {
     });
   }
 
-  pathToUrl(filePath) {
+  pathToUrl(filePath: string): string {
     const absolutePath = path.resolve(filePath);
     if (process.platform === 'win32') {
       // encode C:\foo\ as C:/foo/
@@ -115,7 +116,7 @@ class PathResolver {
     }
   }
 
-  urlToPath(uri) {
+  urlToPath(uri: string): string {
     const parsed = url.parse(uri);
     if (process.platform === 'win32') {
       return parsed.protocol + parsed.pathname.split('/').join('\\');
