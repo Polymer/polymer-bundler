@@ -183,6 +183,8 @@ class Bundler {
     const documentAst = dom5.parseFragment(backingDocument.document.contents);
     this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
     let importParent: ASTNode;
+    // TODO(usergenic): remove the remove() call when PolymerLabs/dom5#35 is
+    // fixed
     if (matchers.afterHiddenDiv(htmlImport)) {
       importParent = dom5.nodeWalkPrior(htmlImport, matchers.hiddenDiv)!;
       dom5.remove(htmlImport);
