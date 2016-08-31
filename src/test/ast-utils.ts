@@ -19,7 +19,7 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 
-import * as AstUtils from '../ast-utils';
+import * as ast '../ast-utils';
 
 
 const assert = chai.assert;
@@ -44,7 +44,7 @@ suite('AST Utils', function() {
     </body>`;
     const aLink = needsMoving.childNodes![0]!.childNodes![0]!.childNodes![3]!;
     const body = needsMoving.childNodes![0]!.childNodes![2]!;
-    AstUtils.moveRemainderToTarget(aLink, body);
+    ast.moveRemainderToTarget(aLink, body);
     dom5.normalize(needsMoving);
     assert.equal(dom5.serialize(needsMoving), normalize(expected));
   });

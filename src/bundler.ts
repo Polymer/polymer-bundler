@@ -30,7 +30,7 @@ import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import constants from './constants';
 import * as matchers from './matchers';
 import PathResolver from './pathresolver';
-import * as ASTUtils from './ast-utils';
+import * as ast from './ast-utils';
 
 
 export interface Options {
@@ -191,7 +191,7 @@ class Bundler {
       const index = htmlImport.parentNode!.childNodes!.indexOf(htmlImport);
       importParent = htmlImport.parentNode!.childNodes![index + 1];
       dom5.remove(htmlImport);
-      ASTUtils.prepend(importParent, htmlImport);
+      ast.prepend(importParent, htmlImport);
     } else if (!matchers.inHiddenDiv(htmlImport)) {
       const hiddenDiv = this.getHiddenNode();
       dom5.replace(htmlImport, hiddenDiv);
@@ -201,7 +201,7 @@ class Bundler {
       importParent = htmlImport.parentNode!;
     }
 
-    ASTUtils.insertAllBefore(importParent, htmlImport, documentAst.childNodes!);
+    ast.insertAllBefore(importParent, htmlImport, documentAst.childNodes!);
     dom5.remove(htmlImport);
   }
 
@@ -235,10 +235,10 @@ class Bundler {
       if (elementInHead(nextHtmlImport)) {
         // Put the hiddenDiv in the body the first time we need it.
         if (!hiddenDiv.parentNode) {
-          ASTUtils.prepend(body, hiddenDiv);
+          ast.prepend(body, hiddenDiv);
         }
         // TODO(usergenic): This function needs a better name.
-        ASTUtils.moveRemainderToTarget(nextHtmlImport, hiddenDiv);
+        ast.moveRemainderToTarget(nextHtmlImport, hiddenDiv);
         // nextHtmlImport has moved, but we should be able to continue.
         continue;
       }
