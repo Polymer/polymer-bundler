@@ -35,14 +35,14 @@ class PathResolver {
   resolvePaths(importDoc: ASTNode, importUrl: string, mainDocUrl: string) {
     // rewrite URLs in element attributes
     const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
-    let attrValue;
-    for (let i = 0, node; i < nodes.length; i++) {
+    let attrValue: string|null;
+    for (let i = 0, node: ASTNode; i < nodes.length; i++) {
       node = nodes[i];
-      for (let j = 0, attr; j < constants.URL_ATTR.length; j++) {
+      for (let j = 0, attr: string; j < constants.URL_ATTR.length; j++) {
         attr = constants.URL_ATTR[j];
         attrValue = dom5.getAttribute(node, attr);
         if (attrValue && !this.isTemplatedUrl(attrValue)) {
-          let relUrl;
+          let relUrl: string;
           if (attr === 'style') {
             relUrl = this.rewriteURL(importUrl, mainDocUrl, attrValue);
           } else {
@@ -57,7 +57,7 @@ class PathResolver {
     }
     // rewrite URLs in stylesheets
     const styleNodes = dom5.queryAll(importDoc, matchers.styleMatcher);
-    for (let i = 0, node; i < styleNodes.length; i++) {
+    for (let i = 0, node: ASTNode; i < styleNodes.length; i++) {
       node = styleNodes[i];
       let styleText = dom5.getTextContent(node);
       styleText = this.rewriteURL(importUrl, mainDocUrl, styleText);
@@ -65,7 +65,7 @@ class PathResolver {
     }
     // add assetpath to dom-modules in importDoc
     const domModules = dom5.queryAll(importDoc, matchers.domModule);
-    for (let i = 0, node; i < domModules.length; i++) {
+    for (let i = 0, node: ASTNode; i < domModules.length; i++) {
       node = domModules[i];
       let assetPathUrl = this.rewriteRelPath(importUrl, mainDocUrl, '');
       assetPathUrl = pathPosix.dirname(assetPathUrl) + '/';
@@ -91,7 +91,8 @@ class PathResolver {
     if (parsedFrom.protocol === parsedTo.protocol &&
         parsedFrom.host === parsedTo.host) {
       const pathname = pathPosix.relative(
-          pathPosix.dirname(parsedFrom.pathname), parsedTo.pathname);
+          pathPosix.dirname(parsedFrom.pathname || ''),
+          parsedTo.pathname || '');
       return url.format(
           {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
     }
@@ -118,10 +119,11 @@ class PathResolver {
 
   urlToPath(uri: string): string {
     const parsed = url.parse(uri);
+    const pathname = parsed.pathname || '';
     if (process.platform === 'win32') {
-      return parsed.protocol + parsed.pathname.split('/').join('\\');
+      return parsed.protocol + pathname.split('/').join('\\');
     } else {
-      return (parsed.protocol || '') + parsed.pathname;
+      return (parsed.protocol || '') + pathname;
     }
   }
 }

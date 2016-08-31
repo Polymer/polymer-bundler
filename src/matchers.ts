@@ -88,9 +88,9 @@ export const inHiddenDiv = predicates.parentMatches(hiddenDiv);
  * ignored if --strip-comments is set. License comments should be deduplicated
  * and moved to the start of the document."
  */
-const nextToHiddenDiv = (offset) => {
-  return (node) => {
-    const siblings = node.parentNode.childNodes;
+const nextToHiddenDiv = (offset: number) => {
+  return (node: parse5.ASTNode) => {
+    const siblings = node.parentNode!.childNodes!;
     const hiddenDivIndex = siblings.indexOf(node) + offset;
     if (hiddenDivIndex < 0 || hiddenDivIndex >= siblings.length) {
       return false;

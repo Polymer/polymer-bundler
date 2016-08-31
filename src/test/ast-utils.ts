@@ -42,8 +42,8 @@ suite('AST Utils', function() {
     </head>
     <body><link rel="import" href="a.html">
     </body>`;
-    const aLink = needsMoving.childNodes[0].childNodes[0].childNodes[3];
-    const body = needsMoving.childNodes[0].childNodes[2];
+    const aLink = needsMoving.childNodes![0]!.childNodes![0]!.childNodes![3]!;
+    const body = needsMoving.childNodes![0]!.childNodes![2]!;
     AstUtils.moveRemainderToTarget(aLink, body);
     dom5.normalize(needsMoving);
     assert.equal(dom5.serialize(needsMoving), normalize(expected));

@@ -26,10 +26,10 @@ import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import Bundler from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 
-function parse(text) {
+function parse(text: string): parse5.ASTNode {
   return dom5.parse(text);
 }
-function serialize(ast) {
+function serialize(ast: parse5.ASTNode): string {
   return dom5.serialize(ast);
 }
 
@@ -90,7 +90,7 @@ suite('constants', function() {
 });
 
 suite('Path Resolver', function() {
-  let pathresolver;
+  let pathresolver: PathResolver;
   const inputPath = '/foo/bar/my-element/index.html';
   const outputPath = '/foo/bar/index.html';
 
@@ -116,7 +116,7 @@ suite('Path Resolver', function() {
     assert.equal(actual, expected);
   });
 
-  function testPath(val, expected, msg) {
+  function testPath(val: string, expected: string, msg: string) {
     const actual = pathresolver.rewriteRelPath(inputPath, outputPath, val);
     assert.equal(actual, expected, msg);
   }

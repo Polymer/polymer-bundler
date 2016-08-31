@@ -47,7 +47,7 @@ export function insertAllBefore(
  * Move node and its subsequent siblings to target.
  */
 export function moveRemainderToTarget(node: ASTNode, target: ASTNode) {
-  const siblings: Array<ASTNode> = node.parentNode.childNodes;
+  const siblings: Array<ASTNode> = node.parentNode!.childNodes!;
   const importIndex = siblings.indexOf(node);
   const nodesToMove = siblings.slice(importIndex);
   _prependMultiple(target, nodesToMove);

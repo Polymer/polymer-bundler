@@ -34,31 +34,30 @@ import * as ASTUtils from './ast-utils';
 
 
 export interface Options {
-  analyzer?: Analyzer;
-  implicitStrip?: boolean;
   abspath?: string;
   addedImports?: string[];
+  analyzer?: Analyzer;
   excludes?: string[];
-  stripExcludes?: string[];
-  stripComments?: boolean;
+  implicitStrip?: boolean;
   inlineCss?: boolean;
   inlineScripts?: boolean;
   inputUrl?: string;
-  fsResolver?: any;
   redirects?: string[];
+  stripComments?: boolean;
+  stripExcludes?: string[];
 }
 
 
 class Bundler {
   constructor(opts: Options) {
-    this.analyzer = opts.analyzer;
+    this.analyzer = opts.analyzer!;
     // implicitStrip should be true by default
     this.implicitStrip =
         opts.implicitStrip === undefined ? true : Boolean(opts.implicitStrip);
     this.abspath = (String(opts.abspath) === opts.abspath &&
                     String(opts.abspath).trim() !== '') ?
         path.resolve(opts.abspath) :
-        null;
+        undefined;
     this.pathResolver = new PathResolver(Boolean(this.abspath));
     this.addedImports =
         Array.isArray(opts.addedImports) ? opts.addedImports : [];
@@ -70,23 +69,21 @@ class Bundler {
     this.enableScriptInlining = Boolean(opts.inlineScripts);
     this.inputUrl =
         String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
-    this.fsResolver = opts.fsResolver;
     this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
   }
-  abspath: string;
-  analyzer: Analyzer;
-  pathResolver: PathResolver;
+
+  abspath?: string;
   addedImports: string[];
-  excludes: string[];
-  stripExcludes: string[];
-  stripComments: boolean;
+  analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
+  excludes: string[];
   implicitStrip: boolean;
   inputUrl: string;
-  fsResolver;
+  pathResolver: PathResolver;
   redirects: string[];
-  loader;
+  stripComments: boolean;
+  stripExcludes: string[];
 
   isExcludedHref(href: string) {
     if (constants.EXTERNAL_URL.test(href)) {
@@ -105,9 +102,9 @@ class Bundler {
 
   removeElementAndNewline(node: ASTNode, replacement?: ASTNode) {
     // when removing nodes, remove the newline after it as well
-    const parent = node.parentNode;
-    const nextIdx = parent.childNodes.indexOf(node) + 1;
-    const next = parent.childNodes[nextIdx];
+    const siblings = node.parentNode!.childNodes!;
+    const nextIdx = siblings.indexOf(node) + 1;
+    const next = siblings[nextIdx];
     // remove next node if it is blank text
     if (this.isBlankTextNode(next)) {
       dom5.remove(next);
@@ -143,7 +140,7 @@ class Bundler {
    */
   async inlineScript(documentUrl: string, externalScript: ASTNode):
       Promise<void> {
-    const rawUrl: string = dom5.getAttribute(externalScript, 'src');
+    const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
     const resolved = url.resolve(documentUrl, rawUrl);
     const backingScript: ScannedDocument =
         await this.analyzer._scanResolved(resolved);
@@ -157,7 +154,7 @@ class Bundler {
    */
   async inlineCss(documentUrl: string, externalStylesheet: ASTNode):
       Promise<void> {
-    const rawUrl: string = dom5.getAttribute(externalStylesheet, 'href');
+    const rawUrl: string = dom5.getAttribute(externalStylesheet, 'href')!;
     const resolved = url.resolve(documentUrl, rawUrl);
     const backingStylesheet: ScannedDocument =
         await this.analyzer._scanResolved(resolved);
@@ -174,7 +171,7 @@ class Bundler {
   async inlineHtmlImport(
       documentUrl: string, htmlImport: ASTNode,
       inlined: Set<string>): Promise<void> {
-    const rawUrl: string = dom5.getAttribute(htmlImport, 'href');
+    const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolved = url.resolve(documentUrl, rawUrl);
     if (inlined.has(resolved)) {
       dom5.remove(htmlImport);
@@ -187,12 +184,12 @@ class Bundler {
     this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
     let importParent: ASTNode;
     if (matchers.afterHiddenDiv(htmlImport)) {
-      importParent = dom5.nodeWalkPrior(htmlImport, matchers.hiddenDiv);
+      importParent = dom5.nodeWalkPrior(htmlImport, matchers.hiddenDiv)!;
       dom5.remove(htmlImport);
       dom5.append(importParent, htmlImport);
     } else if (matchers.beforeHiddenDiv(htmlImport)) {
-      const index = htmlImport.parentNode.childNodes.indexOf(htmlImport);
-      importParent = htmlImport.parentNode.childNodes[index + 1];
+      const index = htmlImport.parentNode!.childNodes!.indexOf(htmlImport);
+      importParent = htmlImport.parentNode!.childNodes![index + 1];
       dom5.remove(htmlImport);
       ASTUtils.prepend(importParent, htmlImport);
     } else if (!matchers.inHiddenDiv(htmlImport)) {
@@ -201,10 +198,10 @@ class Bundler {
       dom5.append(hiddenDiv, htmlImport);
       importParent = hiddenDiv;
     } else {
-      importParent = htmlImport.parentNode;
+      importParent = htmlImport.parentNode!;
     }
 
-    ASTUtils.insertAllBefore(importParent, htmlImport, documentAst.childNodes);
+    ASTUtils.insertAllBefore(importParent, htmlImport, documentAst.childNodes!);
     dom5.remove(htmlImport);
   }
 
@@ -220,7 +217,7 @@ class Bundler {
     const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
 
     // Create a hidden div to target.
-    const body = dom5.query(newDocument, matchers.body);
+    const body: ASTNode = dom5.query(newDocument, matchers.body)!;
     const hiddenDiv = this.getHiddenNode();
 
     const getNextHtmlImport = () =>
@@ -228,7 +225,7 @@ class Bundler {
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
     const inlinedHtmlImports = new Set<string>();
 
-    let nextHtmlImport;
+    let nextHtmlImport: ASTNode|null;
     while (nextHtmlImport = getNextHtmlImport()) {
       // If the import is in head, move all subsequent nodes to body.
       if (elementInHead(nextHtmlImport)) {
@@ -247,8 +244,9 @@ class Bundler {
     if (this.enableScriptInlining) {
       const getNextExternalScript = () =>
           dom5.query(newDocument, matchers.externalJavascript);
-      for (let nextScript; nextScript = getNextExternalScript();) {
-        await this.inlineScript(url, nextScript);
+      let nextExternalScript: ASTNode|null;
+      while (nextExternalScript = getNextExternalScript()) {
+        await this.inlineScript(url, nextExternalScript);
       }
     }
     return newDocument;
