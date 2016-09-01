@@ -260,7 +260,8 @@ suite('Vulcan', function() {
 
   let doc: parse5.ASTNode;
 
-  function bundle(inputPath, opts?: BundlerOptions): Promise<parse5.ASTNode> {
+  function bundle(
+      inputPath: string, opts?: BundlerOptions): Promise<parse5.ASTNode> {
     const bundlerOpts = opts || {};
     if (!bundlerOpts.analyzer) {
       bundlerOpts.analyzer =
@@ -290,8 +291,8 @@ suite('Vulcan', function() {
 
   test('svg is nested correctly', function() {
     return bundle(inputPath).then((doc) => {
-      const svg = dom5.query(doc, preds.hasTagName('svg'));
-      assert.equal(svg.childNodes.filter(dom5.isElement).length, 6);
+      const svg = dom5.query(doc, preds.hasTagName('svg'))!;
+      assert.equal(svg.childNodes!.filter(dom5.isElement).length, 6);
     });
   });
 
@@ -500,7 +501,7 @@ suite('Vulcan', function() {
   });
 
   suite('Redirect', function() {
-    test('Redirected paths load properly', function() {
+    test.skip('Redirected paths load properly', function() {
       const options = {
         redirects:
             ['chrome://imports/|test/html/imports/', 'biz://cool/|test/html']
@@ -623,15 +624,15 @@ suite('Vulcan', function() {
     const options = {inlineScripts: true};
 
     test('All scripts are inlined', function() {
-      return bundle(inputPath, options).then((doc) => {
-        const scripts = dom5.queryAll(doc, matchers.JS_SRC);
+      return bundle('html/default.html', options).then((doc) => {
+        const scripts = dom5.queryAll(doc, matchers.externalJavascript);
         assert.equal(scripts.length, 0);
       });
     });
 
     test('External scripts are kept', function() {
       return bundle('html/external-script.html', options).then((doc) => {
-        const scripts = dom5.queryAll(doc, matchers.JS_SRC);
+        const scripts = dom5.queryAll(doc, matchers.externalJavascript);
         assert.equal(scripts.length, 1);
       });
     });
@@ -641,14 +642,14 @@ suite('Vulcan', function() {
       const target = '/html/default.html';
       const options = {abspath: root, inlineScripts: true};
       return bundle(target, options).then((doc) => {
-        const scripts = dom5.queryAll(doc, matchers.JS_SRC);
+        const scripts = dom5.queryAll(doc, matchers.externalJavascript);
         assert.equal(scripts.length, 0);
       });
     });
 
     test('Escape inline <script>', function() {
       return bundle('html/xss.html', options).then((doc) => {
-        const script = dom5.query(doc, matchers.JS_INLINE);
+        const script = dom5.query(doc, matchers.inlineJavascript);
         assert.include(
             dom5.getTextContent(script),
             'var b = 0<\\/script><script>alert(\'XSS\'); //2;',

@@ -21,9 +21,9 @@ import * as dom5 from 'dom5';
 import encodeString from './third_party/UglifyJS2/encode-string';
 
 import * as parse5 from 'parse5';
-import {ASTNode} from 'parse5';
+import {ASTNode, CommentNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
-import {Document, ScannedDocument} from 'polymer-analyzer/lib/ast/ast';
+import {Document, ScannedDocument, Import} from 'polymer-analyzer/lib/ast/ast';
 import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
@@ -138,73 +138,94 @@ class Bundler {
   /**
    * Inline external scripts <script src="*">
    */
-  async inlineScript(documentUrl: string, externalScript: ASTNode):
-      Promise<void> {
+  inlineScript(
+      docUrl: string, externalScript: ASTNode,
+      importMap: Map<string, Import|null>) {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
-    const resolved = url.resolve(documentUrl, rawUrl);
-    const backingScript: ScannedDocument =
-        await this.analyzer._scanResolved(resolved);
-    const scriptContent = backingScript.document.contents;
-    dom5.removeAttribute(externalScript, 'src');
-    dom5.setTextContent(externalScript, scriptContent);
+    const resolvedUrl = url.resolve(docUrl, rawUrl);
+    const script = importMap.get(resolvedUrl);
+    if (script) {
+      if (script.document) {
+        const scriptContent = script.document.parsedDocument.contents;
+        dom5.removeAttribute(externalScript, 'src');
+        dom5.setTextContent(externalScript, scriptContent);
+      }
+    }
   }
 
   /**
    * Inline external stylesheets <link type="text/css" href="*">
    */
-  async inlineCss(documentUrl: string, externalStylesheet: ASTNode):
-      Promise<void> {
-    const rawUrl: string = dom5.getAttribute(externalStylesheet, 'href')!;
-    const resolved = url.resolve(documentUrl, rawUrl);
-    const backingStylesheet: ScannedDocument =
-        await this.analyzer._scanResolved(resolved);
-    const stylesheetContent = backingStylesheet.document.contents;
-    dom5.removeAttribute(externalStylesheet, 'href');
-    dom5.setTextContent(externalStylesheet, stylesheetContent);
-  }
+  // async inlineCss(documentUrl: string, externalStylesheet: ASTNode):
+  //     Promise<void> {
+  //   const rawUrl: string = dom5.getAttribute(externalStylesheet, 'href')!;
+  //   const resolved = url.resolve(documentUrl, rawUrl);
+  //   const backingStylesheet: ScannedDocument =
+  //       await this.analyzer._scanResolved(resolved);
+  //   const stylesheetContent = backingStylesheet.document.contents;
+  //   dom5.removeAttribute(externalStylesheet, 'href');
+  //   dom5.setTextContent(externalStylesheet, stylesheetContent);
+  // }
 
   /**
    * Inline external HTML files <link type="import" href="*">
    * TODO(usergenic): Refactor method to simplify and encapsulate case handling
    *     for hidden div adjacency etc.
    */
-  async inlineHtmlImport(
-      documentUrl: string, htmlImport: ASTNode,
-      inlined: Set<string>): Promise<void> {
+  inlineHtmlImport(
+      docUrl: string, htmlImport: ASTNode,
+      importMap: Map<string, Import|null>) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
-    const resolved = url.resolve(documentUrl, rawUrl);
-    if (inlined.has(resolved)) {
-      dom5.remove(htmlImport);
-      return;
-    }
-    inlined.add(resolved);
-    const backingDocument: ScannedDocument =
-        await this.analyzer._scanResolved(resolved);
-    const documentAst = dom5.parseFragment(backingDocument.document.contents);
-    this.pathResolver.resolvePaths(documentAst, resolved, documentUrl);
-    let importParent: ASTNode;
-    // TODO(usergenic): remove the remove() call when PolymerLabs/dom5#35 is
-    // fixed
-    if (matchers.afterHiddenDiv(htmlImport)) {
-      importParent = dom5.nodeWalkPrior(htmlImport, matchers.hiddenDiv)!;
-      dom5.remove(htmlImport);
-      dom5.append(importParent, htmlImport);
-    } else if (matchers.beforeHiddenDiv(htmlImport)) {
-      const index = htmlImport.parentNode!.childNodes!.indexOf(htmlImport);
-      importParent = htmlImport.parentNode!.childNodes![index + 1];
-      dom5.remove(htmlImport);
-      ast.prepend(importParent, htmlImport);
-    } else if (!matchers.inHiddenDiv(htmlImport)) {
-      const hiddenDiv = this.getHiddenNode();
-      dom5.replace(htmlImport, hiddenDiv);
-      dom5.append(hiddenDiv, htmlImport);
-      importParent = hiddenDiv;
-    } else {
-      importParent = htmlImport.parentNode!;
+    const resolvedUrl: string = url.resolve(docUrl, rawUrl);
+
+    const imprt = importMap.get(resolvedUrl);
+    if (imprt) {
+      // Is there a better way to get what we want other than using
+      // parseFragment?
+      const importDoc =
+          dom5.parseFragment(imprt.document.parsedDocument.contents);
+      importMap.set(resolvedUrl, null);
+      this.pathResolver.resolvePaths(importDoc, resolvedUrl, docUrl);
+
+      let importParent: ASTNode;
+      // TODO(usergenic): remove the remove() call when PolymerLabs/dom5#35 is
+      // fixed
+      if (matchers.afterHiddenDiv(htmlImport)) {
+        importParent = dom5.nodeWalkPrior(htmlImport, matchers.hiddenDiv)!;
+        dom5.remove(htmlImport);
+        dom5.append(importParent, htmlImport);
+      } else if (matchers.beforeHiddenDiv(htmlImport)) {
+        const index = htmlImport.parentNode!.childNodes!.indexOf(htmlImport);
+        importParent = htmlImport.parentNode!.childNodes![index + 1];
+        dom5.remove(htmlImport);
+        ast.prepend(importParent, htmlImport);
+      } else if (!matchers.inHiddenDiv(htmlImport)) {
+        const hiddenDiv = this.getHiddenNode();
+        dom5.replace(htmlImport, hiddenDiv);
+        dom5.append(hiddenDiv, htmlImport);
+        importParent = hiddenDiv;
+      } else {
+        importParent = htmlImport.parentNode!;
+      }
+
+      dom5.queryAll(importDoc, matchers.htmlImport).forEach((nestedImport) => {
+        this.inlineHtmlImport(docUrl, nestedImport, importMap);
+      });
+
+      ast.insertAllBefore(importParent, htmlImport, importDoc.childNodes!);
     }
 
-    ast.insertAllBefore(importParent, htmlImport, documentAst.childNodes!);
-    dom5.remove(htmlImport);
+    // If we've just inlined it or otherwise have seen it before, we can remove
+    // the <link> tag.
+    if (importMap.get(resolvedUrl) === null) {
+      dom5.remove(htmlImport);
+    }
+
+    // If we've never seen this import before, lets put it on the map as null so
+    // we will deduplicate if we encounter it again.
+    if (!importMap.has(resolvedUrl)) {
+      importMap.set(resolvedUrl, null);
+    }
   }
 
   /**
@@ -214,60 +235,72 @@ class Bundler {
    */
   async bundle(url: string): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyzeRoot(url);
-    // TODO(usergenic): Don't re-parse this document if you already have an AST
-    // in parsedDocument.  Try cloning or even building newDocument as analyzed
-    // document is walked.
-    const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
 
-    // Create a hidden div to target.
+    const importMap: Map<string, Import|null> = new Map();
+    analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
+    this.excludes.forEach((u) => {
+      if (importMap.has(u)) {
+        importMap.delete(u);
+      }
+    });
+    this.stripExcludes.forEach((u) => importMap.set(u, null));
+
+    const newDocument = dom5.cloneNode(analyzedRoot.parsedDocument.ast);
+
+    const head: ASTNode = dom5.query(newDocument, matchers.head)!;
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;
+    // Create a hidden div to target.
     const hiddenDiv = this.getHiddenNode();
-
-    // TODO(usergenic): This will query from the root of the document each time
-    // it is called.  We should be able to handle nested imports in a more
-    // optimal way than walking the whole tree for each <link>.
-    const getNextHtmlImport = () =>
-        dom5.query(newDocument, matchers.htmlImport);
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
-    const inlinedHtmlImports = new Set<string>();
 
-    let nextHtmlImport: ASTNode|null;
-    while (nextHtmlImport = getNextHtmlImport()) {
-      // If the import is in head, move all subsequent nodes to body.
-      if (elementInHead(nextHtmlImport)) {
-        // Put the hiddenDiv in the body the first time we need it.
+    // Move htmlImports out of head into a hiddenDiv in body
+    const htmlImports = dom5.queryAll(newDocument, matchers.htmlImport);
+    htmlImports.forEach((htmlImport) => {
+      if (elementInHead(htmlImport)) {
         if (!hiddenDiv.parentNode) {
           ast.prepend(body, hiddenDiv);
         }
         // TODO(usergenic): This function needs a better name.
-        ast.moveRemainderToTarget(nextHtmlImport, hiddenDiv);
-        // nextHtmlImport has moved, but we should be able to continue.
-        continue;
+        ast.moveRemainderToTarget(htmlImport, hiddenDiv);
       }
-      await this.inlineHtmlImport(url, nextHtmlImport, inlinedHtmlImports);
-    }
+    });
+
+    htmlImports.forEach((htmlImport: ASTNode) => {
+      this.inlineHtmlImport(url, htmlImport, importMap);
+    });
 
     if (this.enableScriptInlining) {
-      // TODO(usergenic): This will query from the root of the document each
-      // time it is called.  There's no need for that, we should be able to run
-      // a loop on collection of all external scripts encountered.
-      const getNextExternalScript = () =>
-          dom5.query(newDocument, matchers.externalJavascript);
-      let nextExternalScript: ASTNode|null;
-      while (nextExternalScript = getNextExternalScript()) {
-        await this.inlineScript(url, nextExternalScript);
-      }
+      dom5.queryAll(newDocument, matchers.externalJavascript)
+          .forEach((externalScript: ASTNode) => {
+            this.inlineScript(url, externalScript, importMap);
+          });
     }
+
+    if (this.stripComments) {
+      const comments: Map<string, CommentNode> = new Map();
+      dom5.nodeWalkAll(newDocument, dom5.isCommentNode)
+          .forEach((comment: CommentNode) => {
+            comments.set(comment.data, comment);
+            dom5.remove(comment);
+          });
+      // Deduplicate license comments and move to head
+      comments.forEach((comment) => {
+        if (this.isLicenseComment(comment)) {
+          // TODO(usergenic): add prepend to dom5
+          if (head.childNodes && head.childNodes.length) {
+            dom5.insertBefore(head, head.childNodes[0], comment);
+          } else {
+            dom5.append(head, comment);
+          }
+        }
+      });
+    }
+
     return newDocument;
-    // TODO(garlicnation): inline HTML.
-    // TODO(garlicnation): resolve paths.
     // TODO(garlicnation): inline CSS
-    // TODO(garlicnation): inline javascript
-    // TODO(garlicnation): reparent <link> and subsequent nodes to <body>
 
     // LATER
     // TODO(garlicnation): resolve <base> tags.
-    // TODO(garlicnation): deduplicate imports
     // TODO(garlicnation): Ignore stripped imports
     // TODO(garlicnation): preserve excluded imports
     // TODO(garlicnation): find transitive dependencies of specified excluded

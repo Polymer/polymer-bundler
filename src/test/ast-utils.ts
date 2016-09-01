@@ -19,7 +19,7 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 
-import * as ast '../ast-utils';
+import * as ast from '../ast-utils';
 
 
 const assert = chai.assert;
