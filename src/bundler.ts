@@ -26,24 +26,31 @@ import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
 import {Document, ScannedDocument, Import} from 'polymer-analyzer/lib/ast/ast';
 import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
-
 import constants from './constants';
 import * as matchers from './matchers';
 import PathResolver from './pathresolver';
 import * as ast from './ast-utils';
 
 
+// TODO(usergenic): Document every one of these options.
 export interface Options {
   abspath?: string;
   addedImports?: string[];
   analyzer?: Analyzer;
+
+  // URLs of files that should not be inlined.
   excludes?: string[];
   implicitStrip?: boolean;
   inlineCss?: boolean;
   inlineScripts?: boolean;
   inputUrl?: string;
   redirects?: string[];
+
+  // Remove of all comments (except those containing '@license') when true.
   stripComments?: boolean;
+
+  // Paths of files that should not be inlined and which should have all links
+  // removed.
   stripExcludes?: string[];
 }
 
@@ -144,13 +151,16 @@ class Bundler {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
     const resolvedUrl = url.resolve(docUrl, rawUrl);
     const script = importMap.get(resolvedUrl);
-    if (script) {
-      if (script.document) {
-        const scriptContent = script.document.parsedDocument.contents;
-        dom5.removeAttribute(externalScript, 'src');
-        dom5.setTextContent(externalScript, scriptContent);
-      }
+
+    if (!script || !script.document) {
+      return;
     }
+
+    // Second argument 'true' tells encodeString to escape <script> tags.
+    const scriptContent =
+        encodeString(script.document.parsedDocument.contents, true);
+    dom5.removeAttribute(externalScript, 'src');
+    dom5.setTextContent(externalScript, scriptContent);
   }
 
   /**
@@ -182,7 +192,9 @@ class Bundler {
     if (imprt) {
       // Is there a better way to get what we want other than using
       // parseFragment?
-      const importDoc =
+      const importDoc =  // dom5.cloneNode(
+                         // dom5.query(imprt.document.parsedDocument.ast,
+                         // matchers.body)!);
           dom5.parseFragment(imprt.document.parsedDocument.contents);
       importMap.set(resolvedUrl, null);
       this.pathResolver.resolvePaths(importDoc, resolvedUrl, docUrl);
@@ -236,6 +248,10 @@ class Bundler {
   async bundle(url: string): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyzeRoot(url);
 
+    // Map keyed by url to the import source and which has either the Import
+    // feature as a value indicating the inlining of the Import has not yet
+    // occurred or a value of null indicating that <link> tags referencing it
+    // should be removed from the document.
     const importMap: Map<string, Import|null> = new Map();
     analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
     this.excludes.forEach((u) => {
@@ -245,6 +261,7 @@ class Bundler {
     });
     this.stripExcludes.forEach((u) => importMap.set(u, null));
 
+    // We must clone the AST from the document, since we will be modifying it.
     const newDocument = dom5.cloneNode(analyzedRoot.parsedDocument.ast);
 
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
@@ -265,6 +282,8 @@ class Bundler {
       }
     });
 
+    // Inline all HTML Imports.  (The inlineHtmlImport method will discern how
+    // to handle them based on the state of the importMap.)
     htmlImports.forEach((htmlImport: ASTNode) => {
       this.inlineHtmlImport(url, htmlImport, importMap);
     });
@@ -283,6 +302,7 @@ class Bundler {
             comments.set(comment.data, comment);
             dom5.remove(comment);
           });
+
       // Deduplicate license comments and move to head
       comments.forEach((comment) => {
         if (this.isLicenseComment(comment)) {
