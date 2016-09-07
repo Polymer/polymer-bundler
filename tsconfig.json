@@ -4,9 +4,8 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "isolatedModules": false,
-        // TODO: enable these
-        // "noImplicitAny": false,
-        // "strictNullChecks": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
         "removeComments": false,
         "preserveConstEnums": true,
         "suppressImplicitAnyIndexErrors": true,

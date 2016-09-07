@@ -15,32 +15,38 @@
 import * as dom5 from 'dom5';
 import {ASTNode} from 'parse5';
 
-export default class ASTUtils {
-  static prepend(parent, node) {
-    if (parent.childNodes && parent.childNodes.length) {
-      dom5.insertBefore(parent, parent.childNodes[0], node);
-    } else {
-      dom5.append(parent, node);
-    }
+export function prepend(parent: ASTNode, node: ASTNode) {
+  if (parent.childNodes && parent.childNodes.length) {
+    dom5.insertBefore(parent, parent.childNodes[0], node);
+  } else {
+    dom5.append(parent, node);
   }
+}
 
-  static prependMultiple(target, nodes: ASTNode[]) {
-    let moveIndex = nodes.length - 1;
-    while (moveIndex >= 0) {
-      const nodeToMove = nodes[moveIndex];
-      dom5.remove(nodeToMove);
-      ASTUtils.prepend(target, nodeToMove);
-      moveIndex--;
-    }
+export function prependAll(parent: ASTNode, nodes: ASTNode[]) {
+  let moveIndex = nodes.length - 1;
+  while (moveIndex >= 0) {
+    const nodeToMove = nodes[moveIndex];
+    dom5.remove(nodeToMove);
+    prepend(parent, nodeToMove);
+    moveIndex--;
   }
+}
 
-  /**
-   * Move node and its subsequent siblings to target.
-   */
-  static moveRemainderToTarget(node: ASTNode, target: ASTNode) {
-    const siblings: Array<ASTNode> = node.parentNode.childNodes;
-    const importIndex = siblings.indexOf(node);
-    const nodesToMove = siblings.slice(importIndex);
-    ASTUtils.prependMultiple(target, nodesToMove);
+export function insertAllBefore(
+    target: ASTNode, oldNode: ASTNode, nodes: ASTNode[]) {
+  let lastNode = oldNode;
+  for (let n = nodes.length - 1; n >= 0; n--) {
+    const node = nodes[n];
+    dom5.insertBefore(target, lastNode, node);
+    lastNode = node;
   }
+}
+
+/**
+ * Return all sibling nodes following node.
+ */
+export function siblingsAfter(node: ASTNode): ASTNode[] {
+  const siblings: ASTNode[] = Array.from(node.parentNode!.childNodes!);
+  return siblings.slice(siblings.indexOf(node) + 1);
 }
