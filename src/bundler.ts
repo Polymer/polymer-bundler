@@ -24,6 +24,7 @@ import * as parse5 from 'parse5';
 import {ASTNode, CommentNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
 import {Document, ScannedDocument, Import} from 'polymer-analyzer/lib/ast/ast';
+import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
 import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import constants from './constants';
@@ -240,6 +241,18 @@ class Bundler {
     }
   }
 
+  // TODO(usergenic): Migrate "Old Polymer" detection to polymer-analyzer with
+  // deprecated feature scanners.
+  oldPolymerCheck(analyzedRoot) {
+    analyzedRoot.getByKind('document').forEach((d) => {
+      if (d.parsedDocument instanceof ParsedHtmlDocument &&
+          dom5.query(d.parsedDocument.ast, matchers.polymerElement)) {
+        throw new Error(
+            constants.OLD_POLYMER + ' File: ' + d.parsedDocument.url);
+      }
+    });
+  }
+
   /**
    * Given a URL to an entry-point html document, produce a single document
    * with HTML imports, external stylesheets and external scripts inlined,
@@ -269,6 +282,9 @@ class Bundler {
     // Create a hidden div to target.
     const hiddenDiv = this.getHiddenNode();
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
+
+    // Old Polymer versions are not supported, so warn user.
+    this.oldPolymerCheck(analyzedRoot);
 
     // Move htmlImports out of head into a hiddenDiv in body
     const htmlImports = dom5.queryAll(newDocument, matchers.htmlImport);
