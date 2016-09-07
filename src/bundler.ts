@@ -243,7 +243,7 @@ class Bundler {
 
   // TODO(usergenic): Migrate "Old Polymer" detection to polymer-analyzer with
   // deprecated feature scanners.
-  oldPolymerCheck(analyzedRoot) {
+  oldPolymerCheck(analyzedRoot: Documents) {
     analyzedRoot.getByKind('document').forEach((d) => {
       if (d.parsedDocument instanceof ParsedHtmlDocument &&
           dom5.query(d.parsedDocument.ast, matchers.polymerElement)) {
@@ -293,8 +293,8 @@ class Bundler {
         if (!hiddenDiv.parentNode) {
           ast.prepend(body, hiddenDiv);
         }
-        // TODO(usergenic): This function needs a better name.
-        ast.moveRemainderToTarget(htmlImport, hiddenDiv);
+        ast.prependAll(ast.siblingsAfter(htmlImport), hiddenDiv);
+        ast.prepend(htmlImport, hiddenDiv);
       }
     });
 

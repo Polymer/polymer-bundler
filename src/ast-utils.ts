@@ -23,12 +23,12 @@ export function prepend(parent: ASTNode, node: ASTNode) {
   }
 }
 
-function _prependMultiple(target: ASTNode, nodes: ASTNode[]) {
+export function prependAll(parent: ASTNode, nodes: ASTNode[]) {
   let moveIndex = nodes.length - 1;
   while (moveIndex >= 0) {
     const nodeToMove = nodes[moveIndex];
     dom5.remove(nodeToMove);
-    prepend(target, nodeToMove);
+    prepend(parent, nodeToMove);
     moveIndex--;
   }
 }
@@ -44,11 +44,9 @@ export function insertAllBefore(
 }
 
 /**
- * Move node and its subsequent siblings to target.
+ * Return all sibling nodes following node.
  */
-export function moveRemainderToTarget(node: ASTNode, target: ASTNode) {
-  const siblings: Array<ASTNode> = node.parentNode!.childNodes!;
-  const importIndex = siblings.indexOf(node);
-  const nodesToMove = siblings.slice(importIndex);
-  _prependMultiple(target, nodesToMove);
+export function siblingsAfter(node: ASTNode): ASTNode[] {
+  const siblings: ASTNode[] = Array.from(node.parentNode!.childNodes!);
+  return siblings.slice(siblings.indexOf(node) + 1);
 }

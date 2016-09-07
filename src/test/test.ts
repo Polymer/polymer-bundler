@@ -128,7 +128,7 @@ suite('Path Resolver', function() {
   });
 
   test('Rewrite Paths with absolute paths', function() {
-    pathresolver = new PathResolver('/foo/bar/my-element');
+    pathresolver = new PathResolver(true);
     testPath('biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
     testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
     testPath('#foo', '#foo', 'hash');
@@ -385,7 +385,7 @@ suite('Vulcan', function() {
     const anchorMatcher = preds.hasTagName('a');
     const input = 'test/html/multiple-imports.html';
     return bundle(input).then((doc) => {
-      const anchor = dom5.query(doc, anchorMatcher);
+      const anchor = dom5.query(doc, anchorMatcher)!;
       const href = dom5.getAttribute(anchor, 'href');
       assert.equal(href, 'imports/target.html');
     })
@@ -443,10 +443,10 @@ suite('Vulcan', function() {
 
         const scriptMatcher = preds.hasTagName('script');
         const scripts = dom5.queryAll(doc, scriptMatcher);
-        const actualOrder = [], actualSrc = [];
+        const actualOrder: Array<string> = [], actualSrc: Array<string> = [];
         scripts.forEach(function(s) {
-          actualOrder.push(dom5.getAttribute(s, 'id'));
-          actualSrc.push(dom5.getAttribute(s, 'src'));
+          actualOrder.push(dom5.getAttribute(s, 'id')!);
+          actualSrc.push(dom5.getAttribute(s, 'src')!);
         });
         assert.deepEqual(
             actualOrder, expectedOrder, 'order is not as expected');
@@ -472,7 +472,7 @@ suite('Vulcan', function() {
         const scripts = dom5.queryAll(
             doc, preds.AND(preds.hasTagName('script'), preds.hasAttr('src')));
         scripts.forEach(function(s) {
-          const src = dom5.getAttribute(s, 'src');
+          const src = dom5.getAttribute(s, 'src')!;
           assert.equal(
               src.indexOf('../order'), 0, 'path should start with ../order');
         });

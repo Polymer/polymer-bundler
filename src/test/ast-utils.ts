@@ -20,6 +20,7 @@ import * as chai from 'chai';
 import * as dom5 from 'dom5';
 
 import * as ast from '../ast-utils';
+import * as matchers from '../matchers';
 
 
 const assert = chai.assert;
@@ -31,21 +32,39 @@ const normalize = (html: string) => {
 };
 
 suite('AST Utils', function() {
-  test('moveRemainderToBody', () => {
-    const needsMoving = dom5.parse(`<head>
-    <link rel="stylesheet" href="b.css">
-    <link rel="import" href="a.html"></head>
-    <body>
-    </body>`);
-    const expected = `<head>
-    <link rel="stylesheet" href="b.css">
-    </head>
-    <body><link rel="import" href="a.html">
-    </body>`;
-    const aLink = needsMoving.childNodes![0]!.childNodes![0]!.childNodes![3]!;
-    const body = needsMoving.childNodes![0]!.childNodes![2]!;
-    ast.moveRemainderToTarget(aLink, body);
-    dom5.normalize(needsMoving);
-    assert.equal(dom5.serialize(needsMoving), normalize(expected));
+
+  test('prepend', () => {
+    const orderedList =
+        dom5.parseFragment(`<ol><li>1<li>2<li>3<li>4<li>5</ol>`);
+    const ol = orderedList.childNodes![0]!;
+    const li3 = ol.childNodes![2]!;
+    ast.prepend(ol, li3);
+    assert.equal(
+        dom5.serialize(ol.parentNode),
+        dom5.serialize(
+            dom5.parseFragment(`<ol><li>3<li>1<li>2<li>4<li>5</ol>`)));
+  });
+
+  test('prependAll', () => {
+    const orderedList =
+        dom5.parseFragment(`<ol><li>1<li>2<li>3<li>4<li>5</ol>`);
+    const ol = orderedList.childNodes![0]!;
+    const li3 = ol.childNodes![2]!;
+    const li5 = ol.childNodes![4]!;
+    ast.prependAll(ol, [li3, li5]);
+    assert.equal(
+        dom5.serialize(ol.parentNode),
+        dom5.serialize(
+            dom5.parseFragment(`<ol><li>3<li>5<li>1<li>2<li>4</ol>`)));
+  });
+
+  test('siblingsAfter', () => {
+    const orderedList =
+        dom5.parseFragment(`<ol><li>1<li>2<li>3<li>4<li>5</ol>`);
+    const li3 = orderedList.childNodes![0]!.childNodes![2]!;
+    const after3 = ast.siblingsAfter(li3);
+    assert.equal(after3.length, 2);
+    assert.equal(dom5.serialize(after3[0]), '4');
+    assert.equal(dom5.serialize(after3[1]), '5');
   });
 });
