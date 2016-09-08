@@ -79,7 +79,7 @@ class Bundler {
                     String(opts.abspath).trim() !== '') ?
         path.resolve(opts.abspath) :
         undefined;
-    this.pathResolver = new PathResolver(Boolean(this.abspath));
+    this.pathResolver = new PathResolver(this.abspath);
     this.addedImports =
         Array.isArray(opts.addedImports) ? opts.addedImports : [];
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
@@ -93,7 +93,7 @@ class Bundler {
     this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
   }
 
-  isExcludedHref(href: string) {
+  isExcludedHref(href: string): boolean {
     if (constants.EXTERNAL_URL.test(href)) {
       return true;
     }
@@ -101,6 +101,13 @@ class Bundler {
       return false;
     }
     return this.excludes.some(r => href.search(r) >= 0);
+  }
+
+  isStripExcludedHref(href: string): boolean {
+    if (!this.stripExcludes) {
+      return false;
+    }
+    return this.stripExcludes.some(r => href.search(r) >= 0);
   }
 
   isBlankTextNode(node: ASTNode): boolean {
@@ -191,6 +198,14 @@ class Bundler {
 
     const imprt = importMap.get(resolvedUrl);
     if (imprt) {
+      // If the document wasn't loaded for the import during analysis, we can't
+      // inline it.
+      if (!imprt.document) {
+        // TODO(usergenic): What should the behavior be when we don't have the
+        // document to inline available in the analyzer?
+        return;
+      }
+
       // Is there a better way to get what we want other than using
       // parseFragment?
       const importDoc =  // dom5.cloneNode(
@@ -243,7 +258,7 @@ class Bundler {
 
   // TODO(usergenic): Migrate "Old Polymer" detection to polymer-analyzer with
   // deprecated feature scanners.
-  oldPolymerCheck(analyzedRoot: Documents) {
+  oldPolymerCheck(analyzedRoot: Document) {
     analyzedRoot.getByKind('document').forEach((d) => {
       if (d.parsedDocument instanceof ParsedHtmlDocument &&
           dom5.query(d.parsedDocument.ast, matchers.polymerElement)) {
@@ -267,12 +282,13 @@ class Bundler {
     // should be removed from the document.
     const importMap: Map<string, Import|null> = new Map();
     analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
-    this.excludes.forEach((u) => {
-      if (importMap.has(u)) {
+    importMap.forEach((_, u) => {
+      if (this.isStripExcludedHref(u)) {
+        importMap.set(u, null);
+      } else if (this.isExcludedHref(u)) {
         importMap.delete(u);
       }
     });
-    this.stripExcludes.forEach((u) => importMap.set(u, null));
 
     // We must clone the AST from the document, since we will be modifying it.
     const newDocument = dom5.cloneNode(analyzedRoot.parsedDocument.ast);
@@ -293,8 +309,8 @@ class Bundler {
         if (!hiddenDiv.parentNode) {
           ast.prepend(body, hiddenDiv);
         }
-        ast.prependAll(ast.siblingsAfter(htmlImport), hiddenDiv);
-        ast.prepend(htmlImport, hiddenDiv);
+        ast.prependAll(hiddenDiv, ast.siblingsAfter(htmlImport));
+        ast.prepend(hiddenDiv, htmlImport);
       }
     });
 
@@ -337,13 +353,9 @@ class Bundler {
 
     // LATER
     // TODO(garlicnation): resolve <base> tags.
-    // TODO(garlicnation): Ignore stripped imports
-    // TODO(garlicnation): preserve excluded imports
     // TODO(garlicnation): find transitive dependencies of specified excluded
     // files.
     // TODO(garlicnation): ignore <link> in <template>
-    // TODO(garlicnation): deduplicate license comments
-    // TODO(garlicnation): optionally strip non-license comments
     // TODO(garlicnation): hide imports in main document, unless already hidden}
     // TODO(garlicnation): Support addedImports
 

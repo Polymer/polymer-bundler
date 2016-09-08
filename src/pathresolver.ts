@@ -25,7 +25,10 @@ import constants from './constants';
 const pathPosix = path.posix;
 
 class PathResolver {
-  constructor(public abspath?: boolean) {
+  public abspath: string;
+
+  constructor(abspath?: string) {
+    this.abspath = abspath || '';
   }
 
   isTemplatedUrl(href: string): boolean {
@@ -84,7 +87,7 @@ class PathResolver {
     }
     const absUrl = url.resolve(importUrl, relUrl);
     if (this.abspath) {
-      return url.resolve('/', absUrl);
+      return url.resolve(this.abspath, absUrl);
     }
     const parsedFrom = url.parse(mainDocUrl);
     const parsedTo = url.parse(absUrl);
