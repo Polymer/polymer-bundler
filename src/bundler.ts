@@ -29,7 +29,7 @@ import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import constants from './constants';
 import * as matchers from './matchers';
-import PathResolver from './pathresolver';
+import PathRewriter from './pathrewriter';
 import * as ast from './ast-utils';
 
 
@@ -65,7 +65,7 @@ class Bundler {
   excludes: string[];
   implicitStrip: boolean;
   inputUrl: string;
-  pathResolver: PathResolver;
+  pathRewriter: PathRewriter;
   redirects: string[];
   stripComments: boolean;
   stripExcludes: string[];
@@ -79,7 +79,7 @@ class Bundler {
                     String(opts.abspath).trim() !== '') ?
         path.resolve(opts.abspath) :
         undefined;
-    this.pathResolver = new PathResolver(this.abspath);
+    this.pathRewriter = new PathRewriter(this.abspath);
     this.addedImports =
         Array.isArray(opts.addedImports) ? opts.addedImports : [];
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
@@ -213,7 +213,7 @@ class Bundler {
                          // matchers.body)!);
           dom5.parseFragment(imprt.document.parsedDocument.contents);
       importMap.set(resolvedUrl, null);
-      this.pathResolver.resolvePaths(importDoc, resolvedUrl, docUrl);
+      this.pathRewriter.rewritePaths(importDoc, resolvedUrl, docUrl);
 
       let importParent: ASTNode;
       // TODO(usergenic): remove the remove() call when PolymerLabs/dom5#35 is

@@ -24,7 +24,7 @@ import constants from './constants';
 
 const pathPosix = path.posix;
 
-class PathResolver {
+class PathRewriter {
   public abspath: string;
 
   constructor(abspath?: string) {
@@ -35,7 +35,7 @@ class PathResolver {
     return href.search(constants.URL_TEMPLATE) >= 0;
   }
 
-  resolvePaths(importDoc: ASTNode, importUrl: string, mainDocUrl: string) {
+  rewritePaths(importDoc: ASTNode, importUrl: string, mainDocUrl: string) {
     // rewrite URLs in element attributes
     const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
     let attrValue: string|null;
@@ -131,4 +131,4 @@ class PathResolver {
   }
 }
 
-export default PathResolver;
+export default PathRewriter;

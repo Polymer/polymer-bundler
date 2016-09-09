@@ -19,7 +19,7 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import * as path from 'path';
 
-import PathResolver from '../pathresolver';
+import PathRewriter from '../pathrewriter';
 import constants from '../constants';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
@@ -83,12 +83,12 @@ suite('constants', function() {
 });
 
 suite('Path Resolver', function() {
-  let pathresolver: PathResolver;
+  let pathRewriter: PathRewriter;
   const inputPath = '/foo/bar/my-element/index.html';
   const outputPath = '/foo/bar/index.html';
 
   setup(function() {
-    pathresolver = new PathResolver();
+    pathRewriter = new PathRewriter();
   });
 
   test('Rewrite URLs', function() {
@@ -104,12 +104,12 @@ suite('Path Resolver', function() {
       '  background-image: url("https://foo.bar/baz.jpg");', '}'
     ].join('\n');
 
-    const actual = pathresolver.rewriteURL(inputPath, outputPath, css);
+    const actual = pathRewriter.rewriteURL(inputPath, outputPath, css);
     assert.equal(actual, expected);
   });
 
   function testPath(val: string, expected: string, msg: string) {
-    const actual = pathresolver.rewriteRelPath(inputPath, outputPath, val);
+    const actual = pathRewriter.rewriteRelPath(inputPath, outputPath, val);
     assert.equal(actual, expected, msg);
   }
 
@@ -120,7 +120,7 @@ suite('Path Resolver', function() {
   });
 
   test('Rewrite Paths with absolute paths', function() {
-    pathresolver = new PathResolver('/');
+    pathRewriter = new PathRewriter('/');
     testPath('biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
     testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
     testPath('#foo', '#foo', 'hash');
@@ -131,18 +131,18 @@ suite('Path Resolver', function() {
   // abspath to allow mounting where relative urls are used but honor actual
   // absolute urls?
   test('Rewrite Paths with absolute paths', function() {
-    pathresolver = new PathResolver('/myapp/');
+    pathRewriter = new PathRewriter('/myapp/');
     assert.equal(
-        pathresolver.rewriteRelPath('imported/file', 'xxxxx', 'rel/path'),
+        pathRewriter.rewriteRelPath('imported/file', 'xxxxx', 'rel/path'),
         '/myapp/imported/rel/path');
     assert.equal(
-        pathresolver.rewriteRelPath('imported/file', 'xxxxx', '/rel/path'),
+        pathRewriter.rewriteRelPath('imported/file', 'xxxxx', '/rel/path'),
         '/rel/path');
     assert.equal(
-        pathresolver.rewriteRelPath('/imported/file', 'xxxxx', 'rel/path'),
+        pathRewriter.rewriteRelPath('/imported/file', 'xxxxx', 'rel/path'),
         '/imported/rel/path');
     assert.equal(
-        pathresolver.rewriteRelPath('/imported/file', 'xxxxx', '/rel/path'),
+        pathRewriter.rewriteRelPath('/imported/file', 'xxxxx', '/rel/path'),
         '/rel/path');
   });
 
@@ -167,7 +167,7 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     const ast = dom5.parse(html);
-    pathresolver.resolvePaths(ast, inputPath, outputPath);
+    pathRewriter.rewritePaths(ast, inputPath, outputPath);
 
     const actual = dom5.serialize(ast);
     assert.equal(actual, expected, 'relative');
@@ -196,8 +196,8 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     const ast = dom5.parse(htmlBase);
-    pathresolver.acid(ast, inputPath);
-    pathresolver.resolvePaths(ast, inputPath, outputPath);
+    pathRewriter.acid(ast, inputPath);
+    pathRewriter.rewritePaths(ast, inputPath, outputPath);
 
     const actual = dom5.serialize(ast);
     assert.equal(actual, expectedBase, 'base');
@@ -227,8 +227,8 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     const ast = dom5.parse(htmlBase);
-    pathresolver.acid(ast, inputPath);
-    pathresolver.resolvePaths(ast, inputPath, outputPath);
+    pathRewriter.acid(ast, inputPath);
+    pathRewriter.rewritePaths(ast, inputPath, outputPath);
 
     const actual = dom5.serialize(ast);
     assert.equal(actual, expectedBase, 'base');
@@ -244,8 +244,8 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     const ast = dom5.parse(htmlBase);
-    pathresolver.acid(ast, inputPath);
-    pathresolver.resolvePaths(ast, inputPath, outputPath);
+    pathRewriter.acid(ast, inputPath);
+    pathRewriter.rewritePaths(ast, inputPath, outputPath);
 
     const actual = dom5.serialize(ast);
     assert.equal(actual, expectedBase, 'base target');
@@ -258,7 +258,7 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     const ast = dom5.parse(base);
-    pathresolver.resolvePaths(ast, inputPath, outputPath);
+    pathRewriter.rewritePaths(ast, inputPath, outputPath);
 
     const actual = dom5.serialize(ast);
     assert.equal(actual, base, 'templated urls');
