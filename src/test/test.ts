@@ -83,15 +83,12 @@ suite('constants', function() {
 });
 
 suite('Path Resolver', function() {
-  let pathRewriter: PathRewriter;
   const inputPath = '/foo/bar/my-element/index.html';
   const outputPath = '/foo/bar/index.html';
 
-  setup(function() {
-    pathRewriter = new PathRewriter();
-  });
-
   test('Rewrite URLs', function() {
+    const pathRewriter = new PathRewriter();
+
     const css = [
       'x-element {', '  background-image: url(foo.jpg);', '}', 'x-bar {',
       '  background-image: url(data:xxxxx);', '}', 'x-quuz {',
@@ -108,42 +105,39 @@ suite('Path Resolver', function() {
     assert.equal(actual, expected);
   });
 
-  function testPath(val: string, expected: string, msg: string) {
-    const actual = pathRewriter.rewriteRelPath(inputPath, outputPath, val);
+  function testPath(
+      rw: PathRewriter, val: string, expected: string, msg?: string) {
+    const actual = rw.rewriteRelPath(inputPath, outputPath, val);
     assert.equal(actual, expected, msg);
   }
 
+  test('Relative URL calculations', () => {
+    const rw = new PathRewriter();
+    assert.equal(rw.relativeUrl('/a/b/c', '/a/b/d'), 'd');
+  });
+
+  test('Rewrite Paths with basePath', () => {
+    const rwNoBase = new PathRewriter();
+    const rwBase = new PathRewriter('/base/path/', '/pre/fix/');
+
+    testPath(rwNoBase, 'rel/path', 'my-element/rel/path');
+    testPath(rwBase, 'rel/path', '/base/path/my-element/rel/path');
+    testPath(rwNoBase, '../../rel/path', '../rel/path');
+    testPath(rwBase, '../rel/path', '/base/path/rel/path');
+  });
+
   test('Rewrite Paths', function() {
-    testPath('biz.jpg', 'my-element/biz.jpg', 'local');
-    testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'remote');
-    testPath('#foo', '#foo', 'hash');
+    const rw = new PathRewriter();
+    testPath(rw, 'biz.jpg', 'my-element/biz.jpg', 'local');
+    testPath(rw, 'http://foo/biz.jpg', 'http://foo/biz.jpg', 'remote');
+    testPath(rw, '#foo', '#foo', 'hash');
   });
 
   test('Rewrite Paths with absolute paths', function() {
-    pathRewriter = new PathRewriter('/');
-    testPath('biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
-    testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
-    testPath('#foo', '#foo', 'hash');
-  });
-
-  // TODO(usergenic): Is this the behavior we want out of abspath?  Do we need
-  // another parameter which prefixes all rewritten absolute urls other than
-  // abspath to allow mounting where relative urls are used but honor actual
-  // absolute urls?
-  test('Rewrite Paths with absolute paths', function() {
-    pathRewriter = new PathRewriter('/myapp/');
-    assert.equal(
-        pathRewriter.rewriteRelPath('imported/file', 'xxxxx', 'rel/path'),
-        '/myapp/imported/rel/path');
-    assert.equal(
-        pathRewriter.rewriteRelPath('imported/file', 'xxxxx', '/rel/path'),
-        '/rel/path');
-    assert.equal(
-        pathRewriter.rewriteRelPath('/imported/file', 'xxxxx', 'rel/path'),
-        '/imported/rel/path');
-    assert.equal(
-        pathRewriter.rewriteRelPath('/imported/file', 'xxxxx', '/rel/path'),
-        '/rel/path');
+    const rw = new PathRewriter('/foo/bar/');
+    testPath(rw, 'biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
+    testPath(rw, 'http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
+    testPath(rw, '#foo', '#foo', 'hash');
   });
 
   test('Resolve Paths', function() {
@@ -167,7 +161,8 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     const ast = dom5.parse(html);
-    pathRewriter.rewritePaths(ast, inputPath, outputPath);
+    const rw = new PathRewriter();
+    rw.rewritePaths(ast, inputPath, outputPath);
 
     const actual = dom5.serialize(ast);
     assert.equal(actual, expected, 'relative');
@@ -258,7 +253,8 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     const ast = dom5.parse(base);
-    pathRewriter.rewritePaths(ast, inputPath, outputPath);
+    const rw = new PathRewriter();
+    rw.rewritePaths(ast, inputPath, outputPath);
 
     const actual = dom5.serialize(ast);
     assert.equal(actual, base, 'templated urls');
@@ -360,8 +356,8 @@ suite('Vulcan', function() {
       const imports = dom5.queryAll(doc, importMatcher);
       assert.equal(imports.length, 0);
       const bodyContainer = dom5.query(doc, bodyContainerMatcher);
-      const scriptActual = dom5.query(doc, scriptExpected).parentNode;
-      const divActual = dom5.query(doc, divExpected).parentNode;
+      const scriptActual = dom5.query(doc, scriptExpected)!.parentNode;
+      const divActual = dom5.query(doc, divExpected)!.parentNode;
       assert.equal(bodyContainer, scriptActual);
       assert.equal(bodyContainer, divActual);
     });
@@ -493,11 +489,11 @@ suite('Vulcan', function() {
   });
 
   suite('Absolute Paths', function() {
-    test('Output with Absolute paths with abspath', function() {
+    test('Output with Absolute paths with basePath', function() {
       const root = path.resolve(inputPath, '../..');
       const target = '/html/default.html';
       const analyzer = new Analyzer({urlLoader: new FSUrlLoader(root)});
-      const options = {abspath: '/html/', analyzer: analyzer};
+      const options = {basePath: '/html/', analyzer: analyzer};
       const domModule = preds.AND(
           preds.hasTagName('dom-module'),
           preds.hasAttrValue('assetpath', '/html/imports/'));
@@ -659,7 +655,7 @@ suite('Vulcan', function() {
     test.skip('Absolute paths are correct for excluded links', function() {
       const target = 'test/html/external.html';
       const options = {
-        abspath: '/myapp/',
+        absPathPrefix: '/myapp/',
         inlineScripts: true,
         excludes: ['external/external.js']
       };
@@ -740,7 +736,7 @@ suite('Vulcan', function() {
 
     test.skip('Absolute paths are correct', function() {
       const root = path.resolve(inputPath, '../..');
-      const options = {abspath: root, inlineCss: true};
+      const options = {absPathPrefix: root, inlineCss: true};
       return bundle('/test/html/default.html', options).then((doc) => {
         const links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
         assert.equal(links.length, 0);
@@ -789,6 +785,10 @@ suite('Vulcan', function() {
     });
   });
 
+  // TODO(usergenic): These tests only prove that the `inputUrl` has precedence
+  // over the filename presented to `bundle(path)`.  Do we want to continue to
+  // support inputUrl?  Tese don't prove anything about the doc production
+  // itself or how it is effected.  Needs resolution.
   suite('Input URL', function() {
     const options = {inputUrl: 'test/html/default.html'};
 
@@ -798,7 +798,7 @@ suite('Vulcan', function() {
       });
     });
 
-    test.skip('gulp-vulcanize invocation with abspath', function() {
+    test.skip('gulp-vulcanize invocation with absPathPrefix', function() {
       const options = {
         abspath: path.resolve('test/html'),
         inputUrl: '/default.html'

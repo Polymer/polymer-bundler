@@ -24,11 +24,11 @@ import constants from './constants';
 
 const pathPosix = path.posix;
 
-class PathRewriter {
-  public abspath: string;
+const sharedRelativeUrlProperties =
+    ['protocol', 'slashes', 'auth', 'host', 'port', 'hostname'];
 
-  constructor(abspath?: string) {
-    this.abspath = abspath || '';
+class PathRewriter {
+  constructor(public basePath?: string, public absPathPrefix?: string) {
   }
 
   isTemplatedUrl(href: string): boolean {
@@ -86,8 +86,8 @@ class PathRewriter {
       return relUrl;
     }
     const absUrl = url.resolve(importUrl, relUrl);
-    if (this.abspath) {
-      return url.resolve(this.abspath, absUrl);
+    if (this.basePath) {
+      return url.resolve(this.basePath, this.relativeUrl(mainDocUrl, absUrl));
     }
     const parsedFrom = url.parse(mainDocUrl);
     const parsedTo = url.parse(absUrl);
@@ -128,6 +128,26 @@ class PathRewriter {
     } else {
       return (parsed.protocol || '') + pathname;
     }
+  }
+
+  relativeUrl(fromUri: string, toUri: string): string {
+    const fromUrl = url.parse(fromUri);
+    const toUrl = url.parse(toUri);
+    // Return the toUri as-is if there are conflicting components which
+    // prohibit
+    // calculating a relative form.
+    if (sharedRelativeUrlProperties.some(
+            p => toUrl[p] != null && fromUrl[p] != toUrl[p])) {
+      return toUrl;
+    }
+    const fromDir = fromUrl.path.replace(/[^/]+$/, '');
+    // Note, below, the _ character is appended so that paths with trailing
+    // slash retain the trailing slash in the path.relative result.
+    const relPath = path.relative(fromDir, toUrl.path + '_').replace(/_$/, '');
+    const relUrl = url.parse(toUrl);
+    sharedRelativeUrlProperties.forEach(p => relUrl[p] = null);
+    relUrl.pathname = relPath;
+    return url.format(relUrl);
   }
 }
 

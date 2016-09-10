@@ -35,7 +35,8 @@ import * as ast from './ast-utils';
 
 // TODO(usergenic): Document every one of these options.
 export interface Options {
-  abspath?: string;
+  basePath?: string;
+  absPathPrefix?: string;
   addedImports?: string[];
   analyzer?: Analyzer;
 
@@ -57,7 +58,8 @@ export interface Options {
 
 
 class Bundler {
-  abspath?: string;
+  basePath?: string;
+  absPathPrefix?: string;
   addedImports: string[];
   analyzer: Analyzer;
   enableCssInlining: boolean;
@@ -75,11 +77,11 @@ class Bundler {
     // implicitStrip should be true by default
     this.implicitStrip =
         opts.implicitStrip === undefined ? true : Boolean(opts.implicitStrip);
-    this.abspath = (String(opts.abspath) === opts.abspath &&
-                    String(opts.abspath).trim() !== '') ?
-        path.resolve(opts.abspath) :
-        undefined;
-    this.pathRewriter = new PathRewriter(this.abspath);
+
+    this.basePath = opts.basePath;
+    this.absPathPrefix = opts.absPathPrefix;
+    this.pathRewriter = new PathRewriter(this.basePath, this.absPathPrefix);
+
     this.addedImports =
         Array.isArray(opts.addedImports) ? opts.addedImports : [];
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
@@ -298,6 +300,8 @@ class Bundler {
     // Create a hidden div to target.
     const hiddenDiv = this.getHiddenNode();
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
+
+    this.pathRewriter.rewritePaths(newDocument, url, url);
 
     // Old Polymer versions are not supported, so warn user.
     this.oldPolymerCheck(analyzedRoot);
