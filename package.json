@@ -12,8 +12,7 @@
     "hydrolysis": "^1.19.1",
     "nopt": "^3.0.1",
     "path-posix": "^1.0.0",
-    "polymer-analyzer": "git+https://github.com/Polymer/polymer-analyzer.git#renaming",
-    "typescript": "^2.1.0-dev.20160816"
+    "polymer-analyzer": "git+https://github.com/Polymer/polymer-analyzer.git#renaming"
   },
   "devDependencies": {
     "@types/chai": "^3.4.30",
@@ -25,7 +24,7 @@
     "firebase": "^2.4.1",
     "mocha": "^2.2.4",
     "source-map-support": "^0.4.2",
-    "typescript": "^2.0",
+    "typescript": "^2.1.0-dev.20160816",
     "typings": "^1.3.2"
   },
   "scripts": {
