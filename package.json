@@ -12,7 +12,7 @@
     "hydrolysis": "^1.19.1",
     "nopt": "^3.0.1",
     "path-posix": "^1.0.0",
-    "polymer-analyzer": "git+https://github.com/Polymer/polymer-analyzer.git#renaming"
+    "polymer-analyzer": "git+https://github.com/Polymer/polymer-analyzer.git"
   },
   "devDependencies": {
     "@types/chai": "^3.4.30",
