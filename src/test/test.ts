@@ -82,12 +82,9 @@ suite('constants', () => {
   });
 });
 
-suite('Path Resolver', () => {
-  let basePath: string|undefined;
+suite('Path rewriting', () => {
   const importDocPath = '/foo/bar/my-element/index.html';
   const mainDocPath = '/foo/bar/index.html';
-
-  beforeEach(() => basePath = undefined);
 
   test('Rewrite URLs', () => {
     const css = [
@@ -102,91 +99,10 @@ suite('Path Resolver', () => {
       '  background-image: url("https://foo.bar/baz.jpg");', '}'
     ].join('\n');
 
+    const bundler = new Bundler();
     const actual =
-        urlUtils.rewriteImportedUrl(basePath, importDocPath, mainDocPath, css);
+        bundler.rewriteImportedStyleTextUrls(importDocPath, mainDocPath, css);
     assert.equal(actual, expected);
-  });
-
-  function testPath(val: string, expected: string, msg?: string) {
-    const actual = urlUtils.rewriteImportedRelPath(
-        basePath, importDocPath, mainDocPath, val);
-    assert.equal(actual, expected, msg);
-  }
-
-  suite('Relative URL calculations', () => {
-
-    test('Basic relative paths', () => {
-      assert.equal(urlUtils.relativeUrl('/', '/'), '');
-      assert.equal(urlUtils.relativeUrl('/', '/a'), 'a');
-      assert.equal(urlUtils.relativeUrl('/a', '/b'), 'b');
-      assert.equal(urlUtils.relativeUrl('/a/b', '/c'), '../c');
-      assert.equal(urlUtils.relativeUrl('/a/b', '/a/c'), 'c');
-      assert.equal(urlUtils.relativeUrl('/a/b', '/a/c/d'), 'c/d');
-      assert.equal(urlUtils.relativeUrl('/a/b/c/d', '/a/b/c/d'), 'd');
-    });
-
-    test('Trailing slash relevance', () => {
-      assert.equal(urlUtils.relativeUrl('/a', '/b/'), 'b/');
-      assert.equal(urlUtils.relativeUrl('/a/', '/b'), '../b');
-      assert.equal(urlUtils.relativeUrl('/a/', '/b/'), '../b/');
-      assert.equal(urlUtils.relativeUrl('/a/', '/a/b/c'), 'b/c');
-      assert.equal(urlUtils.relativeUrl('/a/b/c/', '/a/d/'), '../../d/');
-    });
-
-    test('Matching shared relative URL properties', () => {
-      assert.equal(urlUtils.relativeUrl('//a/b', '//a/c'), 'c');
-      assert.equal(urlUtils.relativeUrl('p://a/b/', 'p://a/c/'), '../c/');
-    });
-
-    test('Mismatched schemes and hosts', () => {
-      assert.equal(urlUtils.relativeUrl('p://a/b/', 'p2://a/c/'), 'p2://a/c/');
-      assert.equal(urlUtils.relativeUrl('p://h/a/', 'p://i/b/'), 'p://i/b/');
-      assert.equal(urlUtils.relativeUrl('p://h:1/a/', 'p://h/b/'), 'p://h/b/');
-    });
-
-    test('URLs with queries', () => {
-      assert.equal(urlUtils.relativeUrl('/a/?q=1', '/a/'), '');
-      assert.equal(urlUtils.relativeUrl('/a/', '/a/?q=1'), '?q=1');
-      assert.equal(
-          urlUtils.relativeUrl('p://a:8080/b?q=x#1', 'p://a:8080/b?q=x#1'),
-          'b?q=x#1');
-    });
-
-    test('Ignore unshared relative URL properties', () => {
-      assert.equal(urlUtils.relativeUrl('/a?q=x', '/b'), 'b');
-      assert.equal(urlUtils.relativeUrl('/a/b/c?q=x', '/a/d?q=y'), '../d?q=y');
-      assert.equal(
-          urlUtils.relativeUrl('p://h/a/?q=x#1', 'p://h/b/?q=y#2'),
-          '../b/?q=y#2');
-    });
-
-    // TODO(usergenic): Update resolveUrl to interpret scheme-less URLs the
-    // same way browsers do, where '//' prefix implies preserved scheme and the
-    // first path segment is actually the host.
-    test.skip('Scheme-less URLs should be interpreted as browsers do', () => {
-      assert.equal(urlUtils.relativeUrl('//a/b', '/c/d'), 'c/d');
-      assert.equal(urlUtils.relativeUrl('/a/b', '//c/d'), '//c/d');
-    });
-  });
-
-  test('Rewrite Paths with basePath', () => {
-    basePath = '/base/path/';
-
-    testPath('rel/path', '/base/path/my-element/rel/path');
-    testPath('../rel/path', '/base/path/rel/path');
-  });
-
-  test('Rewrite Paths', () => {
-    testPath('biz.jpg', 'my-element/biz.jpg', 'local');
-    testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'remote');
-    testPath('#foo', '#foo', 'hash');
-  });
-
-  test('Rewrite Paths with absolute paths', () => {
-    basePath = '/foo/bar/';
-    testPath('biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
-    testPath('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
-    testPath('#foo', '#foo', 'hash');
   });
 
   test('Resolve Paths', () => {

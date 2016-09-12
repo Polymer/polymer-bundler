@@ -92,16 +92,6 @@ export function rewriteImportedRelPath(
   return absUrl;
 }
 
-export function rewriteImportedUrl(
-    basePath: string|undefined, importUrl: string, mainDocUrl: string,
-    cssText: string): string {
-  return cssText.replace(constants.URL, match => {
-    let path = match.replace(/["']/g, '').slice(4, -1);
-    path = rewriteImportedRelPath(basePath, importUrl, mainDocUrl, path);
-    return 'url("' + path + '")';
-  });
-}
-
 export function urlToPath(uri: string): string {
   const parsed = url.parse(uri);
   const pathname = parsed.pathname || '';

@@ -71,7 +71,7 @@ class Bundler {
 
   constructor(options?: Options) {
     const opts = options ? options : {};
-    this.analyzer = opts.analyzer ? opts.analyzer : null;
+    this.analyzer = opts.analyzer ? opts.analyzer : undefined;
     // implicitStrip should be true by default
     this.implicitStrip =
         opts.implicitStrip === undefined ? true : Boolean(opts.implicitStrip);
@@ -264,6 +264,16 @@ class Bundler {
     });
   }
 
+  rewriteImportedStyleTextUrls(
+      importUrl: string, mainDocUrl: string, cssText: string): string {
+    return cssText.replace(constants.URL, match => {
+      let path = match.replace(/["']/g, '').slice(4, -1);
+      path = urlUtils.rewriteImportedRelPath(
+          this.basePath, importUrl, mainDocUrl, path);
+      return 'url("' + path + '")';
+    });
+  }
+
   rewriteImportedUrls(
       importDoc: ASTNode, importUrl: string, mainDocUrl: string) {
     // rewrite URLs in element attributes
@@ -277,8 +287,8 @@ class Bundler {
         if (attrValue && !urlUtils.isTemplatedUrl(attrValue)) {
           let relUrl: string;
           if (attr === 'style') {
-            relUrl = urlUtils.rewriteImportedUrl(
-                this.basePath, importUrl, mainDocUrl, attrValue);
+            relUrl = this.rewriteImportedStyleTextUrls(
+                importUrl, mainDocUrl, attrValue);
           } else {
             relUrl = urlUtils.rewriteImportedRelPath(
                 this.basePath, importUrl, mainDocUrl, attrValue);
@@ -295,8 +305,8 @@ class Bundler {
     for (let i = 0, node: ASTNode; i < styleNodes.length; i++) {
       node = styleNodes[i];
       let styleText = dom5.getTextContent(node);
-      styleText = urlUtils.rewriteImportedUrl(
-          this.basePath, importUrl, mainDocUrl, styleText);
+      styleText =
+          this.rewriteImportedStyleTextUrls(importUrl, mainDocUrl, styleText);
       dom5.setTextContent(node, styleText);
     }
     // add assetpath to dom-modules in importDoc

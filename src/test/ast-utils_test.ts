@@ -40,7 +40,7 @@ suite('AST Utils', function() {
     const li3 = ol.childNodes![2]!;
     ast.prepend(ol, li3);
     assert.equal(
-        dom5.serialize(ol.parentNode),
+        dom5.serialize(ol.parentNode!),
         dom5.serialize(
             dom5.parseFragment(`<ol><li>3<li>1<li>2<li>4<li>5</ol>`)));
   });
@@ -53,7 +53,7 @@ suite('AST Utils', function() {
     const li5 = ol.childNodes![4]!;
     ast.prependAll(ol, [li3, li5]);
     assert.equal(
-        dom5.serialize(ol.parentNode),
+        dom5.serialize(ol.parentNode!),
         dom5.serialize(
             dom5.parseFragment(`<ol><li>3<li>5<li>1<li>2<li>4</ol>`)));
   });
