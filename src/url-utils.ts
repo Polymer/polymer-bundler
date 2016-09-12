@@ -27,25 +27,20 @@ const pathPosix = path.posix;
 const sharedRelativeUrlProperties =
     ['protocol', 'slashes', 'auth', 'host', 'port', 'hostname'];
 
-export function isAbsoluteUrl(href: string): boolean {
+
+// Returns true if the href is an absolute path.
+export function isAbsolutePath(href: string): boolean {
   return constants.ABS_URL.test(href);
 }
 
+// Returns true if the href is a templated value, i.e. `{{...}}` or `[[...]]`
 export function isTemplatedUrl(href: string): boolean {
   return href.search(constants.URL_TEMPLATE) >= 0;
 }
 
-
-export function pathToUrl(filePath: string): string {
-  const absolutePath = path.resolve(filePath);
-  if (process.platform === 'win32') {
-    // encode C:\foo\ as C:/foo/
-    return absolutePath.split('\\').join('/');
-  } else {
-    return absolutePath;
-  }
-}
-
+// Computes the most succinct form of a relative URL representing the path from
+// the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
+// `/a/` is correctly treated as a folder path where `/a` is not.
 export function relativeUrl(fromUri: string, toUri: string): string {
   const fromUrl = url.parse(fromUri)!;
   const toUrl = url.parse(toUri)!;
@@ -69,14 +64,17 @@ export function relativeUrl(fromUri: string, toUri: string): string {
   return url.format(toUrl);
 }
 
-
+// Modifies an href by the relative difference between the `mainDocUrl` and
+// `importUrl` which is the location of the imported document containing the
+// href.  If `basePath` is defined, it rewrites the path as an absolute path
+// using `basePath` as its root.
 export function rewriteImportedRelPath(
     basePath: string|undefined, importUrl: string, mainDocUrl: string,
-    relUrl: string): string {
-  if (isAbsoluteUrl(relUrl)) {
-    return relUrl;
+    href: string): string {
+  if (isAbsolutePath(href)) {
+    return href;
   }
-  const absUrl = url.resolve(importUrl, relUrl);
+  const absUrl = url.resolve(importUrl, href);
   if (basePath) {
     return url.resolve(basePath, relativeUrl(mainDocUrl, absUrl));
   }
@@ -90,14 +88,4 @@ export function rewriteImportedRelPath(
         {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
   }
   return absUrl;
-}
-
-export function urlToPath(uri: string): string {
-  const parsed = url.parse(uri);
-  const pathname = parsed.pathname || '';
-  if (process.platform === 'win32') {
-    return parsed.protocol + pathname.split('/').join('\\');
-  } else {
-    return (parsed.protocol || '') + pathname;
-  }
 }

@@ -35,17 +35,41 @@ import * as urlUtils from './url-utils';
 
 // TODO(usergenic): Document every one of these options.
 export interface Options {
+  // When provided, relative paths will be converted to absolute paths where
+  // `basePath` is the root url.  This path is equal to the folder of the
+  // bundled url document of the analyzer.
+  //
+  // TODO(usergenic): If multiple `bundle()` calls are made `basePath` can
+  // produce incompatile absolute paths if the same `basePath` is used for
+  // `bundle()` targets in different folders.  Possible solutions include
+  // removing basePath behavior altogether or supplementing it with a `rootPath`
+  // or other hint to fix the top-level folder.
   basePath?: string;
+
   addedImports?: string[];
+
+  // The instance of the Polymer Analyzer which has completed analysis
   analyzer?: Analyzer;
 
   // URLs of files that should not be inlined.
   excludes?: string[];
-  implicitStrip?: boolean;
+
+  // *DANGEROUS*! Avoid stripping imports of the transitive dependencies of
+  // excluded imports (i.e. where listed in `excludes` option or where contained
+  // in a folder/descendant of the `excludes` array.)  May result in duplicate
+  // javascript inlining.
+  noImplicitStrip?: boolean;
+
+  // When true, inline external CSS file contents into <style> tags in the
+  // output document.
   inlineCss?: boolean;
+
+  // When true, inline external Javascript file contents into <script> tags in
+  // the output document.
   inlineScripts?: boolean;
+
+  // TODO(usergenic): Not-Yet-Implemented- document when supported.
   inputUrl?: string;
-  redirects?: string[];
 
   // Remove of all comments (except those containing '@license') when true.
   stripComments?: boolean;
@@ -65,16 +89,15 @@ class Bundler {
   excludes: string[];
   implicitStrip: boolean;
   inputUrl: string;
-  redirects: string[];
   stripComments: boolean;
   stripExcludes: string[];
 
   constructor(options?: Options) {
     const opts = options ? options : {};
     this.analyzer = opts.analyzer ? opts.analyzer : undefined;
+
     // implicitStrip should be true by default
-    this.implicitStrip =
-        opts.implicitStrip === undefined ? true : Boolean(opts.implicitStrip);
+    this.implicitStrip = !Boolean(opts.noImplicitStrip);
 
     this.basePath = opts.basePath;
 
@@ -88,7 +111,6 @@ class Bundler {
     this.enableScriptInlining = Boolean(opts.inlineScripts);
     this.inputUrl =
         String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
-    this.redirects = Array.isArray(opts.redirects) ? opts.redirects : [];
   }
 
   isExcludedHref(href: string): boolean {
