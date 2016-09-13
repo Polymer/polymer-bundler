@@ -20,38 +20,6 @@ import Bundler from '../bundler';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
-var help = [
-  'vulcanize: Reduce an HTML file and its dependent HTML Imports into one file',
-  '', 'Usage:', '  vulcanize <html file>', '', 'Options:',
-  '  -h|--help: print this message', '  -v|--version: print version number',
-  '  -p <arg>|--abspath <arg>: use <arg> as the "webserver root", make all adjusted urls absolute',
-  '  --inline-scripts: Inline external scripts',
-  '  --inline-css: Inline external stylesheets',
-  '  --add-import <path>: Add this import to the target HTML before vulcanizing. Can be used multiple times.',
-  '  --exclude <path>: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept.',
-  '  --strip-exclude: Exclude a subpath and strip the link that includes it.',
-  '  --strip-comments: Strips all HTML comments not containing an @license from the document',
-  '  --redirect <uri>|<path>: Takes an argument in the form of URI|PATH where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.',
-  '  --no-implicit-strip: DANGEROUS! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.',
-  '  --out-html <path>: If specified, output will be written to <path> instead of stdout.',
-  'Examples:', '  The command', '', '    vulcanize target.html', '',
-  '  will inline the HTML Imports of `target.html` and print the resulting HTML to standard output.',
-  '', '  The command', '', '    vulcanize target.html > build.html', '',
-  '  will inline the HTML Imports of `target.html` and print the result to build.html.',
-  '', '  The command', '', '    vulcanize -p "path/to/target/" /target.html',
-  '',
-  '  will inline the HTML Imports of `target.html`, treat `path/to/target/` as the webroot of target.html, and make all urls absolute to the provided webroot.',
-  '', '  The command', '',
-  '    vulcanize --exclude "path/to/target/subpath/" --exclude "path/to/target/subpath2/" target.html',
-  '',
-  '  will inline the HTML Imports of `target.html` that are not in the directory `path/to/target/subpath` nor `path/to/target/subpath2`.',
-  '',
-  '  If the `--strip-excludes` flag is used, the HTML Import `<link>` tags that point to resources in `path/totarget/subpath` and `path/to/target/subpath2/` will also be removed.',
-  '', '  The command', '', '    vulcanize --inline-scripts target.html', '',
-  '  will inline scripts in `target.html` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.'
-].join('\n');
-
-
 const pathArgument = '[underline]{path}'
 
 const optionDefinitions = [
