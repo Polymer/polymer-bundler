@@ -15,7 +15,10 @@
 import * as commandLineArgs from 'command-line-args';
 import * as commandLineUsage from 'command-line-usage';
 import * as fs from 'fs';
+import * as dom5 from 'dom5';
 import Bundler from '../bundler';
+import {Analyzer} from 'polymer-analyzer';
+import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
 var help = [
   'vulcanize: Reduce an HTML file and its dependent HTML Imports into one file',
@@ -181,25 +184,27 @@ function stringToRegExp(str) {
   return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
 }
 
-args.addedImports = args['add-import'] || [];
-args.excludes = args.exclude || [];
-args.redirects = args.redirect || [];
-args.stripExcludes = args['strip-exclude'] || [];
-args.stripComments = args['strip-comments'];
-args.implicitStrip = !args['no-implicit-strip'];
-args.inlineScripts = args['inline-scripts'];
-args.inlineCss = args['inline-css'];
+options.addedImports = options['add-import'] || [];
+options.excludes = options.exclude || [];
+options.redirects = options.redirect || [];
+options.stripExcludes = options['strip-exclude'] || [];
+options.stripComments = options['strip-comments'];
+options.implicitStrip = !options['no-implicit-strip'];
+options.inlineScripts = options['inline-scripts'];
+options.inlineCss = options['inline-css'];
+console.log(options);
+options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()};
 
-(new vulcan(args)).process(target, function(err, content) {
-  if (err) {
-    process.stderr.write(require('util').inspect(err));
-    process.exit(1);
-  }
-  if (args['out-html']) {
-    var fd = fs.openSync(args['out-html'], 'w');
-    fs.writeSync(fd, content + '\n');
+(new Bundler(options)).bundle(target).then((content) => {
+  const serialized = dom5.serialize(content);
+  if (options['out-html']) {
+    var fd = fs.openSync(options['out-html'], 'w');
+    fs.writeSync(fd, serialized + '\n');
     fs.closeSync(fd);
   } else {
-    process.stdout.write(content);
+    process.stdout.write(serialized);
   }
+}).catch((err) => {
+  process.stderr.write(require('util').inspect(err));
+  process.exit(1);
 });
