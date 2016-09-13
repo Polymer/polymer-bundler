@@ -30,205 +30,7 @@ const assert = chai.assert;
 const matchers = require('../matchers');
 const preds = dom5.predicates;
 
-suite('constants', () => {
-
-  suite('URLs', () => {
-
-    test('absolute urls', () => {
-      const abs = constants.ABS_URL;
-
-      assert(abs.test('data:charset=utf8,'), 'data urls');
-      assert(abs.test('http://foo.com'), 'http');
-      assert(abs.test('https://foo.com'), 'https');
-      assert(abs.test('mailto:foo@bar.com'), 'mailto');
-      assert(abs.test('tel:+49123123456'), 'phonecall');
-      // jshint -W107
-      assert(abs.test('javascript:;'), 'javascript');
-      // jshint +W107
-      assert(abs.test('sms:1-123-123456'), 'sms');
-      assert(abs.test('chrome-search:'), 'chrome search');
-      assert(abs.test('about:blank'), 'about');
-      assert(abs.test('wss://'), 'web socket');
-      assert(abs.test('b2:'), 'custom protocol');
-      assert(abs.test('//foo.com'), 'protocol-free');
-      assert(abs.test('/components/'), '/');
-      assert(abs.test('#foo'), 'hash url');
-      assert(!abs.test('../foo/bar.html'), '../');
-      assert(!abs.test('bar.html'), 'sibling dependency');
-    });
-
-    test('CSS URLs', () => {
-      const url = constants.URL;
-
-      assert('url(foo.html)'.match(url), 'naked');
-      assert('url(\'foo.html\')'.match(url), 'single quote');
-      assert('url("foo.html")'.match(url), 'double quote');
-    });
-
-    test('Template URLs', () => {
-      const tmpl = constants.URL_TEMPLATE;
-
-      assert('foo{{bar}}'.match(tmpl), 'curly postfix');
-      assert('{{foo}}bar'.match(tmpl), 'curly prefix');
-      assert('foo{{bar}}baz'.match(tmpl), 'curly infix');
-      assert('{{}}'.match(tmpl), 'empty curly');
-      assert('foo[[bar]]'.match(tmpl), 'square postfix');
-      assert('[[foo]]bar'.match(tmpl), 'square prefix');
-      assert('foo[[bar]]baz'.match(tmpl), 'square infix');
-      assert('[[]]'.match(tmpl), 'empty square');
-    });
-  });
-});
-
-suite('Path rewriting', () => {
-  const importDocPath = '/foo/bar/my-element/index.html';
-  const mainDocPath = '/foo/bar/index.html';
-
-  test('Rewrite URLs', () => {
-    const css = [
-      'x-element {', '  background-image: url(foo.jpg);', '}', 'x-bar {',
-      '  background-image: url(data:xxxxx);', '}', 'x-quuz {',
-      '  background-image: url(\'https://foo.bar/baz.jpg\');', '}'
-    ].join('\n');
-
-    const expected = [
-      'x-element {', '  background-image: url("my-element/foo.jpg");', '}',
-      'x-bar {', '  background-image: url("data:xxxxx");', '}', 'x-quuz {',
-      '  background-image: url("https://foo.bar/baz.jpg");', '}'
-    ].join('\n');
-
-    const bundler = new Bundler();
-    const actual =
-        bundler.rewriteImportedStyleTextUrls(importDocPath, mainDocPath, css);
-    assert.equal(actual, expected);
-  });
-
-  test('Resolve Paths', () => {
-    const html = [
-      '<link rel="import" href="../polymer/polymer.html">',
-      '<link rel="stylesheet" href="my-element.css">',
-      '<dom-module id="my-element">', '<template>',
-      '<style>:host { background-image: url(background.svg); }</style>',
-      '<div style="position: absolute;"></div>', '</template>', '</dom-module>',
-      '<script>Polymer({is: "my-element"})</script>'
-    ].join('\n');
-
-    const expected = [
-      '<html><head><link rel="import" href="polymer/polymer.html">',
-      '<link rel="stylesheet" href="my-element/my-element.css">',
-      '</head><body><dom-module id="my-element" assetpath="my-element/">',
-      '<template>',
-      '<style>:host { background-image: url("my-element/background.svg"); }</style>',
-      '<div style="position: absolute;"></div>', '</template>', '</dom-module>',
-      '<script>Polymer({is: "my-element"})</script></body></html>'
-    ].join('\n');
-
-    const ast = dom5.parse(html);
-    const bundler = new Bundler();
-    bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
-
-    const actual = dom5.serialize(ast);
-    assert.equal(actual, expected, 'relative');
-  });
-
-  test.skip('Resolve Paths with <base>', () => {
-    const htmlBase = [
-      '<base href="zork">',
-      '<link rel="import" href="../polymer/polymer.html">',
-      '<link rel="stylesheet" href="my-element.css">',
-      '<dom-module id="my-element">', '<template>',
-      '<style>:host { background-image: url(background.svg); }</style>',
-      '</template>', '</dom-module>',
-      '<script>Polymer({is: "my-element"})</script>'
-    ].join('\n');
-
-    const expectedBase = [
-      '<html><head>',
-      '<link rel="import" href="my-element/polymer/polymer.html">',
-      '<link rel="stylesheet" href="my-element/zork/my-element.css">',
-      '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
-      '<template>',
-      '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
-      '</template>', '</dom-module>',
-      '<script>Polymer({is: "my-element"})</script></body></html>'
-    ].join('\n');
-
-    const ast = dom5.parse(htmlBase);
-    // pathRewriter.acid(ast, inputPath);
-    const bundler = new Bundler();
-    bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
-
-    const actual = dom5.serialize(ast);
-    assert.equal(actual, expectedBase, 'base');
-  });
-
-  test.skip('Resolve Paths with <base> having a trailing /', () => {
-    const htmlBase = [
-      '<base href="zork/">',
-      '<link rel="import" href="../polymer/polymer.html">',
-      '<link rel="stylesheet" href="my-element.css">',
-      '<dom-module id="my-element">', '<template>',
-      '<style>:host { background-image: url(background.svg); }</style>',
-      '</template>', '</dom-module>',
-      '<script>Polymer({is: "my-element"})</script>'
-    ].join('\n');
-
-    const expectedBase = [
-      `<html><head>
-      <link rel="import" href="my-element/polymer/polymer.html">
-      <link rel="stylesheet" href="my-element/zork/my-element.css">
-      </head><body><dom-module id="my-element" assetpath="my-element/zork/">
-      <template>
-      <style>:host { background-image: url("my-element/zork/background.svg"); }</style>
-      </template>
-      </dom-module>
-      <script>Polymer({is: "my-element"})</script></body></html>`
-    ].join('\n');
-
-    const ast = dom5.parse(htmlBase);
-    // pathRewriter.acid(ast, inputPath);
-    const bundler = new Bundler();
-    bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
-
-    const actual = dom5.serialize(ast);
-    assert.equal(actual, expectedBase, 'base');
-  });
-
-  test.skip('Resolve <base target>', () => {
-    const htmlBase =
-        ['<base target="_blank">', '<a href="foo.html">LINK</a>'].join('\n');
-
-    const expectedBase = [
-      '<html><head>',
-      '</head><body><a href="my-element/foo.html" target="_blank">LINK</a></body></html>'
-    ].join('\n');
-
-    const ast = dom5.parse(htmlBase);
-    // pathRewriter.acid(ast, inputPath);
-    const bundler = new Bundler();
-    bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
-
-    const actual = dom5.serialize(ast);
-    assert.equal(actual, expectedBase, 'base target');
-  });
-
-  test('Leave Templated URLs', () => {
-    const base = [
-      '<html><head></head><body>', '<a href="{{foo}}"></a>',
-      '<img src="[[bar]]">', '</body></html>'
-    ].join('\n');
-
-    const ast = dom5.parse(base);
-    const bundler = new Bundler();
-    bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
-
-    const actual = dom5.serialize(ast);
-    assert.equal(actual, base, 'templated urls');
-  });
-
-});
-
-suite('Vulcan', () => {
+suite('Bundler', () => {
   let bundler: Bundler;
   const inputPath = 'test/html/default.html';
 
@@ -353,6 +155,154 @@ suite('Vulcan', () => {
               (constants.OLD_POLYMER + ' File: test/html/old-polymer.html')
                   .toLowerCase());
         });
+  });
+
+  suite('Path rewriting', () => {
+    const importDocPath = '/foo/bar/my-element/index.html';
+    const mainDocPath = '/foo/bar/index.html';
+
+    test('Rewrite URLs', () => {
+      const css = [
+        'x-element {', '  background-image: url(foo.jpg);', '}', 'x-bar {',
+        '  background-image: url(data:xxxxx);', '}', 'x-quuz {',
+        '  background-image: url(\'https://foo.bar/baz.jpg\');', '}'
+      ].join('\n');
+
+      const expected = [
+        'x-element {', '  background-image: url("my-element/foo.jpg");', '}',
+        'x-bar {', '  background-image: url("data:xxxxx");', '}', 'x-quuz {',
+        '  background-image: url("https://foo.bar/baz.jpg");', '}'
+      ].join('\n');
+
+      const bundler = new Bundler();
+      const actual =
+          bundler.rewriteImportedStyleTextUrls(importDocPath, mainDocPath, css);
+      assert.equal(actual, expected);
+    });
+
+    test('Resolve Paths', () => {
+      const html = [
+        '<link rel="import" href="../polymer/polymer.html">',
+        '<link rel="stylesheet" href="my-element.css">',
+        '<dom-module id="my-element">', '<template>',
+        '<style>:host { background-image: url(background.svg); }</style>',
+        '<div style="position: absolute;"></div>', '</template>',
+        '</dom-module>', '<script>Polymer({is: "my-element"})</script>'
+      ].join('\n');
+
+      const expected = [
+        '<html><head><link rel="import" href="polymer/polymer.html">',
+        '<link rel="stylesheet" href="my-element/my-element.css">',
+        '</head><body><dom-module id="my-element" assetpath="my-element/">',
+        '<template>',
+        '<style>:host { background-image: url("my-element/background.svg"); }</style>',
+        '<div style="position: absolute;"></div>', '</template>',
+        '</dom-module>',
+        '<script>Polymer({is: "my-element"})</script></body></html>'
+      ].join('\n');
+
+      const ast = dom5.parse(html);
+      const bundler = new Bundler();
+      bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
+
+      const actual = dom5.serialize(ast);
+      assert.equal(actual, expected, 'relative');
+    });
+
+    test.skip('Resolve Paths with <base>', () => {
+      const htmlBase = [
+        '<base href="zork">',
+        '<link rel="import" href="../polymer/polymer.html">',
+        '<link rel="stylesheet" href="my-element.css">',
+        '<dom-module id="my-element">', '<template>',
+        '<style>:host { background-image: url(background.svg); }</style>',
+        '</template>', '</dom-module>',
+        '<script>Polymer({is: "my-element"})</script>'
+      ].join('\n');
+
+      const expectedBase = [
+        '<html><head>',
+        '<link rel="import" href="my-element/polymer/polymer.html">',
+        '<link rel="stylesheet" href="my-element/zork/my-element.css">',
+        '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
+        '<template>',
+        '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
+        '</template>', '</dom-module>',
+        '<script>Polymer({is: "my-element"})</script></body></html>'
+      ].join('\n');
+
+      const ast = dom5.parse(htmlBase);
+      // pathRewriter.acid(ast, inputPath);
+      const bundler = new Bundler();
+      bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
+
+      const actual = dom5.serialize(ast);
+      assert.equal(actual, expectedBase, 'base');
+    });
+
+    test.skip('Resolve Paths with <base> having a trailing /', () => {
+      const htmlBase = [
+        '<base href="zork/">',
+        '<link rel="import" href="../polymer/polymer.html">',
+        '<link rel="stylesheet" href="my-element.css">',
+        '<dom-module id="my-element">', '<template>',
+        '<style>:host { background-image: url(background.svg); }</style>',
+        '</template>', '</dom-module>',
+        '<script>Polymer({is: "my-element"})</script>'
+      ].join('\n');
+
+      const expectedBase = [
+        `<html><head>
+        <link rel="import" href="my-element/polymer/polymer.html">
+        <link rel="stylesheet" href="my-element/zork/my-element.css">
+        </head><body><dom-module id="my-element" assetpath="my-element/zork/">
+        <template>
+        <style>:host { background-image: url("my-element/zork/background.svg"); }</style>
+        </template>
+        </dom-module>
+        <script>Polymer({is: "my-element"})</script></body></html>`
+      ].join('\n');
+
+      const ast = dom5.parse(htmlBase);
+      // pathRewriter.acid(ast, inputPath);
+      const bundler = new Bundler();
+      bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
+
+      const actual = dom5.serialize(ast);
+      assert.equal(actual, expectedBase, 'base');
+    });
+
+    test.skip('Resolve <base target>', () => {
+      const htmlBase =
+          ['<base target="_blank">', '<a href="foo.html">LINK</a>'].join('\n');
+
+      const expectedBase = [
+        '<html><head>',
+        '</head><body><a href="my-element/foo.html" target="_blank">LINK</a></body></html>'
+      ].join('\n');
+
+      const ast = dom5.parse(htmlBase);
+      // pathRewriter.acid(ast, inputPath);
+      const bundler = new Bundler();
+      bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
+
+      const actual = dom5.serialize(ast);
+      assert.equal(actual, expectedBase, 'base target');
+    });
+
+    test('Leave Templated URLs', () => {
+      const base = [
+        '<html><head></head><body>', '<a href="{{foo}}"></a>',
+        '<img src="[[bar]]">', '</body></html>'
+      ].join('\n');
+
+      const ast = dom5.parse(base);
+      const bundler = new Bundler();
+      bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
+
+      const actual = dom5.serialize(ast);
+      assert.equal(actual, base, 'templated urls');
+    });
   });
 
   test('Paths for import bodies are resolved correctly', () => {

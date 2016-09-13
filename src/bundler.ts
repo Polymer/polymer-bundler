@@ -161,7 +161,6 @@ class Bundler {
   /**
    * Creates a hidden container <div> to which inlined content will be
    * appended.
-   * TODO(usergenic): Give this a more intention-revealing name.
    */
   createHiddenContainerNode(): ASTNode {
     const hidden = dom5.constructors.element('div');
@@ -216,11 +215,11 @@ class Bundler {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = url.resolve(docUrl, rawUrl);
 
-    const imprt = importMap.get(resolvedUrl);
-    if (imprt) {
+    const analyzedImport = importMap.get(resolvedUrl);
+    if (analyzedImport) {
       // If the document wasn't loaded for the import during analysis, we can't
       // inline it.
-      if (!imprt.document) {
+      if (!analyzedImport.document) {
         // TODO(usergenic): What should the behavior be when we don't have the
         // document to inline available in the analyzer?
         return;
@@ -229,7 +228,7 @@ class Bundler {
       // Is there a better way to get what we want other than using
       // parseFragment?
       const importDoc =
-          dom5.parseFragment(imprt.document.parsedDocument.contents);
+          dom5.parseFragment(analyzedImport.document.parsedDocument.contents);
       importMap.set(resolvedUrl, null);
       this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
 
