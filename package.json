@@ -1,12 +1,13 @@
 {
-  "name": "vulcanize",
+  "name": "polymer-bundler",
   "version": "1.14.11",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "bin": {
-    "vulcanize": "bin/vulcanize"
+    "polymer-bundler": "lib/bin/polymer-bundler.js"
   },
   "dependencies": {
+    "command-line-args": "^3.0.1",
     "dom5": "^2.0.0",
     "es6-promise": "^2.1.0",
     "mkdirp": "^0.5.1",

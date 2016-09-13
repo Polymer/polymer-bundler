@@ -8,13 +8,9 @@
  * Code distributed by Google as part of the polymer project is also
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
-
-// jshint node: true
-'use strict';
-
-var nopt = require('nopt');
-var fs = require('fs');
-var vulcan = require('../lib/vulcan');
+import * as commandLineArgs from 'command-line-args';
+import * as fs from 'fs';
+import Bundler from '../bundler';
 
 var help = [
   'vulcanize: Reduce an HTML file and its dependent HTML Imports into one file',
@@ -69,27 +65,23 @@ var help = [
   '  will inline scripts in `target.html` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.'
 ].join('\n');
 
-var args = nopt(
-  {
-    help: Boolean,
-    version: Boolean,
-    abspath: String,
-    exclude: [String, Array],
-    redirect: [String, Array],
-    'add-import': [String, Array],
-    'strip-exclude': [String, Array],
-    'strip-comments': Boolean,
-    'no-implicit-strip': Boolean,
-    'inline-scripts': Boolean,
-    'inline-css': Boolean,
-    'out-html': String
-  },
-  {
-    'h': ['--help'],
-    'v': ['--version'],
-    'p': ['--abspath']
-  }
-);
+const optionDefinitions = [
+    {name: 'help', type: Boolean, alias: 'h'},
+    {name: 'version', type: Boolean, alias: 'v'},
+    {name: 'abspath', type: String, alias: 'p'},
+    {name: 'exclude', type: String, multiple: true},
+    {name: 'redirect', type: String, multiple: true},
+    {name: 'add-import', type: String, multiple: true},
+    {name: 'strip-exclude', type: String, multiple: true},
+    {name: 'strip-comments', type: Boolean},
+    {name: 'no-implicit-strip', type: Boolean},
+    {name: 'inline-scripts', type: Boolean},
+    {name: 'inline-css', type: Boolean},
+    {name: 'out-html', type: String},
+  ];
+
+const options = commandLineArgs(optionDefinitions);
+console.log(options);
 
 var target = args.argv.remain[0];
 
