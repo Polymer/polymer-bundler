@@ -170,11 +170,20 @@ class Bundler {
   }
 
   /**
+   * Creates a <style> tag to which inlined content will be appended.
+   */
+  createInlineStyleNode() {
+    const styleNode = dom5.constructors.element('style');
+
+    return styleNode;
+  }
+
+  /**
    * Inline external scripts <script src="*">
    */
   inlineScript(
       docUrl: string, externalScript: ASTNode,
-      importMap: Map<string, Import|null>) {
+      importMap: Map<string, Import|null>): ASTNode|undefined {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
     const resolvedUrl = url.resolve(docUrl, rawUrl);
     const script = importMap.get(resolvedUrl);
@@ -188,21 +197,41 @@ class Bundler {
         encodeString(script.document.parsedDocument.contents, true);
     dom5.removeAttribute(externalScript, 'src');
     dom5.setTextContent(externalScript, scriptContent);
+
+    return externalScript;
   }
 
   /**
-   * Inline external stylesheets <link type="text/css" href="*">
+   * Inline a stylesheet (either from deprecated polymer-style css import `<link
+   * rel="import" type="css">` import or regular external stylesheet link
+   * `<link rel="stylesheet">`.
    */
-  // async inlineCss(documentUrl: string, externalStylesheet: ASTNode):
-  //     Promise<void> {
-  //   const rawUrl: string = dom5.getAttribute(externalStylesheet, 'href')!;
-  //   const resolved = url.resolve(documentUrl, rawUrl);
-  //   const backingStylesheet: ScannedDocument =
-  //       await this.analyzer._scanResolved(resolved);
-  //   const stylesheetContent = backingStylesheet.document.contents;
-  //   dom5.removeAttribute(externalStylesheet, 'href');
-  //   dom5.setTextContent(externalStylesheet, stylesheetContent);
-  // }
+  inlineStylesheet(
+      docUrl: string, cssLink: ASTNode,
+      importMap: Map<string, Import|null>): ASTNode|undefined {
+    const stylesheetUrl: string = dom5.getAttribute(cssLink, 'href')!;
+    const resolvedStylesheetUrl = url.resolve(docUrl, stylesheetUrl);
+    const stylesheetImport = importMap.get(resolvedStylesheetUrl);
+    if (!stylesheetImport || !stylesheetImport.document) {
+      return;
+    }
+
+    const media = dom5.getAttribute(cssLink, 'media');
+
+    const stylesheetContent = stylesheetImport.document.parsedDocument.contents;
+    const resolvedStylesheetContent = this.rewriteImportedStyleTextUrls(
+        resolvedStylesheetUrl, docUrl, stylesheetContent);
+    const styleNode = this.createInlineStyleNode();
+
+    if (media) {
+      dom5.setAttribute(styleNode, 'media', media);
+    }
+
+    dom5.replace(cssLink, styleNode);
+    dom5.setTextContent(styleNode, resolvedStylesheetContent);
+
+    return styleNode;
+  }
 
   /**
    * Inline external HTML files <link type="import" href="*">
@@ -342,6 +371,30 @@ class Bundler {
   }
 
   /**
+   * Old Polymer supported `<style>` tag in `<dom-module>` but outside of
+   * `<template>`.  This is also where the deprecated Polymer CSS import tag
+   * `<link rel="import" type="css">` would generate inline `<style>`.
+   * Migrates these `<style>` tags into available `<template>` of the
+   * `<dom-module>`.  Will create a `<template>` container if not present.
+   */
+  moveDomModuleStyleIntoTemplate(style: ASTNode) {
+    const domModule =
+        dom5.nodeWalkAncestors(style, dom5.predicates.hasTagName('dom-module'));
+    if (!domModule) {
+      // TODO(usergenic): We *shouldn't* get here, but if we do, it's because
+      // the analyzer messed up.
+      return;
+    }
+    let template = dom5.query(domModule, matchers.template);
+    if (!template) {
+      template = dom5.constructors.element('template');
+      dom5.append(domModule, template !);
+    }
+    dom5.remove(style);
+    astUtils.prepend(template !, style);
+  }
+
+  /**
    * Given a URL to an entry-point html document, produce a single document
    * with HTML imports, external stylesheets and external scripts inlined,
    * according to the options for this Bundler.
@@ -399,10 +452,25 @@ class Bundler {
     });
 
     if (this.enableScriptInlining) {
-      dom5.queryAll(newDocument, matchers.externalJavascript)
-          .forEach((externalScript: ASTNode) => {
-            this.inlineScript(url, externalScript, importMap);
-          });
+      const scriptImports =
+          dom5.queryAll(newDocument, matchers.externalJavascript);
+      scriptImports.forEach((externalScript: ASTNode) => {
+        this.inlineScript(url, externalScript, importMap);
+      });
+    }
+
+    if (this.enableCssInlining) {
+      const cssImports = dom5.queryAll(newDocument, matchers.stylesheetImport);
+      cssImports.forEach((cssLink: ASTNode) => {
+        let style = this.inlineStylesheet(url, cssLink, importMap);
+        if (style) {
+          this.moveDomModuleStyleIntoTemplate(style);
+        }
+      });
+      const cssLinks = dom5.queryAll(newDocument, matchers.externalStyle);
+      cssLinks.forEach((cssLink: ASTNode) => {
+        this.inlineStylesheet(url, cssLink, importMap);
+      });
     }
 
     if (this.stripComments) {
