@@ -96,7 +96,7 @@ const optionDefinitions = [
 ];
 
 const usage = [
-  {header: 'Usage', content: ["vulcanize [options...] <in-html>"]}
+  {header: 'Usage', content: ["vulcanize [options...] <in-html>"]},
   {header: 'Options', optionList: optionDefinitions},
   {header: 'Examples', content: `  The command
     vulcanize target.html
@@ -148,7 +148,7 @@ if (options.help || !target) {
 }
 
 // escape a regex string and return a new RegExp
-function stringToRegExp(str) {
+function stringToRegExp(str: string) {
   return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
 }
 
@@ -161,7 +161,7 @@ options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = options['inline-scripts'];
 options.inlineCss = options['inline-css'];
 console.log(options);
-options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()};
+options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
 
 (new Bundler(options)).bundle(target).then((content) => {
   const serialized = dom5.serialize(content);
