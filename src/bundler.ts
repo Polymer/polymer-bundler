@@ -170,15 +170,6 @@ class Bundler {
   }
 
   /**
-   * Creates a <style> tag to which inlined content will be appended.
-   */
-  createInlineStyleNode() {
-    const styleNode = dom5.constructors.element('style');
-
-    return styleNode;
-  }
-
-  /**
    * Inline external scripts <script src="*">
    */
   inlineScript(
@@ -212,16 +203,16 @@ class Bundler {
     const stylesheetUrl: string = dom5.getAttribute(cssLink, 'href')!;
     const resolvedStylesheetUrl = url.resolve(docUrl, stylesheetUrl);
     const stylesheetImport = importMap.get(resolvedStylesheetUrl);
+
     if (!stylesheetImport || !stylesheetImport.document) {
       return;
     }
 
     const media = dom5.getAttribute(cssLink, 'media');
-
     const stylesheetContent = stylesheetImport.document.parsedDocument.contents;
     const resolvedStylesheetContent = this.rewriteImportedStyleTextUrls(
         resolvedStylesheetUrl, docUrl, stylesheetContent);
-    const styleNode = this.createInlineStyleNode();
+    const styleNode = dom5.constructors.element('style');
 
     if (media) {
       dom5.setAttribute(styleNode, 'media', media);
@@ -229,7 +220,6 @@ class Bundler {
 
     dom5.replace(cssLink, styleNode);
     dom5.setTextContent(styleNode, resolvedStylesheetContent);
-
     return styleNode;
   }
 
