@@ -25,8 +25,6 @@ import {ASTNode, CommentNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
 import {Document, ScannedDocument, Import} from 'polymer-analyzer/lib/ast/ast';
 import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
-import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
-import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
