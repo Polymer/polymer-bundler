@@ -20,7 +20,7 @@ import Bundler from '../bundler';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
-const pathArgument = '[underline]{path}'
+const pathArgument = '[underline]{path}';
 
 const optionDefinitions = [
   {name: 'help', type: Boolean, alias: 'h', description: 'Print this message'},
@@ -96,7 +96,7 @@ const optionDefinitions = [
 ];
 
 const usage = [
-  {header: 'Usage', content: ["vulcanize [options...] <in-html>"]},
+  {header: 'Usage', content: ['vulcanize [options...] <in-html>']},
   {header: 'Options', optionList: optionDefinitions},
   {header: 'Examples', content: `  The command
     vulcanize target.html
@@ -121,18 +121,18 @@ const usage = [
   will inline scripts in \`target.html\` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.
   `,
   raw: true}
-]
+];
 
     const options = commandLineArgs(optionDefinitions);
 console.log(options);
 
-var target = options['in-html'];
+const target = options['in-html'];
 
 function printHelp() {
   console.log(commandLineUsage(usage));
 }
 
-var pkg = require('../../package.json');
+const pkg = require('../../package.json');
 function printVersion() {
   console.log('vulcanize:', pkg.version);
 }
@@ -164,9 +164,13 @@ console.log(options);
 options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
 
 (new Bundler(options)).bundle(target).then((content) => {
-  const serialized = dom5.serialize(content);
+  const doc = content.get(target);
+  if (!doc) {
+    return;
+  }
+  const serialized = dom5.serialize(doc);
   if (options['out-html']) {
-    var fd = fs.openSync(options['out-html'], 'w');
+    const fd = fs.openSync(options['out-html'], 'w');
     fs.writeSync(fd, serialized + '\n');
     fs.closeSync(fd);
   } else {
