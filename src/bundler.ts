@@ -426,6 +426,7 @@ class Bundler {
       });
     }
     const documents = new Map<string, ASTNode>();
+    // TODO(garlicnation): Set to the resolved document url?
     documents.set(url, newDocument);
     return documents;
     // TODO(garlicnation): inline CSS
