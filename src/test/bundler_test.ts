@@ -595,16 +595,18 @@ suite('Bundler', () => {
   suite('Inline CSS', () => {
     const options = {inlineCss: true};
 
-    test.skip('All styles are inlined', () => {
+    test('All styles are inlined', () => {
       return bundle(inputPath, options).then((doc) => {
-        const links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
+        const links = dom5.queryAll(doc, matchers.stylesheetImport);
+        const styles = dom5.queryAll(doc, matchers.styleMatcher);
         assert.equal(links.length, 0);
+        assert.equal(styles.length, 2);
       });
     });
 
-    test.skip('Inlined styles have proper paths', () => {
+    test('Inlined styles have proper paths', () => {
       return bundle('test/html/inline-styles.html', options).then((doc) => {
-        const styles = dom5.queryAll(doc, matchers.CSS);
+        const styles = dom5.queryAll(doc, matchers.styleMatcher);
         assert.equal(styles.length, 2);
         const content = dom5.getTextContent(styles[1]);
         assert(content.search('imports/foo.jpg') > -1, 'path adjusted');
@@ -612,19 +614,17 @@ suite('Bundler', () => {
       });
     });
 
-    test.skip(
-        'External Scripts and Stylesheets are not removed and media queries are retained',
+    test(
+        'Remote Scripts and Stylesheets are not removed and media queries are retained',
         () => {
           const input = 'test/html/imports/remote-stylesheet.html';
           return bundle(input, options).then((doc) => {
-            const link = dom5.query(doc, matchers.CSS_LINK);
-            assert(link);
-            const styles = dom5.queryAll(doc, matchers.CSS);
+            const links = dom5.queryAll(doc, matchers.externalStyle);
+            assert.equal(links.length, 1);
+            const styles = dom5.queryAll(doc, matchers.styleMatcher);
             assert.equal(styles.length, 1);
-            const content = dom5.getTextContent(styles[0]);
-            assert(
-                content.search(/@media \(min-width: 800px\) /g) > -1,
-                'media query retained');
+            assert.equal(
+                dom5.getAttribute(styles[0], 'media'), '(min-width: 800px)');
           });
         });
 
@@ -637,7 +637,7 @@ suite('Bundler', () => {
       });
     });
 
-    test.skip('Inlined Polymer styles are moved into the <template>', () => {
+    test('Inlined Polymer styles are moved into the <template>', () => {
       return bundle('test/html/default.html', options).then((doc) => {
         const domModule =
             dom5.query(doc, dom5.predicates.hasTagName('dom-module'))!;
@@ -645,12 +645,13 @@ suite('Bundler', () => {
         const template =
             dom5.query(domModule, dom5.predicates.hasTagName('template'))!;
         assert(template);
-        const style = dom5.query(template.childNodes![0]!, matchers.CSS);
-        assert(style);
+        const style =
+            dom5.queryAll(template.childNodes![0]!, matchers.styleMatcher);
+        assert.equal(style.length, 1);
       });
     });
 
-    test.skip(
+    test(
         'Inlined Polymer styles will force a dom-module to have a template',
         () => {
           return bundle('test/html/inline-styles.html', options).then((doc) => {
@@ -660,7 +661,8 @@ suite('Bundler', () => {
             const template =
                 dom5.query(domModule, dom5.predicates.hasTagName('template'))!;
             assert(template);
-            const style = dom5.query(template.childNodes![0]!, matchers.CSS);
+            const style =
+                dom5.query(template.childNodes![0]!, matchers.styleMatcher);
             assert(style);
           });
         });
