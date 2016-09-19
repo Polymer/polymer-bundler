@@ -29,7 +29,7 @@ import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-
+import DocumentCollection from './document-collection';
 
 // TODO(usergenic): Document every one of these options.
 export interface Options {
@@ -387,7 +387,7 @@ class Bundler {
    * with HTML imports, external stylesheets and external scripts inlined,
    * according to the options for this Bundler.
    */
-  async bundle(url: string): Promise<ASTNode> {
+  async bundle(url: string): Promise<DocumentCollection> {
     if (!this.analyzer) {
       throw new Error('No analyzer provided.');
     }
@@ -481,8 +481,10 @@ class Bundler {
         }
       });
     }
-
-    return newDocument;
+    const documents = new Map<string, ASTNode>();
+    // TODO(garlicnation): Set to the resolved document url?
+    documents.set(url, newDocument);
+    return documents;
     // TODO(garlicnation): inline CSS
 
     // LATER
