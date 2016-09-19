@@ -78,6 +78,7 @@ export interface Options {
   stripExcludes?: string[];
 }
 
+type DependencyEntry = {url: string, eager: string[], lazy: string[]};
 
 class Bundler {
   basePath?: string;
@@ -401,22 +402,51 @@ class Bundler {
       return this._bundleMultiple(url, this.analyzer);
     } else {
       const documents: DocumentCollection = new Map();
-      documents.set(
-          url, await this._bundleDocument(
-                   url, this.excludes, this.stripExcludes,
-                   this.analyzer)) return documents;
+      const newDocument = await this._bundleDocument(
+          url, this.excludes, this.stripExcludes, this.analyzer);
+      documents.set(url, newDocument);
+      return documents;
     }
   }
 
+  private async _transitiveDependencies(href: string, analyzer: Analyzer): Promise<DependencyEntry> {
+    const document = await analyzer.analyzeRoot(href);
+    const imports = document.getByKind('import');
+    const eagerImports: string[] = [];
+    const lazyImports: string[] = [];
+    for (let htmlImport of imports) {
+      if (!htmlImport.url) {
+        continue;
+      }
+      const resolvedUrl = url.resolve(href, htmlImport.url);
+      switch (htmlImport.type) {
+        case 'html-import':
+          eagerImports.push(resolvedUrl);
+          break;
+        case 'lazy-html-import':
+          lazyImports.push(resolvedUrl);
+          break;
+      }
+    }
+    // O(N^2) - suboptimal.
+    for (const lazyImport of lazyImports) {
+      // If lazy imports are manually specified, we may have duplicate features.
+      const duplicatedImportIndex =  eagerImports.indexOf(lazyImport);
+      if (duplicatedImportIndex > -1) {
+        eagerImports.splice(duplicatedImportIndex, 1);
+      }
+    }
+    return {url: href, eager: eagerImports, lazy: lazyImports};
+  }
+
   private async _bundleMultiple(entrypoints: string[], analyzer: Analyzer):
-      DocumentCollection {
+      Promise<DocumentCollection> {
     const bundles: DocumentCollection = new Map();
     // Map entrypoints to transitive dependencies.
     const entrypointToDependencies: Map<string, string[]> = new Map();
     for (let url of entrypoints) {
-      const document = analyzer.analyzeRoot(url);
-      console.log(document);
-      const dependencies = [];
+      const dependencies = await this._transitiveDependencies(url, analyzer);
+
     }
     return bundles;
   }
