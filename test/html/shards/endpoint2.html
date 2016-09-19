@@ -1,0 +1,25 @@
+<link rel="import" href="common.html">
+<link rel="import" href="dep2.html">
+<link rel="import" href="endpoint1.html">
+
+
+<dom-module id="el-two">
+  <template>
+  <paper-button id="tog" on-click="clicked">Make toast</paper-button><br>
+  <paper-input id="in"></paper-input>
+  </template>
+  <script>
+    Polymer({
+      is: "el-two",
+      properties: {
+        eltwo: {
+          value: "two",
+          type: String,
+        },
+      },
+      clicked: function() {
+        alert(this.$.in.value);
+      }
+    });
+  </script>
+</dom-module>

@@ -113,7 +113,6 @@ class Bundler {
   }
 
   calculateImplicitExcludes(excludes: string[]) {
-
   }
 
   isExcludedHref(href: string): boolean {
@@ -391,7 +390,7 @@ class Bundler {
    * Given a URL to an entry-point html document, produce a single document
    * with HTML imports, external stylesheets and external scripts inlined,
    * according to the options for this Bundler.
-   * 
+   *
    * Given Multiple urls, produces a sharded build.
    */
   async bundle(url: string|string[]): Promise<DocumentCollection> {
@@ -402,12 +401,15 @@ class Bundler {
       return this._bundleMultiple(url, this.analyzer);
     } else {
       const documents: DocumentCollection = new Map();
-      documents.set(url, await this._bundleDocument(url, this.excludes, this.stripExcludes, this.analyzer))
-      return documents;
+      documents.set(
+          url, await this._bundleDocument(
+                   url, this.excludes, this.stripExcludes,
+                   this.analyzer)) return documents;
     }
   }
 
-  private async _bundleMultiple(entrypoints: string[], analyzer: Analyzer): DocumentCollection {
+  private async _bundleMultiple(entrypoints: string[], analyzer: Analyzer):
+      DocumentCollection {
     const bundles: DocumentCollection = new Map();
     // Map entrypoints to transitive dependencies.
     const entrypointToDependencies: Map<string, string[]> = new Map();
@@ -419,10 +421,9 @@ class Bundler {
     return bundles;
   }
 
-  private async _bundleDocument(url: string,
-                          excludes: string[],
-                          stripExcludes: string[],
-                          analyzer: Analyzer) {
+  private async _bundleDocument(
+      url: string, excludes: string[], stripExcludes: string[],
+      analyzer: Analyzer) {
     const analyzedRoot = await analyzer.analyzeRoot(url);
 
     // Map keyed by url to the import source and which has either the Import
