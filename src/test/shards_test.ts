@@ -32,11 +32,10 @@ const assert = chai.assert;
 const matchers = require('../matchers');
 const preds = dom5.predicates;
 
-const domModulePredicate =
-    (id: string) => {
-      return preds.AND(
-          preds.hasAttrValue('id', id), preds.hasTagName('dom-module'));
-    }
+const domModulePredicate = (id: string) => {
+  return preds.AND(
+      preds.hasAttrValue('id', id), preds.hasTagName('dom-module'));
+};
 
 suite('Bundler', () => {
   let bundler: Bundler;

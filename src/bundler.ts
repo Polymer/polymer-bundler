@@ -78,7 +78,11 @@ export interface Options {
   stripExcludes?: string[];
 }
 
-type DependencyEntry = {url: string, eager: string[], lazy: string[]};
+type DependencyEntry = {
+  url: string,
+  eager: Set<string>,
+  lazy: Set<string>
+};
 
 class Bundler {
   basePath?: string;
@@ -409,11 +413,12 @@ class Bundler {
     }
   }
 
-  private async _transitiveDependencies(href: string, analyzer: Analyzer): Promise<DependencyEntry> {
+  private async _transitiveDependencies(href: string, analyzer: Analyzer):
+      Promise<DependencyEntry> {
     const document = await analyzer.analyzeRoot(href);
     const imports = document.getByKind('import');
-    const eagerImports: string[] = [];
-    const lazyImports: string[] = [];
+    const eagerImports = new Set<string>();
+    const lazyImports = new Set<string>();
     for (let htmlImport of imports) {
       if (!htmlImport.url) {
         continue;
@@ -421,19 +426,18 @@ class Bundler {
       const resolvedUrl = url.resolve(href, htmlImport.url);
       switch (htmlImport.type) {
         case 'html-import':
-          eagerImports.push(resolvedUrl);
+          eagerImports.add(resolvedUrl);
           break;
         case 'lazy-html-import':
-          lazyImports.push(resolvedUrl);
+          lazyImports.add(resolvedUrl);
           break;
       }
     }
     // O(N^2) - suboptimal.
-    for (const lazyImport of lazyImports) {
-      // If lazy imports are manually specified, we may have duplicate features.
-      const duplicatedImportIndex =  eagerImports.indexOf(lazyImport);
-      if (duplicatedImportIndex > -1) {
-        eagerImports.splice(duplicatedImportIndex, 1);
+    // If lazy imports are manually specified, we may have duplicate features.
+    for (const eagerImport of eagerImports.values()) {
+      if (lazyImports.has(eagerImport)) {
+        lazyImports.delete(eagerImport);
       }
     }
     return {url: href, eager: eagerImports, lazy: lazyImports};
@@ -443,11 +447,41 @@ class Bundler {
       Promise<DocumentCollection> {
     const bundles: DocumentCollection = new Map();
     // Map entrypoints to transitive dependencies.
-    const entrypointToDependencies: Map<string, string[]> = new Map();
-    for (let url of entrypoints) {
-      const dependencies = await this._transitiveDependencies(url, analyzer);
-
+    const entrypointToDependencies: Map<string, Set<string>> = new Map();
+    const dependenciesToEntrypoints: Map<string, Set<string>> = new Map();
+    // Build forward and backward dependency lists.
+    for (const entrypointUrl of entrypoints) {
+      const dependencies =
+          await this._transitiveDependencies(entrypointUrl, analyzer);
+      if (!entrypointToDependencies.has(entrypointUrl)) {
+        entrypointToDependencies.set(entrypointUrl, new Set());
+      }
+      const dependencySet: Set<string> =
+          entrypointToDependencies.get(entrypointUrl)!;
+      dependencies.eager.forEach((dependency) => dependencySet.add(dependency));
+      for (const dependency of dependencies.eager) {
+        if (!dependenciesToEntrypoints.has(dependency)) {
+          dependenciesToEntrypoints.set(dependency, new Set());
+        }
+        const entrypointSet = dependenciesToEntrypoints.get(dependency)!;
+        entrypointSet.add(entrypointUrl);
+      }
+      for (const lazyDependency of dependencies.lazy) {
+        if (!entrypointToDependencies.has(lazyDependency)) {
+          entrypointToDependencies.set(lazyDependency, new Set());
+        }
+        const dependencySet: Set<string> =
+            entrypointToDependencies.get(lazyDependency)!;
+        dependencySet.add(entrypointUrl);
+        if (!dependenciesToEntrypoints.has(entrypointUrl)) {
+          dependenciesToEntrypoints.set(entrypointUrl, new Set());
+        }
+        const entrypointSet = dependenciesToEntrypoints.get(entrypointUrl)!;
+        entrypointSet.add(lazyDependency);
+      }
     }
+    console.log('entrypointToDependencies', entrypointToDependencies);
+    console.log('dependenciesToEntrypoints', dependenciesToEntrypoints);
     return bundles;
   }
 
