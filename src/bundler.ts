@@ -112,6 +112,10 @@ class Bundler {
         String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
   }
 
+  calculateImplicitExcludes(excludes: string[]) {
+
+  }
+
   isExcludedHref(href: string): boolean {
     if (constants.EXTERNAL_URL.test(href)) {
       return true;
@@ -387,12 +391,39 @@ class Bundler {
    * Given a URL to an entry-point html document, produce a single document
    * with HTML imports, external stylesheets and external scripts inlined,
    * according to the options for this Bundler.
+   * 
+   * Given Multiple urls, produces a sharded build.
    */
-  async bundle(url: string): Promise<DocumentCollection> {
+  async bundle(url: string|string[]): Promise<DocumentCollection> {
     if (!this.analyzer) {
       throw new Error('No analyzer provided.');
     }
-    const analyzedRoot = await this.analyzer.analyzeRoot(url);
+    if (Array.isArray(url)) {
+      return this._bundleMultiple(url, this.analyzer);
+    } else {
+      const documents: DocumentCollection = new Map();
+      documents.set(url, await this._bundleDocument(url, this.excludes, this.stripExcludes, this.analyzer))
+      return documents;
+    }
+  }
+
+  private async _bundleMultiple(entrypoints: string[], analyzer: Analyzer): DocumentCollection {
+    const bundles: DocumentCollection = new Map();
+    // Map entrypoints to transitive dependencies.
+    const entrypointToDependencies: Map<string, string[]> = new Map();
+    for (let url of entrypoints) {
+      const document = analyzer.analyzeRoot(url);
+      console.log(document);
+      const dependencies = [];
+    }
+    return bundles;
+  }
+
+  private async _bundleDocument(url: string,
+                          excludes: string[],
+                          stripExcludes: string[],
+                          analyzer: Analyzer) {
+    const analyzedRoot = await analyzer.analyzeRoot(url);
 
     // Map keyed by url to the import source and which has either the Import
     // feature as a value indicating the inlining of the Import has not yet
@@ -482,10 +513,7 @@ class Bundler {
         }
       });
     }
-    const documents = new Map<string, ASTNode>();
-    // TODO(garlicnation): Set to the resolved document url?
-    documents.set(url, newDocument);
-    return documents;
+    return newDocument;
     // TODO(garlicnation): inline CSS
 
     // LATER
