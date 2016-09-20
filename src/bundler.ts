@@ -417,6 +417,7 @@ class Bundler {
       Promise<DependencyEntry> {
     const document = await analyzer.analyzeRoot(href);
     const imports = document.getByKind('import');
+    imports.forEach((doc) => console.log(href, doc.url));
     const eagerImports = new Set<string>();
     const lazyImports = new Set<string>();
     for (let htmlImport of imports) {
@@ -424,6 +425,7 @@ class Bundler {
         continue;
       }
       const resolvedUrl = url.resolve(href, htmlImport.url);
+      console.log(resolvedUrl);
       switch (htmlImport.type) {
         case 'html-import':
           eagerImports.add(resolvedUrl);
@@ -480,8 +482,37 @@ class Bundler {
         entrypointSet.add(lazyDependency);
       }
     }
+
+    // Turn lists into exclusions.
     console.log('entrypointToDependencies', entrypointToDependencies);
     console.log('dependenciesToEntrypoints', dependenciesToEntrypoints);
+
+    // Determine root of dependency graph, if applicable.
+    let root: string|null = null;
+    for (const entrypoint of entrypointToDependencies.keys()) {
+      let foundRoot = true;
+      for (const dependency of entrypointToDependencies.get(entrypoint)!) {
+        console.log(entrypoint, dependency);
+        if (entrypointToDependencies.has(dependency)) {
+          foundRoot = false;
+          break;
+        }
+      }
+      if (!foundRoot) {
+        continue;
+      }
+      if (root) {
+        throw new Error(
+            `entrypoints must form a singly-rooted graph! Two roots found: "${root
+            }" and "${entrypoint}"!`);
+      }
+      root = entrypoint;
+    }
+    if (!root) {
+      throw new Error(
+          'entrypoints must form a singly-rooted graph! No roots found!')
+    }
+
     return bundles;
   }
 
