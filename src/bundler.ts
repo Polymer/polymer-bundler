@@ -84,6 +84,14 @@ type DependencyEntry = {
   lazy: Set<string>
 };
 
+export interface DepsIndex {
+  // An index of dependency -> fragments that depend on it
+  depsToFragments: Map<string, string[]>;
+  // An index of fragments -> html dependencies
+  fragmentToDeps: Map<string, string[]>;
+}
+
+
 class Bundler {
   basePath?: string;
   addedImports: string[];
@@ -415,23 +423,22 @@ class Bundler {
 
   private async _transitiveDependencies(href: string, analyzer: Analyzer):
       Promise<DependencyEntry> {
+    console.log(`Analyzing: ${href}`)
     const document = await analyzer.analyzeRoot(href);
     const imports = document.getByKind('import');
-    imports.forEach((doc) => console.log(href, doc.url));
     const eagerImports = new Set<string>();
     const lazyImports = new Set<string>();
     for (let htmlImport of imports) {
       if (!htmlImport.url) {
         continue;
       }
-      const resolvedUrl = url.resolve(href, htmlImport.url);
-      console.log(resolvedUrl);
       switch (htmlImport.type) {
         case 'html-import':
-          eagerImports.add(resolvedUrl);
+          eagerImports.add(htmlImport.url);
           break;
         case 'lazy-html-import':
-          lazyImports.add(resolvedUrl);
+          console.log("Lazy import found!");
+          lazyImports.add(htmlImport.url);
           break;
       }
     }
@@ -445,10 +452,7 @@ class Bundler {
     return {url: href, eager: eagerImports, lazy: lazyImports};
   }
 
-  private async _bundleMultiple(entrypoints: string[], analyzer: Analyzer):
-      Promise<DocumentCollection> {
-    const bundles: DocumentCollection = new Map();
-    // Map entrypoints to transitive dependencies.
+  private async _depsIndex(entrypoints: string[], analyzer: Analyzer): Promise<DepsIndex> {
     const entrypointToDependencies: Map<string, Set<string>> = new Map();
     const dependenciesToEntrypoints: Map<string, Set<string>> = new Map();
     // Build forward and backward dependency lists.
@@ -482,18 +486,25 @@ class Bundler {
         entrypointSet.add(lazyDependency);
       }
     }
+    return {
+      depsToFragments: dependenciesToEntrypoints,
+      fragmentToDeps: entrypointToDependencies
+    };
+  }
 
-    // Turn lists into exclusions.
-    console.log('entrypointToDependencies', entrypointToDependencies);
-    console.log('dependenciesToEntrypoints', dependenciesToEntrypoints);
+  private async _bundleMultiple(entrypoints: string[], analyzer: Analyzer):
+      Promise<DocumentCollection> {
+    const bundles: DocumentCollection = new Map();
+    // Map entrypoints to transitive dependencies.
+    const depsIndex = await this._depsIndex(entrypoints, analyzer)
+
 
     // Determine root of dependency graph, if applicable.
     let root: string|null = null;
-    for (const entrypoint of entrypointToDependencies.keys()) {
+    for (const entrypoint of depsIndex.fragmentToDeps.keys()) {
       let foundRoot = true;
-      for (const dependency of entrypointToDependencies.get(entrypoint)!) {
-        console.log(entrypoint, dependency);
-        if (entrypointToDependencies.has(dependency)) {
+      for (const dependency of depsIndex.fragmentToDeps.get(entrypoint)!) {
+        if (depsIndex.fragmentToDeps.has(dependency)) {
           foundRoot = false;
           break;
         }
@@ -513,13 +524,43 @@ class Bundler {
           'entrypoints must form a singly-rooted graph! No roots found!')
     }
 
+    for (const entrypointUrl of entrypoints) {
+      let whitelist: Set<string>;
+      if (entrypointUrl == root) {
+        whitelist = depsIndex.fragmentToDeps.get(entrypointUrl)!;
+      } else {
+        whitelist = depsIndex.fragmentToDeps.get(entrypointUrl)!;
+        for (const dependency of whitelist.values()) {
+          console.log("Considering removing: ", dependency);
+          if (dependency in entrypoints) {
+            const dependenciesToExclude = depsIndex.fragmentToDeps.get(dependency)!;
+            dependenciesToExclude.forEach((transitiveDependency) => whitelist.delete(transitiveDependency));
+            whitelist.delete(dependency);
+          }
+        }
+      }
+      const bundledDoc = this._bundleDocument(
+        entrypointUrl,
+        this.excludes,
+        this.stripExcludes,
+        analyzer,
+        whitelist)
+      bundles.set(entrypointUrl, await bundledDoc);
+    }
+
     return bundles;
   }
 
   private async _bundleDocument(
-      url: string, excludes: string[], stripExcludes: string[],
-      analyzer: Analyzer) {
+      url: string,
+      excludes: string[],
+      stripExcludes: string[],
+      analyzer: Analyzer,
+      htmlImportWhitelist?: Set<string>) {
     const analyzedRoot = await analyzer.analyzeRoot(url);
+    for (const value of htmlImportWhitelist!.values()) {
+      console.log(`Whitelist entry for ${url}: ${value}`)
+    }
 
     // Map keyed by url to the import source and which has either the Import
     // feature as a value indicating the inlining of the Import has not yet
@@ -528,7 +569,7 @@ class Bundler {
     const importMap: Map<string, Import|null> = new Map();
     analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
     importMap.forEach((_, u) => {
-      if (this.isStripExcludedHref(u)) {
+      if (this.isStripExcludedHref(u) || htmlImportWhitelist && htmlImportWhitelist.has(u)) {
         importMap.set(u, null);
       } else if (this.isExcludedHref(u)) {
         importMap.delete(u);
@@ -536,7 +577,7 @@ class Bundler {
     });
 
     // We must clone the AST from the document, since we will be modifying it.
-    const newDocument = dom5.cloneNode(analyzedRoot.parsedDocument.ast);
+    const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
 
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;
