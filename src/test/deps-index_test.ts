@@ -1,3 +1,4 @@
+
 /**
  * @license
  * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
@@ -37,6 +38,8 @@ const domModulePredicate = (id: string) => {
 
 suite('Bundler', () => {
   const common = 'test/html/shards/common.html';
+  const dep1 = 'test/html/shards/dep1.html';
+  const dep2 = 'test/html/shards/dep2.html';
   const endpoint1 = 'test/html/shards/endpoint1.html';
   const endpoint2 = 'test/html/shards/endpoint2.html';
 
@@ -47,10 +50,18 @@ suite('Bundler', () => {
   })
 
   suite('Deps index tests', () => {
-    test('with 3 endpoints, all deps are in their places', () => {
+    test('with 3 endpoints, all deps are properly assigned to the index', () => {
       return buildDepsIndex([common, endpoint1, endpoint2], analyzer)
           .then((index) => {
             console.log(index);
+            assert.equal(index.depsToFragments.get(common)!.size, 2);
+            assert.equal(index.depsToFragments.get(dep1)!.size, 2);
+            assert.equal(index.depsToFragments.get(dep2)!.size, 1);
+            assert.equal(index.depsToFragments.get(endpoint1)!.size, 1);
+
+            assert.equal(index.fragmentToDeps.get(common)!.size, 0);
+            assert.equal(index.fragmentToDeps.get(endpoint1)!.size, 2);
+            assert.equal(index.fragmentToDeps.get(endpoint2)!.size, 4);
           });
     });
   });

@@ -68,7 +68,7 @@ suite('Bundler', () => {
     }
   }
 
-  suite('Sharded builds', () => {
+  suite.skip('Sharded builds', () => {
     test('with 3 endpoints, all deps are in their places', () => {
       const imports = preds.AND(
           preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),

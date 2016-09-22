@@ -394,12 +394,14 @@ class Bundler {
     if (!this.analyzer) {
       throw new Error('No analyzer provided.');
     }
-    const doc = await this._bundleDocument(bundles[0], this.excludes, this.stripExcludes, this.analyzer);
+    const doc = await this._bundleDocument(
+        bundles[0], this.excludes, this.stripExcludes, this.analyzer);
     const collection = new Map<string, ASTNode>();
     collection.set(bundles[0], doc);
     return collection;
     // const depsIndex = buildDepsIndex(bundles, this.analyzer) const manifest =
-    //     this._bundleManifest() return this._bundleMultiple(url, this.analyzer);
+    //     this._bundleManifest() return this._bundleMultiple(url,
+    //     this.analyzer);
   }
 
 
@@ -411,8 +413,8 @@ class Bundler {
     const depsIndex = await buildDepsIndex(entrypoints, analyzer)
 
 
-                      // Determine root of dependency graph, if applicable.
-                      let root: string |
+        // Determine root of dependency graph, if applicable.
+        let root: string |
         null = null;
     for (const entrypoint of depsIndex.fragmentToDeps.keys()) {
       let foundRoot = true;
@@ -467,8 +469,10 @@ class Bundler {
       url: string, excludes: string[], stripExcludes: string[],
       analyzer: Analyzer, htmlImportWhitelist?: Set<string>) {
     const analyzedRoot = await analyzer.analyzeRoot(url);
-    for (const value of htmlImportWhitelist!.values()) {
-      console.log(`Whitelist entry for ${url}: ${value}`)
+    if (htmlImportWhitelist) {
+      for (const value of htmlImportWhitelist!.values()) {
+        console.log(`Whitelist entry for ${url}: ${value}`)
+      }
     }
 
     // Map keyed by url to the import source and which has either the Import
