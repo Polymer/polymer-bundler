@@ -43,7 +43,7 @@ suite('Bundler', () => {
       bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
     }
     bundler = new Bundler(bundlerOpts);
-    return bundler.bundle(inputPath).then(
+    return bundler.bundle([inputPath]).then(
         (documents) => documents.get(inputPath));
   }
 

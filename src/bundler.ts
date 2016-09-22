@@ -11,9 +11,6 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-
-'use strict';
-
 import * as path from 'path';
 import * as url from 'url';
 const pathPosix = path.posix;
@@ -31,6 +28,7 @@ import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
 import DocumentCollection from './document-collection';
+import {buildDepsIndex} from './deps-index';
 
 // TODO(usergenic): Document every one of these options.
 export interface Options {
@@ -77,20 +75,6 @@ export interface Options {
   // removed.
   stripExcludes?: string[];
 }
-
-type DependencyEntry = {
-  url: string,
-  eager: Set<string>,
-  lazy: Set<string>
-};
-
-export interface DepsIndex {
-  // An index of dependency -> fragments that depend on it
-  depsToFragments: Map<string, string[]>;
-  // An index of fragments -> html dependencies
-  fragmentToDeps: Map<string, string[]>;
-}
-
 
 class Bundler {
   basePath?: string;
@@ -406,101 +390,30 @@ class Bundler {
    *
    * Given Multiple urls, produces a sharded build.
    */
-  async bundle(url: string|string[]): Promise<DocumentCollection> {
+  async bundle(bundles: string[]): Promise<DocumentCollection> {
     if (!this.analyzer) {
       throw new Error('No analyzer provided.');
     }
-    if (Array.isArray(url)) {
-      return this._bundleMultiple(url, this.analyzer);
-    } else {
-      const documents: DocumentCollection = new Map();
-      const newDocument = await this._bundleDocument(
-          url, this.excludes, this.stripExcludes, this.analyzer);
-      documents.set(url, newDocument);
-      return documents;
-    }
+    const doc = await this._bundleDocument(bundles[0], this.excludes, this.stripExcludes, this.analyzer);
+    const collection = new Map<string, ASTNode>();
+    collection.set(bundles[0], doc);
+    return collection;
+    // const depsIndex = buildDepsIndex(bundles, this.analyzer) const manifest =
+    //     this._bundleManifest() return this._bundleMultiple(url, this.analyzer);
   }
 
-  private async _transitiveDependencies(href: string, analyzer: Analyzer):
-      Promise<DependencyEntry> {
-    console.log(`Analyzing: ${href}`)
-    const document = await analyzer.analyzeRoot(href);
-    const imports = document.getByKind('import');
-    const eagerImports = new Set<string>();
-    const lazyImports = new Set<string>();
-    for (let htmlImport of imports) {
-      if (!htmlImport.url) {
-        continue;
-      }
-      switch (htmlImport.type) {
-        case 'html-import':
-          eagerImports.add(htmlImport.url);
-          break;
-        case 'lazy-html-import':
-          console.log("Lazy import found!");
-          lazyImports.add(htmlImport.url);
-          break;
-      }
-    }
-    // O(N^2) - suboptimal.
-    // If lazy imports are manually specified, we may have duplicate features.
-    for (const eagerImport of eagerImports.values()) {
-      if (lazyImports.has(eagerImport)) {
-        lazyImports.delete(eagerImport);
-      }
-    }
-    return {url: href, eager: eagerImports, lazy: lazyImports};
-  }
 
-  private async _depsIndex(entrypoints: string[], analyzer: Analyzer): Promise<DepsIndex> {
-    const entrypointToDependencies: Map<string, Set<string>> = new Map();
-    const dependenciesToEntrypoints: Map<string, Set<string>> = new Map();
-    // Build forward and backward dependency lists.
-    for (const entrypointUrl of entrypoints) {
-      const dependencies =
-          await this._transitiveDependencies(entrypointUrl, analyzer);
-      if (!entrypointToDependencies.has(entrypointUrl)) {
-        entrypointToDependencies.set(entrypointUrl, new Set());
-      }
-      const dependencySet: Set<string> =
-          entrypointToDependencies.get(entrypointUrl)!;
-      dependencies.eager.forEach((dependency) => dependencySet.add(dependency));
-      for (const dependency of dependencies.eager) {
-        if (!dependenciesToEntrypoints.has(dependency)) {
-          dependenciesToEntrypoints.set(dependency, new Set());
-        }
-        const entrypointSet = dependenciesToEntrypoints.get(dependency)!;
-        entrypointSet.add(entrypointUrl);
-      }
-      for (const lazyDependency of dependencies.lazy) {
-        if (!entrypointToDependencies.has(lazyDependency)) {
-          entrypointToDependencies.set(lazyDependency, new Set());
-        }
-        const dependencySet: Set<string> =
-            entrypointToDependencies.get(lazyDependency)!;
-        dependencySet.add(entrypointUrl);
-        if (!dependenciesToEntrypoints.has(entrypointUrl)) {
-          dependenciesToEntrypoints.set(entrypointUrl, new Set());
-        }
-        const entrypointSet = dependenciesToEntrypoints.get(entrypointUrl)!;
-        entrypointSet.add(lazyDependency);
-      }
-    }
-    return {
-      depsToFragments: dependenciesToEntrypoints,
-      fragmentToDeps: entrypointToDependencies
-    };
-  }
 
   private async _bundleMultiple(entrypoints: string[], analyzer: Analyzer):
       Promise<DocumentCollection> {
     const bundles: DocumentCollection = new Map();
     // Map entrypoints to transitive dependencies.
-    const depsIndex = await this._depsIndex(entrypoints, analyzer)
+    const depsIndex = await buildDepsIndex(entrypoints, analyzer)
 
 
-    // Determine root of dependency graph, if applicable.
-    let root: string|null = null;
+                      // Determine root of dependency graph, if applicable.
+                      let root: string |
+        null = null;
     for (const entrypoint of depsIndex.fragmentToDeps.keys()) {
       let foundRoot = true;
       for (const dependency of depsIndex.fragmentToDeps.get(entrypoint)!) {
@@ -531,20 +444,19 @@ class Bundler {
       } else {
         whitelist = depsIndex.fragmentToDeps.get(entrypointUrl)!;
         for (const dependency of whitelist.values()) {
-          console.log("Considering removing: ", dependency);
+          console.log('Considering removing: ', dependency);
           if (dependency in entrypoints) {
-            const dependenciesToExclude = depsIndex.fragmentToDeps.get(dependency)!;
-            dependenciesToExclude.forEach((transitiveDependency) => whitelist.delete(transitiveDependency));
+            const dependenciesToExclude =
+                depsIndex.fragmentToDeps.get(dependency)!;
+            dependenciesToExclude.forEach(
+                (transitiveDependency) =>
+                    whitelist.delete(transitiveDependency));
             whitelist.delete(dependency);
           }
         }
       }
       const bundledDoc = this._bundleDocument(
-        entrypointUrl,
-        this.excludes,
-        this.stripExcludes,
-        analyzer,
-        whitelist)
+          entrypointUrl, this.excludes, this.stripExcludes, analyzer, whitelist)
       bundles.set(entrypointUrl, await bundledDoc);
     }
 
@@ -552,11 +464,8 @@ class Bundler {
   }
 
   private async _bundleDocument(
-      url: string,
-      excludes: string[],
-      stripExcludes: string[],
-      analyzer: Analyzer,
-      htmlImportWhitelist?: Set<string>) {
+      url: string, excludes: string[], stripExcludes: string[],
+      analyzer: Analyzer, htmlImportWhitelist?: Set<string>) {
     const analyzedRoot = await analyzer.analyzeRoot(url);
     for (const value of htmlImportWhitelist!.values()) {
       console.log(`Whitelist entry for ${url}: ${value}`)
@@ -569,7 +478,8 @@ class Bundler {
     const importMap: Map<string, Import|null> = new Map();
     analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
     importMap.forEach((_, u) => {
-      if (this.isStripExcludedHref(u) || htmlImportWhitelist && htmlImportWhitelist.has(u)) {
+      if (this.isStripExcludedHref(u) ||
+          htmlImportWhitelist && htmlImportWhitelist.has(u)) {
         importMap.set(u, null);
       } else if (this.isExcludedHref(u)) {
         importMap.delete(u);
