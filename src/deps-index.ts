@@ -32,27 +32,26 @@ type DependencyMapEntry = {
   lazy: Set<string>
 };
 
-async function _getDependencies(href: string, analyzer: Analyzer):
-    Promise<DependencyMapEntry> {
-      const document = await analyzer.analyzeRoot(href);
-      const imports = document.getByKind('import');
-      const eagerImports = new Set<string>();
-      const lazyImports = new Set<string>();
-      for (let htmlImport of imports) {
-        if (!htmlImport.url) {
-          continue;
-        }
-        switch (htmlImport.type) {
-          case 'html-import':
-            eagerImports.add(htmlImport.url);
-            break;
-          case 'lazy-html-import':
-            lazyImports.add(htmlImport.url);
-            break;
-        }
-      }
-      return {url: href, eager: eagerImports, lazy: lazyImports};
+async function _getDependencies(href: string, analyzer: Analyzer): Promise<DependencyMapEntry> {
+  const document = await analyzer.analyzeRoot(href);
+  const imports = document.getByKind('import');
+  const eagerImports = new Set<string>();
+  const lazyImports = new Set<string>();
+  for (let htmlImport of imports) {
+    if (!htmlImport.url) {
+      continue;
     }
+    switch (htmlImport.type) {
+      case 'html-import':
+        eagerImports.add(htmlImport.url);
+        break;
+      case 'lazy-html-import':
+        lazyImports.add(htmlImport.url);
+        break;
+    }
+  }
+  return {url: href, eager: eagerImports, lazy: lazyImports};
+}
 
 export async function buildDepsIndex(
     entrypoints: string[], analyzer: Analyzer): Promise<DepsIndex> {

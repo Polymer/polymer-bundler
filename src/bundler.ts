@@ -410,12 +410,11 @@ class Bundler {
       Promise<DocumentCollection> {
     const bundles: DocumentCollection = new Map();
     // Map entrypoints to transitive dependencies.
-    const depsIndex = await buildDepsIndex(entrypoints, analyzer)
+    const depsIndex = await buildDepsIndex(entrypoints, analyzer);
 
 
-        // Determine root of dependency graph, if applicable.
-        let root: string |
-        null = null;
+    // Determine root of dependency graph, if applicable.
+    let root: string|null = null;
     for (const entrypoint of depsIndex.fragmentToDeps.keys()) {
       let foundRoot = true;
       for (const dependency of depsIndex.fragmentToDeps.get(entrypoint)!) {

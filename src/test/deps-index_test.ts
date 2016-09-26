@@ -50,19 +50,20 @@ suite('Bundler', () => {
   })
 
   suite('Deps index tests', () => {
-    test('with 3 endpoints, all deps are properly assigned to the index', () => {
-      return buildDepsIndex([common, endpoint1, endpoint2], analyzer)
-          .then((index) => {
-            console.log(index);
-            assert.equal(index.depsToFragments.get(common)!.size, 2);
-            assert.equal(index.depsToFragments.get(dep1)!.size, 2);
-            assert.equal(index.depsToFragments.get(dep2)!.size, 1);
-            assert.equal(index.depsToFragments.get(endpoint1)!.size, 1);
+    test(
+        'with 3 endpoints, all deps are properly assigned to the index', () => {
+          return buildDepsIndex([common, endpoint1, endpoint2], analyzer)
+              .then((index) => {
+                console.log(index);
+                assert.equal(index.depsToFragments.get(common)!.size, 2);
+                assert.equal(index.depsToFragments.get(dep1)!.size, 2);
+                assert.equal(index.depsToFragments.get(dep2)!.size, 1);
+                assert.equal(index.depsToFragments.get(endpoint1)!.size, 1);
 
-            assert.equal(index.fragmentToDeps.get(common)!.size, 0);
-            assert.equal(index.fragmentToDeps.get(endpoint1)!.size, 2);
-            assert.equal(index.fragmentToDeps.get(endpoint2)!.size, 4);
-          });
-    });
+                assert.equal(index.fragmentToDeps.get(common)!.size, 0);
+                assert.equal(index.fragmentToDeps.get(endpoint1)!.size, 2);
+                assert.equal(index.fragmentToDeps.get(endpoint2)!.size, 4);
+              });
+        });
   });
 });
