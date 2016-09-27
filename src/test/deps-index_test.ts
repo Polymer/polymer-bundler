@@ -104,7 +104,6 @@ suite('Bundler', () => {
         'with 3 endpoints, all deps are properly assigned to the index', () => {
           return buildDepsIndex([common, endpoint1, endpoint2], analyzer)
               .then((index) => {
-                console.log(index);
                 deepMapSetEqual(index.depsToFragments, expectedDepsToFragments);
                 deepMapSetEqual(index.fragmentToDeps, expectedFragmentToDeps);
               });
