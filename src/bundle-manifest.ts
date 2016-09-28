@@ -2,6 +2,7 @@
  * A bundle strategy function is used to transform an array of bundles.
  */
 export type BundleStrategy = (bundles: Bundle[]) => Bundle[];
+export type BundleUrlMapper = (bundles: Bundle[]) => UrlString[];
 
 /**
  * A mapping of entrypoints to their full set of transitive dependencies,
@@ -26,6 +27,36 @@ export class Bundle {
   constructor(entrypoints?: Set<UrlString>, files?: Set<UrlString>) {
     this.entrypoints = entrypoints || new Set<UrlString>();
     this.files = files || new Set<UrlString>();
+  }
+}
+
+/**
+ * A bundle manifest is a mapping of urls to bundles, with convenience
+ * methods to identify a bundle by a constituent file.
+ */
+export class BundleManifest {
+  public bundles: Map<UrlString, Bundle>;
+  constructor() {
+    this.bundles = new Map();
+  }
+  getMappingForFile(url: string): [UrlString, Bundle]|undefined {
+    for (let mapping of this.bundles.entries()) {
+      if (mapping[1].files.has(url)) {
+        return mapping;
+      }
+    }
+  }
+  getBundleForFile(url: string): Bundle|undefined {
+    const mapping = this.getMappingForFile(url);
+    if (mapping) {
+      return mapping[1];
+    }
+  }
+  getUrlForFile(url: string): UrlString|undefined {
+    const mapping = this.getMappingForFile(url);
+    if (mapping) {
+      return mapping[0];
+    }
   }
 }
 
@@ -58,6 +89,22 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
     bundle.files.add(dep);
   }
   return bundles;
+}
+
+/**
+ * Given a collection of bundles and a BundleUrlMapper to generate urls for
+ * them, produce a BundleManifest.
+ */
+export function generateBundleManifest(
+    bundles: Bundle[], urlGenerator: BundleUrlMapper): BundleManifest {
+  const urls = urlGenerator(bundles);
+  const manifest = new BundleManifest();
+
+  for (let i = 0; i < bundles.length; ++i) {
+    manifest.bundles.set(urls[i]!, bundles[i]!);
+  }
+
+  return manifest;
 }
 
 /**
@@ -147,4 +194,20 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
     }
   }
   return newBundle;
+}
+
+/**
+ * A simple function for generating shared bundle names based on a counter.
+ */
+export function sharedBundleUrlMapper(bundles: Bundle[]): UrlString[] {
+  let counter = 0;
+  const urls: UrlString[] = [];
+  for (let bundle of bundles) {
+    if (bundle.entrypoints.size == 1) {
+      urls.push(Array.from(bundle.entrypoints)[0]);
+    } else {
+      urls.push(`shared_bundle_${++counter}.html`);
+    }
+  }
+  return urls;
 }
