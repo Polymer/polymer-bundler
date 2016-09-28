@@ -388,7 +388,8 @@ class Bundler {
    * with HTML imports, external stylesheets and external scripts inlined,
    * according to the options for this Bundler.
    *
-   * Given Multiple urls, produces a sharded build.
+   * Given Multiple urls, produces a sharded build by applying the provided
+   * heuristic.
    */
   async bundle(bundles: string[], heuristic?: BundleOrchestrator):
       Promise<DocumentCollection> {
