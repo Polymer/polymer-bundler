@@ -1,37 +1,31 @@
 /**
- * A bundle is a grouping of files which serve the need of one or more
- * entrypoint files.
- */
-export interface IBundle {
-  entrypoints: Set<URL>;
-  files: Set<URL>;
-}
-
-/**
  * A bundle strategy function is used to transform an array of bundles.
  */
-export type IBundleStrategy = (bundles: IBundle[]) => IBundle[];
+export type BundleStrategy = (bundles: Bundle[]) => Bundle[];
 
 /**
- * A mapping of URLs to their full set of transitive dependencies, such that
- * `a->b, b->c, b->d, e->f` would be represented `{a:[b,c,d], e:[f]}`
+ * A mapping of entrypoints to their full set of transitive dependencies,
+ * such that a dependency graph `a->c, c->d, d->e, b->d, b->f` would be
+ * represented `{a:[a,c,d,e], b:[b,d,e,f]}`.  Please note that there is an
+ * explicit identity dependency (`a` depends on `a`, `b` depends on `b`).
  */
-export type IFileTransDepsIndex = Map<URL, Set<URL>>;
+export type TransitiveDependenciesMap = Map<UrlString, Set<UrlString>>;
 
 /**
  * Defining this URL type to make it clear which strings represent URLs.
  */
-export type URL = string;
+export type UrlString = string;
 
 /**
- * Standard implementation of IBundle.
+ * A bundle is a grouping of files which serve the need of one or more
+ * entrypoint files.
  */
-export class Bundle implements IBundle {
-  public entrypoints: Set<URL>;
-  public files: Set<URL>;
-  constructor(entrypoints?: Set<URL>, files?: Set<URL>) {
-    this.entrypoints = entrypoints || new Set<URL>();
-    this.files = files || new Set<URL>();
+export class Bundle {
+  public entrypoints: Set<UrlString>;
+  public files: Set<UrlString>;
+  constructor(entrypoints?: Set<UrlString>, files?: Set<UrlString>) {
+    this.entrypoints = entrypoints || new Set<UrlString>();
+    this.files = files || new Set<UrlString>();
   }
 }
 
@@ -43,13 +37,15 @@ export class Bundle implements IBundle {
  *   `a->b, b->c, b->d, e->c, e->f`
  *
  * Would produce an array of three bundles:
- *   `[a]->[b,d], [e]->[f], [a,e]->[c]`
+ *   `[a]->[a,b,d], [e]->[e,f], [a,e]->[c]`
  */
-export function generateBundles(depsIndex: IFileTransDepsIndex): IBundle[] {
-  const bundles: IBundle[] = [];
-  const invertedIndex = invertFileTransDepsIndex(depsIndex);
+export function generateBundles(depsIndex: TransitiveDependenciesMap):
+    Bundle[] {
+  const bundles: Bundle[] = [];
+  const invertedIndex = invertMultimap(depsIndex);
 
-  for (let [dep, entrypoints] of invertedIndex.entries()) {
+  for (let entry of invertedIndex.entries()) {
+    let dep: UrlString = entry[0], entrypoints: Set<UrlString> = entry[1];
     const entrypointsArray = Array.from(entrypoints);
     let bundle = bundles.find((bundle) => {
       return bundle.entrypoints.size === entrypoints.size &&
@@ -70,30 +66,27 @@ export function generateBundles(depsIndex: IFileTransDepsIndex): IBundle[] {
  * `minEntrypoints` to change threshold).
  *
  * This function will convert an array of 4 bundles:
- *   `[a]->[b], [a,c]->[d], [c]->[e], [f,g]->[h]`
+ *   `[a]->[a,b], [a,c]->[d], [c]->[c,e], [f,g]->[f,g,h]`
  *
  * Into the following 3 bundles, including a single bundle for all of the
  * dependencies which are shared by at least 2 entrypoints:
- *   `[a]->[b], [c]->[e], [a,c,f,g]->[d,h]`
+ *   `[a]->[a,b], [c]->[c,e], [a,c,f,g]->[d,f,g,h]`
  */
 export function generateSharedDepsMergeStrategy(minEntrypoints: number):
-    IBundleStrategy {
-  return (bundles: IBundle[]): IBundle[] => {
-    const newBundles: IBundle[] = [];
-    let sharedBundle: Bundle|undefined;
-    bundles.forEach((bundle) => {
+    BundleStrategy {
+  return (bundles: Bundle[]): Bundle[] => {
+    const newBundles: Bundle[] = [];
+    const sharedBundles: Bundle[] = [];
+    for (let bundle of bundles) {
       if (bundle.entrypoints.size >= minEntrypoints) {
-        sharedBundle =
-            sharedBundle ? mergeBundles([sharedBundle, bundle]) : bundle;
+        sharedBundles.push(bundle);
       } else {
-        const newBundle = new Bundle();
-        bundle.entrypoints.forEach((e) => newBundle.entrypoints.add(e));
-        bundle.files.forEach((f) => newBundle.files.add(f));
-        newBundles.push(newBundle);
+        newBundles.push(
+            new Bundle(new Set(bundle.entrypoints), new Set(bundle.files)));
       }
-    });
-    if (sharedBundle) {
-      newBundles.push(sharedBundle);
+    }
+    if (sharedBundles.length > 0) {
+      newBundles.push(mergeBundles(sharedBundles));
     }
     return newBundles;
   };
@@ -103,9 +96,10 @@ export function generateSharedDepsMergeStrategy(minEntrypoints: number):
  * A bundle strategy function which merges all shared dependencies into a
  * bundle for an application shell.
  */
-export function generateShellMergeStrategy(shell: URL): IBundleStrategy {
-  return (bundles: IBundle[]): IBundle[] => {
-    const newBundles = singleSharedDepsStrategy(bundles);
+export function generateShellMergeStrategy(
+    shell: UrlString, minEntrypoints: number): BundleStrategy {
+  return (bundles: Bundle[]): Bundle[] => {
+    const newBundles = generateSharedDepsMergeStrategy(minEntrypoints)(bundles);
     const shellBundle = newBundles.find((bundle) => bundle.files.has(shell));
     const sharedBundle =
         newBundles.find((bundle) => bundle.entrypoints.size > 1);
@@ -119,42 +113,38 @@ export function generateShellMergeStrategy(shell: URL): IBundleStrategy {
 }
 
 /**
- * Returns an inverted FileTransDepsIndex where the keys are the dependencies
- * and the values are the set of files which are dependent on them.
- * `{a:[b,c], d:[b,e]}` becomes `{a:[a], b:[a,b,d], c:[a], d:[d], e:[d]}`.
+ * Inverts a map of collections such that  `{a:[c,d], b:[c,e]}` would become
+ * `{c:[a,b], d:[a], e:[b]}`.
  */
-export function invertFileTransDepsIndex(depsIndex: IFileTransDepsIndex):
-    IFileTransDepsIndex {
-  const invertedIndex = new Map<URL, Set<URL>>();
+export function invertMultimap(multimap: Map<any, Set<any>>):
+    Map<any, Set<any>> {
+  const inverted = new Map<any, Set<any>>();
 
-  for (let [entrypoint, deps] of depsIndex.entries()) {
-    [entrypoint].concat(Array.from(deps)).forEach((dep) => {
-      if (!invertedIndex.has(dep)) {
-        invertedIndex.set(dep, new Set<URL>());
-      }
-      invertedIndex.get(dep)!.add(entrypoint);
-    });
+  for (let entry of multimap.entries()) {
+    let value = entry[0], keys = entry[1];
+    for (let key of keys) {
+      let set = inverted.get(key) || new Set();
+      set.add(value);
+      inverted.set(key, set);
+    }
   }
 
-  return invertedIndex;
+  return inverted;
 }
 
 /**
  * Given an Array of bundles, produce a single bundle with the entrypoints and
  * files of all bundles represented.
  */
-export function mergeBundles(bundles: IBundle[]): IBundle {
+export function mergeBundles(bundles: Bundle[]): Bundle {
   const newBundle = new Bundle();
-  bundles.forEach((bundle) => {
-    bundle.entrypoints.forEach((url) => newBundle.entrypoints.add(url));
-    bundle.files.forEach((url) => newBundle.files.add(url));
-  });
+  for (let bundle of bundles) {
+    for (let url of bundle.entrypoints) {
+      newBundle.entrypoints.add(url);
+    }
+    for (let url of bundle.files) {
+      newBundle.files.add(url);
+    }
+  }
   return newBundle;
 }
-
-/**
- * A bundle strategy function which merges all bundles containing shared
- * dependencies into a single bundle.
- */
-export const singleSharedDepsStrategy: IBundleStrategy =
-    generateSharedDepsMergeStrategy(2);

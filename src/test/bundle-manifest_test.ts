@@ -16,7 +16,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 
-import {Bundle, generateBundles, generateSharedDepsMergeStrategy, generateShellMergeStrategy, IBundle, IFileTransDepsIndex, invertFileTransDepsIndex} from '../bundle-manifest';
+import {Bundle, generateBundles, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, TransitiveDependenciesMap} from '../bundle-manifest';
 
 chai.config.showDiff = true;
 
@@ -25,42 +25,56 @@ const matchers = require('../matchers');
 
 suite('BundleManifest', () => {
 
-  function serializeBundle(bundle: IBundle) {
+  /**
+   * Convenience method to load a bundle from the serialized form:
+   * `[entrypoint1,entrypoint2]->[file1,file2]`
+   */
+  function deserializeBundle(serialized: string): Bundle {
+    const arrowSplit = serialized.split(/->/);
+    const entrypoints = arrowSplit[0].slice(1, -1).split(',');
+    const files = arrowSplit[1].slice(1, -1).split(',');
+    return new Bundle(new Set(entrypoints), new Set(files));
+  }
+
+  /**
+   * Serializes a bundles as `[entrypoint1,entrypoint2]->[file1,file2]`.
+   */
+  function serializeBundle(bundle: Bundle): string {
     assert(bundle, 'Tried to serialize ${bundle}');
     return `[${Array.from(bundle.entrypoints)
         .sort()
-        .join(', ')}] -> [${Array.from(bundle.files)
+        .join()}]->[${Array.from(bundle.files)
         .sort()
-        .join(', ')}]`;
+        .join()}]`;
   }
 
   suite('generateBundles', () => {
 
     test('produces an array of bundles from dependencies index', () => {
       const depsIndex = new Map<string, Set<string>>();
-      depsIndex.set('A', new Set(['B', 'C', 'G']));
-      depsIndex.set('D', new Set(['B', 'E']));
-      depsIndex.set('F', new Set(['G']));
+      depsIndex.set('A', new Set(['A', 'B', 'C', 'G']));
+      depsIndex.set('D', new Set(['D', 'B', 'E']));
+      depsIndex.set('F', new Set(['F', 'G']));
 
       const bundles = generateBundles(depsIndex).map(serializeBundle).sort();
       assert.equal(bundles.length, 5);
-      assert.equal(bundles[0], '[A, D] -> [B]');
-      assert.equal(bundles[1], '[A, F] -> [G]');
-      assert.equal(bundles[2], '[A] -> [A, C]');
-      assert.equal(bundles[3], '[D] -> [D, E]');
-      assert.equal(bundles[4], '[F] -> [F]');
+      assert.equal(bundles[0], '[A,D]->[B]');
+      assert.equal(bundles[1], '[A,F]->[G]');
+      assert.equal(bundles[2], '[A]->[A,C]');
+      assert.equal(bundles[3], '[D]->[D,E]');
+      assert.equal(bundles[4], '[F]->[F]');
     });
   });
 
-  suite('invertFileTransDepsIndex', () => {
+  suite('invertMultimap', () => {
 
     test('produces an index of dependencies and dependent files', () => {
       const depsIndex = new Map<string, Set<string>>();
-      depsIndex.set('A', new Set(['B', 'C', 'G']));
-      depsIndex.set('D', new Set(['B', 'E']));
-      depsIndex.set('F', new Set(['G']));
+      depsIndex.set('A', new Set(['A', 'B', 'C', 'G']));
+      depsIndex.set('D', new Set(['D', 'B', 'E']));
+      depsIndex.set('F', new Set(['F', 'G']));
 
-      const invertedIndex = invertFileTransDepsIndex(depsIndex);
+      const invertedIndex = invertMultimap(depsIndex);
       assert.equal(
           Array.from(invertedIndex.keys()).sort().join(), 'A,B,C,D,E,F,G');
       assert.equal(Array.from(invertedIndex.get('A')!).join(), 'A');
@@ -73,17 +87,12 @@ suite('BundleManifest', () => {
     });
   });
 
-  suite('Bundle Strategies', () => {
+  suite('BundleStrategy', () => {
 
-    const bundles: IBundle[] = [];
-    bundles.push(new Bundle(new Set(['A']), new Set(['A', '1'])));
-    bundles.push(new Bundle(new Set(['A', 'B']), new Set(['2'])));
-    bundles.push(new Bundle(new Set(['A', 'B', 'C']), new Set(['3'])));
-    bundles.push(new Bundle(new Set(['B']), new Set(['B', '4'])));
-    bundles.push(new Bundle(new Set(['B', 'C']), new Set(['5'])));
-    bundles.push(new Bundle(new Set(['B', 'C', 'D']), new Set(['6'])));
-    bundles.push(new Bundle(new Set(['C']), new Set(['C', '7'])));
-    bundles.push(new Bundle(new Set(['D']), new Set(['D', '8'])));
+    const bundles: Bundle[] = [
+      '[A]->[A,1]', '[A,B]->[2]', '[A,B,C]->[3]', '[B]->[B,4]', '[B,C]->[5]',
+      '[B,C,D]->[6]', '[C]->[C,7]', '[D]->[D,8]'
+    ].map(deserializeBundle);
 
     suite('generateSharedDepsMergeStrategy', () => {
 
@@ -92,22 +101,22 @@ suite('BundleManifest', () => {
         const strategy3 = generateSharedDepsMergeStrategy(3);
         const bundles3 = strategy3(bundles).map(serializeBundle).sort();
         assert.equal(bundles3.length, 7);
-        assert.equal(bundles3[0], '[A, B, C, D] -> [3, 6]');
-        assert.equal(bundles3[1], '[A, B] -> [2]');
-        assert.equal(bundles3[2], '[A] -> [1, A]');
-        assert.equal(bundles3[3], '[B, C] -> [5]');
-        assert.equal(bundles3[4], '[B] -> [4, B]');
-        assert.equal(bundles3[5], '[C] -> [7, C]');
-        assert.equal(bundles3[6], '[D] -> [8, D]');
+        assert.equal(bundles3[0], '[A,B,C,D]->[3,6]');
+        assert.equal(bundles3[1], '[A,B]->[2]');
+        assert.equal(bundles3[2], '[A]->[1,A]');
+        assert.equal(bundles3[3], '[B,C]->[5]');
+        assert.equal(bundles3[4], '[B]->[4,B]');
+        assert.equal(bundles3[5], '[C]->[7,C]');
+        assert.equal(bundles3[6], '[D]->[8,D]');
 
         const strategy2 = generateSharedDepsMergeStrategy(2);
         const bundles2 = strategy2(bundles).map(serializeBundle).sort();
         assert.equal(bundles2.length, 5);
-        assert.equal(bundles2[0], '[A, B, C, D] -> [2, 3, 5, 6]');
-        assert.equal(bundles2[1], '[A] -> [1, A]');
-        assert.equal(bundles2[2], '[B] -> [4, B]');
-        assert.equal(bundles2[3], '[C] -> [7, C]');
-        assert.equal(bundles2[4], '[D] -> [8, D]');
+        assert.equal(bundles2[0], '[A,B,C,D]->[2,3,5,6]');
+        assert.equal(bundles2[1], '[A]->[1,A]');
+        assert.equal(bundles2[2], '[B]->[4,B]');
+        assert.equal(bundles2[3], '[C]->[7,C]');
+        assert.equal(bundles2[4], '[D]->[8,D]');
 
         // Prove the original bundles list is unmodified.
         assert.equal(bundles.length, 8);
@@ -117,14 +126,14 @@ suite('BundleManifest', () => {
     suite('generateShellMergeStrategy', () => {
 
       test('produces function to merge shared deps in shell', () => {
-        const shellStrategy = generateShellMergeStrategy('D');
+        const shellStrategy = generateShellMergeStrategy('D', 2);
         const shelled = shellStrategy(bundles).map(serializeBundle).sort();
         assert.equal(shelled.length, 4);
 
-        assert.equal(shelled[0], '[A, B, C, D] -> [2, 3, 5, 6, 8, D]');
-        assert.equal(shelled[1], '[A] -> [1, A]');
-        assert.equal(shelled[2], '[B] -> [4, B]');
-        assert.equal(shelled[3], '[C] -> [7, C]');
+        assert.equal(shelled[0], '[A,B,C,D]->[2,3,5,6,8,D]');
+        assert.equal(shelled[1], '[A]->[1,A]');
+        assert.equal(shelled[2], '[B]->[4,B]');
+        assert.equal(shelled[3], '[C]->[7,C]');
       });
     });
 
@@ -132,34 +141,44 @@ suite('BundleManifest', () => {
 
   suite('Shop example', () => {
 
-    const depsIndex: IFileTransDepsIndex = new Map();
-
-    depsIndex.set('app-shell.html', new Set());
-    depsIndex.set('catalog-list.html', new Set([
-                    'tin-photo.html', 'tin-add-to-cart.html',
-                    'tin-caption.html', 'tin-paginator.html'
-                  ]));
-    depsIndex.set('catalog-item.html', new Set([
-                    'tin-photo.html', 'tin-add-to-cart.html', 'tin-gallery.html'
-                  ]));
-    depsIndex.set('cart.html', new Set(['tin-photo.html', 'tin-caption.html']));
-    depsIndex.set('checkout.html', new Set(['tin-point-of-sale.html']));
-
     test('generates expected maximal sharding based on dependencies', () => {
 
+      const depsIndex: TransitiveDependenciesMap = new Map();
+
+      depsIndex.set('app-shell.html', new Set(['app-shell.html']));
+      depsIndex.set(
+          'catalog-list.html', new Set([
+            'catalog-list.html', 'tin-photo.html', 'tin-add-to-cart.html',
+            'tin-caption.html', 'tin-paginator.html'
+          ]));
+      depsIndex.set('catalog-item.html', new Set([
+                      'catalog-item.html', 'tin-photo.html',
+                      'tin-add-to-cart.html', 'tin-gallery.html'
+                    ]));
+      depsIndex.set(
+          'cart.html',
+          new Set(['cart.html', 'tin-photo.html', 'tin-caption.html']));
+      depsIndex.set(
+          'checkout.html',
+          new Set(['checkout.html', 'tin-point-of-sale.html']));
+
       const expected = [
-        '[app-shell.html] -> [app-shell.html]',
-        '[cart.html, catalog-item.html, catalog-list.html] -> [tin-photo.html]',
-        '[cart.html, catalog-list.html] -> [tin-caption.html]',
-        '[cart.html] -> [cart.html]',
-        '[catalog-item.html, catalog-list.html] -> [tin-add-to-cart.html]',
-        '[catalog-item.html] -> [catalog-item.html, tin-gallery.html]',
-        '[catalog-list.html] -> [catalog-list.html, tin-paginator.html]',
-        '[checkout.html] -> [checkout.html, tin-point-of-sale.html]'
+        '[app-shell.html]->[app-shell.html]',
+        '[cart.html,catalog-item.html,catalog-list.html]->[tin-photo.html]',
+        '[cart.html,catalog-list.html]->[tin-caption.html]',
+        '[cart.html]->[cart.html]',
+        '[catalog-item.html,catalog-list.html]->[tin-add-to-cart.html]',
+        '[catalog-item.html]->[catalog-item.html,tin-gallery.html]',
+        '[catalog-list.html]->[catalog-list.html,tin-paginator.html]',
+        '[checkout.html]->[checkout.html,tin-point-of-sale.html]'
       ];
 
       const bundles = generateBundles(depsIndex).map(serializeBundle).sort();
-      expected.forEach((e, i) => assert.equal(bundles[i], e));
+      assert.equal(expected.length, bundles.length);
+
+      for (let i = 0; i < bundles.length; ++i) {
+        assert.equal(bundles[i], expected[i]);
+      }
     });
   });
 });
