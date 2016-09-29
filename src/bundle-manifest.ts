@@ -54,8 +54,8 @@ export class BundleManifest {
     for (let i = 0; i < bundles.length; ++i) {
       const bundle = bundles[i], bundleUrl = bundleUrls[i];
       this.bundles.set(bundleUrl, bundle);
-      for (const file of bundle.files) {
-        this.files.set(file, bundleUrl);
+      for (const fileUrl of bundle.files) {
+        this.files.set(fileUrl, bundleUrl);
       }
     }
   }
