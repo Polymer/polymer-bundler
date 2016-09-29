@@ -16,7 +16,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 
-import {Bundle, generateBundleManifest, generateBundles, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, sharedBundleUrlMapper, TransitiveDependenciesMap} from '../bundle-manifest';
+import {Bundle, BundleManifest, generateBundles, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, sharedBundleUrlMapper, TransitiveDependenciesMap} from '../bundle-manifest';
 
 chai.config.showDiff = true;
 
@@ -48,7 +48,7 @@ suite('BundleManifest', () => {
         .join()}]`;
   }
 
-  suite('generateBundleManifest', () => {
+  suite('constructor and generated maps', () => {
 
     const bundles =
         ['[A]->[A,C]', '[B]->[B,D]', '[A,B]->[E]'].map(deserializeBundle);
@@ -57,14 +57,14 @@ suite('BundleManifest', () => {
       return bundles.map((bundle) => Array.from(bundle.entrypoints).join('_'));
     }
 
-    const manifest = generateBundleManifest(bundles, mapper);
+    const manifest = new BundleManifest(bundles, mapper);
 
     test('maps bundles to urls based on given mapper', () => {
       assert.equal(serializeBundle(manifest.bundles.get('A_B')!), '[A,B]->[E]');
     });
 
     test('enables bundles to be found by constituent file', () => {
-      assert.equal(manifest.getUrlForFile('E'), 'A_B');
+      assert.equal(manifest.files.get('E'), 'A_B');
       assert.equal(
           serializeBundle(manifest.getBundleForFile('E')!), '[A,B]->[E]');
     });
