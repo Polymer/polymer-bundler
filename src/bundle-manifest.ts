@@ -22,7 +22,10 @@ export type UrlString = string;
  * entrypoint files.
  */
 export class Bundle {
+  // Set of all dependant entrypoint urls of this bundle.
   entrypoints: Set<UrlString>;
+
+  // Set of all files included in the bundle.
   files: Set<UrlString>;
 
   constructor(entrypoints?: Set<UrlString>, files?: Set<UrlString>) {
@@ -71,6 +74,22 @@ export class BundleManifest {
 }
 
 /**
+ * Returns true if both sets contain exactly the same items.  This check is
+ * order-independent.
+ */
+function setEquals(set1: Set<any>, set2: Set<any>): boolean {
+  if (set1.size !== set2.size) {
+    return false;
+  }
+  for (const item of set1) {
+    if (!set2.has(item)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Given an index of files and their dependencies, produce an array of bundles,
  * where a bundle is defined for each set of dependencies.
  *
@@ -83,15 +102,22 @@ export class BundleManifest {
 export function generateBundles(depsIndex: TransitiveDependenciesMap):
     Bundle[] {
   const bundles: Bundle[] = [];
+
+  // TODO(usergenic): Assert a valid transitive dependencies map; i.e.
+  // entrypoints should include themselves as dependencies and entrypoints
+  // should *probably* not include other entrypoints as dependencies.
+
   const invertedIndex = invertMultimap(depsIndex);
 
   for (const entry of invertedIndex.entries()) {
-    const dep: UrlString = entry[0], entrypoints: Set<UrlString> = entry[1];
+    const dep: UrlString = entry[0];
+    const entrypoints: Set<UrlString> = entry[1];
     const entrypointsArray = Array.from(entrypoints);
-    let bundle = bundles.find((bundle) => {
-      return bundle.entrypoints.size === entrypoints.size &&
-          entrypointsArray.every((e) => bundle.entrypoints.has(e));
-    });
+
+    // Find the bundle defined by the specific set of shared dependant
+    // entrypoints.
+    let bundle =
+        bundles.find((bundle) => setEquals(entrypoints, bundle.entrypoints));
     if (!bundle) {
       bundle = new Bundle(entrypoints);
       bundles.push(bundle);
