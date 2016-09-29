@@ -16,7 +16,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 
-import {Bundle, generateBundles, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, TransitiveDependenciesMap} from '../bundle-manifest';
+import {Bundle, BundleManifest, generateBundles, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, sharedBundleUrlMapper, TransitiveDependenciesMap} from '../bundle-manifest';
 
 chai.config.showDiff = true;
 
@@ -40,13 +40,35 @@ suite('BundleManifest', () => {
    * Serializes a bundles as `[entrypoint1,entrypoint2]->[file1,file2]`.
    */
   function serializeBundle(bundle: Bundle): string {
-    assert(bundle, 'Tried to serialize ${bundle}');
+    assert(bundle, `Tried to serialize ${bundle}`);
     return `[${Array.from(bundle.entrypoints)
         .sort()
         .join()}]->[${Array.from(bundle.files)
         .sort()
         .join()}]`;
   }
+
+  suite('constructor and generated maps', () => {
+
+    const bundles =
+        ['[A]->[A,C]', '[B]->[B,D]', '[A,B]->[E]'].map(deserializeBundle);
+
+    function mapper(bundles: Bundle[]) {
+      return bundles.map((bundle) => Array.from(bundle.entrypoints).join('_'));
+    }
+
+    const manifest = new BundleManifest(bundles, mapper);
+
+    test('maps bundles to urls based on given mapper', () => {
+      assert.equal(serializeBundle(manifest.bundles.get('A_B')!), '[A,B]->[E]');
+    });
+
+    test('enables bundles to be found by constituent file', () => {
+      assert.equal(manifest.bundleUrlForFile.get('E'), 'A_B');
+      assert.equal(
+          serializeBundle(manifest.getBundleForFile('E')!), '[A,B]->[E]');
+    });
+  });
 
   suite('generateBundles', () => {
 
