@@ -61,7 +61,7 @@ export class BundleManifest {
   }
 
   // Convenience method to return a bundle for a constituent file url.
-  getBundleForFile(url: string): Bundle|undefined {
+  getBundleForFile(url: UrlString): Bundle|undefined {
     const bundleUrl = this.files.get(url);
     if (bundleUrl) {
       return this.bundles.get(bundleUrl);
