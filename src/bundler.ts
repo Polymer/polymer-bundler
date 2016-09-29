@@ -12,7 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 import * as path from 'path';
-import * as url from 'url';
+import * as urlLib from 'url';
 const pathPosix = path.posix;
 import * as dom5 from 'dom5';
 import encodeString from './third_party/UglifyJS2/encode-string';
@@ -109,24 +109,21 @@ class Bundler {
         String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
   }
 
-  calculateImplicitExcludes(excludes: string[]) {
-  }
-
-  isExcludedHref(href: string): boolean {
-    if (constants.EXTERNAL_URL.test(href)) {
+  isExcludedHref(url: string): boolean {
+    if (constants.EXTERNAL_URL.test(url)) {
       return true;
     }
     if (!this.excludes) {
       return false;
     }
-    return this.excludes.some(r => href.search(r) >= 0);
+    return this.excludes.some(r => url.search(r) >= 0);
   }
 
-  isStripExcludedHref(href: string): boolean {
+  isStripExcludedHref(url: string): boolean {
     if (!this.stripExcludes) {
       return false;
     }
-    return this.stripExcludes.some(r => href.search(r) >= 0);
+    return this.stripExcludes.some(r => url.search(r) >= 0);
   }
 
   isBlankTextNode(node: ASTNode): boolean {
@@ -175,7 +172,7 @@ class Bundler {
       docUrl: string, externalScript: ASTNode,
       importMap: Map<string, Import|null>): ASTNode|undefined {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
-    const resolvedUrl = url.resolve(docUrl, rawUrl);
+    const resolvedUrl = urlLib.resolve(docUrl, rawUrl);
     const script = importMap.get(resolvedUrl);
 
     if (!script || !script.document) {
@@ -200,7 +197,7 @@ class Bundler {
       docUrl: string, cssLink: ASTNode,
       importMap: Map<string, Import|null>): ASTNode|undefined {
     const stylesheetUrl: string = dom5.getAttribute(cssLink, 'href')!;
-    const resolvedStylesheetUrl = url.resolve(docUrl, stylesheetUrl);
+    const resolvedStylesheetUrl = urlLib.resolve(docUrl, stylesheetUrl);
     const stylesheetImport = importMap.get(resolvedStylesheetUrl);
 
     if (!stylesheetImport || !stylesheetImport.document) {
@@ -228,10 +225,11 @@ class Bundler {
    *     for hidden div adjacency etc.
    */
   inlineHtmlImport(
-      docUrl: string, htmlImport: ASTNode,
+      docUrl: string,
+      htmlImport: ASTNode,
       importMap: Map<string, Import|null>) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
-    const resolvedUrl: string = url.resolve(docUrl, rawUrl);
+    const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
 
     const analyzedImport = importMap.get(resolvedUrl);
     if (analyzedImport) {
@@ -401,6 +399,7 @@ class Bundler {
     const collection = new Map<string, ASTNode>();
     collection.set(bundles[0], doc);
     return collection;
+    // TODO(garlicnation): Wire this up once bundle heuristics are in.
     // const depsIndex = buildDepsIndex(bundles, this.analyzer) const manifest =
     //     this._bundleManifest() return this._bundleMultiple(url,
     //     this.analyzer);
