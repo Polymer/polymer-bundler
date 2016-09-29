@@ -39,7 +39,7 @@ export class BundleManifest {
   bundles: Map<UrlString, Bundle>;
 
   // Map of file url to bundle url.
-  files: Map<UrlString, UrlString>;
+  bundleUrlForFile: Map<UrlString, UrlString>;
 
   /**
    * Given a collection of bundles and a BundleUrlMapper to generate urls for
@@ -49,20 +49,21 @@ export class BundleManifest {
     const bundleUrls = urlMapper(bundles);
 
     this.bundles = new Map();
-    this.files = new Map();
+    this.bundleUrlForFile = new Map();
 
     for (let i = 0; i < bundles.length; ++i) {
       const bundle = bundles[i], bundleUrl = bundleUrls[i];
       this.bundles.set(bundleUrl, bundle);
       for (const fileUrl of bundle.files) {
-        this.files.set(fileUrl, bundleUrl);
+        console.assert(!this.bundleUrlForFile.has(fileUrl));
+        this.bundleUrlForFile.set(fileUrl, bundleUrl);
       }
     }
   }
 
   // Convenience method to return a bundle for a constituent file url.
   getBundleForFile(url: UrlString): Bundle|undefined {
-    const bundleUrl = this.files.get(url);
+    const bundleUrl = this.bundleUrlForFile.get(url);
     if (bundleUrl) {
       return this.bundles.get(bundleUrl);
     }
