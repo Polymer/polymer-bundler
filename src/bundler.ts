@@ -23,6 +23,7 @@ import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
 import {Document, ScannedDocument} from 'polymer-analyzer/lib/model/document';
 import {Import} from 'polymer-analyzer/lib/model/import';
 import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
+import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
@@ -79,7 +80,7 @@ export interface Options {
 class Bundler {
   basePath?: string;
   addedImports: string[];
-  analyzer?: Analyzer;
+  analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
   excludes: string[];
@@ -90,7 +91,7 @@ class Bundler {
 
   constructor(options?: Options) {
     const opts = options ? options : {};
-    this.analyzer = opts.analyzer ? opts.analyzer : undefined;
+    this.analyzer = opts.analyzer ? opts.analyzer : new Analyzer({urlLoader: new FSUrlLoader()});
 
     // implicitStrip should be true by default
     this.implicitStrip = !Boolean(opts.noImplicitStrip);
@@ -395,7 +396,7 @@ class Bundler {
       throw new Error('No analyzer provided.');
     }
     const doc = await this._bundleDocument(
-        bundles[0], this.excludes, this.stripExcludes, this.analyzer);
+        bundles[0], this.excludes, this.stripExcludes);
     const collection = new Map<string, ASTNode>();
     collection.set(bundles[0], doc);
     return collection;
@@ -405,75 +406,11 @@ class Bundler {
     //     this.analyzer);
   }
 
-
-
-  private async _bundleMultiple(entrypoints: string[], analyzer: Analyzer):
-      Promise<DocumentCollection> {
-    const bundles: DocumentCollection = new Map();
-    // Map entrypoints to transitive dependencies.
-    const depsIndex = await buildDepsIndex(entrypoints, analyzer);
-
-
-    // Determine root of dependency graph, if applicable.
-    let root: string|null = null;
-    for (const entrypoint of depsIndex.fragmentToDeps.keys()) {
-      let foundRoot = true;
-      for (const dependency of depsIndex.fragmentToDeps.get(entrypoint)!) {
-        if (depsIndex.fragmentToDeps.has(dependency)) {
-          foundRoot = false;
-          break;
-        }
-      }
-      if (!foundRoot) {
-        continue;
-      }
-      if (root) {
-        throw new Error(
-            `entrypoints must form a singly-rooted graph! Two roots found: "${root
-            }" and "${entrypoint}"!`);
-      }
-      root = entrypoint;
-    }
-    if (!root) {
-      throw new Error(
-          'entrypoints must form a singly-rooted graph! No roots found!')
-    }
-
-    for (const entrypointUrl of entrypoints) {
-      let whitelist: Set<string>;
-      if (entrypointUrl == root) {
-        whitelist = depsIndex.fragmentToDeps.get(entrypointUrl)!;
-      } else {
-        whitelist = depsIndex.fragmentToDeps.get(entrypointUrl)!;
-        for (const dependency of whitelist.values()) {
-          console.log('Considering removing: ', dependency);
-          if (dependency in entrypoints) {
-            const dependenciesToExclude =
-                depsIndex.fragmentToDeps.get(dependency)!;
-            dependenciesToExclude.forEach(
-                (transitiveDependency) =>
-                    whitelist.delete(transitiveDependency));
-            whitelist.delete(dependency);
-          }
-        }
-      }
-      const bundledDoc = this._bundleDocument(
-          entrypointUrl, this.excludes, this.stripExcludes, analyzer, whitelist)
-      bundles.set(entrypointUrl, await bundledDoc);
-    }
-
-    return bundles;
-  }
-
   private async _bundleDocument(
-      url: string, excludes: string[], stripExcludes: string[],
-      analyzer: Analyzer, htmlImportWhitelist?: Set<string>) {
-    const analyzedRoot = await analyzer.analyzeRoot(url);
-    if (htmlImportWhitelist) {
-      for (const value of htmlImportWhitelist!.values()) {
-        console.log(`Whitelist entry for ${url}: ${value}`)
-      }
-    }
+      url: string,
+      excludes: string[],
+      stripExcludes: string[]) {
+    const analyzedRoot = await this.analyzer.analyzeRoot(url);
 
     // Map keyed by url to the import source and which has either the Import
     // feature as a value indicating the inlining of the Import has not yet
@@ -482,8 +419,7 @@ class Bundler {
     const importMap: Map<string, Import|null> = new Map();
     analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
     importMap.forEach((_, u) => {
-      if (this.isStripExcludedHref(u) ||
-          htmlImportWhitelist && htmlImportWhitelist.has(u)) {
+      if (this.isStripExcludedHref(u)) {
         importMap.set(u, null);
       } else if (this.isExcludedHref(u)) {
         importMap.delete(u);

@@ -28,13 +28,15 @@ export interface BundleOrchestrator {
 
 type DependencyMapEntry = {
   url: string,
+  // Eagerly reachable dependencies.
   eager: Set<string>,
+  // Lazily reachable dependencies - may also include some entries from "eager"
   lazy: Set<string>
 };
 
-async function _getDependencies(href: string, analyzer: Analyzer):
+async function _getTransitiveDependencies(url: string, analyzer: Analyzer):
     Promise<DependencyMapEntry> {
-      const document = await analyzer.analyzeRoot(href);
+      const document = await analyzer.analyzeRoot(url);
       const imports = document.getByKind('import');
       const eagerImports = new Set<string>();
       const lazyImports = new Set<string>();
@@ -51,7 +53,7 @@ async function _getDependencies(href: string, analyzer: Analyzer):
             break;
         }
       }
-      return {url: href, eager: eagerImports, lazy: lazyImports};
+      return {url: url, eager: eagerImports, lazy: lazyImports};
     }
 
 export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
@@ -59,14 +61,14 @@ export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
   const entrypointToDependencies: Map<string, Set<string>> = new Map();
   const dependenciesToEntrypoints: Map<string, Set<string>> = new Map();
   let depsIndex = {};
-  const queue = entrypoints.slice();
+  const queue = Array.from(entrypoints);
   const visitedEntrypoints = new Set<string>();
   while (queue.length > 0) {
     const entrypoint = queue.shift()!;
     if (visitedEntrypoints.has(entrypoint)) {
       continue;
     }
-    const dependencyEntry = await _getDependencies(entrypoint, analyzer);
+    const dependencyEntry = await _getTransitiveDependencies(entrypoint, analyzer);
     const dependencies = new Set(dependencyEntry.eager);
     dependencies.add(entrypoint);
     entrypointToDependencies.set(entrypoint, dependencies);
@@ -90,10 +92,3 @@ export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
     fragmentToDeps: entrypointToDependencies
   };
 }
-
-
-export function defaultHeuristic(entrypoints: string, index: DepsIndex):
-    BundleManifest {
-      // Move all bundles into a shared bundle
-      return new Map<string, Set<string>>();
-    }
