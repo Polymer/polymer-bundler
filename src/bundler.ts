@@ -396,9 +396,10 @@ class Bundler {
    * with HTML imports, external stylesheets and external scripts inlined,
    * according to the options for this Bundler.
    *
-   * TODO: Given Multiple urls, produces a sharded build by applying the provided
+   * TODO: Given Multiple urls, produces a sharded build by applying the
+   * provided
    * strategy.
-   * 
+   *
    * @param {Array<string>} entrypoints The list of entrypoints that will be
    *     analyzed for dependencies. The results of the analysis will be passed
    *     to the `strategy`. An array of length 1 will bypass the strategy and
@@ -409,9 +410,10 @@ class Bundler {
    */
   async bundle(entrypoints: string[], strategy?: BundleStrategy):
       Promise<DocumentCollection> {
-    if (!this.analyzer) {
-      throw new Error('No analyzer provided.');
-    }
+    console.assert(
+        entrypoints.length === 1,
+        'Only one entrypoint is supported, %d entrypoints were provided',
+        entrypoints.length);
     const doc = await this._bundleDocument(
         entrypoints[0], this.excludes, this.stripExcludes);
     const collection = new Map<string, ASTNode>();
@@ -423,7 +425,7 @@ class Bundler {
       url: string,
       excludes: string[],
       stripExcludes: string[]): Promise<ASTNode> {
-    const analyzedRoot = await this.analyzer.analyzeRoot(url);
+    const analyzedRoot = await this.analyzer.analyze(url);
 
     // Map keyed by url to the import source and which has either the Import
     // feature as a value indicating the inlining of the Import has not yet
@@ -439,7 +441,7 @@ class Bundler {
       }
     });
 
-    // We must clone the AST from the document, since we will be modifying it.
+    // We must parse document to a new AST since we will be modifying the AST.
     const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
 
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
@@ -514,7 +516,6 @@ class Bundler {
       });
     }
     return newDocument;
-    // TODO(garlicnation): inline CSS
 
     // LATER
     // TODO(garlicnation): resolve <base> tags.

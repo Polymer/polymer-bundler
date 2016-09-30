@@ -29,7 +29,7 @@ type DependencyMapEntry = {
 
 async function _getTransitiveDependencies(url: string, analyzer: Analyzer):
     Promise<DependencyMapEntry> {
-      const document = await analyzer.analyzeRoot(url);
+      const document = await analyzer.analyze(url);
       const imports = document.getByKind('import');
       const eagerImports = new Set<string>();
       const lazyImports = new Set<string>();

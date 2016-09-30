@@ -49,15 +49,7 @@ suite('Bundler', () => {
     analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
   });
 
-  const expectedDepsToFragments = new Map([
-    [common, new Set([common, endpoint1, endpoint2])],
-    [dep1, new Set([endpoint1, endpoint2])],
-    [dep2, new Set([endpoint2])],
-    [endpoint1, new Set([endpoint1, endpoint2])],
-    [endpoint2, new Set([endpoint2])],
-  ]);
-
-  const expectedFragmentToDeps = new Map([
+  const expectedEntrypointsToDeps = new Map([
     [common, new Set([common])],
     [endpoint1, new Set([common, dep1, endpoint1])],
     [endpoint2, new Set([common, dep2, endpoint1, endpoint2, dep1])],
@@ -73,7 +65,6 @@ suite('Bundler', () => {
         const sortEntry = (a: any, b: any) => a[0].localeCompare(b[0]);
         actualEntries.sort(sortEntry);
         expectedEntries.sort(sortEntry);
-        console.log(actualEntries, expectedEntries);
         if (actualEntries.length !== expectedEntries.length) {
           throw new chai.AssertionError(
               `Expected ${expectedEntries.length
@@ -104,8 +95,8 @@ suite('Bundler', () => {
         'with 3 endpoints, all deps are properly assigned to the index', () => {
           return buildDepsIndex([common, endpoint1, endpoint2], analyzer)
               .then((index) => {
-                deepMapSetEqual(index.depsToFragments, expectedDepsToFragments);
-                deepMapSetEqual(index.fragmentToDeps, expectedFragmentToDeps);
+                deepMapSetEqual(
+                    index.entrypointToDeps, expectedEntrypointsToDeps);
               });
         });
   });
