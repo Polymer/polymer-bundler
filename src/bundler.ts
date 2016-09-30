@@ -398,16 +398,23 @@ class Bundler {
    *
    * Given Multiple urls, produces a sharded build by applying the provided
    * strategy.
+   * 
+   * @param {Array<string>} entrypoints The list of entrypoints that will be
+   *     analyzed for dependencies. The results of the analysis will be passed
+   *     to the `strategy`.
+   * @param {BundleStrategy} strategy The strategy used to construct the
+   *     output bundles. See 'polymer-analyzer/lib/bundle-manifest' for
+   *     examples.
    */
-  async bundle(bundles: string[], strategy?: BundleStrategy):
+  async bundle(entrypoints: string[], strategy?: BundleStrategy):
       Promise<DocumentCollection> {
     if (!this.analyzer) {
       throw new Error('No analyzer provided.');
     }
     const doc = await this._bundleDocument(
-        bundles[0], this.excludes, this.stripExcludes);
+        entrypoints[0], this.excludes, this.stripExcludes);
     const collection = new Map<string, ASTNode>();
-    collection.set(bundles[0], doc);
+    collection.set(entrypoints[0], doc);
     return collection;
   }
 
