@@ -17,7 +17,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
-import * as parse5 from 'parse5';
+import parse5 = require('parse5');
 import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
