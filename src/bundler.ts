@@ -92,7 +92,9 @@ class Bundler {
 
   constructor(options?: Options) {
     const opts = options ? options : {};
-    this.analyzer = opts.analyzer ? opts.analyzer : new Analyzer({urlLoader: new FSUrlLoader()});
+    this.analyzer = opts.analyzer ?
+        opts.analyzer :
+        new Analyzer({urlLoader: new FSUrlLoader()});
 
     // implicitStrip should be true by default
     this.implicitStrip = !Boolean(opts.noImplicitStrip);
@@ -227,8 +229,7 @@ class Bundler {
    *     for hidden div adjacency etc.
    */
   inlineHtmlImport(
-      docUrl: string,
-      htmlImport: ASTNode,
+      docUrl: string, htmlImport: ASTNode,
       importMap: Map<string, Import|null>) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
@@ -408,9 +409,7 @@ class Bundler {
   }
 
   private async _bundleDocument(
-      url: string,
-      excludes: string[],
-      stripExcludes: string[]) {
+      url: string, excludes: string[], stripExcludes: string[]) {
     const analyzedRoot = await this.analyzer.analyzeRoot(url);
 
     // Map keyed by url to the import source and which has either the Import

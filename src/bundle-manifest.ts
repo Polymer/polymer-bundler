@@ -223,7 +223,7 @@ export function sharedBundleUrlMapper(bundles: Bundle[]): UrlString[] {
   let counter = 0;
   const urls: UrlString[] = [];
   for (const bundle of bundles) {
-    if (bundle.entrypoints.size == 1) {
+    if (bundle.entrypoints.size === 1) {
       urls.push(Array.from(bundle.entrypoints)[0]);
     } else {
       urls.push(`shared_bundle_${++counter}.html`);

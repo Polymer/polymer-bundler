@@ -97,7 +97,7 @@ suite('Bundler', () => {
             }
           }
         }
-      }
+      };
 
   suite('Deps index tests', () => {
     test(

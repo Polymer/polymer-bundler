@@ -50,36 +50,35 @@ async function _getTransitiveDependencies(url: string, analyzer: Analyzer):
 
 export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
     Promise<DepsIndex> {
-  const entrypointToDependencies: Map<string, Set<string>> = new Map();
-  const dependenciesToEntrypoints: Map<string, Set<string>> = new Map();
-  let depsIndex = {};
-  const queue = Array.from(entrypoints);
-  const visitedEntrypoints = new Set<string>();
-  while (queue.length > 0) {
-    const entrypoint = queue.shift()!;
-    if (visitedEntrypoints.has(entrypoint)) {
-      continue;
-    }
-    const dependencyEntry = await _getTransitiveDependencies(entrypoint, analyzer);
-    const dependencies = new Set(dependencyEntry.eager);
-    dependencies.add(entrypoint);
-    entrypointToDependencies.set(entrypoint, dependencies);
-    for (const lazyDependency of dependencyEntry.lazy.values()) {
-      if (!visitedEntrypoints.has(lazyDependency)) {
-        queue.push(lazyDependency);
+      const entrypointToDependencies: Map<string, Set<string>> = new Map();
+      const dependenciesToEntrypoints: Map<string, Set<string>> = new Map();
+      let depsIndex = {};
+      const queue = Array.from(entrypoints);
+      const visitedEntrypoints = new Set<string>();
+      while (queue.length > 0) {
+        const entrypoint = queue.shift()!;
+        if (visitedEntrypoints.has(entrypoint)) {
+          continue;
+        }
+        const dependencyEntry =
+            await _getTransitiveDependencies(entrypoint, analyzer);
+        const dependencies = new Set(dependencyEntry.eager);
+        dependencies.add(entrypoint);
+        entrypointToDependencies.set(entrypoint, dependencies);
+        for (const lazyDependency of dependencyEntry.lazy.values()) {
+          if (!visitedEntrypoints.has(lazyDependency)) {
+            queue.push(lazyDependency);
+          }
+        }
       }
+      entrypointToDependencies.forEach((dependencies, entrypoint, map) => {
+        for (const dependency of dependencies) {
+          if (!dependenciesToEntrypoints.has(dependency)) {
+            dependenciesToEntrypoints.set(dependency, new Set());
+          }
+          const entrypointSet = dependenciesToEntrypoints.get(dependency)!;
+          entrypointSet.add(entrypoint);
+        }
+      });
+      return {entrypointToDeps: entrypointToDependencies};
     }
-  }
-  entrypointToDependencies.forEach((dependencies, entrypoint, map) => {
-    for (const dependency of dependencies) {
-      if (!dependenciesToEntrypoints.has(dependency)) {
-        dependenciesToEntrypoints.set(dependency, new Set());
-      }
-      const entrypointSet = dependenciesToEntrypoints.get(dependency)!;
-      entrypointSet.add(entrypoint);
-    }
-  });
-  return {
-    entrypointToDeps: entrypointToDependencies
-  };
-}
