@@ -69,7 +69,9 @@ export function relativeUrl(fromUri: string, toUri: string): string {
 // href.  If `basePath` is defined, it rewrites the path as an absolute path
 // using `basePath` as its root.
 export function rewriteImportedRelPath(
-    basePath: string|undefined, importUrl: string, mainDocUrl: string,
+    basePath: string|undefined,
+    importUrl: string,
+    mainDocUrl: string,
     href: string): string {
   if (isAbsolutePath(href)) {
     return href;

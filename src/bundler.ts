@@ -173,7 +173,8 @@ class Bundler {
    * Inline external scripts <script src="*">
    */
   inlineScript(
-      docUrl: string, externalScript: ASTNode,
+      docUrl: string,
+      externalScript: ASTNode,
       importMap: Map<string, Import|null>): ASTNode|undefined {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
     const resolvedUrl = urlLib.resolve(docUrl, rawUrl);
@@ -198,7 +199,8 @@ class Bundler {
    * `<link rel="stylesheet">`.
    */
   inlineStylesheet(
-      docUrl: string, cssLink: ASTNode,
+      docUrl: string,
+      cssLink: ASTNode,
       importMap: Map<string, Import|null>): ASTNode|undefined {
     const stylesheetUrl: string = dom5.getAttribute(cssLink, 'href')!;
     const resolvedStylesheetUrl = urlLib.resolve(docUrl, stylesheetUrl);
@@ -229,7 +231,8 @@ class Bundler {
    *     for hidden div adjacency etc.
    */
   inlineHtmlImport(
-      docUrl: string, htmlImport: ASTNode,
+      docUrl: string,
+      htmlImport: ASTNode,
       importMap: Map<string, Import|null>) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
@@ -305,7 +308,9 @@ class Bundler {
   }
 
   rewriteImportedStyleTextUrls(
-      importUrl: string, mainDocUrl: string, cssText: string): string {
+      importUrl: string,
+      mainDocUrl: string,
+      cssText: string): string {
     return cssText.replace(constants.URL, match => {
       let path = match.replace(/["']/g, '').slice(4, -1);
       path = urlUtils.rewriteImportedRelPath(
@@ -315,7 +320,9 @@ class Bundler {
   }
 
   rewriteImportedUrls(
-      importDoc: ASTNode, importUrl: string, mainDocUrl: string) {
+      importDoc: ASTNode,
+      importUrl: string,
+      mainDocUrl: string) {
     // rewrite URLs in element attributes
     const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
     let attrValue: string|null;
@@ -390,9 +397,9 @@ class Bundler {
    * according to the options for this Bundler.
    *
    * Given Multiple urls, produces a sharded build by applying the provided
-   * heuristic.
+   * strategy.
    */
-  async bundle(bundles: string[], heuristic?: BundleStrategy):
+  async bundle(bundles: string[], strategy?: BundleStrategy):
       Promise<DocumentCollection> {
     if (!this.analyzer) {
       throw new Error('No analyzer provided.');
@@ -402,14 +409,14 @@ class Bundler {
     const collection = new Map<string, ASTNode>();
     collection.set(bundles[0], doc);
     return collection;
-    // TODO(garlicnation): Wire this up once bundle heuristics are in.
+    // TODO(garlicnation): Wire this up once bundle strategies are in.
     // const depsIndex = buildDepsIndex(bundles, this.analyzer) const manifest =
     //     this._bundleManifest() return this._bundleMultiple(url,
     //     this.analyzer);
   }
 
-  private async _bundleDocument(
-      url: string, excludes: string[], stripExcludes: string[]) {
+  private async
+  _bundleDocument(url: string, excludes: string[], stripExcludes: string[]) {
     const analyzedRoot = await this.analyzer.analyzeRoot(url);
 
     // Map keyed by url to the import source and which has either the Import

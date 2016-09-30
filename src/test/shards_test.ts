@@ -56,7 +56,8 @@ suite('Bundler', () => {
   }
 
   function assertContainsAndExcludes(
-      doc: parse5.ASTNode, contains: dom5.Predicate[],
+      doc: parse5.ASTNode,
+      contains: dom5.Predicate[],
       excludes: dom5.Predicate[]) {
     for (let test of contains) {
       const found = dom5.queryAll(doc, test);
@@ -71,8 +72,10 @@ suite('Bundler', () => {
   suite.skip('Sharded builds', () => {
     test('with 3 endpoints, all deps are in their places', () => {
       const imports = preds.AND(
-          preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
-          preds.hasAttr('href'), preds.NOT(preds.hasAttrValue('type', 'css')));
+          preds.hasTagName('link'),
+          preds.hasAttrValue('rel', 'import'),
+          preds.hasAttr('href'),
+          preds.NOT(preds.hasAttrValue('type', 'css')));
       return bundleMultiple([common, endpoint1, endpoint2]).then((docs) => {
         // assert.equal(docs.size, 3);
         const commonDoc: parse5.ASTNode = docs.get(common)!;
