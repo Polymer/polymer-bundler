@@ -409,14 +409,12 @@ class Bundler {
     const collection = new Map<string, ASTNode>();
     collection.set(bundles[0], doc);
     return collection;
-    // TODO(garlicnation): Wire this up once bundle strategies are in.
-    // const depsIndex = buildDepsIndex(bundles, this.analyzer) const manifest =
-    //     this._bundleManifest() return this._bundleMultiple(url,
-    //     this.analyzer);
   }
 
-  private async
-  _bundleDocument(url: string, excludes: string[], stripExcludes: string[]) {
+  private async _bundleDocument(
+      url: string,
+      excludes: string[],
+      stripExcludes: string[]): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyzeRoot(url);
 
     // Map keyed by url to the import source and which has either the Import
