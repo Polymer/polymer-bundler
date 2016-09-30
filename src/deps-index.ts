@@ -12,6 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 import {Analyzer} from 'polymer-analyzer';
+import {AssertionError} from 'assert';
 
 export interface DepsIndex {
   // An index of entrypoint -> html dependencies
@@ -33,8 +34,13 @@ async function _getTransitiveDependencies(url: string, analyzer: Analyzer):
       const eagerImports = new Set<string>();
       const lazyImports = new Set<string>();
       for (let htmlImport of imports) {
-        if (!htmlImport.url) {
-          continue;
+        try {
+          console.assert(htmlImport.url, "htmlImport: %s has no url", htmlImport);
+        } catch (err) {
+          if (err instanceof AssertionError) {
+            continue;
+          }
+          throw err;
         }
         switch (htmlImport.type) {
           case 'html-import':
