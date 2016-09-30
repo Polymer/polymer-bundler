@@ -14,16 +14,8 @@
 import {Analyzer} from 'polymer-analyzer';
 
 export interface DepsIndex {
-  // An index of dependency -> fragments that depend on it
-  depsToFragments: Map<string, Set<string>>;
-  // An index of fragments -> html dependencies
-  fragmentToDeps: Map<string, Set<string>>;
-}
-
-export interface BundleManifest extends Map<string, Set<string>> {}
-
-export interface BundleOrchestrator {
-  (endpoints: string[], depsIndex: DepsIndex): BundleManifest
+  // An index of entrypoint -> html dependencies
+  entrypointToDeps: Map<string, Set<string>>;
 }
 
 type DependencyMapEntry = {
@@ -88,7 +80,6 @@ export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
     }
   });
   return {
-    depsToFragments: dependenciesToEntrypoints,
-    fragmentToDeps: entrypointToDependencies
+    entrypointToDeps: entrypointToDependencies
   };
 }

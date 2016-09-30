@@ -28,8 +28,9 @@ import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
+import {BundleStrategy} from './bundle-manifest';
 import DocumentCollection from './document-collection';
-import {buildDepsIndex, BundleOrchestrator} from './deps-index';
+import {buildDepsIndex} from './deps-index';
 
 // TODO(usergenic): Document every one of these options.
 export interface Options {
@@ -390,7 +391,7 @@ class Bundler {
    * Given Multiple urls, produces a sharded build by applying the provided
    * heuristic.
    */
-  async bundle(bundles: string[], heuristic?: BundleOrchestrator):
+  async bundle(bundles: string[], heuristic?: BundleStrategy):
       Promise<DocumentCollection> {
     if (!this.analyzer) {
       throw new Error('No analyzer provided.');
