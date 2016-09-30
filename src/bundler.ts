@@ -396,15 +396,16 @@ class Bundler {
    * with HTML imports, external stylesheets and external scripts inlined,
    * according to the options for this Bundler.
    *
-   * Given Multiple urls, produces a sharded build by applying the provided
+   * TODO: Given Multiple urls, produces a sharded build by applying the provided
    * strategy.
    * 
    * @param {Array<string>} entrypoints The list of entrypoints that will be
    *     analyzed for dependencies. The results of the analysis will be passed
-   *     to the `strategy`.
+   *     to the `strategy`. An array of length 1 will bypass the strategy and
+   *     directly bundle the document.
    * @param {BundleStrategy} strategy The strategy used to construct the
    *     output bundles. See 'polymer-analyzer/lib/bundle-manifest' for
-   *     examples.
+   *     examples. UNUSED.
    */
   async bundle(entrypoints: string[], strategy?: BundleStrategy):
       Promise<DocumentCollection> {
