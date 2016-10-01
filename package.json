@@ -19,7 +19,7 @@
     "@types/chai": "^3.4.30",
     "@types/mocha": "^2.2.29",
     "@types/node": "^6.0.33",
-    "@types/parse5": "^6.0.33",
+    "@types/parse5": "^2.2.32",
     "chai": "^3.5.0",
     "clang-format": "^1.0.42",
     "eslint": "^2.8.0",
