@@ -81,12 +81,12 @@ export const stylesheetImport: Matcher = predicates.AND(
     predicates.hasAttrValue('rel', 'import'),
     predicates.hasAttr('href'),
     predicates.hasAttrValue('type', 'css'));
-export const hiddenDiv = predicates.AND(
+export const hiddenDiv: Matcher = predicates.AND(
     predicates.hasTagName('div'),
     predicates.hasAttr('hidden'),
     predicates.hasAttr('by-vulcanize'));
 
-export const inHiddenDiv = predicates.parentMatches(hiddenDiv);
+export const inHiddenDiv: Matcher = predicates.parentMatches(hiddenDiv);
 
 /**
  * TODO(usergenic): From garlicnation's PR comment - "This matcher needs to deal

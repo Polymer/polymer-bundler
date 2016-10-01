@@ -18,7 +18,7 @@ import * as dom5 from 'dom5';
 import encodeString from './third_party/UglifyJS2/encode-string';
 
 import * as parse5 from 'parse5';
-import {ASTNode, CommentNode} from 'parse5';
+import {ASTNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
 import {Document, ScannedDocument} from 'polymer-analyzer/lib/model/document';
 import {Import} from 'polymer-analyzer/lib/model/import';
@@ -496,10 +496,13 @@ class Bundler {
     }
 
     if (this.stripComments) {
-      const comments: Map<string, CommentNode> = new Map();
+      const comments: Map<string, ASTNode> = new Map();
       dom5.nodeWalkAll(newDocument, dom5.isCommentNode)
-          .forEach((comment: CommentNode) => {
-            comments.set(comment.data, comment);
+          .forEach((comment: ASTNode) => {
+            // TODO(ajo): Remove when
+            // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/11649 is
+            // merged
+            comments.set(comment['data'], comment);
             dom5.remove(comment);
           });
 
