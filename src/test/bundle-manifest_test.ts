@@ -54,10 +54,10 @@ suite('BundleManifest', () => {
         ['[A]->[A,C]', '[B]->[B,D]', '[A,B]->[E]'].map(deserializeBundle);
 
     function mapper(bundles: Bundle[]) {
-      return new Map(bundles.map((bundle): [
-        string,
-        Bundle
-      ] => [Array.from(bundle.entrypoints).join('_'), bundle]));
+      const entries = bundles.map((bundle): [string, Bundle] => {
+        return [Array.from(bundle.entrypoints).join('_'), bundle];
+      });
+      return new Map(entries);
     }
 
     const manifest = new BundleManifest(bundles, mapper);

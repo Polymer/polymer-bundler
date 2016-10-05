@@ -49,14 +49,11 @@ export class BundleManifest {
    * them, the constructor populates the `bundles` and `files` index properties.
    */
   constructor(bundles: Bundle[], urlMapper: BundleUrlMapper) {
-    const bundleUrls = urlMapper(bundles);
-
-    this.bundles = new Map();
+    this.bundles = urlMapper(bundles);
     this.bundleUrlForFile = new Map();
 
-    for (let i = 0; i < bundles.length; ++i) {
-      const bundle = bundles[i], bundleUrl = bundleUrls[i];
-      this.bundles.set(bundleUrl, bundle);
+    for (let bundleMapEntry of this.bundles) {
+      const bundleUrl = bundleMapEntry[0], bundle = bundleMapEntry[1];
       for (const fileUrl of bundle.files) {
         console.assert(!this.bundleUrlForFile.has(fileUrl));
         this.bundleUrlForFile.set(fileUrl, bundleUrl);
@@ -219,17 +216,17 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
 /**
  * A simple function for generating shared bundle names based on a counter.
  */
-export function sharedBundleUrlMapper(bundles: Bundle[]): UrlString[] {
+export function sharedBundleUrlMapper(bundles: Bundle[]): Map<UrlString, Bundle> {
   let counter = 0;
-  const urls: UrlString[] = [];
+  const urlMap = new Map<UrlString, Bundle>();
   for (const bundle of bundles) {
     if (bundle.entrypoints.size === 1) {
-      urls.push(Array.from(bundle.entrypoints)[0]);
+      urlMap.set(Array.from(bundle.entrypoints)[0], bundle);
     } else {
-      urls.push(`shared_bundle_${++counter}.html`);
+      urlMap.set(`shared_bundle_${++counter}.html`, bundle);
     }
   }
-  return urls;
+  return urlMap;
 }
 
 function setIntersection<T>(sets: Set<T>[]): Set<T> {
@@ -278,7 +275,8 @@ export function uniqueEndpointUrlMapper(bundles: Bundle[]):
     const knownEntrypoints = new Set<string>();
     const entrypointSets = getEntrypointSets(remainingBundles);
     let intersection = setIntersection(entrypointSets);
-    for (const bundle of remainingBundles) {
+    for (let i = 0; i < remainingBundles.length; i++) {
+      const bundle = remainingBundles[i];
       if (assignedBundle) {
         break;
       }
@@ -286,12 +284,17 @@ export function uniqueEndpointUrlMapper(bundles: Bundle[]):
         if (!intersection.has(entrypoint)) {
           if (!bundleMap.has(entrypoint)) {
             bundleMap.set(entrypoint, bundle);
+            remainingBundles.splice(i, 1);
             assignedBundle = true;
             break;
           }
         }
       }
     }
+  }
+  if (remainingBundles.length > 0) {
+    const remainingMap = sharedBundleUrlMapper(remainingBundles);
+    bundleMap.forEach((value, key) => bundleMap.set(key, value));
   }
   return bundleMap;
 }
