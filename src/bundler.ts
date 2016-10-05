@@ -28,7 +28,7 @@ import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import {BundleStrategy} from './bundle-manifest';
+import {BundleStrategy, generateBundles} from './bundle-manifest';
 import DocumentCollection from './document-collection';
 import {buildDepsIndex} from './deps-index';
 
@@ -411,15 +411,24 @@ class Bundler {
    */
   async bundle(entrypoints: string[], strategy?: BundleStrategy):
       Promise<DocumentCollection> {
-    console.assert(
-        entrypoints.length === 1,
-        'Only one entrypoint is supported, %d entrypoints were provided',
-        entrypoints.length);
-    const doc = await this._bundleDocument(
-        entrypoints[0], this.excludes, this.stripExcludes);
-    const collection = new Map<string, ASTNode>();
-    collection.set(entrypoints[0], doc);
-    return collection;
+    if (entrypoints.length === 1) {
+      const doc = await this._bundleDocument(
+          entrypoints[0], this.excludes, this.stripExcludes);
+      const collection = new Map<string, ASTNode>();
+      collection.set(entrypoints[0], doc);
+      return collection;
+    } else {
+      if (!strategy) {
+        console.assert(strategy, 'strategy must be provided!');
+        throw new Error('strategy must be provided');
+      }
+      const index = await buildDepsIndex(entrypoints, this.analyzer);
+      const basicBundles = generateBundles(index.entrypointToDeps);
+      console.log(basicBundles);
+      const bundlesAfterStrategy = strategy(basicBundles);
+      console.log(bundlesAfterStrategy);
+      return new Map<string, ASTNode>();
+    }
   }
 
   private async _bundleDocument(

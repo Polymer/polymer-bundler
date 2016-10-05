@@ -37,11 +37,11 @@ const domModulePredicate = (id: string) => {
 };
 
 suite('Bundler', () => {
-  const common = 'test/html/shards/common.html';
-  const dep1 = 'test/html/shards/dep1.html';
-  const dep2 = 'test/html/shards/dep2.html';
-  const endpoint1 = 'test/html/shards/endpoint1.html';
-  const endpoint2 = 'test/html/shards/endpoint2.html';
+  const common = 'test/html/shards/polymer_style_project/common.html';
+  const dep1 = 'test/html/shards/polymer_style_project/dep1.html';
+  const dep2 = 'test/html/shards/polymer_style_project/dep2.html';
+  const endpoint1 = 'test/html/shards/polymer_style_project/endpoint1.html';
+  const endpoint2 = 'test/html/shards/polymer_style_project/endpoint2.html';
 
   let doc: parse5.ASTNode;
   let analyzer: Analyzer;
