@@ -2,7 +2,7 @@
  * A bundle strategy function is used to transform an array of bundles.
  */
 export type BundleStrategy = (bundles: Bundle[]) => Bundle[];
-export type BundleUrlMapper = (bundles: Bundle[]) => UrlString[];
+export type BundleUrlMapper = (bundles: Bundle[]) => Map<string, Bundle>;
 
 /**
  * A mapping of entrypoints to their full set of transitive dependencies,
@@ -230,4 +230,68 @@ export function sharedBundleUrlMapper(bundles: Bundle[]): UrlString[] {
     }
   }
   return urls;
+}
+
+function setIntersection<T>(sets: Set<T>[]): Set<T> {
+  return sets.reduce((previous, current) => {
+    const reduced = new Set<T>();
+    for (let entry of previous) {
+      if (current.has(entry)) {
+        reduced.add(entry);
+      }
+    }
+    return reduced;
+  });
+}
+
+function getEntrypointSets(bundles: Bundle[]): Set<string>[] {
+  const list: Set<string>[] = [];
+  for (let bundle of bundles) {
+    list.push(bundle.entrypoints);
+  }
+  return list;
+}
+
+/**
+ * Attempts to generate shared bundle names by identifying unique endpoints,
+ * falling back on `sharedBundleUrlMapper` when unable to form a direct
+ * correspondence.
+ *
+ * example:
+ * const bundle1 = {endpoints: ['A']};
+ * const bundle2 = {endpoints: ['A', 'B']};
+ * const bundle3 = {endpoints: ['A', 'B', 'C']};
+ *
+ * becomes:
+ * ['A.html', 'B.html', 'C.html']
+ */
+export function uniqueEndpointUrlMapper(bundles: Bundle[]):
+    Map<UrlString, Bundle> {
+  const bundleMap = new Map<UrlString, Bundle>();
+  // Avoid mutating passed array;
+  const remainingBundles = Array.from(bundles);
+  // Variable to track if an iteration of the loop resulted in a new bundle
+  // ssignment.
+  let assignedBundle = true;
+  while (remainingBundles.length > 0 && assignedBundle) {
+    assignedBundle = false;
+    const knownEntrypoints = new Set<string>();
+    const entrypointSets = getEntrypointSets(remainingBundles);
+    let intersection = setIntersection(entrypointSets);
+    for (const bundle of remainingBundles) {
+      if (assignedBundle) {
+        break;
+      }
+      for (const entrypoint of bundle.entrypoints) {
+        if (!intersection.has(entrypoint)) {
+          if (!bundleMap.has(entrypoint)) {
+            bundleMap.set(entrypoint, bundle);
+            assignedBundle = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+  return bundleMap;
 }
