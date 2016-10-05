@@ -112,8 +112,14 @@ suite('BundleManifest', () => {
   suite('BundleStrategy', () => {
 
     const bundles: Bundle[] = [
-      '[A]->[A,1]', '[A,B]->[2]', '[A,B,C]->[3]', '[B]->[B,4]', '[B,C]->[5]',
-      '[B,C,D]->[6]', '[C]->[C,7]', '[D]->[D,8]'
+      '[A]->[A,1]',
+      '[A,B]->[2]',
+      '[A,B,C]->[3]',
+      '[B]->[B,4]',
+      '[B,C]->[5]',
+      '[B,C,D]->[6]',
+      '[C]->[C,7]',
+      '[D]->[D,8]'
     ].map(deserializeBundle);
 
     suite('generateSharedDepsMergeStrategy', () => {
@@ -168,14 +174,18 @@ suite('BundleManifest', () => {
       const depsIndex: TransitiveDependenciesMap = new Map();
 
       depsIndex.set('app-shell.html', new Set(['app-shell.html']));
-      depsIndex.set(
-          'catalog-list.html', new Set([
-            'catalog-list.html', 'tin-photo.html', 'tin-add-to-cart.html',
-            'tin-caption.html', 'tin-paginator.html'
-          ]));
+      depsIndex.set('catalog-list.html', new Set([
+                      'catalog-list.html',
+                      'tin-photo.html',
+                      'tin-add-to-cart.html',
+                      'tin-caption.html',
+                      'tin-paginator.html'
+                    ]));
       depsIndex.set('catalog-item.html', new Set([
-                      'catalog-item.html', 'tin-photo.html',
-                      'tin-add-to-cart.html', 'tin-gallery.html'
+                      'catalog-item.html',
+                      'tin-photo.html',
+                      'tin-add-to-cart.html',
+                      'tin-gallery.html'
                     ]));
       depsIndex.set(
           'cart.html',

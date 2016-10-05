@@ -43,15 +43,17 @@ suite('Bundler', () => {
       bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
     }
     bundler = new Bundler(bundlerOpts);
-    return bundler.bundle(inputPath).then(
-        (documents) => documents.get(inputPath));
+    return bundler.bundle([inputPath])
+        .then((documents) => documents.get(inputPath));
   }
 
   suite('Default Options', () => {
     test('imports removed', () => {
       const imports = preds.AND(
-          preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
-          preds.hasAttr('href'), preds.NOT(preds.hasAttrValue('type', 'css')));
+          preds.hasTagName('link'),
+          preds.hasAttrValue('rel', 'import'),
+          preds.hasAttr('href'),
+          preds.NOT(preds.hasAttrValue('type', 'css')));
       return bundle(inputPath).then((doc) => {
         assert.equal(dom5.queryAll(doc, imports).length, 0);
       });
@@ -114,7 +116,8 @@ suite('Bundler', () => {
         preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
 
     const bodyContainerMatcher = preds.AND(
-        preds.hasTagName('div'), preds.hasAttr('hidden'),
+        preds.hasTagName('div'),
+        preds.hasAttr('hidden'),
         preds.hasAttr('by-vulcanize'));
 
     const scriptExpected = preds.hasTagName('script');
@@ -164,15 +167,27 @@ suite('Bundler', () => {
 
     test('Rewrite URLs', () => {
       const css = [
-        'x-element {', '  background-image: url(foo.jpg);', '}', 'x-bar {',
-        '  background-image: url(data:xxxxx);', '}', 'x-quuz {',
-        '  background-image: url(\'https://foo.bar/baz.jpg\');', '}'
+        'x-element {',
+        '  background-image: url(foo.jpg);',
+        '}',
+        'x-bar {',
+        '  background-image: url(data:xxxxx);',
+        '}',
+        'x-quuz {',
+        '  background-image: url(\'https://foo.bar/baz.jpg\');',
+        '}'
       ].join('\n');
 
       const expected = [
-        'x-element {', '  background-image: url("my-element/foo.jpg");', '}',
-        'x-bar {', '  background-image: url("data:xxxxx");', '}', 'x-quuz {',
-        '  background-image: url("https://foo.bar/baz.jpg");', '}'
+        'x-element {',
+        '  background-image: url("my-element/foo.jpg");',
+        '}',
+        'x-bar {',
+        '  background-image: url("data:xxxxx");',
+        '}',
+        'x-quuz {',
+        '  background-image: url("https://foo.bar/baz.jpg");',
+        '}'
       ].join('\n');
 
       const bundler = new Bundler();
@@ -185,10 +200,13 @@ suite('Bundler', () => {
       const html = [
         '<link rel="import" href="../polymer/polymer.html">',
         '<link rel="stylesheet" href="my-element.css">',
-        '<dom-module id="my-element">', '<template>',
+        '<dom-module id="my-element">',
+        '<template>',
         '<style>:host { background-image: url(background.svg); }</style>',
-        '<div style="position: absolute;"></div>', '</template>',
-        '</dom-module>', '<script>Polymer({is: "my-element"})</script>'
+        '<div style="position: absolute;"></div>',
+        '</template>',
+        '</dom-module>',
+        '<script>Polymer({is: "my-element"})</script>'
       ].join('\n');
 
       const expected = [
@@ -197,7 +215,8 @@ suite('Bundler', () => {
         '</head><body><dom-module id="my-element" assetpath="my-element/">',
         '<template>',
         '<style>:host { background-image: url("my-element/background.svg"); }</style>',
-        '<div style="position: absolute;"></div>', '</template>',
+        '<div style="position: absolute;"></div>',
+        '</template>',
         '</dom-module>',
         '<script>Polymer({is: "my-element"})</script></body></html>'
       ].join('\n');
@@ -215,9 +234,11 @@ suite('Bundler', () => {
         '<base href="zork">',
         '<link rel="import" href="../polymer/polymer.html">',
         '<link rel="stylesheet" href="my-element.css">',
-        '<dom-module id="my-element">', '<template>',
+        '<dom-module id="my-element">',
+        '<template>',
         '<style>:host { background-image: url(background.svg); }</style>',
-        '</template>', '</dom-module>',
+        '</template>',
+        '</dom-module>',
         '<script>Polymer({is: "my-element"})</script>'
       ].join('\n');
 
@@ -228,7 +249,8 @@ suite('Bundler', () => {
         '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
         '<template>',
         '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
-        '</template>', '</dom-module>',
+        '</template>',
+        '</dom-module>',
         '<script>Polymer({is: "my-element"})</script></body></html>'
       ].join('\n');
 
@@ -246,9 +268,11 @@ suite('Bundler', () => {
         '<base href="zork/">',
         '<link rel="import" href="../polymer/polymer.html">',
         '<link rel="stylesheet" href="my-element.css">',
-        '<dom-module id="my-element">', '<template>',
+        '<dom-module id="my-element">',
+        '<template>',
         '<style>:host { background-image: url(background.svg); }</style>',
-        '</template>', '</dom-module>',
+        '</template>',
+        '</dom-module>',
         '<script>Polymer({is: "my-element"})</script>'
       ].join('\n');
 
@@ -293,8 +317,10 @@ suite('Bundler', () => {
 
     test('Leave Templated URLs', () => {
       const base = [
-        '<html><head></head><body>', '<a href="{{foo}}"></a>',
-        '<img src="[[bar]]">', '</body></html>'
+        '<html><head></head><body>',
+        '<a href="{{foo}}"></a>',
+        '<img src="[[bar]]">',
+        '</body></html>'
       ].join('\n');
 
       const ast = dom5.parse(base);
@@ -331,16 +357,22 @@ suite('Bundler', () => {
     test('Imports and scripts are ordered correctly', () => {
       return bundle('test/html/order-test.html').then((doc) => {
         const expectedOrder = [
-          'first-script', 'second-import-first-script',
-          'second-import-second-script', 'first-import-first-script',
-          'first-import-second-script', 'second-script', 'third-script'
+          'first-script',
+          'second-import-first-script',
+          'second-import-second-script',
+          'first-import-first-script',
+          'first-import-second-script',
+          'second-script',
+          'third-script'
         ];
 
         const expectedSrc = [
-          'order/first-script.js', 'order/second-import/first-script.js',
+          'order/first-script.js',
+          'order/second-import/first-script.js',
           'order/second-import/second-script.js',
           'order/first-import/first-script.js',
-          'order/first-import/second-script.js', 'order/second-script.js',
+          'order/first-import/second-script.js',
+          'order/second-script.js',
           'order/third-script.js'
         ];
 
@@ -393,7 +425,8 @@ suite('Bundler', () => {
           preds.hasTagName('dom-module'),
           preds.hasAttrValue('assetpath', '/html/imports/'));
       const stylesheet = preds.AND(
-          preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
+          preds.hasTagName('link'),
+          preds.hasAttrValue('rel', 'import'),
           preds.hasAttrValue('type', 'css'),
           preds.hasAttrValue('href', '/html/imports/simple-style.css'));
       return bundle(target, options).then((doc) => {
@@ -422,7 +455,8 @@ suite('Bundler', () => {
         preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
 
     const excluded = preds.AND(
-        preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
+        preds.hasTagName('link'),
+        preds.hasAttrValue('rel', 'import'),
         preds.hasAttrValue('href', 'imports/simple-import.html'));
 
     const excludes = ['test/html/imports/simple-import.html'];
@@ -437,7 +471,8 @@ suite('Bundler', () => {
     });
 
     const cssFromExclude = preds.AND(
-        preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
+        preds.hasTagName('link'),
+        preds.hasAttrValue('rel', 'import'),
         preds.hasAttrValue('type', 'css'));
 
     // TODO(ajo): Fix test with hydrolysis upgrades.
@@ -506,8 +541,12 @@ suite('Bundler', () => {
       return bundle('test/html/comments.html', options).then((doc) => {
         const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
         const expectedComments = [
-          '@license main', '@license import 1', 'comment in import 1',
-          '@license import 2', 'comment in import 2', 'comment in main'
+          '@license main',
+          '@license import 1',
+          'comment in import 1',
+          '@license import 2',
+          'comment in import 2',
+          'comment in main'
         ];
         const actualComments = comments.map(function(c) {
           return dom5.getTextContent(c).trim();
@@ -727,7 +766,8 @@ suite('Bundler', () => {
     test.skip('Imports in templates should not inline', () => {
       return bundle('test/html/inside-template.html').then((doc) => {
         const importMatcher = preds.AND(
-            preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'),
+            preds.hasTagName('link'),
+            preds.hasAttrValue('rel', 'import'),
             preds.hasAttr('href'));
         const externalScriptMatcher = preds.AND(
             preds.hasTagName('script'),
@@ -737,7 +777,8 @@ suite('Bundler', () => {
         assert.equal(imports.length, 1, 'import in template was inlined');
         const unexpectedScript = dom5.query(doc, externalScriptMatcher);
         assert.equal(
-            unexpectedScript, null,
+            unexpectedScript,
+            null,
             'script in external.html should not be present');
       });
     });

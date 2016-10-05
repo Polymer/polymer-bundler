@@ -11,26 +11,26 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-
-'use strict';
-
 import * as path from 'path';
-import * as url from 'url';
+import * as urlLib from 'url';
 const pathPosix = path.posix;
 import * as dom5 from 'dom5';
 import encodeString from './third_party/UglifyJS2/encode-string';
 
 import * as parse5 from 'parse5';
-import {ASTNode, CommentNode} from 'parse5';
+import {ASTNode} from 'parse5';
 import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
 import {Document, ScannedDocument} from 'polymer-analyzer/lib/model/document';
 import {Import} from 'polymer-analyzer/lib/model/import';
 import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
+import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
+import {BundleStrategy} from './bundle-manifest';
 import DocumentCollection from './document-collection';
+import {buildDepsIndex} from './deps-index';
 
 // TODO(usergenic): Document every one of these options.
 export interface Options {
@@ -78,11 +78,10 @@ export interface Options {
   stripExcludes?: string[];
 }
 
-
 class Bundler {
   basePath?: string;
   addedImports: string[];
-  analyzer?: Analyzer;
+  analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
   excludes: string[];
@@ -93,7 +92,9 @@ class Bundler {
 
   constructor(options?: Options) {
     const opts = options ? options : {};
-    this.analyzer = opts.analyzer ? opts.analyzer : undefined;
+    this.analyzer = opts.analyzer ?
+        opts.analyzer :
+        new Analyzer({urlLoader: new FSUrlLoader()});
 
     // implicitStrip should be true by default
     this.implicitStrip = !Boolean(opts.noImplicitStrip);
@@ -112,21 +113,21 @@ class Bundler {
         String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
   }
 
-  isExcludedHref(href: string): boolean {
-    if (constants.EXTERNAL_URL.test(href)) {
+  isExcludedHref(url: string): boolean {
+    if (constants.EXTERNAL_URL.test(url)) {
       return true;
     }
     if (!this.excludes) {
       return false;
     }
-    return this.excludes.some(r => href.search(r) >= 0);
+    return this.excludes.some(r => url.search(r) >= 0);
   }
 
-  isStripExcludedHref(href: string): boolean {
+  isStripExcludedHref(url: string): boolean {
     if (!this.stripExcludes) {
       return false;
     }
-    return this.stripExcludes.some(r => href.search(r) >= 0);
+    return this.stripExcludes.some(r => url.search(r) >= 0);
   }
 
   isBlankTextNode(node: ASTNode): boolean {
@@ -172,10 +173,11 @@ class Bundler {
    * Inline external scripts <script src="*">
    */
   inlineScript(
-      docUrl: string, externalScript: ASTNode,
+      docUrl: string,
+      externalScript: ASTNode,
       importMap: Map<string, Import|null>): ASTNode|undefined {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
-    const resolvedUrl = url.resolve(docUrl, rawUrl);
+    const resolvedUrl = urlLib.resolve(docUrl, rawUrl);
     const script = importMap.get(resolvedUrl);
 
     if (!script || !script.document) {
@@ -197,10 +199,11 @@ class Bundler {
    * `<link rel="stylesheet">`.
    */
   inlineStylesheet(
-      docUrl: string, cssLink: ASTNode,
+      docUrl: string,
+      cssLink: ASTNode,
       importMap: Map<string, Import|null>): ASTNode|undefined {
     const stylesheetUrl: string = dom5.getAttribute(cssLink, 'href')!;
-    const resolvedStylesheetUrl = url.resolve(docUrl, stylesheetUrl);
+    const resolvedStylesheetUrl = urlLib.resolve(docUrl, stylesheetUrl);
     const stylesheetImport = importMap.get(resolvedStylesheetUrl);
 
     if (!stylesheetImport || !stylesheetImport.document) {
@@ -228,10 +231,11 @@ class Bundler {
    *     for hidden div adjacency etc.
    */
   inlineHtmlImport(
-      docUrl: string, htmlImport: ASTNode,
+      docUrl: string,
+      htmlImport: ASTNode,
       importMap: Map<string, Import|null>) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
-    const resolvedUrl: string = url.resolve(docUrl, rawUrl);
+    const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
 
     const analyzedImport = importMap.get(resolvedUrl);
     if (analyzedImport) {
@@ -304,7 +308,9 @@ class Bundler {
   }
 
   rewriteImportedStyleTextUrls(
-      importUrl: string, mainDocUrl: string, cssText: string): string {
+      importUrl: string,
+      mainDocUrl: string,
+      cssText: string): string {
     return cssText.replace(constants.URL, match => {
       let path = match.replace(/["']/g, '').slice(4, -1);
       path = urlUtils.rewriteImportedRelPath(
@@ -314,7 +320,9 @@ class Bundler {
   }
 
   rewriteImportedUrls(
-      importDoc: ASTNode, importUrl: string, mainDocUrl: string) {
+      importDoc: ASTNode,
+      importUrl: string,
+      mainDocUrl: string) {
     // rewrite URLs in element attributes
     const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
     let attrValue: string|null;
@@ -387,12 +395,37 @@ class Bundler {
    * Given a URL to an entry-point html document, produce a single document
    * with HTML imports, external stylesheets and external scripts inlined,
    * according to the options for this Bundler.
+   *
+   * TODO: Given Multiple urls, produces a sharded build by applying the
+   * provided
+   * strategy.
+   *
+   * @param {Array<string>} entrypoints The list of entrypoints that will be
+   *     analyzed for dependencies. The results of the analysis will be passed
+   *     to the `strategy`. An array of length 1 will bypass the strategy and
+   *     directly bundle the document.
+   * @param {BundleStrategy} strategy The strategy used to construct the
+   *     output bundles. See 'polymer-analyzer/lib/bundle-manifest' for
+   *     examples. UNUSED.
    */
-  async bundle(url: string): Promise<DocumentCollection> {
-    if (!this.analyzer) {
-      throw new Error('No analyzer provided.');
-    }
-    const analyzedRoot = await this.analyzer.analyzeRoot(url);
+  async bundle(entrypoints: string[], strategy?: BundleStrategy):
+      Promise<DocumentCollection> {
+    console.assert(
+        entrypoints.length === 1,
+        'Only one entrypoint is supported, %d entrypoints were provided',
+        entrypoints.length);
+    const doc = await this._bundleDocument(
+        entrypoints[0], this.excludes, this.stripExcludes);
+    const collection = new Map<string, ASTNode>();
+    collection.set(entrypoints[0], doc);
+    return collection;
+  }
+
+  private async _bundleDocument(
+      url: string,
+      excludes: string[],
+      stripExcludes: string[]): Promise<ASTNode> {
+    const analyzedRoot = await this.analyzer.analyze(url);
 
     // Map keyed by url to the import source and which has either the Import
     // feature as a value indicating the inlining of the Import has not yet
@@ -408,8 +441,8 @@ class Bundler {
       }
     });
 
-    // We must clone the AST from the document, since we will be modifying it.
-    const newDocument = dom5.cloneNode(analyzedRoot.parsedDocument.ast);
+    // We must parse document to a new AST since we will be modifying the AST.
+    const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
 
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;
@@ -463,10 +496,13 @@ class Bundler {
     }
 
     if (this.stripComments) {
-      const comments: Map<string, CommentNode> = new Map();
+      const comments: Map<string, ASTNode> = new Map();
       dom5.nodeWalkAll(newDocument, dom5.isCommentNode)
-          .forEach((comment: CommentNode) => {
-            comments.set(comment.data, comment);
+          .forEach((comment: ASTNode) => {
+            // TODO(ajo): Remove when
+            // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/11649 is
+            // merged
+            comments.set(comment['data'], comment);
             dom5.remove(comment);
           });
 
@@ -482,11 +518,7 @@ class Bundler {
         }
       });
     }
-    const documents = new Map<string, ASTNode>();
-    // TODO(garlicnation): Set to the resolved document url?
-    documents.set(url, newDocument);
-    return documents;
-    // TODO(garlicnation): inline CSS
+    return newDocument;
 
     // LATER
     // TODO(garlicnation): resolve <base> tags.

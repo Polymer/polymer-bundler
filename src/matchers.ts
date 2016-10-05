@@ -39,7 +39,8 @@ export const externalStyle: Matcher = predicates.AND(
     predicates.hasAttrValue('rel', 'stylesheet'));
 // polymer specific external stylesheet
 export const polymerExternalStyle: Matcher = predicates.AND(
-    predicates.hasTagName('link'), predicates.hasAttrValue('rel', 'import'),
+    predicates.hasTagName('link'),
+    predicates.hasAttrValue('rel', 'import'),
     predicates.hasAttrValue('type', 'css'));
 
 export const styleMatcher: Matcher = predicates.AND(
@@ -57,7 +58,8 @@ export const body: Matcher = predicates.hasTagName('body');
 export const base: Matcher = predicates.hasTagName('base');
 export const template: Matcher = predicates.hasTagName('template');
 export const domModule: Matcher = predicates.AND(
-    predicates.hasTagName('dom-module'), predicates.hasAttr('id'),
+    predicates.hasTagName('dom-module'),
+    predicates.hasAttr('id'),
     predicates.NOT(predicates.hasAttr('assetpath')));
 export const meta: Matcher = predicates.AND(
     predicates.hasTagName('meta'), predicates.hasAttr('charset'));
@@ -67,20 +69,24 @@ export const externalJavascript: Matcher =
 export const inlineJavascript: Matcher =
     predicates.AND(predicates.NOT(predicates.hasAttr('src')), jsMatcher);
 export const htmlImport: Matcher = predicates.AND(
-    predicates.hasTagName('link'), predicates.hasAttrValue('rel', 'import'),
+    predicates.hasTagName('link'),
+    predicates.hasAttrValue('rel', 'import'),
     predicates.hasAttr('href'),
     predicates.OR(
         predicates.hasAttrValue('type', 'text/html'),
         predicates.hasAttrValue('type', 'html'),
         predicates.NOT(predicates.hasAttr('type'))));
 export const stylesheetImport: Matcher = predicates.AND(
-    predicates.hasTagName('link'), predicates.hasAttrValue('rel', 'import'),
-    predicates.hasAttr('href'), predicates.hasAttrValue('type', 'css'));
-export const hiddenDiv = predicates.AND(
-    predicates.hasTagName('div'), predicates.hasAttr('hidden'),
+    predicates.hasTagName('link'),
+    predicates.hasAttrValue('rel', 'import'),
+    predicates.hasAttr('href'),
+    predicates.hasAttrValue('type', 'css'));
+export const hiddenDiv: Matcher = predicates.AND(
+    predicates.hasTagName('div'),
+    predicates.hasAttr('hidden'),
     predicates.hasAttr('by-vulcanize'));
 
-export const inHiddenDiv = predicates.parentMatches(hiddenDiv);
+export const inHiddenDiv: Matcher = predicates.parentMatches(hiddenDiv);
 
 /**
  * TODO(usergenic): From garlicnation's PR comment - "This matcher needs to deal
