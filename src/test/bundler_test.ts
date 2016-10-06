@@ -69,7 +69,8 @@ suite('Bundler', () => {
 
   test('svg is nested correctly', () => {
     return bundle(inputPath).then((doc) => {
-      const svg = dom5.query(doc, preds.hasTagName('svg'))!;
+      const svg = dom5.query(doc, preds.hasTagName('template'))!['content']
+                      .childNodes[1];
       assert.equal(svg.childNodes!.filter(dom5.isElement).length, 6);
     });
   });
@@ -221,11 +222,12 @@ suite('Bundler', () => {
         '<script>Polymer({is: "my-element"})</script></body></html>'
       ].join('\n');
 
-      const ast = dom5.parse(html);
+      const ast = parse5.parse(html);
       const bundler = new Bundler();
       bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
-      const actual = dom5.serialize(ast);
+      const actual = parse5.serialize(ast);
+      console.log(actual);
       assert.equal(actual, expected, 'relative');
     });
 
@@ -254,12 +256,12 @@ suite('Bundler', () => {
         '<script>Polymer({is: "my-element"})</script></body></html>'
       ].join('\n');
 
-      const ast = dom5.parse(htmlBase);
+      const ast = parse5.parse(htmlBase);
       // pathRewriter.acid(ast, inputPath);
       const bundler = new Bundler();
       bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
-      const actual = dom5.serialize(ast);
+      const actual = parse5.serialize(ast);
       assert.equal(actual, expectedBase, 'base');
     });
 
@@ -288,12 +290,12 @@ suite('Bundler', () => {
         <script>Polymer({is: "my-element"})</script></body></html>`
       ].join('\n');
 
-      const ast = dom5.parse(htmlBase);
+      const ast = parse5.parse(htmlBase);
       // pathRewriter.acid(ast, inputPath);
       const bundler = new Bundler();
       bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
-      const actual = dom5.serialize(ast);
+      const actual = parse5.serialize(ast);
       assert.equal(actual, expectedBase, 'base');
     });
 
@@ -306,12 +308,12 @@ suite('Bundler', () => {
         '</head><body><a href="my-element/foo.html" target="_blank">LINK</a></body></html>'
       ].join('\n');
 
-      const ast = dom5.parse(htmlBase);
+      const ast = parse5.parse(htmlBase);
       // pathRewriter.acid(ast, inputPath);
       const bundler = new Bundler();
       bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
-      const actual = dom5.serialize(ast);
+      const actual = parse5.serialize(ast);
       assert.equal(actual, expectedBase, 'base target');
     });
 
@@ -323,11 +325,11 @@ suite('Bundler', () => {
         '</body></html>'
       ].join('\n');
 
-      const ast = dom5.parse(base);
+      const ast = parse5.parse(base);
       const bundler = new Bundler();
       bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
-      const actual = dom5.serialize(ast);
+      const actual = parse5.serialize(ast);
       assert.equal(actual, base, 'templated urls');
     });
   });
@@ -394,7 +396,7 @@ suite('Bundler', () => {
       return bundle('test/html/scriptorder/index.html', {inlineScripts: true})
           .then((doc) => {
             assert(doc);
-            const serialized = dom5.serialize(doc);
+            const serialized = parse5.serialize(doc);
             const beforeLoc = serialized.indexOf('window.BeforeJs');
             const afterLoc = serialized.indexOf('BeforeJs.value');
             assert.isBelow(beforeLoc, afterLoc);
@@ -598,7 +600,7 @@ suite('Bundler', () => {
         assert.equal(scripts.length, 1);
         // TODO(usergenic): assert the src attribute is now
         // /myapp/external/external.js
-        console.log(dom5.serialize(doc));
+        console.log(parse5.serialize(doc));
       });
     });
 

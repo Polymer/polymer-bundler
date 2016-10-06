@@ -250,7 +250,7 @@ class Bundler {
       // Is there a better way to get what we want other than using
       // parseFragment?
       const importDoc =
-          dom5.parseFragment(analyzedImport.document.parsedDocument.contents);
+          parse5.parseFragment(analyzedImport.document.parsedDocument.contents);
       importMap.set(resolvedUrl, null);
       this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
 
@@ -348,7 +348,8 @@ class Bundler {
       }
     }
     // rewrite URLs in stylesheets
-    const styleNodes = dom5.queryAll(importDoc, matchers.styleMatcher);
+    const styleNodes =
+        astUtils.querySelectorAllWithTemplates(importDoc, matchers.styleMatcher);
     for (let i = 0, node: ASTNode; i < styleNodes.length; i++) {
       node = styleNodes[i];
       let styleText = dom5.getTextContent(node);
@@ -442,7 +443,7 @@ class Bundler {
     });
 
     // We must parse document to a new AST since we will be modifying the AST.
-    const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
+    const newDocument = parse5.parse(analyzedRoot.parsedDocument.contents);
 
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;

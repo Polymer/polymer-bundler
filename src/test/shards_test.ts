@@ -79,7 +79,7 @@ suite('Bundler', () => {
       return bundleMultiple([common, endpoint1, endpoint2]).then((docs) => {
         // assert.equal(docs.size, 3);
         const commonDoc: parse5.ASTNode = docs.get(common)!;
-        console.log(dom5.serialize(commonDoc));
+        console.log(parse5.serialize(commonDoc));
         // assert.isDefined(commonDoc);
         const endpoint1Doc = docs.get(endpoint1)!;
         // assert.isDefined(endpoint1Doc);
