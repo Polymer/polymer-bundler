@@ -277,7 +277,7 @@ export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
    *
    * Given N entrypoints, names are selected as follows.
    *
-   * Name_i = Entrypoints_i - Intersection(Entrypoints_0, ..., Entrypoints_N).
+   * Name_i = Entrypoints_i - (Entrypoints_0 ∩ Entrypoints_1 ∩ ... ∩ Entrypoints_N)
    *
    * After each selection, the list of entrypoints is pruned of entries with
    * assigned names
