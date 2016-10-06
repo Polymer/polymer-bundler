@@ -52,7 +52,7 @@ export class BundleManifest {
     this.bundles = urlMapper(bundles);
     this.bundleUrlForFile = new Map();
 
-    for (let bundleMapEntry of this.bundles) {
+    for (const bundleMapEntry of this.bundles) {
       const bundleUrl = bundleMapEntry[0], bundle = bundleMapEntry[1];
       for (const fileUrl of bundle.files) {
         console.assert(!this.bundleUrlForFile.has(fileUrl));
@@ -279,7 +279,8 @@ export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
    *
    * Name_i = Entrypoints_i - Intersection(Entrypoints_0, ..., Entrypoints_N).
    *
-   * After each selection, the list of entrypoints is pruned
+   * After each selection, the list of entrypoints is pruned of entries with
+   * assigned names
    * and another round of selection occurs.
    */
   while (remainingBundles.length > 0 && assignedBundle) {
