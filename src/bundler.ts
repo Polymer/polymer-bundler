@@ -502,7 +502,7 @@ class Bundler {
             // TODO(ajo): Remove when
             // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/11649 is
             // merged
-            comments.set(comment['data']! , comment);
+            comments.set(comment['data']!, comment);
             dom5.remove(comment);
           });
 

@@ -216,7 +216,8 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
 /**
  * A simple function for generating shared bundle names based on a counter.
  */
-export function sharedBundleUrlMapper(bundles: Bundle[]): Map<UrlString, Bundle> {
+export function sharedBundleUrlMapper(bundles: Bundle[]):
+    Map<UrlString, Bundle> {
   let counter = 0;
   const urlMap = new Map<UrlString, Bundle>();
   for (const bundle of bundles) {
@@ -250,19 +251,19 @@ function getEntrypointSets(bundles: Bundle[]): Set<string>[] {
 }
 
 /**
- * Attempts to generate shared bundle names by identifying unique endpoints,
+ * Attempts to generate shared bundle names by identifying unique Entrypoints,
  * falling back on `sharedBundleUrlMapper` when unable to form a direct
  * correspondence.
  *
  * example:
- * const bundle1 = {endpoints: ['A']};
- * const bundle2 = {endpoints: ['A', 'B']};
- * const bundle3 = {endpoints: ['A', 'B', 'C']};
+ * const bundle1 = {Entrypoints: ['A']};
+ * const bundle2 = {Entrypoints: ['A', 'B']};
+ * const bundle3 = {Entrypoints: ['A', 'B', 'C']};
  *
  * becomes:
  * ['A.html', 'B.html', 'C.html']
  */
-export function uniqueEndpointUrlMapper(bundles: Bundle[]):
+export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
     Map<UrlString, Bundle> {
   const bundleMap = new Map<UrlString, Bundle>();
   // Avoid mutating passed array;
@@ -270,6 +271,17 @@ export function uniqueEndpointUrlMapper(bundles: Bundle[]):
   // Variable to track if an iteration of the loop resulted in a new bundle
   // ssignment.
   let assignedBundle = true;
+  /**
+   * Attempt to find a name, and bail once a search
+   * round goes without a candidate.
+   *
+   * Given N entrypoints, names are selected as follows.
+   *
+   * Name_i = Entrypoints_i - Intersection(Entrypoints_0, ..., Entrypoints_N).
+   *
+   * After each selection, the list of entrypoints is pruned
+   * and another round of selection occurs.
+   */
   while (remainingBundles.length > 0 && assignedBundle) {
     assignedBundle = false;
     const knownEntrypoints = new Set<string>();
