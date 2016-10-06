@@ -269,19 +269,19 @@ export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
   // Avoid mutating passed array;
   const remainingBundles = Array.from(bundles);
   // Variable to track if an iteration of the loop resulted in a new bundle
-  // ssignment.
+  // assignment.
   let assignedBundle = true;
   /**
    * Attempt to find a name, and bail once a search
    * round goes without a candidate.
    *
-   * Given N entrypoints, names are selected as follows.
+   * Given N sets of entrypoints(strings), names are selected as follows.
    *
-   * Name_i = Entrypoints_i - (Entrypoints_0 ∩ Entrypoints_1 ∩ ... ∩ Entrypoints_N)
+   * Name_i = Any member of
+   * (Entrypoints_i - (Entrypoints_0 ∩ Entrypoints_1 ∩ ... ∩ Entrypoints_N))
    *
    * After each selection, the list of entrypoints is pruned of entries with
-   * assigned names
-   * and another round of selection occurs.
+   * assigned names and another round of selection occurs.
    */
   while (remainingBundles.length > 0 && assignedBundle) {
     assignedBundle = false;
