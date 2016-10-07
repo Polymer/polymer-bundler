@@ -109,11 +109,43 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
     Bundle[] {
   const bundles: Bundle[] = [];
 
-  // TODO(usergenic): Assert a valid transitive dependencies map; i.e.
-  // entrypoints should include themselves as dependencies and entrypoints
-  // should *probably* not include other entrypoints as dependencies.
+  // We will create a version of the dependency map where no entrypoint A
+  // contains another entrypoint B as a dependency.  If we encounter an A that
+  // does contain a B, we remove B and all of its transitive dependencies from
+  // A's dependencies.
+  const prunedDepsIndex: TransitiveDependenciesMap = new Map();
+  for (const entry of depsIndex) {
+    const entrypoint: UrlString = entry[0];
+    const deps: Set<UrlString> = entry[1];
+    const prunedDeps: Set<UrlString> = new Set(deps);
+    prunedDepsIndex.set(entrypoint, prunedDeps);
+    for (const dep of deps) {
+      // Ignore current entrypoint which is a dependency of itself.
+      if (dep === entrypoint) {
+        continue;
+      }
+      const otherEntrypointDeps = depsIndex.get(dep);
+      // Skip if dependency is not another entrypoint.
+      if (!otherEntrypointDeps) {
+        continue;
+      }
+      // If there is a circular dependency, we'll only remove the other
+      // entrypoint from the current entrypoints dependencies.
+      if (otherEntrypointDeps.has(entrypoint)) {
+        prunedDeps.delete(dep);
+        continue;
+      }
+      // When there is no circular dependency, remove the other entrypoint and
+      // all of its dependencies from current entrypoint's dependencies.
+      for (const otherDep of otherEntrypointDeps) {
+        prunedDeps.delete(otherDep);
+      }
+    }
+  }
 
-  const invertedIndex = invertMultimap(depsIndex);
+  // TODO(usergenic): Assert a valid transitive dependencies map; i.e.
+  // entrypoints should include themselves as dependencies.
+  const invertedIndex = invertMultimap(prunedDepsIndex);
 
   for (const entry of invertedIndex.entries()) {
     const dep: UrlString = entry[0];
@@ -130,6 +162,8 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
     }
     bundle.files.add(dep);
   }
+
+
   return bundles;
 }
 
