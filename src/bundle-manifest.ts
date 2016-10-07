@@ -109,10 +109,41 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
     Bundle[] {
   const bundles: Bundle[] = [];
 
-  // We will create a version of the dependency map where no entrypoint A
-  // contains another entrypoint B as a dependency.  If we encounter an A that
-  // does contain a B, we remove B and all of its transitive dependencies from
-  // A's dependencies.
+  const prunedDepsIndex: TransitiveDependenciesMap =
+      pruneTransitiveDependenciesMap(depsIndex);
+
+  // TODO(usergenic): Assert a valid transitive dependencies map; i.e.
+  // entrypoints should include themselves as dependencies.
+  const invertedIndex = invertMultimap(prunedDepsIndex);
+
+  for (const entry of invertedIndex.entries()) {
+    const dep: UrlString = entry[0];
+    const entrypoints: Set<UrlString> = entry[1];
+    const entrypointsArray = Array.from(entrypoints);
+
+    // Find the bundle defined by the specific set of shared dependant
+    // entrypoints.
+    let bundle =
+        bundles.find((bundle) => setEquals(entrypoints, bundle.entrypoints));
+    if (!bundle) {
+      bundle = new Bundle(entrypoints);
+      bundles.push(bundle);
+    }
+    bundle.files.add(dep);
+  }
+
+
+  return bundles;
+}
+
+/**
+ * Create a version of the dependency map where no entrypoint A contains
+ * another entrypoint B as a dependency.  If we encounter an A that does
+ * contain a B, we remove B and all of its transitive dependencies from
+ * A's dependencies.
+ */
+export function pruneTransitiveDependenciesMap(
+    depsIndex: TransitiveDependenciesMap): TransitiveDependenciesMap {
   const prunedDepsIndex: TransitiveDependenciesMap = new Map();
   for (const entry of depsIndex) {
     const entrypoint: UrlString = entry[0];
@@ -142,29 +173,7 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
       }
     }
   }
-
-  // TODO(usergenic): Assert a valid transitive dependencies map; i.e.
-  // entrypoints should include themselves as dependencies.
-  const invertedIndex = invertMultimap(prunedDepsIndex);
-
-  for (const entry of invertedIndex.entries()) {
-    const dep: UrlString = entry[0];
-    const entrypoints: Set<UrlString> = entry[1];
-    const entrypointsArray = Array.from(entrypoints);
-
-    // Find the bundle defined by the specific set of shared dependant
-    // entrypoints.
-    let bundle =
-        bundles.find((bundle) => setEquals(entrypoints, bundle.entrypoints));
-    if (!bundle) {
-      bundle = new Bundle(entrypoints);
-      bundles.push(bundle);
-    }
-    bundle.files.add(dep);
-  }
-
-
-  return bundles;
+  return prunedDepsIndex;
 }
 
 /**
