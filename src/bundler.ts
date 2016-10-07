@@ -348,8 +348,8 @@ class Bundler {
       }
     }
     // rewrite URLs in stylesheets
-    const styleNodes =
-        astUtils.querySelectorAllWithTemplates(importDoc, matchers.styleMatcher);
+    const styleNodes = astUtils.querySelectorAllWithTemplates(
+        importDoc, matchers.styleMatcher);
     for (let i = 0, node: ASTNode; i < styleNodes.length; i++) {
       node = styleNodes[i];
       let styleText = dom5.getTextContent(node);
