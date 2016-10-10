@@ -28,7 +28,7 @@ import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import {Bundle, BundleStrategy, generateBundles, BundleUrlMapper, BundleManifest, UrlString} from './bundle-manifest';
+import {Bundle, BundleStrategy, generateBundles, BundleUrlMapper, BundleManifest, UrlString, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
 import DocumentCollection from './document-collection';
 import {buildDepsIndex} from './deps-index';
 
@@ -433,9 +433,7 @@ class Bundler {
     const bundledDocuments = new Map<string, ASTNode>();
     if (entrypoints.length === 1) {
       const url = entrypoints[0];
-      debugger;
       const depsIndex = await buildDepsIndex(entrypoints, this.analyzer);
-      debugger;
       const bundles = generateBundles(depsIndex.entrypointToDeps);
       for (const exclude of this.excludes) {
         bundles[0].files.delete(exclude);
@@ -448,12 +446,10 @@ class Bundler {
     } else {
       const bundles = new Map<string, ASTNode>();
       if (!strategy) {
-        console.assert(strategy, 'strategy must be provided!');
-        throw new Error('strategy must be provided');
+        strategy = generateSharedDepsMergeStrategy(2);
       }
       if (!mapper) {
-        console.assert(mapper, 'mapper must be provided!');
-        throw new Error(' mapper must be provided');
+        mapper = sharedBundleUrlMapper;
       }
       const index = await buildDepsIndex(entrypoints, this.analyzer);
       const basicBundles = generateBundles(index.entrypointToDeps);
@@ -473,7 +469,7 @@ class Bundler {
       url: string,
       bundle: Bundle,
       bundleManifest: BundleManifest,
-      addedImports?: Set<string>): Promise<ASTNode> {
+      bundleImports?: Set<string>): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyze(url);
 
     // Map keyed by url to the import source and which has either the Import
@@ -506,8 +502,15 @@ class Bundler {
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;
 
-    if (addedImports) {
-      for (const importUrl of addedImports) {
+    /**
+     * Add HTML Import elements for each import known to be in the bundle, in
+     * case the import was moved into the bundle by the strategy.
+     * 
+     * This will almost always yield duplicate imports that will get cleaned
+     * up through deduplication.
+     */
+    if (bundleImports) {
+      for (const importUrl of bundleImports) {
         if (importUrl === url) {
           continue;
         }

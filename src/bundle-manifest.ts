@@ -2,7 +2,7 @@
  * A bundle strategy function is used to transform an array of bundles.
  */
 export type BundleStrategy = (bundles: Bundle[]) => Bundle[];
-export type BundleUrlMapper = (bundles: Bundle[]) => Map<string, Bundle>;
+export type BundleUrlMapper = (bundles: Bundle[]) => Map<UrlString, Bundle>;
 
 /**
  * A mapping of entrypoints to their full set of transitive dependencies,
@@ -241,7 +241,7 @@ export function sharedBundleUrlMapper(bundles: Bundle[]):
 function setIntersection<T>(sets: Set<T>[]): Set<T> {
   return sets.reduce((previous, current) => {
     const reduced = new Set<T>();
-    for (let entry of previous) {
+    for (const entry of previous) {
       if (current.has(entry)) {
         reduced.add(entry);
       }
