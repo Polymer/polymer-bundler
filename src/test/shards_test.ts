@@ -92,15 +92,12 @@ suite('Bundler', () => {
             assert.isDefined(entrypoint1Doc);
             const entrypoint2Doc = docs.get(entrypoint2)!;
             assert.isDefined(entrypoint2Doc);
-            console.log('Serialized doc: ', parse5.serialize(entrypoint1Doc));
-
             const commonModule = domModulePredicate('common-module');
             const elOne = domModulePredicate('el-one');
             const elTwo = domModulePredicate('el-two');
             const depOne = domModulePredicate('el-dep1');
             const depTwo = domModulePredicate('el-dep2');
             // Check that all the dom modules are in their expected shards
-            // console.log(commonDoc);
             assertContainsAndExcludes(
                 commonDoc, [commonModule, depOne], [elOne, elTwo, depTwo]);
             assertContainsAndExcludes(

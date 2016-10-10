@@ -124,10 +124,7 @@ class Bundler {
    */
   resolveBundleUrl(url: string, bundle: Bundle, manifest: BundleManifest):
       boolean|string {
-    console.log('URl: ', url);
     const targetBundle = manifest.getBundleForFile(url);
-    console.log('Target bundle: ', targetBundle);
-    console.log('Current bundle: ', bundle);
     if (!targetBundle || !targetBundle.url) {
       return false;
     }
@@ -266,7 +263,6 @@ class Bundler {
         // document to inline available in the analyzer?
         return;
       }
-      console.log('inlining html import into: ', docUrl, resolvedUrl);
       // Is there a better way to get what we want other than using
       // parseFragment?
       const importDoc =
@@ -296,7 +292,6 @@ class Bundler {
       }
 
       dom5.queryAll(importDoc, matchers.htmlImport).forEach((nestedImport) => {
-        console.log('inlining nested import!', nestedImport.attrs);
         this.inlineHtmlImport(
             docUrl, nestedImport, importMap, bundle, manifest);
       });
@@ -466,9 +461,6 @@ class Bundler {
       const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
       for (const bundleEntry of manifest.bundles) {
         const bundleUrl = bundleEntry[0], bundle = bundleEntry[1];
-        console.log(bundleUrl);
-        console.log(bundle);
-        debugger;
         const bundledAst = await this._bundleDocument(
             bundleUrl, bundle, manifest, bundle.files);
         bundledDocuments.set(bundleUrl, bundledAst);
@@ -498,7 +490,6 @@ class Bundler {
       if (resolved === false) {
         importMap.delete(u);
       } else if (resolved !== true && typeof resolved === 'string') {
-        console.log('Rewriting url from ', u, 'to', resolved);
         // If resolveBundleUrl returns a string, we want to rewrite the HTML
         // import URL.
         htmlImport.url = resolved;
@@ -520,7 +511,6 @@ class Bundler {
         if (importUrl === url) {
           continue;
         }
-        console.log('Adding: ', importUrl, ' to: ', url);
         const parsedUrl = urlLib.parse(importUrl);
         const parsedDocUrl = urlLib.parse(url);
         if (parsedUrl.host !== parsedDocUrl.host ||
@@ -530,12 +520,10 @@ class Bundler {
         if (!parsedDocUrl.pathname || !parsedUrl.pathname) {
           continue;
         }
-        console.log(parsedDocUrl.pathname, parsedUrl.pathname);
         const newPath = path.relative(
             path.dirname(parsedDocUrl.pathname), parsedUrl.pathname);
         parsedUrl.pathname = newPath;
         const newUrl = urlLib.format(parsedUrl);
-        console.log(url, importUrl);
         const newNode = dom5.constructors.element('link');
         dom5.setAttribute(newNode, 'rel', 'import');
         dom5.setAttribute(newNode, 'href', newUrl);
@@ -545,7 +533,6 @@ class Bundler {
             ]);
         dom5.append(body, newNode);
         importMap.set(importUrl, im);
-        // console.log(parse5.serialize(newDocument));
       }
     }
     importMap.set(url, null);
@@ -561,8 +548,6 @@ class Bundler {
 
     // Move htmlImports out of head into a hiddenDiv in body
     const htmlImports = dom5.queryAll(newDocument, matchers.htmlImport);
-    console.log('url: ', url);
-    htmlImports.forEach((i) => console.log(i.attrs));
     htmlImports.forEach((htmlImport) => {
       if (elementInHead(htmlImport)) {
         if (!hiddenDiv.parentNode) {
