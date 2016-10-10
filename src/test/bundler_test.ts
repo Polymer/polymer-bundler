@@ -514,15 +514,6 @@ suite('Bundler', () => {
       });
     });
 
-    test('Strip Excludes has more precedence than Excludes', () => {
-      const options = {excludes: excludes, stripExcludes: excludes};
-
-      return bundle(inputPath, options).then((doc) => {
-        const imports = dom5.queryAll(doc, excluded);
-        assert.equal(imports.length, 0);
-      });
-    });
-
     test('Excluded comments are removed', () => {
       const options = {stripComments: true};
       return bundle('test/html/comments.html', options).then((doc) => {
