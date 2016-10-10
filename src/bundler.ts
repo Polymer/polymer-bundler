@@ -190,6 +190,7 @@ class Bundler {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
     const resolvedUrl = urlLib.resolve(docUrl, rawUrl);
     const script = importMap.get(resolvedUrl);
+    console.log(script);
 
     if (!script || !script.document) {
       return;
@@ -476,14 +477,16 @@ class Bundler {
     // should be removed from the document.
     const importMap: Map<string, Import|null> = new Map();
     analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
-    importMap.forEach((_, u) => {
+    importMap.forEach((htmlImport, u) => {
+      if (!htmlImport || htmlImport.type !== 'html-import') {
+        return;
+      }
       const resolved = this.resolveBundleUrl(u, bundle, bundleManifest);
       if (resolved === false) {
         importMap.delete(u);
       } else if (resolved !== true && typeof resolved === 'string') {
         // If resolveBundleUrl returns a string, we want to rewrite the HTML
         // import URL.
-        const htmlImport: Import = importMap.get(u)!;
         htmlImport.url = resolved;
         htmlImport.astNode = dom5.cloneNode(htmlImport.astNode);
         dom5.setAttribute(htmlImport.astNode, 'href', resolved);
@@ -523,9 +526,11 @@ class Bundler {
     });
 
     if (this.enableScriptInlining) {
+      console.log('inlining scripts!');
       const scriptImports =
           dom5.queryAll(newDocument, matchers.externalJavascript);
       scriptImports.forEach((externalScript: ASTNode) => {
+        console.log('Inlining a script', externalScript);
         this.inlineScript(url, externalScript, importMap);
       });
     }
