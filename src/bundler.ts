@@ -28,7 +28,7 @@ import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import {BundleStrategy, generateBundles} from './bundle-manifest';
+import {Bundle, BundleStrategy, generateBundles, BundleUrlMapper, BundleManifest, UrlString} from './bundle-manifest';
 import DocumentCollection from './document-collection';
 import {buildDepsIndex} from './deps-index';
 
@@ -104,8 +104,6 @@ class Bundler {
     this.addedImports =
         Array.isArray(opts.addedImports) ? opts.addedImports : [];
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
-    this.stripExcludes =
-        Array.isArray(opts.stripExcludes) ? opts.stripExcludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
@@ -113,14 +111,27 @@ class Bundler {
         String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
   }
 
-  isExcludedHref(url: string): boolean {
-    if (constants.EXTERNAL_URL.test(url)) {
-      return true;
-    }
-    if (!this.excludes) {
+
+  /**
+   * Return the URL this import should point to in the given bundle.
+   *
+   * If the URL is part of the bundle, this method returns `true`.
+   *
+   * If the URL is part of another bundle, this method returns the url of that
+   * bundle.
+   *
+   * If the URL isn't part of a bundle, this method returns `false`
+   */
+  resolveBundleUrl(url: string, bundle: Bundle, manifest: BundleManifest):
+      boolean|string {
+    const targetBundle = manifest.getBundleForFile(url);
+    if (!targetBundle || !targetBundle.url) {
       return false;
     }
-    return this.excludes.some(r => url.search(r) >= 0);
+    if (targetBundle.url !== bundle.url) {
+      return targetBundle.url;
+    }
+    return true;
   }
 
   isStripExcludedHref(url: string): boolean {
@@ -409,32 +420,54 @@ class Bundler {
    *     output bundles. See 'polymer-analyzer/lib/bundle-manifest' for
    *     examples. UNUSED.
    */
-  async bundle(entrypoints: string[], strategy?: BundleStrategy):
-      Promise<DocumentCollection> {
+  async bundle(
+      entrypoints: string[],
+      strategy?: BundleStrategy,
+      mapper?: BundleUrlMapper): Promise<DocumentCollection> {
     if (entrypoints.length === 1) {
-      const doc = await this._bundleDocument(
-          entrypoints[0], this.excludes, this.stripExcludes);
+      const url = entrypoints[0];
+      debugger;
+      const depsIndex = await buildDepsIndex(entrypoints, this.analyzer);
+      debugger;
+      const bundles = generateBundles(depsIndex.entrypointToDeps);
+      for (const exclude of this.excludes) {
+        bundles[0].files.delete(exclude);
+      }
+      const manifest =
+          new BundleManifest(bundles, () => new Map([[url, bundles[0]]]));
+      const doc = await this._bundleDocument(url, bundles[0], manifest);
       const collection = new Map<string, ASTNode>();
-      collection.set(entrypoints[0], doc);
+      collection.set(url, doc);
       return collection;
     } else {
       if (!strategy) {
         console.assert(strategy, 'strategy must be provided!');
         throw new Error('strategy must be provided');
       }
+      if (!mapper) {
+        console.assert(mapper, 'mapper must be provided!');
+        throw new Error(' mapper must be provided');
+      }
       const index = await buildDepsIndex(entrypoints, this.analyzer);
       const basicBundles = generateBundles(index.entrypointToDeps);
-      console.log(basicBundles);
       const bundlesAfterStrategy = strategy(basicBundles);
       console.log(bundlesAfterStrategy);
+      const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
+      for (const bundleEntry of manifest.bundles) {
+        const bundleUrl = bundleEntry[0], bundle = bundleEntry[1];
+        console.log(bundleUrl);
+        console.log(bundle);
+        debugger;
+        // const bundledAst = this._bundleDocument()
+      }
       return new Map<string, ASTNode>();
     }
   }
 
   private async _bundleDocument(
       url: string,
-      excludes: string[],
-      stripExcludes: string[]): Promise<ASTNode> {
+      bundle: Bundle,
+      bundleManifest: BundleManifest): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyze(url);
 
     // Map keyed by url to the import source and which has either the Import
@@ -444,10 +477,16 @@ class Bundler {
     const importMap: Map<string, Import|null> = new Map();
     analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
     importMap.forEach((_, u) => {
-      if (this.isStripExcludedHref(u)) {
-        importMap.set(u, null);
-      } else if (this.isExcludedHref(u)) {
+      const resolved = this.resolveBundleUrl(u, bundle, bundleManifest);
+      if (resolved === false) {
         importMap.delete(u);
+      } else if (resolved !== true && typeof resolved === 'string') {
+        // If resolveBundleUrl returns a string, we want to rewrite the HTML
+        // import URL.
+        const htmlImport: Import = importMap.get(u)!;
+        htmlImport.url = resolved;
+        htmlImport.astNode = dom5.cloneNode(htmlImport.astNode);
+        dom5.setAttribute(htmlImport.astNode, 'href', resolved);
       }
     });
 

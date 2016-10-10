@@ -28,6 +28,9 @@ export class Bundle {
   // Set of all files included in the bundle.
   files: Set<UrlString>;
 
+  // The url this bundle will be built into.
+  url?: UrlString;
+
   constructor(entrypoints?: Set<UrlString>, files?: Set<UrlString>) {
     this.entrypoints = entrypoints || new Set<UrlString>();
     this.files = files || new Set<UrlString>();
@@ -49,11 +52,12 @@ export class BundleManifest {
    * them, the constructor populates the `bundles` and `files` index properties.
    */
   constructor(bundles: Bundle[], urlMapper: BundleUrlMapper) {
-    this.bundles = urlMapper(bundles);
+    this.bundles = urlMapper(Array.from(bundles));
     this.bundleUrlForFile = new Map();
 
     for (const bundleMapEntry of this.bundles) {
       const bundleUrl = bundleMapEntry[0], bundle = bundleMapEntry[1];
+      bundle.url = bundleUrl;
       for (const fileUrl of bundle.files) {
         console.assert(!this.bundleUrlForFile.has(fileUrl));
         this.bundleUrlForFile.set(fileUrl, bundleUrl);
@@ -235,6 +239,7 @@ export function sharedBundleUrlMapper(bundles: Bundle[]):
  * See: https://en.wikipedia.org/wiki/Intersection_(set_theory)
  */
 function setIntersection<T>(sets: Set<T>[]): Set<T> {
+  console.log('Computing intersection: ', sets);
   return sets.reduce((previous, current) => {
     const reduced = new Set<T>();
     for (let entry of previous) {
@@ -242,6 +247,7 @@ function setIntersection<T>(sets: Set<T>[]): Set<T> {
         reduced.add(entry);
       }
     }
+    console.log(previous, current);
     return reduced;
   });
 }
@@ -274,11 +280,28 @@ function getEntrypointSets(bundles: Bundle[]): Set<string>[] {
 export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
     Map<UrlString, Bundle> {
   const bundleMap = new Map<UrlString, Bundle>();
+  const bundleNames = new Set<UrlString>();
   // Avoid mutating passed array;
+  console.log('Bundles: ', bundles);
   const remainingBundles = Array.from(bundles);
+  /**
+   * Attempt to assign names to bundles that have only one entrypoint.
+   */
+  for (let i = 0; i < remainingBundles.length; i++) {
+    const candidate = remainingBundles[i];
+    if (candidate.entrypoints.size === 1) {
+      const name = Array.from(candidate.entrypoints.values())[0];
+      bundleMap.set(name, candidate);
+      bundleNames.add(name);
+      remainingBundles.splice(i, 1);
+      i--;
+    }
+  }
+
   // Variable to track if an iteration of the loop resulted in a new bundle
   // assignment.
   let assignedBundle = true;
+
   /**
    * Attempt to find a name, and bail once a search
    * round goes without a candidate.
@@ -286,7 +309,7 @@ export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
    * Given N sets of entrypoints(strings), names are selected as follows.
    *
    * Name_i = Any member of
-   * (Entrypoints_i - (Entrypoints_0 ∩ Entrypoints_1 ∩ ... ∩ Entrypoints_N))
+   * (Entrypoints_i - (Named_Bundles))
    *
    * After each selection, the list of entrypoints is pruned of entries with
    * assigned names and another round of selection occurs.
@@ -295,7 +318,8 @@ export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
     assignedBundle = false;
     const knownEntrypoints = new Set<string>();
     const entrypointSets = getEntrypointSets(remainingBundles);
-    let intersection = setIntersection(entrypointSets);
+    console.log(remainingBundles);
+    let intersection = setIntersection(entrypointSets.concat(bundleNames));
     for (let i = 0; i < remainingBundles.length; i++) {
       const bundle = remainingBundles[i];
       if (assignedBundle) {
@@ -303,8 +327,9 @@ export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
       }
       for (const entrypoint of bundle.entrypoints) {
         if (!intersection.has(entrypoint)) {
-          if (!bundleMap.has(entrypoint)) {
+          if (!bundleNames.has(entrypoint)) {
             bundleMap.set(entrypoint, bundle);
+            bundleNames.add(entrypoint);
             remainingBundles.splice(i, 1);
             assignedBundle = true;
             break;

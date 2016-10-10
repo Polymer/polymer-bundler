@@ -21,6 +21,7 @@ import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
+import {BundleStrategy, BundleUrlMapper, generateSharedDepsMergeStrategy, uniqueEntrypointUrlMapper} from '../bundle-manifest';
 import Bundler from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import constants from '../constants';
@@ -39,20 +40,23 @@ const domModulePredicate = (id: string) => {
 
 suite('Bundler', () => {
   let bundler: Bundler;
-  const common = 'test/html/shards/common.html';
-  const endpoint1 = 'test/html/shards/endpoint1.html';
-  const endpoint2 = 'test/html/shards/endpoint2.html';
+  const common = 'test/html/shards/shop_style_project/common.html';
+  const entrypoint1 = 'test/html/shards/shop_style_project/entrypoint1.html';
+  const entrypoint2 = 'test/html/shards/shop_style_project/entrypoint2.html';
 
   let doc: parse5.ASTNode;
 
   function bundleMultiple(
-      inputPath: string[], opts?: BundlerOptions): Promise<DocumentCollection> {
+      inputPath: string[],
+      strategy: BundleStrategy,
+      mapper: BundleUrlMapper,
+      opts?: BundlerOptions): Promise<DocumentCollection> {
     const bundlerOpts = opts || {};
     if (!bundlerOpts.analyzer) {
       bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
     }
     bundler = new Bundler(bundlerOpts);
-    return bundler.bundle(inputPath);
+    return bundler.bundle(inputPath, strategy, mapper);
   }
 
   function assertContainsAndExcludes(
@@ -69,37 +73,41 @@ suite('Bundler', () => {
     }
   }
 
-  suite.skip('Sharded builds', () => {
-    test('with 3 endpoints, all deps are in their places', () => {
+  suite('Sharded builds', () => {
+    test('with 3 entrypoints, all deps are in their places', () => {
       const imports = preds.AND(
           preds.hasTagName('link'),
           preds.hasAttrValue('rel', 'import'),
           preds.hasAttr('href'),
           preds.NOT(preds.hasAttrValue('type', 'css')));
-      return bundleMultiple([common, endpoint1, endpoint2]).then((docs) => {
-        // assert.equal(docs.size, 3);
-        const commonDoc: parse5.ASTNode = docs.get(common)!;
-        console.log(parse5.serialize(commonDoc));
-        // assert.isDefined(commonDoc);
-        const endpoint1Doc = docs.get(endpoint1)!;
-        // assert.isDefined(endpoint1Doc);
-        const endpoint2Doc = docs.get(endpoint2)!;
-        // assert.isDefined(endpoint2Doc);
+      const strategy = generateSharedDepsMergeStrategy(2);
+      const mapper = uniqueEntrypointUrlMapper;
+      return bundleMultiple(
+                 [common, entrypoint1, entrypoint2], strategy, mapper)
+          .then((docs) => {
+            // assert.equal(docs.size, 3);
+            const commonDoc: parse5.ASTNode = docs.get(common)!;
+            console.log(parse5.serialize(commonDoc));
+            // assert.isDefined(commonDoc);
+            const entrypoint1Doc = docs.get(entrypoint1)!;
+            // assert.isDefined(entrypoint1Doc);
+            const entrypoint2Doc = docs.get(entrypoint2)!;
+            // assert.isDefined(entrypoint2Doc);
 
-        const commonModule = domModulePredicate('common-module');
-        const elOne = domModulePredicate('el-one');
-        const elTwo = domModulePredicate('el-two');
-        const depOne = domModulePredicate('el-dep1');
-        const depTwo = domModulePredicate('el-dep2');
-        // Check that all the dom modules are in their expected shards
-        // console.log(commonDoc);
-        assertContainsAndExcludes(
-            commonDoc, [commonModule], [elOne, elTwo, depOne, depTwo]);
-        assertContainsAndExcludes(
-            endpoint1Doc, [elOne, depOne], [commonModule, elTwo, depTwo]);
-        assertContainsAndExcludes(
-            endpoint1Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
-      });
+            const commonModule = domModulePredicate('common-module');
+            const elOne = domModulePredicate('el-one');
+            const elTwo = domModulePredicate('el-two');
+            const depOne = domModulePredicate('el-dep1');
+            const depTwo = domModulePredicate('el-dep2');
+            // Check that all the dom modules are in their expected shards
+            // console.log(commonDoc);
+            assertContainsAndExcludes(
+                commonDoc, [commonModule, depOne], [elOne, elTwo, depTwo]);
+            assertContainsAndExcludes(
+                entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
+            assertContainsAndExcludes(
+                entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
+          });
     });
   });
 });

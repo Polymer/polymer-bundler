@@ -227,7 +227,6 @@ suite('Bundler', () => {
       bundler.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
-      console.log(actual);
       assert.equal(actual, expected, 'relative');
     });
 
