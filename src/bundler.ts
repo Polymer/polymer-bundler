@@ -124,7 +124,10 @@ class Bundler {
    */
   resolveBundleUrl(url: string, bundle: Bundle, manifest: BundleManifest):
       boolean|string {
+    console.log('URl: ', url);
     const targetBundle = manifest.getBundleForFile(url);
+    console.log('Target bundle: ', targetBundle);
+    console.log('Current bundle: ', bundle);
     if (!targetBundle || !targetBundle.url) {
       return false;
     }
@@ -190,7 +193,6 @@ class Bundler {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
     const resolvedUrl = urlLib.resolve(docUrl, rawUrl);
     const script = importMap.get(resolvedUrl);
-    console.log(script);
 
     if (!script || !script.document) {
       return;
@@ -245,9 +247,15 @@ class Bundler {
   inlineHtmlImport(
       docUrl: string,
       htmlImport: ASTNode,
-      importMap: Map<string, Import|null>) {
+      importMap: Map<string, Import|null>,
+      bundle: Bundle,
+      manifest: BundleManifest) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
+    const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
+    // if (bundleUrl !== bundle.url) {
+    //   dom5.setAttribute(htmlImport, 'href', bundleUrl);
+    // }
 
     const analyzedImport = importMap.get(resolvedUrl);
     if (analyzedImport) {
@@ -258,7 +266,7 @@ class Bundler {
         // document to inline available in the analyzer?
         return;
       }
-
+      console.log('inlining html import into: ', docUrl, resolvedUrl);
       // Is there a better way to get what we want other than using
       // parseFragment?
       const importDoc =
@@ -288,7 +296,9 @@ class Bundler {
       }
 
       dom5.queryAll(importDoc, matchers.htmlImport).forEach((nestedImport) => {
-        this.inlineHtmlImport(docUrl, nestedImport, importMap);
+        console.log('inlining nested import!', nestedImport.attrs);
+        this.inlineHtmlImport(
+            docUrl, nestedImport, importMap, bundle, manifest);
       });
 
       astUtils.insertAllBefore(importParent, htmlImport, importDoc.childNodes!);
@@ -425,6 +435,7 @@ class Bundler {
       entrypoints: string[],
       strategy?: BundleStrategy,
       mapper?: BundleUrlMapper): Promise<DocumentCollection> {
+    const bundledDocuments = new Map<string, ASTNode>();
     if (entrypoints.length === 1) {
       const url = entrypoints[0];
       debugger;
@@ -437,10 +448,10 @@ class Bundler {
       const manifest =
           new BundleManifest(bundles, () => new Map([[url, bundles[0]]]));
       const doc = await this._bundleDocument(url, bundles[0], manifest);
-      const collection = new Map<string, ASTNode>();
-      collection.set(url, doc);
-      return collection;
+      bundledDocuments.set(url, doc);
+      return bundledDocuments;
     } else {
+      const bundles = new Map<string, ASTNode>();
       if (!strategy) {
         console.assert(strategy, 'strategy must be provided!');
         throw new Error('strategy must be provided');
@@ -452,23 +463,25 @@ class Bundler {
       const index = await buildDepsIndex(entrypoints, this.analyzer);
       const basicBundles = generateBundles(index.entrypointToDeps);
       const bundlesAfterStrategy = strategy(basicBundles);
-      console.log(bundlesAfterStrategy);
       const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
       for (const bundleEntry of manifest.bundles) {
         const bundleUrl = bundleEntry[0], bundle = bundleEntry[1];
         console.log(bundleUrl);
         console.log(bundle);
         debugger;
-        // const bundledAst = this._bundleDocument()
+        const bundledAst = await this._bundleDocument(
+            bundleUrl, bundle, manifest, bundle.files);
+        bundledDocuments.set(bundleUrl, bundledAst);
       }
-      return new Map<string, ASTNode>();
+      return bundledDocuments;
     }
   }
 
   private async _bundleDocument(
       url: string,
       bundle: Bundle,
-      bundleManifest: BundleManifest): Promise<ASTNode> {
+      bundleManifest: BundleManifest,
+      addedImports?: Set<string>): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyze(url);
 
     // Map keyed by url to the import source and which has either the Import
@@ -485,19 +498,58 @@ class Bundler {
       if (resolved === false) {
         importMap.delete(u);
       } else if (resolved !== true && typeof resolved === 'string') {
+        console.log('Rewriting url from ', u, 'to', resolved);
         // If resolveBundleUrl returns a string, we want to rewrite the HTML
         // import URL.
         htmlImport.url = resolved;
         htmlImport.astNode = dom5.cloneNode(htmlImport.astNode);
         dom5.setAttribute(htmlImport.astNode, 'href', resolved);
+        importMap.set(u, null);
       }
     });
+
 
     // We must parse document to a new AST since we will be modifying the AST.
     const newDocument = parse5.parse(analyzedRoot.parsedDocument.contents);
 
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;
+
+    if (addedImports) {
+      for (const importUrl of addedImports) {
+        if (importUrl === url) {
+          continue;
+        }
+        console.log('Adding: ', importUrl, ' to: ', url);
+        const parsedUrl = urlLib.parse(importUrl);
+        const parsedDocUrl = urlLib.parse(url);
+        if (parsedUrl.host !== parsedDocUrl.host ||
+            parsedUrl.protocol !== parsedDocUrl.protocol) {
+          continue;
+        }
+        if (!parsedDocUrl.pathname || !parsedUrl.pathname) {
+          continue;
+        }
+        console.log(parsedDocUrl.pathname, parsedUrl.pathname);
+        const newPath = path.relative(
+            path.dirname(parsedDocUrl.pathname), parsedUrl.pathname);
+        parsedUrl.pathname = newPath;
+        const newUrl = urlLib.format(parsedUrl);
+        console.log(url, importUrl);
+        const newNode = dom5.constructors.element('link');
+        dom5.setAttribute(newNode, 'rel', 'import');
+        dom5.setAttribute(newNode, 'href', newUrl);
+        const importDoc = await this.analyzer.analyze(importUrl);
+        const im = new Import(
+            newUrl, 'html-import', importDoc, undefined, undefined, newNode, [
+            ]);
+        dom5.append(body, newNode);
+        importMap.set(importUrl, im);
+        // console.log(parse5.serialize(newDocument));
+      }
+    }
+    importMap.set(url, null);
+
     // Create a hidden div to target.
     const hiddenDiv = this.createHiddenContainerNode();
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
@@ -509,6 +561,8 @@ class Bundler {
 
     // Move htmlImports out of head into a hiddenDiv in body
     const htmlImports = dom5.queryAll(newDocument, matchers.htmlImport);
+    console.log('url: ', url);
+    htmlImports.forEach((i) => console.log(i.attrs));
     htmlImports.forEach((htmlImport) => {
       if (elementInHead(htmlImport)) {
         if (!hiddenDiv.parentNode) {
@@ -522,15 +576,13 @@ class Bundler {
     // Inline all HTML Imports.  (The inlineHtmlImport method will discern how
     // to handle them based on the state of the importMap.)
     htmlImports.forEach((htmlImport: ASTNode) => {
-      this.inlineHtmlImport(url, htmlImport, importMap);
+      this.inlineHtmlImport(url, htmlImport, importMap, bundle, bundleManifest);
     });
 
     if (this.enableScriptInlining) {
-      console.log('inlining scripts!');
       const scriptImports =
           dom5.queryAll(newDocument, matchers.externalJavascript);
       scriptImports.forEach((externalScript: ASTNode) => {
-        console.log('Inlining a script', externalScript);
         this.inlineScript(url, externalScript, importMap);
       });
     }

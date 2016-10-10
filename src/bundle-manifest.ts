@@ -239,7 +239,6 @@ export function sharedBundleUrlMapper(bundles: Bundle[]):
  * See: https://en.wikipedia.org/wiki/Intersection_(set_theory)
  */
 function setIntersection<T>(sets: Set<T>[]): Set<T> {
-  console.log('Computing intersection: ', sets);
   return sets.reduce((previous, current) => {
     const reduced = new Set<T>();
     for (let entry of previous) {
@@ -247,7 +246,6 @@ function setIntersection<T>(sets: Set<T>[]): Set<T> {
         reduced.add(entry);
       }
     }
-    console.log(previous, current);
     return reduced;
   });
 }
@@ -282,7 +280,6 @@ export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
   const bundleMap = new Map<UrlString, Bundle>();
   const bundleNames = new Set<UrlString>();
   // Avoid mutating passed array;
-  console.log('Bundles: ', bundles);
   const remainingBundles = Array.from(bundles);
   /**
    * Attempt to assign names to bundles that have only one entrypoint.
@@ -318,7 +315,6 @@ export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
     assignedBundle = false;
     const knownEntrypoints = new Set<string>();
     const entrypointSets = getEntrypointSets(remainingBundles);
-    console.log(remainingBundles);
     let intersection = setIntersection(entrypointSets.concat(bundleNames));
     for (let i = 0; i < remainingBundles.length; i++) {
       const bundle = remainingBundles[i];

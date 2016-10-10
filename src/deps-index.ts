@@ -52,8 +52,6 @@ async function _getTransitiveDependencies(url: string, analyzer: Analyzer):
             break;
         }
       }
-      console.log('Url: ', url);
-      console.log('Eager: ', eagerImports);
       return {url: url, eager: eagerImports, lazy: lazyImports};
     }
 
@@ -90,6 +88,5 @@ export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
           entrypointSet.add(entrypoint);
         }
       });
-      console.log(entrypointToDependencies);
       return {entrypointToDeps: entrypointToDependencies};
     }

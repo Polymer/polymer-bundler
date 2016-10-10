@@ -85,14 +85,14 @@ suite('Bundler', () => {
       return bundleMultiple(
                  [common, entrypoint1, entrypoint2], strategy, mapper)
           .then((docs) => {
-            // assert.equal(docs.size, 3);
+            assert.equal(docs.size, 3);
             const commonDoc: parse5.ASTNode = docs.get(common)!;
-            console.log(parse5.serialize(commonDoc));
-            // assert.isDefined(commonDoc);
+            assert.isDefined(commonDoc);
             const entrypoint1Doc = docs.get(entrypoint1)!;
-            // assert.isDefined(entrypoint1Doc);
+            assert.isDefined(entrypoint1Doc);
             const entrypoint2Doc = docs.get(entrypoint2)!;
-            // assert.isDefined(entrypoint2Doc);
+            assert.isDefined(entrypoint2Doc);
+            console.log('Serialized doc: ', parse5.serialize(entrypoint1Doc));
 
             const commonModule = domModulePredicate('common-module');
             const elOne = domModulePredicate('el-one');
