@@ -355,7 +355,7 @@ suite('Bundler', () => {
   });
 
   suite('Script Ordering', () => {
-    test('Imports and scripts are ordered correctly', () => {
+    test.only('Imports and scripts are ordered correctly', () => {
       return bundle('test/html/order-test.html').then((doc) => {
         const expectedOrder = [
           'first-script',
