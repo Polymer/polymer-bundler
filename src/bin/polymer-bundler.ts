@@ -16,6 +16,7 @@ import * as commandLineArgs from 'command-line-args';
 import * as commandLineUsage from 'command-line-usage';
 import * as fs from 'fs';
 import * as dom5 from 'dom5';
+import * as parse5 from 'parse5';
 import Bundler from '../bundler';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
@@ -28,8 +29,8 @@ const optionDefinitions = [
     name: 'abspath',
     type: String,
     alias: 'p',
-    description: `specify ${pathArgument
-                 } as the "webserver root", make all adjusted urls absolute`,
+    description: `specify ${pathArgument} as the "webserver root", ` +
+        `make all adjusted urls absolute`,
     typeLabel: `${pathArgument}`
   },
   {
@@ -70,12 +71,15 @@ const optionDefinitions = [
   {
     name: 'strip-comments',
     type: Boolean,
-    description: 'Strips all HTML comments not containing an @license from the document'
+    description:
+        'Strips all HTML comments not containing an @license from the document'
   },
   {
     name: 'no-implicit-strip',
     type: Boolean,
-    description: 'DANGEROUS! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.'},
+    description:
+        'DANGEROUS! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.'
+  },
   {
     name: 'inline-scripts',
     type: Boolean,
@@ -89,41 +93,58 @@ const optionDefinitions = [
   {
     name: 'out-html',
     type: String,
-    description: `If specified, output will be written to ${pathArgument} instead of stdout.`,
+    description: `If specified, output will be written to ${pathArgument}` +
+        ' instead of stdout.',
     typeLabel: `${pathArgument}`
   },
-  {name: 'in-html', type: String, defaultOption: true, description: 'Input HTML. If not specified, will be the last command line argument.'},
+  {
+    name: 'out-dir',
+    type: String,
+    description: 'If specified, all output files will be written to ' +
+        `${pathArgument}.`,
+    typeLabel: `${pathArgument}`
+  },
+  {
+    name: 'in-html',
+    type: String,
+    defaultOption: true,
+    description:
+        'Input HTML. If not specified, will be the last command line argument.'
+  }
 ];
 
 const usage = [
   {header: 'Usage', content: ['vulcanize [options...] <in-html>']},
   {header: 'Options', optionList: optionDefinitions},
-  {header: 'Examples', content: `  The command
-    vulcanize target.html
-  will inline the HTML Imports of \`target.html\` and print the resulting HTML to standard output.
-
-  The command
-    vulcanize target.html > build.html
-  will inline the HTML Imports of \`target.html\` and print the result to build.html.
-
-  The command
-    vulcanize -p "path/to/target/" /target.html
-  will inline the HTML Imports of \`target.html\`, treat \`path/to/target/\` as the webroot of target.html, and make all urls absolute to the provided webroot.
-
-  The command
-    vulcanize --exclude "path/to/target/subpath/" --exclude "path/to/target/subpath2/" target.html
-  will inline the HTML Imports of \`target.html\` that are not in the directory \`path/to/target/subpath\` nor \`path/to/target/subpath2\`.
-
-  If the \`--strip-excludes\` flag is used, the HTML Import \`<link>\` tags that point to resources in \`path/totarget/subpath\` and \`path/to/target/subpath2/\` will also be removed.
-
-  The command
-    vulcanize --inline-scripts target.html
-  will inline scripts in \`target.html\` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.
-  `,
-  raw: true}
+  {
+    header: 'Examples',
+    content: [
+      {
+        desc:
+            'Inline the HTML Imports of \`target.html\` and print the resulting HTML to standard output.',
+        example: 'polymer-bundler target.html'
+      },
+      {
+        desc:
+            'Inline the HTML Imports of \`target.html\`, treat \`path/to/target/\` as the webroot of target.html, and make all urls absolute to the provided webroot.',
+        example: 'polymer-bundler -p "path/to/target/" /target.html'
+      },
+      {
+        desc:
+            'Inline the HTML Imports of \`target.html\` that are not in the directory \`path/to/target/subpath\` nor \`path/to/target/subpath2\`.',
+        example:
+            'polymer-bundler --exclude "path/to/target/subpath/" --exclude "path/to/target/subpath2/" target.html'
+      },
+      {
+        desc:
+            'Inline scripts in \`target.html\` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.',
+        example: 'vulcanize --inline-scripts target.html'
+      },
+    ]
+  },
 ];
 
-    const options = commandLineArgs(optionDefinitions);
+const options = commandLineArgs(optionDefinitions);
 console.log(options);
 
 const target = options['in-html'];
@@ -163,20 +184,23 @@ options.inlineCss = options['inline-css'];
 console.log(options);
 options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
 
-(new Bundler(options)).bundle(target).then((content) => {
-  const doc = content.get(target);
-  if (!doc) {
-    return;
-  }
-  const serialized = dom5.serialize(doc);
-  if (options['out-html']) {
-    const fd = fs.openSync(options['out-html'], 'w');
-    fs.writeSync(fd, serialized + '\n');
-    fs.closeSync(fd);
-  } else {
-    process.stdout.write(serialized);
-  }
-}).catch((err) => {
-  process.stderr.write(require('util').inspect(err));
-  process.exit(1);
-});
+(new Bundler(options))
+    .bundle(target)
+    .then((content) => {
+      const doc = content.get(target);
+      if (!doc) {
+        return;
+      }
+      const serialized = parse5.serialize(doc);
+      if (options['out-html']) {
+        const fd = fs.openSync(options['out-html'], 'w');
+        fs.writeSync(fd, serialized + '\n');
+        fs.closeSync(fd);
+      } else {
+        process.stdout.write(serialized);
+      }
+    })
+    .catch((err) => {
+      process.stderr.write(require('util').inspect(err));
+      process.exit(1);
+    });
