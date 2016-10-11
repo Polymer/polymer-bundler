@@ -28,13 +28,18 @@ export class Bundle {
   // Set of all files included in the bundle.
   files: Set<UrlString>;
 
-  // The url this bundle will be built into.
-  url?: UrlString;
-
   constructor(entrypoints?: Set<UrlString>, files?: Set<UrlString>) {
     this.entrypoints = entrypoints || new Set<UrlString>();
     this.files = files || new Set<UrlString>();
   }
+}
+
+/**
+ * Represents a bundle assigned to an output URL.
+ */
+export class AssignedBundle {
+  bundle: Bundle;
+  url: UrlString;
 }
 
 /**
@@ -57,7 +62,6 @@ export class BundleManifest {
 
     for (const bundleMapEntry of this.bundles) {
       const bundleUrl = bundleMapEntry[0], bundle = bundleMapEntry[1];
-      bundle.url = bundleUrl;
       for (const fileUrl of bundle.files) {
         console.assert(!this.bundleUrlForFile.has(fileUrl));
         this.bundleUrlForFile.set(fileUrl, bundleUrl);
@@ -66,10 +70,10 @@ export class BundleManifest {
   }
 
   // Convenience method to return a bundle for a constituent file url.
-  getBundleForFile(url: UrlString): Bundle|undefined {
+  getBundleForFile(url: UrlString): AssignedBundle|undefined {
     const bundleUrl = this.bundleUrlForFile.get(url);
     if (bundleUrl) {
-      return this.bundles.get(bundleUrl);
+      return {bundle: this.bundles.get(bundleUrl)!, url: bundleUrl};
     }
   }
 }
@@ -256,87 +260,44 @@ function setIntersection<T>(sets: Set<T>[]): Set<T> {
  */
 function getEntrypointSets(bundles: Bundle[]): Set<string>[] {
   const list: Set<string>[] = [];
-  for (let bundle of bundles) {
+  for (const bundle of bundles) {
     list.push(bundle.entrypoints);
   }
   return list;
 }
 
 /**
- * Attempts to generate shared bundle names by identifying unique Entrypoints,
- * falling back on `sharedBundleUrlMapper` when unable to form a direct
- * correspondence.
+ * Names bundles based on entrypoints and dependencies.
  *
- * example:
- * const bundle1 = {Entrypoints: ['A']};
- * const bundle2 = {Entrypoints: ['A', 'B']};
- * const bundle3 = {Entrypoints: ['A', 'B', 'C']};
- *
- * becomes:
- * ['A.html', 'B.html', 'C.html']
+ * Bundles without entrypoints will be named using `sharedBundleUrlMapper`.
  */
 export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
     Map<UrlString, Bundle> {
   const bundleMap = new Map<UrlString, Bundle>();
-  const bundleNames = new Set<UrlString>();
   // Avoid mutating passed array;
-  const remainingBundles = Array.from(bundles);
+  const remainingBundles: typeof bundles = [];
   /**
-   * Attempt to assign names to bundles that have only one entrypoint.
+   * Attempt to assign names to bundles that contain entrypoints.
    */
-  for (let i = 0; i < remainingBundles.length; i++) {
-    const candidate = remainingBundles[i];
-    if (candidate.entrypoints.size === 1) {
-      const name = Array.from(candidate.entrypoints.values())[0];
-      bundleMap.set(name, candidate);
-      bundleNames.add(name);
-      remainingBundles.splice(i, 1);
-      i--;
-    }
-  }
-
-  // Variable to track if an iteration of the loop resulted in a new bundle
-  // assignment.
-  let assignedBundle = true;
-
-  /**
-   * Attempt to find a name, and bail once a search
-   * round goes without a candidate.
-   *
-   * Given N sets of entrypoints(strings), names are selected as follows.
-   *
-   * Name_i = Any member of
-   * (Entrypoints_i - (Named_Bundles))
-   *
-   * After each selection, the list of entrypoints is pruned of entries with
-   * assigned names and another round of selection occurs.
-   */
-  while (remainingBundles.length > 0 && assignedBundle) {
-    assignedBundle = false;
-    const knownEntrypoints = new Set<string>();
-    const entrypointSets = getEntrypointSets(remainingBundles);
-    let intersection = setIntersection(entrypointSets.concat(bundleNames));
-    for (let i = 0; i < remainingBundles.length; i++) {
-      const bundle = remainingBundles[i];
-      if (assignedBundle) {
+  for (let bundle of bundles) {
+    let assigned = false;
+    for (const entrypoint of bundle.entrypoints) {
+      if (bundle.files.has(entrypoint)) {
+        bundleMap.set(entrypoint, bundle);
+        assigned = true;
         break;
       }
-      for (const entrypoint of bundle.entrypoints) {
-        if (!intersection.has(entrypoint)) {
-          if (!bundleNames.has(entrypoint)) {
-            bundleMap.set(entrypoint, bundle);
-            bundleNames.add(entrypoint);
-            remainingBundles.splice(i, 1);
-            assignedBundle = true;
-            break;
-          }
-        }
-      }
+    }
+    if (!assigned) {
+      remainingBundles.push(bundle);
     }
   }
+
+  // Fall back on the sharedBundleUrlMapper if all bundles aren't assigned.
   if (remainingBundles.length > 0) {
     const remainingMap = sharedBundleUrlMapper(remainingBundles);
     bundleMap.forEach((value, key) => bundleMap.set(key, value));
   }
+
   return bundleMap;
 }

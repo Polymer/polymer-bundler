@@ -70,7 +70,9 @@ export function querySelectorAllWithTemplates(
 }
 
 /**
- * Find content inside <template> tags.
+ * Find content inside all <template> tags that descend from `node`.
+ *
+ * Will not match elements outside of <template>.
  */
 export function querySelectorAllTemplates(
     node: ASTNode, predicate: dom5.Predicate): ASTNode[] {

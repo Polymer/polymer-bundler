@@ -28,7 +28,7 @@ import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import {Bundle, BundleStrategy, generateBundles, BundleUrlMapper, BundleManifest, UrlString, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
+import {Bundle, BundleStrategy, AssignedBundle, generateBundles, BundleUrlMapper, BundleManifest, UrlString, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
 import DocumentCollection from './document-collection';
 import {buildDepsIndex} from './deps-index';
 
@@ -122,8 +122,10 @@ class Bundler {
    *
    * If the URL isn't part of a bundle, this method returns `false`
    */
-  resolveBundleUrl(url: string, bundle: Bundle, manifest: BundleManifest):
-      boolean|string {
+  resolveBundleUrl(
+      url: string,
+      bundle: AssignedBundle,
+      manifest: BundleManifest): boolean|string {
     const targetBundle = manifest.getBundleForFile(url);
     if (!targetBundle || !targetBundle.url) {
       return false;
@@ -245,7 +247,7 @@ class Bundler {
       docUrl: string,
       htmlImport: ASTNode,
       importMap: Map<string, Import|null>,
-      bundle: Bundle,
+      bundle: AssignedBundle,
       manifest: BundleManifest) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
@@ -440,7 +442,11 @@ class Bundler {
       }
       const manifest =
           new BundleManifest(bundles, () => new Map([[url, bundles[0]]]));
-      const doc = await this._bundleDocument(url, bundles[0], manifest);
+      const bundle = {
+        url: url,
+        bundle: bundles[0],
+      };
+      const doc = await this._bundleDocument(url, bundle, manifest);
       bundledDocuments.set(url, doc);
       return bundledDocuments;
     } else {
@@ -456,9 +462,10 @@ class Bundler {
       const bundlesAfterStrategy = strategy(basicBundles);
       const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
       for (const bundleEntry of manifest.bundles) {
-        const bundleUrl = bundleEntry[0], bundle = bundleEntry[1];
+        const bundleUrl = bundleEntry[0];
+        const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
         const bundledAst = await this._bundleDocument(
-            bundleUrl, bundle, manifest, bundle.files);
+            bundleUrl, bundle, manifest, bundle.bundle.files);
         bundledDocuments.set(bundleUrl, bundledAst);
       }
       return bundledDocuments;
@@ -467,7 +474,7 @@ class Bundler {
 
   private async _bundleDocument(
       url: string,
-      bundle: Bundle,
+      bundle: AssignedBundle,
       bundleManifest: BundleManifest,
       bundleImports?: Set<string>): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyze(url);
@@ -505,7 +512,7 @@ class Bundler {
     /**
      * Add HTML Import elements for each import known to be in the bundle, in
      * case the import was moved into the bundle by the strategy.
-     * 
+     *
      * This will almost always yield duplicate imports that will get cleaned
      * up through deduplication.
      */
