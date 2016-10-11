@@ -194,7 +194,13 @@ class Bundler {
       Promise<ASTNode|undefined> {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
     const resolvedUrl = urlLib.resolve(docUrl, rawUrl);
-    const script = await this.analyzer.analyze(resolvedUrl);
+    let script: Document|null = null;
+    try {
+      script = await this.analyzer.analyze(resolvedUrl);
+    } catch (err) {
+      // If a script doesn't load, skip inlining.
+      // TODO(garlicnation): use a "canLoad" api on analyzer.
+    }
 
     if (!script) {
       return;
@@ -217,7 +223,12 @@ class Bundler {
       Promise<ASTNode|undefined> {
     const stylesheetUrl: string = dom5.getAttribute(cssLink, 'href')!;
     const resolvedStylesheetUrl = urlLib.resolve(docUrl, stylesheetUrl);
-    const stylesheetImport = await this.analyzer.analyze(resolvedStylesheetUrl);
+    let stylesheetImport: Document|null = null;
+    try {
+      stylesheetImport = await this.analyzer.analyze(resolvedStylesheetUrl);
+    } catch (err) {
+      // Pass here since there's no canLoad api from the analyzer.
+    }
 
     if (!stylesheetImport) {
       return;
@@ -253,7 +264,13 @@ class Bundler {
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
     const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
     if (!bundleUrl) {
-      dom5.remove(htmlImport);
+      if (reachedImports.has(resolvedUrl)) {
+        dom5.remove(htmlImport);
+        return;
+      } else {
+        reachedImports.add(resolvedUrl);
+      }
+      // dom5.remove(htmlImport);
       return;
     }
 
@@ -267,14 +284,14 @@ class Bundler {
       return;
     }
 
-    const analyzedImport = await this.analyzer.analyze(resolvedUrl);
-    if (analyzedImport && !reachedImports.has(resolvedUrl)) {
+    if (!reachedImports.has(resolvedUrl)) {
+      const analyzedImport = await this.analyzer.analyze(resolvedUrl);
       // If the document wasn't loaded for the import during analysis, we can't
       // inline it.
       if (!analyzedImport) {
         // TODO(usergenic): What should the behavior be when we don't have the
         // document to inline available in the analyzer?
-        return;
+        throw new Error(`Unable to analyze ${resolvedUrl}`);
       }
       // Is there a better way to get what we want other than using
       // parseFragment?
@@ -304,10 +321,11 @@ class Bundler {
         importParent = htmlImport.parentNode!;
       }
 
-      dom5.queryAll(importDoc, matchers.htmlImport).forEach((nestedImport) => {
-        this.inlineHtmlImport(
+      const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
+      for (const nestedImport of nestedImports) {
+        await this.inlineHtmlImport(
             docUrl, nestedImport, reachedImports, bundle, manifest);
-      });
+      }
 
       astUtils.insertAllBefore(importParent, htmlImport, importDoc.childNodes!);
     }
@@ -557,35 +575,35 @@ class Bundler {
       }
     });
 
-    const reachedImports = new Set<UrlString>();
+    const reachedImports = new Set<UrlString>([url]);
 
     // Inline all HTML Imports.  (The inlineHtmlImport method will discern how
     // to handle them based on the state of the importMap.)
-    htmlImports.forEach((htmlImport: ASTNode) => {
-      this.inlineHtmlImport(
+    for (const htmlImport of htmlImports) {
+      await this.inlineHtmlImport(
           url, htmlImport, reachedImports, bundle, bundleManifest);
-    });
+    }
 
     if (this.enableScriptInlining) {
       const scriptImports =
           dom5.queryAll(newDocument, matchers.externalJavascript);
-      scriptImports.forEach((externalScript: ASTNode) => {
-        this.inlineScript(url, externalScript);
-      });
+      for (const externalScript of scriptImports) {
+        await this.inlineScript(url, externalScript);
+      }
     }
 
     if (this.enableCssInlining) {
       const cssImports = dom5.queryAll(newDocument, matchers.stylesheetImport);
-      cssImports.forEach(async(cssLink: ASTNode) => {
+      for (const cssLink of cssImports) {
         let style = await this.inlineStylesheet(url, cssLink);
         if (style) {
           this.moveDomModuleStyleIntoTemplate(style);
         }
-      });
+      }
       const cssLinks = dom5.queryAll(newDocument, matchers.externalStyle);
-      cssLinks.forEach((cssLink: ASTNode) => {
-        this.inlineStylesheet(url, cssLink);
-      });
+      for (const cssLink of cssLinks) {
+        await this.inlineStylesheet(url, cssLink);
+      }
     }
 
     if (this.stripComments) {
