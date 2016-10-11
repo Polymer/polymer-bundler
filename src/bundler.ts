@@ -78,6 +78,11 @@ export interface Options {
   stripExcludes?: string[];
 }
 
+class BundledDocument {
+  hiddenDiv: ASTNode;
+  document: ASTNode;
+}
+
 class Bundler {
   basePath?: string;
   addedImports: string[];
@@ -185,21 +190,24 @@ class Bundler {
   /**
    * Inline external scripts <script src="*">
    */
-  inlineScript(
-      docUrl: string,
-      externalScript: ASTNode,
-      importMap: Map<string, Import|null>): ASTNode|undefined {
+  async inlineScript(docUrl: string, externalScript: ASTNode):
+      Promise<ASTNode|undefined> {
     const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
     const resolvedUrl = urlLib.resolve(docUrl, rawUrl);
-    const script = importMap.get(resolvedUrl);
+    let script: Document|null = null;
+    try {
+      script = await this.analyzer.analyze(resolvedUrl);
+    } catch (err) {
+      // If a script doesn't load, skip inlining.
+      // TODO(garlicnation): use a "canLoad" api on analyzer.
+    }
 
-    if (!script || !script.document) {
+    if (!script) {
       return;
     }
 
     // Second argument 'true' tells encodeString to escape <script> tags.
-    const scriptContent =
-        encodeString(script.document.parsedDocument.contents, true);
+    const scriptContent = encodeString(script.parsedDocument.contents, true);
     dom5.removeAttribute(externalScript, 'src');
     dom5.setTextContent(externalScript, scriptContent);
 
@@ -211,20 +219,23 @@ class Bundler {
    * rel="import" type="css">` import or regular external stylesheet link
    * `<link rel="stylesheet">`.
    */
-  inlineStylesheet(
-      docUrl: string,
-      cssLink: ASTNode,
-      importMap: Map<string, Import|null>): ASTNode|undefined {
+  async inlineStylesheet(docUrl: string, cssLink: ASTNode):
+      Promise<ASTNode|undefined> {
     const stylesheetUrl: string = dom5.getAttribute(cssLink, 'href')!;
     const resolvedStylesheetUrl = urlLib.resolve(docUrl, stylesheetUrl);
-    const stylesheetImport = importMap.get(resolvedStylesheetUrl);
+    let stylesheetImport: Document|null = null;
+    try {
+      stylesheetImport = await this.analyzer.analyze(resolvedStylesheetUrl);
+    } catch (err) {
+      // Pass here since there's no canLoad api from the analyzer.
+    }
 
-    if (!stylesheetImport || !stylesheetImport.document) {
+    if (!stylesheetImport) {
       return;
     }
 
     const media = dom5.getAttribute(cssLink, 'media');
-    const stylesheetContent = stylesheetImport.document.parsedDocument.contents;
+    const stylesheetContent = stylesheetImport.parsedDocument.contents;
     const resolvedStylesheetContent = this.rewriteImportedStyleTextUrls(
         resolvedStylesheetUrl, docUrl, stylesheetContent);
     const styleNode = dom5.constructors.element('style');
@@ -243,33 +254,49 @@ class Bundler {
    * TODO(usergenic): Refactor method to simplify and encapsulate case handling
    *     for hidden div adjacency etc.
    */
-  inlineHtmlImport(
+  async inlineHtmlImport(
       docUrl: string,
       htmlImport: ASTNode,
-      importMap: Map<string, Import|null>,
+      reachedImports: Set<string>,
       bundle: AssignedBundle,
       manifest: BundleManifest) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
     const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
-    // if (bundleUrl !== bundle.url) {
-    //   dom5.setAttribute(htmlImport, 'href', bundleUrl);
-    // }
+    if (!bundleUrl) {
+      if (reachedImports.has(resolvedUrl)) {
+        dom5.remove(htmlImport);
+        return;
+      } else {
+        reachedImports.add(resolvedUrl);
+      }
+      return;
+    }
 
-    const analyzedImport = importMap.get(resolvedUrl);
-    if (analyzedImport) {
+    if (bundleUrl !== bundle.url) {
+      if (reachedImports.has(bundleUrl)) {
+        dom5.remove(htmlImport);
+        return;
+      }
+      dom5.setAttribute(htmlImport, 'href', bundleUrl);
+      reachedImports.add(bundleUrl);
+      return;
+    }
+
+    if (!reachedImports.has(resolvedUrl)) {
+      const analyzedImport = await this.analyzer.analyze(resolvedUrl);
       // If the document wasn't loaded for the import during analysis, we can't
       // inline it.
-      if (!analyzedImport.document) {
+      if (!analyzedImport) {
         // TODO(usergenic): What should the behavior be when we don't have the
         // document to inline available in the analyzer?
-        return;
+        throw new Error(`Unable to analyze ${resolvedUrl}`);
       }
       // Is there a better way to get what we want other than using
       // parseFragment?
       const importDoc =
-          parse5.parseFragment(analyzedImport.document.parsedDocument.contents);
-      importMap.set(resolvedUrl, null);
+          parse5.parseFragment(analyzedImport.parsedDocument.contents);
+      reachedImports.add(resolvedUrl);
       this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
 
       let importParent: ASTNode;
@@ -293,24 +320,21 @@ class Bundler {
         importParent = htmlImport.parentNode!;
       }
 
-      dom5.queryAll(importDoc, matchers.htmlImport).forEach((nestedImport) => {
-        this.inlineHtmlImport(
-            docUrl, nestedImport, importMap, bundle, manifest);
-      });
+      const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
+      for (const nestedImport of nestedImports) {
+        await this.inlineHtmlImport(
+            docUrl, nestedImport, reachedImports, bundle, manifest);
+      }
 
       astUtils.insertAllBefore(importParent, htmlImport, importDoc.childNodes!);
     }
 
-    // If we've just inlined it or otherwise have seen it before, we can remove
-    // the <link> tag.
-    if (importMap.get(resolvedUrl) === null) {
+    if (reachedImports.has(resolvedUrl)) {
       dom5.remove(htmlImport);
-    }
-
-    // If we've never seen this import before, lets put it on the map as null so
-    // we will deduplicate if we encounter it again.
-    if (!importMap.has(resolvedUrl)) {
-      importMap.set(resolvedUrl, null);
+    } else {
+      // If we've never seen this import before, lets add it to the set so we
+      // will deduplicate if we encounter it again.
+      reachedImports.add(resolvedUrl);
     }
   }
 
@@ -479,29 +503,8 @@ class Bundler {
       bundleImports?: Set<string>): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyze(url);
 
-    // Map keyed by url to the import source and which has either the Import
-    // feature as a value indicating the inlining of the Import has not yet
-    // occurred or a value of null indicating that <link> tags referencing it
-    // should be removed from the document.
-    const importMap: Map<string, Import|null> = new Map();
-    analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
-    importMap.forEach((htmlImport, u) => {
-      if (!htmlImport || htmlImport.type !== 'html-import') {
-        return;
-      }
-      const resolved = this.resolveBundleUrl(u, bundle, bundleManifest);
-      if (resolved === false) {
-        importMap.delete(u);
-      } else if (resolved !== true && typeof resolved === 'string') {
-        // If resolveBundleUrl returns a string, we want to rewrite the HTML
-        // import URL.
-        htmlImport.url = resolved;
-        htmlImport.astNode = dom5.cloneNode(htmlImport.astNode);
-        dom5.setAttribute(htmlImport.astNode, 'href', resolved);
-        importMap.set(u, null);
-      }
-    });
-
+    // Set tracking imports that have been reached.
+    const inlinedImports: Set<UrlString> = new Set();
 
     // We must parse document to a new AST since we will be modifying the AST.
     const newDocument = parse5.parse(analyzedRoot.parsedDocument.contents);
@@ -537,15 +540,9 @@ class Bundler {
         const newNode = dom5.constructors.element('link');
         dom5.setAttribute(newNode, 'rel', 'import');
         dom5.setAttribute(newNode, 'href', newUrl);
-        const importDoc = await this.analyzer.analyze(importUrl);
-        const im = new Import(
-            newUrl, 'html-import', importDoc, undefined, undefined, newNode, [
-            ]);
         dom5.append(body, newNode);
-        importMap.set(importUrl, im);
       }
     }
-    importMap.set(url, null);
 
     // Create a hidden div to target.
     const hiddenDiv = this.createHiddenContainerNode();
@@ -568,32 +565,34 @@ class Bundler {
       }
     });
 
-    // Inline all HTML Imports.  (The inlineHtmlImport method will discern how
-    // to handle them based on the state of the importMap.)
-    htmlImports.forEach((htmlImport: ASTNode) => {
-      this.inlineHtmlImport(url, htmlImport, importMap, bundle, bundleManifest);
-    });
+    const reachedImports = new Set<UrlString>([url]);
+
+    // Inline all HTML Imports, using "reachedImports" for deduplication.
+    for (const htmlImport of htmlImports) {
+      await this.inlineHtmlImport(
+          url, htmlImport, reachedImports, bundle, bundleManifest);
+    }
 
     if (this.enableScriptInlining) {
       const scriptImports =
           dom5.queryAll(newDocument, matchers.externalJavascript);
-      scriptImports.forEach((externalScript: ASTNode) => {
-        this.inlineScript(url, externalScript, importMap);
-      });
+      for (const externalScript of scriptImports) {
+        await this.inlineScript(url, externalScript);
+      }
     }
 
     if (this.enableCssInlining) {
       const cssImports = dom5.queryAll(newDocument, matchers.stylesheetImport);
-      cssImports.forEach((cssLink: ASTNode) => {
-        let style = this.inlineStylesheet(url, cssLink, importMap);
+      for (const cssLink of cssImports) {
+        let style = await this.inlineStylesheet(url, cssLink);
         if (style) {
           this.moveDomModuleStyleIntoTemplate(style);
         }
-      });
+      }
       const cssLinks = dom5.queryAll(newDocument, matchers.externalStyle);
-      cssLinks.forEach((cssLink: ASTNode) => {
-        this.inlineStylesheet(url, cssLink, importMap);
-      });
+      for (const cssLink of cssLinks) {
+        await this.inlineStylesheet(url, cssLink);
+      }
     }
 
     if (this.stripComments) {
