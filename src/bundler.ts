@@ -270,7 +270,6 @@ class Bundler {
       } else {
         reachedImports.add(resolvedUrl);
       }
-      // dom5.remove(htmlImport);
       return;
     }
 
