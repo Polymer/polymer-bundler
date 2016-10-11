@@ -57,32 +57,33 @@ export function siblingsAfter(node: ASTNode): ASTNode[] {
  * The results of `queryAll` combined with `querySelectorAllTemplates`.
  */
 export function querySelectorAllWithTemplates(
-    node: ASTNode, predicate: dom5.Predicate): ASTNode[] {
-  const results = dom5.queryAll(node, predicate);
-  const templates = dom5.queryAll(node, matchers.template);
-  for (const template of templates) {
-    const content = treeAdapters.default.getTemplateContent(template);
-    for (const match of dom5.queryAll(content, predicate)) {
-      results.push(match);
-    }
-  }
+    node: ASTNode, predicate: dom5.Predicate, noRecursion?: boolean):
+    ASTNode[] {
+  let results = dom5.queryAll(node, predicate);
+  results =
+      results.concat(querySelectorAllTemplates(node, predicate, noRecursion));
   return results;
 }
 
 /**
  * Find content inside all <template> tags that descend from `node`.
  *
+ * If `noRecursion` is true, no results will be returned from nested templates.
+ *
  * Will not match elements outside of <template>.
  */
 export function querySelectorAllTemplates(
-    node: ASTNode, predicate: dom5.Predicate): ASTNode[] {
-  const results: ASTNode[] = [];
+    node: ASTNode, predicate: dom5.Predicate, noRecursion?: boolean):
+    ASTNode[] {
+  let results: ASTNode[] = [];
   const templates = dom5.queryAll(node, matchers.template);
   for (const template of templates) {
     const content = treeAdapters.default.getTemplateContent(template);
-    for (const match of dom5.queryAll(content, predicate)) {
-      results.push(match);
+    results = results.concat(dom5.queryAll(content, predicate));
+    if (noRecursion) {
+      continue;
     }
+    results = results.concat(querySelectorAllTemplates(content, predicate));
   }
   return results;
 }

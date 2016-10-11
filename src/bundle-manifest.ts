@@ -61,7 +61,8 @@ export class BundleManifest {
     this.bundleUrlForFile = new Map();
 
     for (const bundleMapEntry of this.bundles) {
-      const bundleUrl = bundleMapEntry[0], bundle = bundleMapEntry[1];
+      const bundleUrl = bundleMapEntry[0];
+      const bundle = bundleMapEntry[1];
       for (const fileUrl of bundle.files) {
         console.assert(!this.bundleUrlForFile.has(fileUrl));
         this.bundleUrlForFile.set(fileUrl, bundleUrl);
