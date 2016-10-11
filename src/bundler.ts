@@ -28,7 +28,7 @@ import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import {BundleStrategy} from './bundle-manifest';
+import {Bundle, BundleStrategy, AssignedBundle, generateBundles, BundleUrlMapper, BundleManifest, UrlString, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
 import DocumentCollection from './document-collection';
 import {buildDepsIndex} from './deps-index';
 
@@ -104,8 +104,6 @@ class Bundler {
     this.addedImports =
         Array.isArray(opts.addedImports) ? opts.addedImports : [];
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
-    this.stripExcludes =
-        Array.isArray(opts.stripExcludes) ? opts.stripExcludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
@@ -113,14 +111,29 @@ class Bundler {
         String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
   }
 
-  isExcludedHref(url: string): boolean {
-    if (constants.EXTERNAL_URL.test(url)) {
-      return true;
-    }
-    if (!this.excludes) {
+
+  /**
+   * Return the URL this import should point to in the given bundle.
+   *
+   * If the URL is part of the bundle, this method returns `true`.
+   *
+   * If the URL is part of another bundle, this method returns the url of that
+   * bundle.
+   *
+   * If the URL isn't part of a bundle, this method returns `false`
+   */
+  resolveBundleUrl(
+      url: string,
+      bundle: AssignedBundle,
+      manifest: BundleManifest): boolean|string {
+    const targetBundle = manifest.getBundleForFile(url);
+    if (!targetBundle || !targetBundle.url) {
       return false;
     }
-    return this.excludes.some(r => url.search(r) >= 0);
+    if (targetBundle.url !== bundle.url) {
+      return targetBundle.url;
+    }
+    return true;
   }
 
   isStripExcludedHref(url: string): boolean {
@@ -233,9 +246,15 @@ class Bundler {
   inlineHtmlImport(
       docUrl: string,
       htmlImport: ASTNode,
-      importMap: Map<string, Import|null>) {
+      importMap: Map<string, Import|null>,
+      bundle: AssignedBundle,
+      manifest: BundleManifest) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
+    const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
+    // if (bundleUrl !== bundle.url) {
+    //   dom5.setAttribute(htmlImport, 'href', bundleUrl);
+    // }
 
     const analyzedImport = importMap.get(resolvedUrl);
     if (analyzedImport) {
@@ -246,11 +265,10 @@ class Bundler {
         // document to inline available in the analyzer?
         return;
       }
-
       // Is there a better way to get what we want other than using
       // parseFragment?
       const importDoc =
-          dom5.parseFragment(analyzedImport.document.parsedDocument.contents);
+          parse5.parseFragment(analyzedImport.document.parsedDocument.contents);
       importMap.set(resolvedUrl, null);
       this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
 
@@ -276,7 +294,8 @@ class Bundler {
       }
 
       dom5.queryAll(importDoc, matchers.htmlImport).forEach((nestedImport) => {
-        this.inlineHtmlImport(docUrl, nestedImport, importMap);
+        this.inlineHtmlImport(
+            docUrl, nestedImport, importMap, bundle, manifest);
       });
 
       astUtils.insertAllBefore(importParent, htmlImport, importDoc.childNodes!);
@@ -348,7 +367,8 @@ class Bundler {
       }
     }
     // rewrite URLs in stylesheets
-    const styleNodes = dom5.queryAll(importDoc, matchers.styleMatcher);
+    const styleNodes = astUtils.querySelectorAllWithTemplates(
+        importDoc, matchers.styleMatcher);
     for (let i = 0, node: ASTNode; i < styleNodes.length; i++) {
       node = styleNodes[i];
       let styleText = dom5.getTextContent(node);
@@ -408,23 +428,55 @@ class Bundler {
    *     output bundles. See 'polymer-analyzer/lib/bundle-manifest' for
    *     examples. UNUSED.
    */
-  async bundle(entrypoints: string[], strategy?: BundleStrategy):
-      Promise<DocumentCollection> {
-    console.assert(
-        entrypoints.length === 1,
-        'Only one entrypoint is supported, %d entrypoints were provided',
-        entrypoints.length);
-    const doc = await this._bundleDocument(
-        entrypoints[0], this.excludes, this.stripExcludes);
-    const collection = new Map<string, ASTNode>();
-    collection.set(entrypoints[0], doc);
-    return collection;
+  async bundle(
+      entrypoints: string[],
+      strategy?: BundleStrategy,
+      mapper?: BundleUrlMapper): Promise<DocumentCollection> {
+    const bundledDocuments = new Map<string, ASTNode>();
+    if (entrypoints.length === 1) {
+      const url = entrypoints[0];
+      const depsIndex = await buildDepsIndex(entrypoints, this.analyzer);
+      const bundles = generateBundles(depsIndex.entrypointToDeps);
+      for (const exclude of this.excludes) {
+        bundles[0].files.delete(exclude);
+      }
+      const manifest =
+          new BundleManifest(bundles, () => new Map([[url, bundles[0]]]));
+      const bundle = {
+        url: url,
+        bundle: bundles[0],
+      };
+      const doc = await this._bundleDocument(url, bundle, manifest);
+      bundledDocuments.set(url, doc);
+      return bundledDocuments;
+    } else {
+      const bundles = new Map<string, ASTNode>();
+      if (!strategy) {
+        strategy = generateSharedDepsMergeStrategy(2);
+      }
+      if (!mapper) {
+        mapper = sharedBundleUrlMapper;
+      }
+      const index = await buildDepsIndex(entrypoints, this.analyzer);
+      const basicBundles = generateBundles(index.entrypointToDeps);
+      const bundlesAfterStrategy = strategy(basicBundles);
+      const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
+      for (const bundleEntry of manifest.bundles) {
+        const bundleUrl = bundleEntry[0];
+        const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
+        const bundledAst = await this._bundleDocument(
+            bundleUrl, bundle, manifest, bundle.bundle.files);
+        bundledDocuments.set(bundleUrl, bundledAst);
+      }
+      return bundledDocuments;
+    }
   }
 
   private async _bundleDocument(
       url: string,
-      excludes: string[],
-      stripExcludes: string[]): Promise<ASTNode> {
+      bundle: AssignedBundle,
+      bundleManifest: BundleManifest,
+      bundleImports?: Set<string>): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyze(url);
 
     // Map keyed by url to the import source and which has either the Import
@@ -433,19 +485,68 @@ class Bundler {
     // should be removed from the document.
     const importMap: Map<string, Import|null> = new Map();
     analyzedRoot.getByKind('import').forEach((i) => importMap.set(i.url, i));
-    importMap.forEach((_, u) => {
-      if (this.isStripExcludedHref(u)) {
-        importMap.set(u, null);
-      } else if (this.isExcludedHref(u)) {
+    importMap.forEach((htmlImport, u) => {
+      if (!htmlImport || htmlImport.type !== 'html-import') {
+        return;
+      }
+      const resolved = this.resolveBundleUrl(u, bundle, bundleManifest);
+      if (resolved === false) {
         importMap.delete(u);
+      } else if (resolved !== true && typeof resolved === 'string') {
+        // If resolveBundleUrl returns a string, we want to rewrite the HTML
+        // import URL.
+        htmlImport.url = resolved;
+        htmlImport.astNode = dom5.cloneNode(htmlImport.astNode);
+        dom5.setAttribute(htmlImport.astNode, 'href', resolved);
+        importMap.set(u, null);
       }
     });
 
+
     // We must parse document to a new AST since we will be modifying the AST.
-    const newDocument = dom5.parse(analyzedRoot.parsedDocument.contents);
+    const newDocument = parse5.parse(analyzedRoot.parsedDocument.contents);
 
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;
+
+    /**
+     * Add HTML Import elements for each import known to be in the bundle, in
+     * case the import was moved into the bundle by the strategy.
+     *
+     * This will almost always yield duplicate imports that will get cleaned
+     * up through deduplication.
+     */
+    if (bundleImports) {
+      for (const importUrl of bundleImports) {
+        if (importUrl === url) {
+          continue;
+        }
+        const parsedUrl = urlLib.parse(importUrl);
+        const parsedDocUrl = urlLib.parse(url);
+        if (parsedUrl.host !== parsedDocUrl.host ||
+            parsedUrl.protocol !== parsedDocUrl.protocol) {
+          continue;
+        }
+        if (!parsedDocUrl.pathname || !parsedUrl.pathname) {
+          continue;
+        }
+        const newPath = path.relative(
+            path.dirname(parsedDocUrl.pathname), parsedUrl.pathname);
+        parsedUrl.pathname = newPath;
+        const newUrl = urlLib.format(parsedUrl);
+        const newNode = dom5.constructors.element('link');
+        dom5.setAttribute(newNode, 'rel', 'import');
+        dom5.setAttribute(newNode, 'href', newUrl);
+        const importDoc = await this.analyzer.analyze(importUrl);
+        const im = new Import(
+            newUrl, 'html-import', importDoc, undefined, undefined, newNode, [
+            ]);
+        dom5.append(body, newNode);
+        importMap.set(importUrl, im);
+      }
+    }
+    importMap.set(url, null);
+
     // Create a hidden div to target.
     const hiddenDiv = this.createHiddenContainerNode();
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
@@ -470,7 +571,7 @@ class Bundler {
     // Inline all HTML Imports.  (The inlineHtmlImport method will discern how
     // to handle them based on the state of the importMap.)
     htmlImports.forEach((htmlImport: ASTNode) => {
-      this.inlineHtmlImport(url, htmlImport, importMap);
+      this.inlineHtmlImport(url, htmlImport, importMap, bundle, bundleManifest);
     });
 
     if (this.enableScriptInlining) {
@@ -502,7 +603,7 @@ class Bundler {
             // TODO(ajo): Remove when
             // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/11649 is
             // merged
-            comments.set(comment['data']! , comment);
+            comments.set(comment['data']!, comment);
             dom5.remove(comment);
           });
 

@@ -2,7 +2,7 @@
  * A bundle strategy function is used to transform an array of bundles.
  */
 export type BundleStrategy = (bundles: Bundle[]) => Bundle[];
-export type BundleUrlMapper = (bundles: Bundle[]) => UrlString[];
+export type BundleUrlMapper = (bundles: Bundle[]) => Map<UrlString, Bundle>;
 
 /**
  * A mapping of entrypoints to their full set of transitive dependencies,
@@ -35,6 +35,14 @@ export class Bundle {
 }
 
 /**
+ * Represents a bundle assigned to an output URL.
+ */
+export class AssignedBundle {
+  bundle: Bundle;
+  url: UrlString;
+}
+
+/**
  * A bundle manifest is a mapping of urls to bundles.
  */
 export class BundleManifest {
@@ -49,14 +57,12 @@ export class BundleManifest {
    * them, the constructor populates the `bundles` and `files` index properties.
    */
   constructor(bundles: Bundle[], urlMapper: BundleUrlMapper) {
-    const bundleUrls = urlMapper(bundles);
-
-    this.bundles = new Map();
+    this.bundles = urlMapper(Array.from(bundles));
     this.bundleUrlForFile = new Map();
 
-    for (let i = 0; i < bundles.length; ++i) {
-      const bundle = bundles[i], bundleUrl = bundleUrls[i];
-      this.bundles.set(bundleUrl, bundle);
+    for (const bundleMapEntry of this.bundles) {
+      const bundleUrl = bundleMapEntry[0];
+      const bundle = bundleMapEntry[1];
       for (const fileUrl of bundle.files) {
         console.assert(!this.bundleUrlForFile.has(fileUrl));
         this.bundleUrlForFile.set(fileUrl, bundleUrl);
@@ -65,10 +71,10 @@ export class BundleManifest {
   }
 
   // Convenience method to return a bundle for a constituent file url.
-  getBundleForFile(url: UrlString): Bundle|undefined {
+  getBundleForFile(url: UrlString): AssignedBundle|undefined {
     const bundleUrl = this.bundleUrlForFile.get(url);
     if (bundleUrl) {
-      return this.bundles.get(bundleUrl);
+      return {bundle: this.bundles.get(bundleUrl)!, url: bundleUrl};
     }
   }
 }
@@ -219,15 +225,80 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
 /**
  * A simple function for generating shared bundle names based on a counter.
  */
-export function sharedBundleUrlMapper(bundles: Bundle[]): UrlString[] {
+export function sharedBundleUrlMapper(bundles: Bundle[]):
+    Map<UrlString, Bundle> {
   let counter = 0;
-  const urls: UrlString[] = [];
+  const urlMap = new Map<UrlString, Bundle>();
   for (const bundle of bundles) {
     if (bundle.entrypoints.size === 1) {
-      urls.push(Array.from(bundle.entrypoints)[0]);
+      urlMap.set(Array.from(bundle.entrypoints)[0], bundle);
     } else {
-      urls.push(`shared_bundle_${++counter}.html`);
+      urlMap.set(`shared_bundle_${++counter}.html`, bundle);
     }
   }
-  return urls;
+  return urlMap;
+}
+
+/**
+ * Compute the intersection of all of the passed `sets`.
+ * See: https://en.wikipedia.org/wiki/Intersection_(set_theory)
+ */
+function setIntersection<T>(sets: Set<T>[]): Set<T> {
+  return sets.reduce((previous, current) => {
+    const reduced = new Set<T>();
+    for (const entry of previous) {
+      if (current.has(entry)) {
+        reduced.add(entry);
+      }
+    }
+    return reduced;
+  });
+}
+
+/**
+ * Returns a list of the sets of entrypoints, for use in performing
+ * set intersection and subtraction on the sets.
+ */
+function getEntrypointSets(bundles: Bundle[]): Set<string>[] {
+  const list: Set<string>[] = [];
+  for (const bundle of bundles) {
+    list.push(bundle.entrypoints);
+  }
+  return list;
+}
+
+/**
+ * Names bundles based on entrypoints and dependencies.
+ *
+ * Bundles without entrypoints will be named using `sharedBundleUrlMapper`.
+ */
+export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
+    Map<UrlString, Bundle> {
+  const bundleMap = new Map<UrlString, Bundle>();
+  // Avoid mutating passed array;
+  const remainingBundles: typeof bundles = [];
+  /**
+   * Attempt to assign names to bundles that contain entrypoints.
+   */
+  for (let bundle of bundles) {
+    let assigned = false;
+    for (const entrypoint of bundle.entrypoints) {
+      if (bundle.files.has(entrypoint)) {
+        bundleMap.set(entrypoint, bundle);
+        assigned = true;
+        break;
+      }
+    }
+    if (!assigned) {
+      remainingBundles.push(bundle);
+    }
+  }
+
+  // Fall back on the sharedBundleUrlMapper if all bundles aren't assigned.
+  if (remainingBundles.length > 0) {
+    const remainingMap = sharedBundleUrlMapper(remainingBundles);
+    bundleMap.forEach((value, key) => bundleMap.set(key, value));
+  }
+
+  return bundleMap;
 }

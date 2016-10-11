@@ -54,7 +54,10 @@ suite('BundleManifest', () => {
         ['[A]->[A,C]', '[B]->[B,D]', '[A,B]->[E]'].map(deserializeBundle);
 
     function mapper(bundles: Bundle[]) {
-      return bundles.map((bundle) => Array.from(bundle.entrypoints).join('_'));
+      const entries = bundles.map((bundle): [string, Bundle] => {
+        return [Array.from(bundle.entrypoints).join('_'), bundle];
+      });
+      return new Map(entries);
     }
 
     const manifest = new BundleManifest(bundles, mapper);
@@ -66,7 +69,8 @@ suite('BundleManifest', () => {
     test('enables bundles to be found by constituent file', () => {
       assert.equal(manifest.bundleUrlForFile.get('E'), 'A_B');
       assert.equal(
-          serializeBundle(manifest.getBundleForFile('E')!), '[A,B]->[E]');
+          serializeBundle(manifest.getBundleForFile('E')!.bundle),
+          '[A,B]->[E]');
     });
   });
 

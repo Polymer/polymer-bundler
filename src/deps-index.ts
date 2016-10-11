@@ -69,6 +69,7 @@ export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
         }
         const dependencyEntry =
             await _getTransitiveDependencies(entrypoint, analyzer);
+        debugger;
         const dependencies = new Set(dependencyEntry.eager);
         dependencies.add(entrypoint);
         entrypointToDependencies.set(entrypoint, dependencies);
