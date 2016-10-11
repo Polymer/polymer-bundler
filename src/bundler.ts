@@ -332,11 +332,9 @@ class Bundler {
 
     if (reachedImports.has(resolvedUrl)) {
       dom5.remove(htmlImport);
-    }
-
-    // If we've never seen this import before, lets put it on the map as null so
-    // we will deduplicate if we encounter it again.
-    if (!reachedImports.has(resolvedUrl)) {
+    } else {
+      // If we've never seen this import before, lets add it to the set so we
+      // will deduplicate if we encounter it again.
       reachedImports.add(resolvedUrl);
     }
   }
@@ -506,10 +504,7 @@ class Bundler {
       bundleImports?: Set<string>): Promise<ASTNode> {
     const analyzedRoot = await this.analyzer.analyze(url);
 
-    // Map keyed by url to the import source and which has either the Import
-    // feature as a value indicating the inlining of the Import has not yet
-    // occurred or a value of null indicating that <link> tags referencing it
-    // should be removed from the document.
+    // Set tracking imports that have been reached.
     const inlinedImports: Set<UrlString> = new Set();
 
     // We must parse document to a new AST since we will be modifying the AST.
@@ -546,10 +541,6 @@ class Bundler {
         const newNode = dom5.constructors.element('link');
         dom5.setAttribute(newNode, 'rel', 'import');
         dom5.setAttribute(newNode, 'href', newUrl);
-        const importDoc = await this.analyzer.analyze(importUrl);
-        const im = new Import(
-            newUrl, 'html-import', importDoc, undefined, undefined, newNode, [
-            ]);
         dom5.append(body, newNode);
       }
     }
@@ -577,8 +568,7 @@ class Bundler {
 
     const reachedImports = new Set<UrlString>([url]);
 
-    // Inline all HTML Imports.  (The inlineHtmlImport method will discern how
-    // to handle them based on the state of the importMap.)
+    // Inline all HTML Imports, using "reachedImports" for deduplication.
     for (const htmlImport of htmlImports) {
       await this.inlineHtmlImport(
           url, htmlImport, reachedImports, bundle, bundleManifest);
