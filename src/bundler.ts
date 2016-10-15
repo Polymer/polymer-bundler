@@ -136,9 +136,9 @@ class Bundler {
       return false;
     }
     if (targetBundle.url !== bundle.url) {
-      const relative =  this._computeRelativeUrl(bundle.url, targetBundle.url);
+      const relative = this._computeRelativeUrl(bundle.url, targetBundle.url);
       if (!relative) {
-        throw new Error("Unable to compute relative url to bundle");
+        throw new Error('Unable to compute relative url to bundle');
       }
       console.log(`Rewrote ${url} to ${relative}`);
       return relative;
@@ -284,7 +284,7 @@ class Bundler {
         return;
       }
       const relative = this._computeRelativeUrl(docUrl, bundleUrl) || bundleUrl;
-      console.log("Redirected bundle url: ", relative, docUrl);
+      console.log('Redirected bundle url: ', relative, docUrl);
       dom5.setAttribute(htmlImport, 'href', relative);
       reachedImports.add(bundleUrl);
       return;
@@ -505,7 +505,7 @@ class Bundler {
 
   private _computeRelativeUrl(from: UrlString, to: UrlString): string
       |undefined {
-    console.log("Computing relative url: ", from, to);
+    console.log('Computing relative url: ', from, to);
     const parsedUrl = urlLib.parse(to);
     const parsedBundleUrl = urlLib.parse(from);
     if (parsedUrl.host !== parsedBundleUrl.host ||
