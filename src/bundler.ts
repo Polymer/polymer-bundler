@@ -136,7 +136,12 @@ class Bundler {
       return false;
     }
     if (targetBundle.url !== bundle.url) {
-      return targetBundle.url;
+      const relative =  this._computeRelativeUrl(bundle.url, targetBundle.url);
+      if (!relative) {
+        throw new Error("Unable to compute relative url to bundle");
+      }
+      console.log(`Rewrote ${url} to ${relative}`);
+      return relative;
     }
     return true;
   }
@@ -278,7 +283,9 @@ class Bundler {
         dom5.remove(htmlImport);
         return;
       }
-      dom5.setAttribute(htmlImport, 'href', bundleUrl);
+      const relative = this._computeRelativeUrl(docUrl, bundleUrl) || bundleUrl;
+      console.log("Redirected bundle url: ", relative, docUrl);
+      dom5.setAttribute(htmlImport, 'href', relative);
       reachedImports.add(bundleUrl);
       return;
     }
@@ -470,7 +477,7 @@ class Bundler {
         url: url,
         bundle: bundles[0],
       };
-      const doc = await this._bundleDocument(url, bundle, manifest);
+      const doc = await this._bundleDocument(bundle, manifest);
       bundledDocuments.set(url, doc);
       return bundledDocuments;
     } else {
@@ -488,20 +495,75 @@ class Bundler {
       for (const bundleEntry of manifest.bundles) {
         const bundleUrl = bundleEntry[0];
         const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-        const bundledAst = await this._bundleDocument(
-            bundleUrl, bundle, manifest, bundle.bundle.files);
+        const bundledAst =
+            await this._bundleDocument(bundle, manifest, bundle.bundle.files);
         bundledDocuments.set(bundleUrl, bundledAst);
       }
       return bundledDocuments;
     }
   }
 
+  private _computeRelativeUrl(from: UrlString, to: UrlString): string
+      |undefined {
+    console.log("Computing relative url: ", from, to);
+    const parsedUrl = urlLib.parse(to);
+    const parsedBundleUrl = urlLib.parse(from);
+    if (parsedUrl.host !== parsedBundleUrl.host ||
+        parsedUrl.protocol !== parsedBundleUrl.protocol) {
+      return;
+    }
+    if (!parsedBundleUrl.pathname || !parsedUrl.pathname) {
+      return;
+    }
+    const newPath = path.relative(
+        path.dirname(parsedBundleUrl.pathname), parsedUrl.pathname);
+    parsedUrl.pathname = newPath;
+    return urlLib.format(parsedUrl);
+  }
+
+  private _synthesizeBundleContents(bundle: AssignedBundle) {
+    const document = parse5.parse('');
+    const body = dom5.query(document, matchers.body);
+    if (!body) {
+      throw new Error('Unexpected return from parse5.parse');
+    }
+
+    /**
+     * Add HTML Import elements for each import known to be in the bundle, in
+     * case the import was moved into the bundle by the strategy.
+     *
+     * This will almost always yield duplicate imports that will get cleaned
+     * up through deduplication.
+     */
+    for (const importUrl of bundle.bundle.files) {
+      const newUrl = this._computeRelativeUrl(bundle.url, importUrl);
+      if (!newUrl) {
+        continue;
+      }
+      const newNode = dom5.constructors.element('link');
+      dom5.setAttribute(newNode, 'rel', 'import');
+      dom5.setAttribute(newNode, 'href', newUrl);
+      dom5.append(body, newNode);
+    }
+    return document;
+  }
+
   private async _bundleDocument(
-      url: string,
       bundle: AssignedBundle,
       bundleManifest: BundleManifest,
       bundleImports?: Set<string>): Promise<ASTNode> {
-    const analyzedRoot = await this.analyzer.analyze(url);
+    const url = bundle.url + '.html';
+    console.log(url);
+    const contents = this._synthesizeBundleContents(bundle);
+    console.log(parse5.serialize(contents) + '\n');
+    let analyzedRoot: any;
+    try {
+      analyzedRoot =
+          await this.analyzer.analyze(url, parse5.serialize(contents));
+      console.log('analyzed');
+    } catch (err) {
+      console.log(err);
+    }
 
     // Set tracking imports that have been reached.
     const inlinedImports: Set<UrlString> = new Set();
@@ -512,37 +574,6 @@ class Bundler {
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;
 
-    /**
-     * Add HTML Import elements for each import known to be in the bundle, in
-     * case the import was moved into the bundle by the strategy.
-     *
-     * This will almost always yield duplicate imports that will get cleaned
-     * up through deduplication.
-     */
-    if (bundleImports) {
-      for (const importUrl of bundleImports) {
-        if (importUrl === url) {
-          continue;
-        }
-        const parsedUrl = urlLib.parse(importUrl);
-        const parsedDocUrl = urlLib.parse(url);
-        if (parsedUrl.host !== parsedDocUrl.host ||
-            parsedUrl.protocol !== parsedDocUrl.protocol) {
-          continue;
-        }
-        if (!parsedDocUrl.pathname || !parsedUrl.pathname) {
-          continue;
-        }
-        const newPath = path.relative(
-            path.dirname(parsedDocUrl.pathname), parsedUrl.pathname);
-        parsedUrl.pathname = newPath;
-        const newUrl = urlLib.format(parsedUrl);
-        const newNode = dom5.constructors.element('link');
-        dom5.setAttribute(newNode, 'rel', 'import');
-        dom5.setAttribute(newNode, 'href', newUrl);
-        dom5.append(body, newNode);
-      }
-    }
 
     // Create a hidden div to target.
     const hiddenDiv = this.createHiddenContainerNode();
@@ -565,7 +596,7 @@ class Bundler {
       }
     });
 
-    const reachedImports = new Set<UrlString>([url]);
+    const reachedImports = new Set<UrlString>();
 
     // Inline all HTML Imports, using "reachedImports" for deduplication.
     for (const htmlImport of htmlImports) {

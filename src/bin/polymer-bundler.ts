@@ -17,6 +17,8 @@ import * as commandLineUsage from 'command-line-usage';
 import * as fs from 'fs';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
+import * as mkdirp from 'mkdirp';
+import * as pathLib from 'path';
 import Bundler from '../bundler';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
@@ -108,6 +110,7 @@ const optionDefinitions = [
     name: 'in-html',
     type: String,
     defaultOption: true,
+    multiple: true,
     description:
         'Input HTML. If not specified, will be the last command line argument.'
   }
@@ -145,7 +148,6 @@ const usage = [
 ];
 
 const options = commandLineArgs(optionDefinitions);
-console.log(options);
 
 const target = options['in-html'];
 
@@ -181,26 +183,53 @@ options.stripComments = options['strip-comments'];
 options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = options['inline-scripts'];
 options.inlineCss = options['inline-css'];
-console.log(options);
 options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
 
-(new Bundler(options))
-    .bundle(target)
-    .then((content) => {
-      const doc = content.get(target);
-      if (!doc) {
-        return;
-      }
-      const serialized = parse5.serialize(doc);
-      if (options['out-html']) {
-        const fd = fs.openSync(options['out-html'], 'w');
-        fs.writeSync(fd, serialized + '\n');
-        fs.closeSync(fd);
-      } else {
-        process.stdout.write(serialized);
-      }
-    })
-    .catch((err) => {
-      process.stderr.write(require('util').inspect(err));
-      process.exit(1);
-    });
+(async() => {
+  const bundler = new Bundler(options);
+  let bundles: Map<string, parse5.ASTNode>;
+  try {
+    bundles = await bundler.bundle(target);
+  } catch (err) {
+    console.log(err);
+    return;
+  }
+  console.log('Build done!');
+  console.log(bundles.size);
+  if (bundles.size > 1) {
+    console.log(bundles);
+    const outDir = options['out-dir'];
+    if (!outDir) {
+      throw new Error(
+          'Must specify out-dir when bundling multiple entrypoints');
+    }
+    for (const bundle of bundles) {
+      const url = bundle[0];
+      const ast = bundle[1];
+      const out = pathLib.join(process.cwd(), outDir, url);
+      const finalDir = pathLib.dirname(out);
+      mkdirp.sync(finalDir);
+      const serialized = parse5.serialize(ast);
+      const fd = fs.openSync(out, 'w');
+      fs.writeSync(fd, serialized + '\n');
+      fs.closeSync(fd);
+    }
+    return;
+  }
+  const doc = bundles.get(target);
+  if (!doc) {
+    return;
+  }
+  const serialized = parse5.serialize(doc);
+  if (options['out-html']) {
+    const fd = fs.openSync(options['out-html'], 'w');
+    fs.writeSync(fd, serialized + '\n');
+    fs.closeSync(fd);
+  } else {
+    process.stdout.write(serialized);
+  }
+})().catch((err) => {
+  console.log(err.stack);
+  process.stderr.write(require('util').inspect(err));
+  process.exit(1);
+});
