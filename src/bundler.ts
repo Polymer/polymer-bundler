@@ -266,9 +266,12 @@ class Bundler {
       bundle: AssignedBundle,
       manifest: BundleManifest) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
+    console.log(docUrl, rawUrl);
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
     const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
     if (!bundleUrl) {
+      console.log(manifest);
+      console.log('No bundle url found for import: ', resolvedUrl, bundleUrl);
       if (reachedImports.has(resolvedUrl)) {
         dom5.remove(htmlImport);
         return;
@@ -521,6 +524,17 @@ class Bundler {
     return urlLib.format(parsedUrl);
   }
 
+  /**
+   * Append a <link rel="import" node to `node` with a value of `url` for
+   * the "href" attribute.
+   */
+  private _appendImport(node: ASTNode, url: UrlString) {
+    const newNode = dom5.constructors.element('link');
+    dom5.setAttribute(newNode, 'rel', 'import');
+    dom5.setAttribute(newNode, 'href', url);
+    dom5.append(node, newNode);
+  }
+
   private _synthesizeBundleContents(bundle: AssignedBundle) {
     const document = parse5.parse('');
     const body = dom5.query(document, matchers.body);
@@ -535,15 +549,21 @@ class Bundler {
      * This will almost always yield duplicate imports that will get cleaned
      * up through deduplication.
      */
+    for (const entrypointUrl of bundle.bundle.entrypoints) {
+      if (bundle.bundle.files.has(entrypointUrl)) {
+        const newUrl = this._computeRelativeUrl(bundle.url, entrypointUrl);
+        if (!newUrl) {
+          continue;
+        }
+        this._appendImport(body, newUrl);
+      }
+    }
     for (const importUrl of bundle.bundle.files) {
       const newUrl = this._computeRelativeUrl(bundle.url, importUrl);
-      if (!newUrl) {
+      if (!newUrl || bundle.bundle.entrypoints.has(newUrl)) {
         continue;
       }
-      const newNode = dom5.constructors.element('link');
-      dom5.setAttribute(newNode, 'rel', 'import');
-      dom5.setAttribute(newNode, 'href', newUrl);
-      dom5.append(body, newNode);
+      this._appendImport(body, newUrl);
     }
     return document;
   }
@@ -603,6 +623,7 @@ class Bundler {
       await this.inlineHtmlImport(
           url, htmlImport, reachedImports, bundle, bundleManifest);
     }
+    console.log(parse5.serialize(newDocument));
 
     if (this.enableScriptInlining) {
       const scriptImports =
