@@ -140,7 +140,6 @@ class Bundler {
       if (!relative) {
         throw new Error('Unable to compute relative url to bundle');
       }
-      console.log(`Rewrote ${url} to ${relative}`);
       return relative;
     }
     return true;
@@ -266,12 +265,9 @@ class Bundler {
       bundle: AssignedBundle,
       manifest: BundleManifest) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
-    console.log(docUrl, rawUrl);
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
     const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
     if (!bundleUrl) {
-      console.log(manifest);
-      console.log('No bundle url found for import: ', resolvedUrl, bundleUrl);
       if (reachedImports.has(resolvedUrl)) {
         dom5.remove(htmlImport);
         return;
@@ -287,7 +283,6 @@ class Bundler {
         return;
       }
       const relative = this._computeRelativeUrl(docUrl, bundleUrl) || bundleUrl;
-      console.log('Redirected bundle url: ', relative, docUrl);
       dom5.setAttribute(htmlImport, 'href', relative);
       reachedImports.add(bundleUrl);
       return;
@@ -330,13 +325,21 @@ class Bundler {
         importParent = htmlImport.parentNode!;
       }
 
+      /**
+       * Find the list of imports, then move the imports to the parent doc, then
+       * inline them.
+       *
+       * Finding them first saves on deduplication, moving them before inlining
+       * them
+       * allows the hidden div to always be found.
+       */
       const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
+      astUtils.insertAllBefore(importParent, htmlImport, importDoc.childNodes!);
+
       for (const nestedImport of nestedImports) {
         await this.inlineHtmlImport(
             docUrl, nestedImport, reachedImports, bundle, manifest);
       }
-
-      astUtils.insertAllBefore(importParent, htmlImport, importDoc.childNodes!);
     }
 
     if (reachedImports.has(resolvedUrl)) {
@@ -508,7 +511,6 @@ class Bundler {
 
   private _computeRelativeUrl(from: UrlString, to: UrlString): string
       |undefined {
-    console.log('Computing relative url: ', from, to);
     const parsedUrl = urlLib.parse(to);
     const parsedBundleUrl = urlLib.parse(from);
     if (parsedUrl.host !== parsedBundleUrl.host ||
@@ -528,22 +530,27 @@ class Bundler {
    * Append a <link rel="import" node to `node` with a value of `url` for
    * the "href" attribute.
    */
-  private _appendImport(node: ASTNode, url: UrlString) {
+  private _appendImport(node: ASTNode, url: UrlString): ASTNode {
     const newNode = dom5.constructors.element('link');
     dom5.setAttribute(newNode, 'rel', 'import');
     dom5.setAttribute(newNode, 'href', url);
     dom5.append(node, newNode);
+    return newNode;
   }
 
-  private _synthesizeBundleContents(bundle: AssignedBundle) {
+  private async _synthesizeBundleContents(
+      bundle: AssignedBundle,
+      reachedImports: Set<UrlString>) {
     const document = parse5.parse('');
     const body = dom5.query(document, matchers.body);
     if (!body) {
       throw new Error('Unexpected return from parse5.parse');
     }
-
+    const hiddenDiv = this.createHiddenContainerNode();
+    dom5.append(body, hiddenDiv);
     /**
-     * Add HTML Import elements for each import known to be in the bundle, in
+     * Add HTML Import elements for each import known to be in the bundle,
+     * in
      * case the import was moved into the bundle by the strategy.
      *
      * This will almost always yield duplicate imports that will get cleaned
@@ -555,15 +562,21 @@ class Bundler {
         if (!newUrl) {
           continue;
         }
-        this._appendImport(body, newUrl);
+        this._appendImport(hiddenDiv, newUrl);
       }
     }
+
+    /**
+     * If there's only one entrypoint, get all of its DOM into the synthetic
+     * import.
+     */
+
     for (const importUrl of bundle.bundle.files) {
       const newUrl = this._computeRelativeUrl(bundle.url, importUrl);
       if (!newUrl || bundle.bundle.entrypoints.has(newUrl)) {
         continue;
       }
-      this._appendImport(body, newUrl);
+      this._appendImport(hiddenDiv, newUrl);
     }
     return document;
   }
@@ -573,30 +586,28 @@ class Bundler {
       bundleManifest: BundleManifest,
       bundleImports?: Set<string>): Promise<ASTNode> {
     const url = bundle.url + '.html';
-    console.log(url);
-    const contents = this._synthesizeBundleContents(bundle);
-    console.log(parse5.serialize(contents) + '\n');
+    // Set tracking imports that have been reached.
+    const inlinedImports: Set<UrlString> = new Set();
+    const newDocument =
+        await this._synthesizeBundleContents(bundle, inlinedImports);
     let analyzedRoot: any;
     try {
       analyzedRoot =
-          await this.analyzer.analyze(url, parse5.serialize(contents));
-      console.log('analyzed');
+          await this.analyzer.analyze(url, parse5.serialize(newDocument));
     } catch (err) {
-      console.log(err);
+      throw new Error('Unable to analyze document!');
     }
 
-    // Set tracking imports that have been reached.
-    const inlinedImports: Set<UrlString> = new Set();
-
-    // We must parse document to a new AST since we will be modifying the AST.
-    const newDocument = parse5.parse(analyzedRoot.parsedDocument.contents);
 
     const head: ASTNode = dom5.query(newDocument, matchers.head)!;
     const body: ASTNode = dom5.query(newDocument, matchers.body)!;
 
 
     // Create a hidden div to target.
-    const hiddenDiv = this.createHiddenContainerNode();
+    const hiddenDiv = dom5.query(body, matchers.hiddenDiv);
+    if (!hiddenDiv) {
+      throw new Error('hiddenDiv not created in synthesized bundle');
+    }
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
 
     this.rewriteImportedUrls(newDocument, url, url);
@@ -623,7 +634,6 @@ class Bundler {
       await this.inlineHtmlImport(
           url, htmlImport, reachedImports, bundle, bundleManifest);
     }
-    console.log(parse5.serialize(newDocument));
 
     if (this.enableScriptInlining) {
       const scriptImports =
@@ -651,10 +661,7 @@ class Bundler {
       const comments: Map<string, ASTNode> = new Map();
       dom5.nodeWalkAll(newDocument, dom5.isCommentNode)
           .forEach((comment: ASTNode) => {
-            // TODO(ajo): Remove when
-            // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/11649 is
-            // merged
-            comments.set(comment['data']!, comment);
+            comments.set(comment.data || '', comment);
             dom5.remove(comment);
           });
 
