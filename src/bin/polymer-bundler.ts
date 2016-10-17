@@ -26,6 +26,8 @@ import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
 import {BundleStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 
+console.warn('polymer-bundler is currently in alpha! Use at your own risk!');
+
 const pathArgument = '[underline]{path}';
 
 const optionDefinitions = [
@@ -234,8 +236,6 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
     console.log(err);
     return;
   }
-  console.log('Build done!');
-  console.log(bundles.size);
   if (bundles.size > 1) {
     const outDir = options['out-dir'];
     if (!outDir) {

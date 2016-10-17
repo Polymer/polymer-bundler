@@ -1,6 +1,6 @@
 {
   "name": "polymer-bundler",
-  "version": "1.14.12-alpha",
+  "version": "1.14.14",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "bin": {
@@ -15,7 +15,7 @@
     "nopt": "^3.0.1",
     "parse5": "^2.2.2",
     "path-posix": "^1.0.0",
-    "polymer-analyzer": "^v2.0.0-alpha.11"
+    "polymer-analyzer": "^v2.0.0-alpha.15"
   },
   "devDependencies": {
     "@types/chai": "^3.4.30",
