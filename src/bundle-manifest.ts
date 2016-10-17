@@ -199,6 +199,7 @@ export function generateShellMergeStrategy(
   return (bundles: Bundle[]): Bundle[] => {
     const newBundles = generateSharedDepsMergeStrategy(minEntrypoints)(bundles);
     const shellBundle = newBundles.find((bundle) => bundle.files.has(shell));
+    console.log(bundles);
     const sharedBundle =
         newBundles.find((bundle) => bundle.entrypoints.size > 1);
     if (shellBundle && sharedBundle && shellBundle !== sharedBundle) {
@@ -304,40 +305,4 @@ function getEntrypointSets(bundles: Bundle[]): Set<string>[] {
     list.push(bundle.entrypoints);
   }
   return list;
-}
-
-/**
- * Names bundles based on entrypoints and dependencies.
- *
- * Bundles without entrypoints will be named using `sharedBundleUrlMapper`.
- */
-export function uniqueEntrypointUrlMapper(bundles: Bundle[]):
-    Map<UrlString, Bundle> {
-  const bundleMap = new Map<UrlString, Bundle>();
-  // Avoid mutating passed array;
-  const remainingBundles: typeof bundles = [];
-  /**
-   * Attempt to assign names to bundles that contain entrypoints.
-   */
-  for (let bundle of bundles) {
-    let assigned = false;
-    for (const entrypoint of bundle.entrypoints) {
-      if (bundle.files.has(entrypoint)) {
-        bundleMap.set(entrypoint, bundle);
-        assigned = true;
-        break;
-      }
-    }
-    if (!assigned) {
-      remainingBundles.push(bundle);
-    }
-  }
-
-  // Fall back on the sharedBundleUrlMapper if all bundles aren't assigned.
-  if (remainingBundles.length > 0) {
-    const remainingMap = sharedBundleUrlMapper(remainingBundles);
-    bundleMap.forEach((value, key) => bundleMap.set(key, value));
-  }
-
-  return bundleMap;
 }

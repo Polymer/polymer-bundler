@@ -24,6 +24,7 @@ import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
+import {BundleStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 
 const pathArgument = '[underline]{path}';
 
@@ -109,6 +110,13 @@ const optionDefinitions = [
     typeLabel: `${pathArgument}`
   },
   {
+    name: 'shell',
+    type: String,
+    description: `If specified, shared dependencies will be inlined into` +
+    `${pathArgument}`,
+    typeLabel: `${pathArgument}`,
+  },
+  {
     name: 'out-dir',
     type: String,
     description: 'If specified, all output files will be written to ' +
@@ -158,7 +166,7 @@ const usage = [
 
 const options = commandLineArgs(optionDefinitions);
 
-const target = options['in-html'];
+const entrypoints: UrlString[] = options['in-html'];
 
 function printHelp() {
   console.log(commandLineUsage(usage));
@@ -174,7 +182,7 @@ if (options.version) {
   process.exit(0);
 }
 
-if (options.help || !target) {
+if (options.help || !entrypoints) {
   printHelp();
   process.exit(0);
 }
@@ -213,7 +221,15 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
   const bundler = new Bundler(options);
   let bundles: DocumentCollection;
   try {
-    bundles = await bundler.bundle(target);
+    const shell = options.shell;
+    let strategy: BundleStrategy | undefined;
+    if (shell) {
+      if (entrypoints.indexOf(shell) == -1) {
+        throw new Error('Shell must be provided as `in-html`');
+      }
+      strategy = generateShellMergeStrategy(shell, 2);
+    }
+    bundles = await bundler.bundle(entrypoints, strategy);
   } catch (err) {
     console.log(err);
     return;
@@ -245,7 +261,7 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
     }
     return;
   }
-  const doc = bundles.get(target);
+  const doc = bundles.get(entrypoints[0]);
   if (!doc) {
     return;
   }
