@@ -113,7 +113,7 @@ const optionDefinitions = [
     name: 'shell',
     type: String,
     description: `If specified, shared dependencies will be inlined into` +
-    `${pathArgument}`,
+        `${pathArgument}`,
     typeLabel: `${pathArgument}`,
   },
   {
@@ -222,7 +222,7 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
   let bundles: DocumentCollection;
   try {
     const shell = options.shell;
-    let strategy: BundleStrategy | undefined;
+    let strategy: BundleStrategy|undefined;
     if (shell) {
       if (entrypoints.indexOf(shell) == -1) {
         throw new Error('Shell must be provided as `in-html`');

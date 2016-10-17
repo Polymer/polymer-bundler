@@ -21,7 +21,7 @@ import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
-import {BundleStrategy, BundleUrlMapper, generateSharedDepsMergeStrategy, uniqueEntrypointUrlMapper} from '../bundle-manifest';
+import {BundleStrategy, BundleUrlMapper, generateSharedDepsMergeStrategy} from '../bundle-manifest';
 import Bundler from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import constants from '../constants';
@@ -47,16 +47,14 @@ suite('Bundler', () => {
   let doc: parse5.ASTNode;
 
   function bundleMultiple(
-      inputPath: string[],
-      strategy: BundleStrategy,
-      mapper: BundleUrlMapper,
-      opts?: BundlerOptions): Promise<DocumentCollection> {
+      inputPath: string[], strategy: BundleStrategy, opts?: BundlerOptions):
+      Promise<DocumentCollection> {
     const bundlerOpts = opts || {};
     if (!bundlerOpts.analyzer) {
       bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
     }
     bundler = new Bundler(bundlerOpts);
-    return bundler.bundle(inputPath, strategy, mapper);
+    return bundler.bundle(inputPath, strategy);
   }
 
   function assertContainsAndExcludes(
@@ -81,9 +79,7 @@ suite('Bundler', () => {
           preds.hasAttr('href'),
           preds.NOT(preds.hasAttrValue('type', 'css')));
       const strategy = generateSharedDepsMergeStrategy(2);
-      const mapper = uniqueEntrypointUrlMapper;
-      return bundleMultiple(
-                 [common, entrypoint1, entrypoint2], strategy, mapper)
+      return bundleMultiple([common, entrypoint1, entrypoint2], strategy)
           .then((docs) => {
             assert.equal(docs.size, 3);
             const commonDoc: parse5.ASTNode = docs.get(common)!.ast;
