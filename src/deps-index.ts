@@ -88,5 +88,6 @@ export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
           entrypointSet.add(entrypoint);
         }
       });
+      console.log(entrypointToDependencies);
       return {entrypointToDeps: entrypointToDependencies};
     }

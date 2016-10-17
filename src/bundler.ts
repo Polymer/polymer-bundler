@@ -646,7 +646,7 @@ class Bundler {
     if (this.enableCssInlining) {
       const cssImports = dom5.queryAll(newDocument, matchers.stylesheetImport);
       for (const cssLink of cssImports) {
-        let style = await this.inlineStylesheet(url, cssLink);
+        const style = await this.inlineStylesheet(url, cssLink);
         if (style) {
           this.moveDomModuleStyleIntoTemplate(style);
         }
