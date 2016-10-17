@@ -224,7 +224,7 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
     const shell = options.shell;
     let strategy: BundleStrategy|undefined;
     if (shell) {
-      if (entrypoints.indexOf(shell) == -1) {
+      if (entrypoints.indexOf(shell) === -1) {
         throw new Error('Shell must be provided as `in-html`');
       }
       strategy = generateShellMergeStrategy(shell, 2);
