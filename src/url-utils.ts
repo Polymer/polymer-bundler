@@ -27,6 +27,10 @@ const pathPosix = path.posix;
 const sharedRelativeUrlProperties =
     ['protocol', 'slashes', 'auth', 'host', 'port', 'hostname'];
 
+/**
+ * A string representing a URL.
+ */
+export type UrlString = string;
 
 // Returns true if the href is an absolute path.
 export function isAbsolutePath(href: string): boolean {

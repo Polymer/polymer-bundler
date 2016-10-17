@@ -28,9 +28,10 @@ import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import {Bundle, BundleStrategy, AssignedBundle, generateBundles, BundleUrlMapper, BundleManifest, UrlString, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
+import {Bundle, BundleStrategy, AssignedBundle, generateBundles, BundleUrlMapper, BundleManifest, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
 import DocumentCollection from './document-collection';
 import {buildDepsIndex} from './deps-index';
+import {UrlString} from './url-utils';
 
 // TODO(usergenic): Document every one of these options.
 export interface Options {
