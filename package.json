@@ -1,6 +1,6 @@
 {
   "name": "polymer-bundler",
-  "version": "1.14.11-alpha",
+  "version": "1.14.12-alpha",
   "description": "Process Web Components into one output file",
   "main": "lib/vulcan.js",
   "bin": {
