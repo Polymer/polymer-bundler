@@ -22,6 +22,8 @@ import * as pathLib from 'path';
 import Bundler from '../bundler';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
+import {DocumentCollection} from '../document-collection';
+import {UrlString} from '../url-utils';
 
 const pathArgument = '[underline]{path}';
 
@@ -97,6 +99,13 @@ const optionDefinitions = [
     type: String,
     description: `If specified, output will be written to ${pathArgument}` +
         ' instead of stdout.',
+    typeLabel: `${pathArgument}`
+  },
+  {
+    name: 'manifest-out',
+    type: String,
+    description: `If specified, the bundle manifest will be written to` +
+        `${pathArgument}`,
     typeLabel: `${pathArgument}`
   },
   {
@@ -185,9 +194,24 @@ options.inlineScripts = options['inline-scripts'];
 options.inlineCss = options['inline-css'];
 options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
 
+interface JsonManifest {
+  [entrypoint: string]: UrlString[];
+}
+
+function documentCollectionToManifestJson(documents: DocumentCollection):
+    JsonManifest {
+  const manifest: JsonManifest = {};
+  for (const document of documents) {
+    const url = document[0];
+    const files = document[1].files;
+    manifest[url] = Array.from(files);
+  }
+  return manifest;
+}
+
 (async() => {
   const bundler = new Bundler(options);
-  let bundles: Map<string, parse5.ASTNode>;
+  let bundles: DocumentCollection;
   try {
     bundles = await bundler.bundle(target);
   } catch (err) {
@@ -197,7 +221,6 @@ options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
   console.log('Build done!');
   console.log(bundles.size);
   if (bundles.size > 1) {
-    console.log(bundles);
     const outDir = options['out-dir'];
     if (!outDir) {
       throw new Error(
@@ -205,7 +228,7 @@ options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
     }
     for (const bundle of bundles) {
       const url = bundle[0];
-      const ast = bundle[1];
+      const ast = bundle[1].ast;
       const out = pathLib.join(process.cwd(), outDir, url);
       const finalDir = pathLib.dirname(out);
       mkdirp.sync(finalDir);
@@ -214,13 +237,19 @@ options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
       fs.writeSync(fd, serialized + '\n');
       fs.closeSync(fd);
     }
+    if (options['manifest-out']) {
+      const manifestJson = documentCollectionToManifestJson(bundles);
+      const fd = fs.openSync(options['manifest-out'], 'w');
+      fs.writeSync(fd, JSON.stringify(manifestJson));
+      fs.closeSync(fd);
+    }
     return;
   }
   const doc = bundles.get(target);
   if (!doc) {
     return;
   }
-  const serialized = parse5.serialize(doc);
+  const serialized = parse5.serialize(doc.ast);
   if (options['out-html']) {
     const fd = fs.openSync(options['out-html'], 'w');
     fs.writeSync(fd, serialized + '\n');

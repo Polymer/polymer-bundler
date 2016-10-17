@@ -44,7 +44,7 @@ suite('Bundler', () => {
     }
     bundler = new Bundler(bundlerOpts);
     return bundler.bundle([inputPath])
-        .then((documents) => documents.get(inputPath));
+        .then((documents) => documents.get(inputPath)!.ast);
   }
 
   suite('Default Options', () => {

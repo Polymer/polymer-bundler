@@ -25,7 +25,7 @@ import {BundleStrategy, BundleUrlMapper, generateSharedDepsMergeStrategy, unique
 import Bundler from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import constants from '../constants';
-import DocumentCollection from '../document-collection';
+import {DocumentCollection} from '../document-collection';
 
 chai.config.showDiff = true;
 
@@ -86,7 +86,7 @@ suite('Bundler', () => {
                  [common, entrypoint1, entrypoint2], strategy, mapper)
           .then((docs) => {
             assert.equal(docs.size, 3);
-            const commonDoc: parse5.ASTNode = docs.get(common)!;
+            const commonDoc: parse5.ASTNode = docs.get(common)!.ast;
             assert.isDefined(commonDoc);
             const entrypoint1Doc = docs.get(entrypoint1)!;
             assert.isDefined(entrypoint1Doc);
@@ -101,9 +101,13 @@ suite('Bundler', () => {
             assertContainsAndExcludes(
                 commonDoc, [commonModule, depOne], [elOne, elTwo, depTwo]);
             assertContainsAndExcludes(
-                entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
+                entrypoint1Doc.ast,
+                [elOne],
+                [commonModule, elTwo, depOne, depTwo]);
             assertContainsAndExcludes(
-                entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
+                entrypoint2Doc.ast,
+                [elTwo, depTwo],
+                [commonModule, elOne, depOne]);
           });
     });
   });

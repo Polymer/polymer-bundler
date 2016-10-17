@@ -29,7 +29,7 @@ import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
 import {Bundle, BundleStrategy, AssignedBundle, generateBundles, BundleUrlMapper, BundleManifest, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
-import DocumentCollection from './document-collection';
+import {BundledDocument, DocumentCollection} from './document-collection';
 import {buildDepsIndex} from './deps-index';
 import {UrlString} from './url-utils';
 
@@ -77,11 +77,6 @@ export interface Options {
   // Paths of files that should not be inlined and which should have all links
   // removed.
   stripExcludes?: string[];
-}
-
-class BundledDocument {
-  hiddenDiv: ASTNode;
-  document: ASTNode;
 }
 
 class Bundler {
@@ -470,7 +465,8 @@ class Bundler {
       entrypoints: string[],
       strategy?: BundleStrategy,
       mapper?: BundleUrlMapper): Promise<DocumentCollection> {
-    const bundledDocuments = new Map<string, ASTNode>();
+    const bundledDocuments: DocumentCollection =
+        new Map<string, BundledDocument>();
     if (entrypoints.length === 1) {
       const url = entrypoints[0];
       const depsIndex = await buildDepsIndex(entrypoints, this.analyzer);
@@ -485,7 +481,8 @@ class Bundler {
         bundle: bundles[0],
       };
       const doc = await this._bundleDocument(bundle, manifest);
-      bundledDocuments.set(url, doc);
+      bundledDocuments.set(
+          url, {ast: doc, files: Array.from(bundles[0].files)});
       return bundledDocuments;
     } else {
       const bundles = new Map<string, ASTNode>();
@@ -504,7 +501,9 @@ class Bundler {
         const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
         const bundledAst =
             await this._bundleDocument(bundle, manifest, bundle.bundle.files);
-        bundledDocuments.set(bundleUrl, bundledAst);
+        bundledDocuments.set(
+            bundleUrl,
+            {ast: bundledAst, files: Array.from(bundle.bundle.files)});
       }
       return bundledDocuments;
     }
