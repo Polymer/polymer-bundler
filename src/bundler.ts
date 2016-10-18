@@ -467,24 +467,6 @@ class Bundler {
       mapper?: BundleUrlMapper): Promise<DocumentCollection> {
     const bundledDocuments: DocumentCollection =
         new Map<string, BundledDocument>();
-    if (entrypoints.length === 1) {
-      const url = entrypoints[0];
-      const depsIndex = await buildDepsIndex(entrypoints, this.analyzer);
-      const bundles = generateBundles(depsIndex.entrypointToDeps);
-      for (const exclude of this.excludes) {
-        bundles[0].files.delete(exclude);
-      }
-      const manifest =
-          new BundleManifest(bundles, () => new Map([[url, bundles[0]]]));
-      const bundle = {
-        url: url,
-        bundle: bundles[0],
-      };
-      const doc = await this._bundleDocument(bundle, manifest);
-      bundledDocuments.set(
-          url, {ast: doc, files: Array.from(bundles[0].files)});
-      return bundledDocuments;
-    } else {
       const bundles = new Map<string, ASTNode>();
       if (!strategy) {
         strategy = generateSharedDepsMergeStrategy(2);
@@ -506,7 +488,6 @@ class Bundler {
             {ast: bundledAst, files: Array.from(bundle.bundle.files)});
       }
       return bundledDocuments;
-    }
   }
 
   /**
