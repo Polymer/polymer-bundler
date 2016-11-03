@@ -9,106 +9,106 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- New PRs should document their changes here. -->
 
-### [1.14.11] - 2016-04-11
+## 1.14.11 - 2016-04-11
 - Radically simpler inlining design. Move all imports and scripts into document
   body, replace imports inline.
 - Add tests for more complicated inlining scenarios
 
-### [1.14.10] - 2016-04-07
+## 1.14.10 - 2016-04-07
 - Must use path resolution when moving `<head>` nodes
 
-### [1.14.9] - 2016-04-05
+## 1.14.9 - 2016-04-05
 - Try harder to preserve script ordering, move nodes from `<head>` of current
   document into import inlining fragment
 
-### [1.14.8] - 2016-03-24
+## 1.14.8 - 2016-03-24
 - Undo hydrolysis inlining scripts
 
-### [1.14.7] - 2016-03-01
+## 1.14.7 - 2016-03-01
 - Fix inlining for firebase and other scripts that use `\\x3c/script` syntax
   when making more scripts
 
-### [1.14.6] - 2016-02-23
+## 1.14.6 - 2016-02-23
 - Make sure `@license` comments always are maintained
 
-### [1.14.5] - 2016-01-21
+## 1.14.5 - 2016-01-21
 - Fix dom5 dependency to 1.3+
 
-### [1.14.4] - 2016-01-21
+## 1.14.4 - 2016-01-21
 - Make sure `<link rel="import type="css">` inlining is placed into a
   `<dom-module>`'s `<template>`
 
-### [1.14.3] - 2016-01-19
+## 1.14.3 - 2016-01-19
 - Fix for trailing slash in `<base>` tag
 
-### [1.14.2] - 2016-01-19
+## 1.14.2 - 2016-01-19
 - Fix paths when preserving execution order moves scripts to body
 
-### [1.14.1] - 2016-01-14
+## 1.14.1 - 2016-01-14
 - Escape inline scripts
 - Strip Excludes fixed to have higher precedence than Excludes
 - Fix script execution order with imports, once and for all!
 
-### [1.14.0] - 2015-10-20
+## 1.14.0 - 2015-10-20
 - Add `output` option to write file from CLI
 
-### [1.13.1]
+## 1.13.1
 - Strip Excludes should be fuzzy
 
-### [1.13.0]
+## 1.13.0
 - Support custom hydrolysis file loaders
 
-### [1.12.3]
+## 1.12.3
 - Make sure `excludes` works with `redirects`
 
-### [1.12.2]
+## 1.12.2
 - Fix CLI spelling of `redirects`
 
-### [1.12.1]
+## 1.12.1
 - Fix misspelling of `redirects` in library options
 
-### [1.12.0]
+## 1.12.0
 - New `--redirect` flag and `redirect` argument to set up custom path mappings
 
-### [1.11.0]
+## 1.11.0
 - New `-add-import` flag and `addedImports` argument to add additional imports
     to the target file.
 - Copy `@media` queries on external CSS files into inlined styles.
 - Fix excluding css files from computing dependencies.
 
-### [1.10.5]
+## 1.10.5
 - Fix a dumb unix path assumption for --inline-scripts and --inline-css +
     absolute paths on windows.
 
-### [1.10.4]
+## 1.10.4
 - Fix excludes for js files and folders
 
-### [1.10.3]
+## 1.10.3
 - Fix regression in --strip-comments from 1.9.0
 
-### [1.10.2]
+## 1.10.2
 - Use URLs internally until calling hydrolysis
 - Fixes a bunch of inline issues for Windows
 
-### [1.10.1]
+## 1.10.1
 - Typecheck inputs in library usage
 - Fix README to say that `stripExcludes` is an Array not a Boolean
 
-### [1.10.0]
+## 1.10.0
 - Add `inputUrl` option to work around grunt and gulp plugins providing
   filepaths that cannot be used as URLs to `vulcanize.process()`
 
-### [1.9.3]
+## 1.9.3
 - Fix abspath bug on windows machines
 
-### [1.9.2]
+## 1.9.2
 - Use new class API in binary
 - Update dependencies
 
-### [1.9.1]
+## 1.9.1
 - Fix `implicitStrip` in new Class based API
 
-### [1.9.0]
+## 1.9.0
 - New class based API:
 ```js
 var Vulcanize = require('vulcanize');
@@ -117,118 +117,118 @@ var vulcan = new Vulcanize(options);
 vulcan.process(...);
 ```
 - `vulcanize.setOptions` and `vulcanize.process` are deprecated
-### [1.8.1]
+## 1.8.1
 - Bump hydrolysis to 1.12.0 with proper ordering
 
-### [1.8.0]
+## 1.8.0
 - Make stripComments work more reliably
 
-### [1.7.1]
+## 1.7.1
 - Don't try to inline styles from external sources
 
-### [1.7.0]
+## 1.7.0
 - Inline link[rel="stylesheet"] css as well as polymer import stylesheets
 
-### [1.6.0]
+## 1.6.0
 - Update usage of private API of hydrolysis
 - Correctly set 'implicit strip' option when used programatically
 
-### [1.5.1]
+## 1.5.1
 - Ignore external (http and https) resources from inlining
 
-### [1.5.0]
+## 1.5.0
 - Error on the use of old Polymer elements. Vulcanize 0.7.x is the last version
     that will handle &lt; Polymer 0.8.
 - Rewrite urls for inlined styles
 
-### [1.4.4]
+## 1.4.4
 - Make sure excluded js files are totally removed (they inserted blank script
     tags)
 
-### [1.4.3]
+## 1.4.3
 - Update dependencies and docs
 - Dependency update fixes cyclic dependencies
 
-### [1.4.2]
+## 1.4.2
 - Fix URL rewriting from parts of imports that end up in `<body>`
 
-### [1.4.1]
+## 1.4.1
 - `--implicit-strip` is default
 - Remove "comment normalization" when stripping, it was not self-stable
 
-### [1.4.0]
+## 1.4.0
 - Add `--strip-comments` to remove unnecessary comments
 
-### [1.3.0]
+## 1.3.0
 - Add `--inline-css` option to inline external stylesheets
 
-### [1.2.1]
+## 1.2.1
 - Update dependencies
 
-### [1.2.0]
+## 1.2.0
 - Change `--strip-exclude` to be an array of excludes to strip
 - `--implicit-strip` is the old `--strip-excludes` behavior
 
-### [1.1.0]
+## 1.1.0
 - Add `--inline-scripts` option to inline external scripts
 
-### [1.0.0]
+## 1.0.0
 - Rewrite on top of [hydrolysis](https://github.com/PolymerLabs/hydrolysis) and
 [dom5](https://github.com/PolymerLabs/dom5)
 - Factor out `--csp` flag into [crisper](https://github.com/PolymerLabs/crisper)
 - Remove html and javascript minification
 
-### [0.7.10]
+## 0.7.10
 - Collapse whitespace instead of removing it
 - Keep unique license comments
 
-### [0.7.9]
+## 0.7.9
 - Honor `<base>` urls in inline styles
 
-### [0.7.8]
+## 0.7.8
 - Update to whacko 0.17.3
 
-### [0.7.7]
+## 0.7.7
 - Honor `<base>` tag
 - Make all schemas "absolute" urls
 
-### [0.7.6]
+## 0.7.6
 - Don't rewrite urls starting with '#'
 
-### [0.7.5]
+## 0.7.5
 - Remove cssom, just use regexes
 
-### [0.7.4]
+## 0.7.4
 - Workaround for cssom not liking '{{ }}' bindings in `<style>` tags (unsupported, use `<core-style>` instead)
 
-### [0.7.3]
+## 0.7.3
 - Replace clean-css with cssom, which does less "optimizations"
 
-### [0.7.2]
+## 0.7.2
 - Disable css number rounding for crazy-sad flexbox hacks in IE 10
 - Add charset=utf-8 to all scripts
 - Better comment removal codepath
 
-### [0.7.1]
+## 0.7.1
 - Support for mobile URL Schemes "tel:" and "sms:"
 - Better reporting of javascript error messages with `--strip`
 - Handle buffers as input with `inputSrc`
 - Rename `outputSrc` to `outputHandler`
 
-### [0.7.0]
+## 0.7.0
 - Upgrade to whacko 0.17.2 with template support
 - add utils.searchAll to make a query that walks into `<template>` elements
 
-### [0.6.2]
+## 0.6.2
 - stick to whacko 0.17.1 until `<template>` support is complete
 
-### [0.6.1]
+## 0.6.1
 - fix bug with removing absolute imports
 
-### [0.6.0]
+## 0.6.0
 - Strip excluded imports by default (old behavior accessible with --no-strip-excludes flag)
 
-### [0.5.0]
+## 0.5.0
 - finally switch to new-world polymer license
 - Add a bunch of tests for lib/vulcan
 - Refactor test suites
@@ -262,7 +262,7 @@ vulcan.process(...);
 - added recognition of double-slash paths as a remote absolute URL
 - applied webAbsPath option for handling absolute paths (based on jongeho1's pull request: https://github.com/Polymer/vulcanize/pull/36)
 
-### [0.4.3]
+## 0.4.3
 - Release 0.4.3
 - Mailto: is an absolute path
 - Merge pull request #70 from rush340/htmlentities
@@ -275,36 +275,36 @@ vulcan.process(...);
 - fixed cheerio options to perform the same parsing while reading and writing
 - Never decode entities
 
-### [0.4.2]
+## 0.4.2
 - Fix inline svgs
 - Update README with --strip functionality
 
-### [0.4.1]
+## 0.4.1
 - Bump version to 0.4.1
 - Strip comments and whitespace from all nodes
 
-### [0.4.0]
+## 0.4.0
 - Bump to version 0.4.0
 - Replace noscript with explicit Polymer invocation, to ensure correct element registration order when CSP'ed.
 
-### [0.3.1]
+## 0.3.1
 - remove extraneous async module
 - Fixes #34
 
-### [0.3.0]
+## 0.3.0
 - Hide import content from view in the main document
 
-### [0.2.7]
+## 0.2.7
 - always add name to polymer invocation
 
-### [0.2.6]
+## 0.2.6
 - bump version
 - add small usage block to help
 - Make --strip work with --csp
 - Clean up use of get/setTextContent
 - Inline stylesheet happens after import path fixup, so outputPath of rewriteURL should be the overall outputPath
 
-### [0.2.5]
+## 0.2.5
 - update to 0.2.5
 - .text() was decoding HTML entities, read raw script node content for CSP
 - Support Polymer invocation without tag name
@@ -315,21 +315,21 @@ vulcan.process(...);
 - Print help dialog if called without arguments
 - update dependencies
 
-### [0.2.4]
+## 0.2.4
 - Treat config file as "defaults", commandline flags override
 - Do path resolution before import processing and style inlining
 
-### [0.2.3]
+## 0.2.3
 - A few bug fixes
 
-### [0.2.2]
+## 0.2.2
 - Don't recalculate assetpath for handled elements
 - Bump to 0.2.1
 
-### [0.2.1]
+## 0.2.1
 - unbreak assetpath generation
 
-### [0.2.0]
+## 0.2.0
 - Prepare vulcanize 0.2.0
 - Merge pull request #25 from lborgav/patch-1
 - Fixing missing letters
@@ -372,66 +372,66 @@ vulcan.process(...);
 - inline stylesheets in the main page when using --inline
 - README: add ga beacon
 
-### [0.1.9]
+## 0.1.9
 - Reset excludes on each run
 
-### [0.1.8]
+## 0.1.8
 - Bump version
 - add "strip comments" functionality
 - fix minor typo in helep text: s/defualts/defaults
 
-### [0.1.7]
+## 0.1.7
 - bump version
 - add sub-import test to the top level import
 - Add --config option to specify user defined excludes
 - Add user-defined excludes from inling.
 
-### [0.1.6]
+## 0.1.6
 - bump version
 - test with absolute urls
 - remove console.log
 - Deduplicate absolute url imports
 - fix missing absolute imports
 
-### [0.1.5]
+## 0.1.5
 - bump to 0.1.5
 - Revert "polymer-scope is no longer supported"
 
-### [0.1.4]
+## 0.1.4
 - reset shared buffers on each handleMainDocument call
 
-### [0.1.3]
+## 0.1.3
 - bump version
 - move option checking to setOptions, not the bin
 - Add npm installation instructions
 - polymer-scope is no longer supported
 
-### [0.1.2]
+## 0.1.2
 
-### [0.1.15]
+## 0.1.15
 - Only put a trailing slash into assetpath attribute if there is a path
 
-### [0.1.14]
+## 0.1.14
 - bump version
 - clone all styles (minus href and rel) from `<link>` to `<style>`
 
-### [0.1.13]
+## 0.1.13
 - update to 0.1.13
 - Skip non-JS scripts and non-CSS styles
 
-### [0.1.12]
+## 0.1.12
 - bump version
 - Make sure to CSPify main document first, load platform.js first in the output js file.
 - add test config for excluding polymer.html
 - Refactor handling of inlined and excluded import insertion
 
-### [0.1.11]
+## 0.1.11
 - bump version
 - Fix subtle path bug in stylesheets
 - use uglify and clean-css to strip comments from js and css when using --strip
 - Clean up
 
-### [0.1.10]
+## 0.1.10
 - bump version
 - --csp will now operate on the input html file as well
 - Fix script inlining to ignore parsing html comments
@@ -462,7 +462,7 @@ vulcan.process(...);
 - update README to be more approachable
 - add a help dialog, fix "main" in package.json
 
-### [0.1.1]
+## 0.1.1
 - Bump version to 0.1.1
 - Fix paths from main html file if input or output directories are not current working directory
 - Add style url rewriting back
@@ -475,11 +475,11 @@ vulcan.process(...);
 - Merge pull request #1 from addyosmani/patch-1
 - Adds npm install snippet, minor formatting changes.
 
-### [0.1.0]
+## 0.1.0
 - semver recommends starting at 0.1.0
 - add repo info to package.json
 
-### [0.0.1]
+## 0.0.1
 - Update README.md
 - add license top
 - remove unrelated viz file
