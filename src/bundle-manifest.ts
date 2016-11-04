@@ -199,7 +199,6 @@ export function generateShellMergeStrategy(
   return (bundles: Bundle[]): Bundle[] => {
     const newBundles = generateSharedDepsMergeStrategy(minEntrypoints)(bundles);
     const shellBundle = newBundles.find((bundle) => bundle.files.has(shell));
-    console.log(bundles);
     const sharedBundle =
         newBundles.find((bundle) => bundle.entrypoints.size > 1);
     if (shellBundle && sharedBundle && shellBundle !== sharedBundle) {

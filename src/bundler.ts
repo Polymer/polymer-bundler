@@ -132,7 +132,7 @@ class Bundler {
       return false;
     }
     if (targetBundle.url !== bundle.url) {
-      const relative = this._computeRelativeUrl(bundle.url, targetBundle.url);
+      const relative = urlUtils.relativeUrl(bundle.url, targetBundle.url);
       if (!relative) {
         throw new Error('Unable to compute relative url to bundle');
       }
@@ -278,7 +278,7 @@ class Bundler {
         dom5.remove(htmlImport);
         return;
       }
-      const relative = this._computeRelativeUrl(docUrl, bundleUrl) || bundleUrl;
+      const relative = urlUtils.relativeUrl(docUrl, bundleUrl) || bundleUrl;
       dom5.setAttribute(htmlImport, 'href', relative);
       reachedImports.add(bundleUrl);
       return;
@@ -509,23 +509,6 @@ class Bundler {
     }
   }
 
-  private _computeRelativeUrl(from: UrlString, to: UrlString): string
-      |undefined {
-    const parsedUrl = urlLib.parse(to);
-    const parsedBundleUrl = urlLib.parse(from);
-    if (parsedUrl.host !== parsedBundleUrl.host ||
-        parsedUrl.protocol !== parsedBundleUrl.protocol) {
-      return;
-    }
-    if (!parsedBundleUrl.pathname || !parsedUrl.pathname) {
-      return;
-    }
-    const newPath = path.relative(
-        path.dirname(parsedBundleUrl.pathname), parsedUrl.pathname);
-    parsedUrl.pathname = newPath;
-    return urlLib.format(parsedUrl);
-  }
-
   /**
    * Append a <link rel="import" node to `node` with a value of `url` for
    * the "href" attribute.
@@ -558,7 +541,7 @@ class Bundler {
      */
     for (const entrypointUrl of bundle.bundle.entrypoints) {
       if (bundle.bundle.files.has(entrypointUrl)) {
-        const newUrl = this._computeRelativeUrl(bundle.url, entrypointUrl);
+        const newUrl = urlUtils.relativeUrl(bundle.url, entrypointUrl);
         if (!newUrl) {
           continue;
         }
@@ -572,7 +555,7 @@ class Bundler {
      */
 
     for (const importUrl of bundle.bundle.files) {
-      const newUrl = this._computeRelativeUrl(bundle.url, importUrl);
+      const newUrl = urlUtils.relativeUrl(bundle.url, importUrl);
       if (!newUrl || bundle.bundle.entrypoints.has(newUrl)) {
         continue;
       }
