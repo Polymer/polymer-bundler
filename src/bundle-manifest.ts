@@ -164,7 +164,6 @@ export function generateSharedDepsMergeStrategy(minEntrypoints: number):
     const newBundles: Bundle[] = [];
     const sharedBundles: Bundle[] = [];
     const allEntrypoints = new Set<UrlString>();
-    console.log(bundles);
     for (const bundle of bundles) {
       bundle.entrypoints.forEach(
           (entrypoint) => allEntrypoints.add(entrypoint));

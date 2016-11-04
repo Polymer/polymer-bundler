@@ -85,7 +85,7 @@ class Bundler {
   analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
-  excludes: string[];
+  _excludes: string[];
   implicitStrip: boolean;
   inputUrl: string;
   stripComments: boolean;
@@ -104,7 +104,7 @@ class Bundler {
 
     this.addedImports =
         Array.isArray(opts.addedImports) ? opts.addedImports : [];
-    this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
+    this._excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
@@ -126,10 +126,15 @@ class Bundler {
   resolveBundleUrl(
       url: string,
       bundle: AssignedBundle,
-      manifest: BundleManifest): boolean|string {
+      manifest: BundleManifest): string|false {
     const targetBundle = manifest.getBundleForFile(url);
     if (!targetBundle || !targetBundle.url) {
       return false;
+    }
+    for (const exclude of this._excludes) {
+      if (url.search(exclude) > -1) {
+        return false;
+      }
     }
     if (targetBundle.url !== bundle.url) {
       const relative = urlUtils.relativeUrl(bundle.url, targetBundle.url);
@@ -138,14 +143,7 @@ class Bundler {
       }
       return relative;
     }
-    return true;
-  }
-
-  isStripExcludedHref(url: string): boolean {
-    if (!this.stripExcludes) {
-      return false;
-    }
-    return this.stripExcludes.some(r => url.search(r) >= 0);
+    return bundle.url;
   }
 
   isBlankTextNode(node: ASTNode): boolean {
@@ -262,15 +260,15 @@ class Bundler {
       manifest: BundleManifest) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
-    const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
+    const bundleUrl = this.resolveBundleUrl(resolvedUrl, bundle, manifest);
     if (!bundleUrl) {
       if (reachedImports.has(resolvedUrl)) {
         dom5.remove(htmlImport);
         return;
       } else {
         reachedImports.add(resolvedUrl);
+        return;
       }
-      return;
     }
 
     if (bundleUrl !== bundle.url) {
