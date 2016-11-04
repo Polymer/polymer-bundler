@@ -467,27 +467,26 @@ class Bundler {
       mapper?: BundleUrlMapper): Promise<DocumentCollection> {
     const bundledDocuments: DocumentCollection =
         new Map<string, BundledDocument>();
-      const bundles = new Map<string, ASTNode>();
-      if (!strategy) {
-        strategy = generateSharedDepsMergeStrategy(2);
-      }
-      if (!mapper) {
-        mapper = sharedBundleUrlMapper;
-      }
-      const index = await buildDepsIndex(entrypoints, this.analyzer);
-      const basicBundles = generateBundles(index.entrypointToDeps);
-      const bundlesAfterStrategy = strategy(basicBundles);
-      const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
-      for (const bundleEntry of manifest.bundles) {
-        const bundleUrl = bundleEntry[0];
-        const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-        const bundledAst =
-            await this._bundleDocument(bundle, manifest, bundle.bundle.files);
-        bundledDocuments.set(
-            bundleUrl,
-            {ast: bundledAst, files: Array.from(bundle.bundle.files)});
-      }
-      return bundledDocuments;
+    const bundles = new Map<string, ASTNode>();
+    if (!strategy) {
+      strategy = generateSharedDepsMergeStrategy(2);
+    }
+    if (!mapper) {
+      mapper = sharedBundleUrlMapper;
+    }
+    const index = await buildDepsIndex(entrypoints, this.analyzer);
+    const basicBundles = generateBundles(index.entrypointToDeps);
+    const bundlesAfterStrategy = strategy(basicBundles);
+    const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
+    for (const bundleEntry of manifest.bundles) {
+      const bundleUrl = bundleEntry[0];
+      const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
+      const bundledAst =
+          await this._bundleDocument(bundle, manifest, bundle.bundle.files);
+      bundledDocuments.set(
+          bundleUrl, {ast: bundledAst, files: Array.from(bundle.bundle.files)});
+    }
+    return bundledDocuments;
   }
 
   /**
