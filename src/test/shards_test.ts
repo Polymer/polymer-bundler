@@ -21,11 +21,11 @@ import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
-import {BundleStrategy, BundleUrlMapper, generateSharedDepsMergeStrategy, uniqueEntrypointUrlMapper} from '../bundle-manifest';
+import {BundleStrategy, BundleUrlMapper, generateSharedDepsMergeStrategy} from '../bundle-manifest';
 import Bundler from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import constants from '../constants';
-import DocumentCollection from '../document-collection';
+import {DocumentCollection} from '../document-collection';
 
 chai.config.showDiff = true;
 
@@ -47,16 +47,14 @@ suite('Bundler', () => {
   let doc: parse5.ASTNode;
 
   function bundleMultiple(
-      inputPath: string[],
-      strategy: BundleStrategy,
-      mapper: BundleUrlMapper,
-      opts?: BundlerOptions): Promise<DocumentCollection> {
+      inputPath: string[], strategy: BundleStrategy, opts?: BundlerOptions):
+      Promise<DocumentCollection> {
     const bundlerOpts = opts || {};
     if (!bundlerOpts.analyzer) {
       bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
     }
     bundler = new Bundler(bundlerOpts);
-    return bundler.bundle(inputPath, strategy, mapper);
+    return bundler.bundle(inputPath, strategy);
   }
 
   function assertContainsAndExcludes(
@@ -81,12 +79,10 @@ suite('Bundler', () => {
           preds.hasAttr('href'),
           preds.NOT(preds.hasAttrValue('type', 'css')));
       const strategy = generateSharedDepsMergeStrategy(2);
-      const mapper = uniqueEntrypointUrlMapper;
-      return bundleMultiple(
-                 [common, entrypoint1, entrypoint2], strategy, mapper)
+      return bundleMultiple([common, entrypoint1, entrypoint2], strategy)
           .then((docs) => {
             assert.equal(docs.size, 3);
-            const commonDoc: parse5.ASTNode = docs.get(common)!;
+            const commonDoc: parse5.ASTNode = docs.get(common)!.ast;
             assert.isDefined(commonDoc);
             const entrypoint1Doc = docs.get(entrypoint1)!;
             assert.isDefined(entrypoint1Doc);
@@ -101,9 +97,13 @@ suite('Bundler', () => {
             assertContainsAndExcludes(
                 commonDoc, [commonModule, depOne], [elOne, elTwo, depTwo]);
             assertContainsAndExcludes(
-                entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
+                entrypoint1Doc.ast,
+                [elOne],
+                [commonModule, elTwo, depOne, depTwo]);
             assertContainsAndExcludes(
-                entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
+                entrypoint2Doc.ast,
+                [elTwo, depTwo],
+                [commonModule, elOne, depOne]);
           });
     });
   });

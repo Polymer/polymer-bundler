@@ -44,7 +44,7 @@ suite('Bundler', () => {
     }
     bundler = new Bundler(bundlerOpts);
     return bundler.bundle([inputPath])
-        .then((documents) => documents.get(inputPath));
+        .then((documents) => documents.get(inputPath)!.ast);
   }
 
   suite('Default Options', () => {
@@ -590,7 +590,6 @@ suite('Bundler', () => {
         assert.equal(scripts.length, 1);
         // TODO(usergenic): assert the src attribute is now
         // /myapp/external/external.js
-        console.log(parse5.serialize(doc));
       });
     });
 

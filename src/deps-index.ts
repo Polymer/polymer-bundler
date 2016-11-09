@@ -14,6 +14,8 @@
 import {AssertionError} from 'assert';
 import {Analyzer} from 'polymer-analyzer';
 
+import {UrlString} from './url-utils';
+
 export interface DepsIndex {
   // An index of entrypoint -> html dependencies
   entrypointToDeps: Map<string, Set<string>>;
@@ -27,12 +29,14 @@ type DependencyMapEntry = {
   lazy: Set<string>
 };
 
-async function _getTransitiveDependencies(url: string, analyzer: Analyzer):
+async function _getTransitiveDependencies(
+    url: string, entrypoints: UrlString[], analyzer: Analyzer):
     Promise<DependencyMapEntry> {
       const document = await analyzer.analyze(url);
       const imports = document.getByKind('import');
       const eagerImports = new Set<string>();
       const lazyImports = new Set<string>();
+      const entrypointSet = new Set(entrypoints);
       for (let htmlImport of imports) {
         try {
           console.assert(
@@ -68,7 +72,7 @@ export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
           continue;
         }
         const dependencyEntry =
-            await _getTransitiveDependencies(entrypoint, analyzer);
+            await _getTransitiveDependencies(entrypoint, entrypoints, analyzer);
         debugger;
         const dependencies = new Set(dependencyEntry.eager);
         dependencies.add(entrypoint);
