@@ -265,6 +265,29 @@ suite('Path Resolver', function() {
     assert.equal(actual, base, 'templated urls');
   });
 
+  test('Rewrite assetpath in same directory', function() {
+    var html = [
+      '<dom-module id="my-element" assetpath="./">',
+      '<template>',
+      '</template>',
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script>'
+    ].join('\n');
+
+    var expected = [
+      '<html><head></head><body><dom-module id="my-element" assetpath="">',
+      '<template>',
+      '</template>',
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script></body></html>'
+    ].join('\n');
+
+    var ast = parse(html);
+    pathresolver.resolvePaths(ast, inputPath, inputPath);
+
+    var actual = serialize(ast);
+    assert.equal(actual, expected, 'relative');
+  });
 });
 
 suite('Vulcan', function() {
