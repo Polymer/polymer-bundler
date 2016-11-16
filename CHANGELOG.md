@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- New PRs should document their changes here. -->
 
-- Stop moving links with certain rels out of the head tag to avoid breaking
+## 1.13.12 - 2016-11-16
+
+- Removed update-notifier dependency and functionality
+- Fixed: Stopped moving links with certain rels out of the head tag to avoid breaking
   favicons, manifests, and other such features.
+- Speed enhancements
 
 ## 1.14.11 - 2016-04-11
 - Radically simpler inlining design. Move all imports and scripts into document
