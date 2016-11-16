@@ -313,6 +313,21 @@ suite('Vulcan', function() {
       });
     });
 
+    test('non-import links are left in head', function(done) {
+      var nonImportLinks = preds.AND(
+        preds.hasTagName('link'),
+        preds.NOT(preds.hasAttrValue('rel', 'import'))
+      );
+      process(inputPath, function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var head = dom5.query(doc, preds.hasTagName('head'));
+        assert.isAbove(dom5.queryAll(head, nonImportLinks).length, 0);
+        done();
+      });
+    });
+
     test('svg is nested correctly', function(done) {
       process(inputPath, function(err, doc) {
         if (err) {
@@ -796,7 +811,7 @@ suite('Vulcan', function() {
         }
         var links = dom5.queryAll(doc, linkMatcher);
         // one duplicate import is removed
-        assert.equal(links.length, 2);
+        assert.equal(links.length, 3);
         done();
       };
       process('test/html/default.html', callback, options);
