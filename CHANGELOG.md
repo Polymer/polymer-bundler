@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- New PRs should document their changes here. -->
 
+- Stop moving links with certain rels out of the head tag to avoid breaking
+  favicons, manifests, and other such features.
+
 ## 1.14.11 - 2016-04-11
 - Radically simpler inlining design. Move all imports and scripts into document
   body, replace imports inline.
