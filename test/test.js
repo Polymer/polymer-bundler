@@ -594,6 +594,35 @@ suite('Vulcan', function() {
   });
 
   suite('Absolute Paths', function() {
+
+    test('Can resolve absolute paths with inputUrl', function(done) {
+      var root = path.resolve(inputPath, '../..');
+      var target = '/html/absolute-imports.html';
+      var options = {
+        abspath: root,
+        inputUrl: target
+      };
+      var domModule = preds.AND(
+        preds.hasTagName('dom-module'),
+        preds.hasAttrValue('assetpath', '/html/imports/')
+      );
+      var stylesheet = preds.AND(
+        preds.hasTagName('link'),
+        preds.hasAttrValue('rel', 'import'),
+        preds.hasAttrValue('type', 'css'),
+        preds.hasAttrValue('href', '/html/imports/simple-style.css')
+      );
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        assert.ok(dom5.query(doc, domModule));
+        assert.ok(dom5.query(doc, stylesheet));
+        done();
+      };
+      process(target, callback, options);
+    });
+
     test('Output with Absolute paths with abspath', function(done) {
       var root = path.resolve(inputPath, '../..');
       var target = '/html/default.html';
