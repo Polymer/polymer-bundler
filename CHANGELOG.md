@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-<!-- New PRs should document their changes here. -->
+## 1.14.13 - 2016-12-16
 
-## 1.13.12 - 2016-11-16
+- Fixed: Preserve style ordering when moving imports and links out of head tag.
+- Don't actually move anything out of head until an html import is encountered.
+
+## 1.14.12 - 2016-11-16
 
 - Removed update-notifier dependency and functionality
 - Fixed: Stopped moving links with certain rels out of the head tag to avoid breaking
