@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## 1.14.13 - 2016-12-16
+## 1.15.0 - 2016-12-16
 
 - Fixed: Preserve style ordering when moving imports and links out of head tag.
 - Don't actually move anything out of head until an html import is encountered.
