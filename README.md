@@ -156,7 +156,7 @@ has to make a few compromises to achieve that same script execution order.
 
 1. Contents of all HTML Import documents will be moved to `<body>`
 
-1. Any scripts or styles after a `<link rel="import">` node in `<head>` will be moved to `<body>` after the contents of the HTML Import.
+1. Any scripts or styles, inline or linked, which occur after a `<link rel="import">` node in `<head>` will be moved to `<body>` after the contents of the HTML Import.
 
 ## What happened to [feature] from 0.X?
 - `--csp` mode has been moved into [crisper](https://github.com/PolymerLabs/crisper)
