@@ -1010,7 +1010,6 @@ suite('Vulcan', function() {
         if (err) {
           return done(err);
         }
-        //assert.equal(dom5.serialize(doc), '');
         var styles = dom5.queryAll(doc, dom5.predicates.hasTagName('style'));
         var rules = styles.map(function(s) {
           return dom5.serialize(s).trim();
