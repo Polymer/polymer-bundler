@@ -1004,6 +1004,27 @@ suite('Vulcan', function() {
       };
       process('test/html/inline-styles.html', callback, options);
     });
+
+    test('Inlined styles have original order preserved', function(done) {
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var styles = dom5.queryAll(doc, dom5.predicates.hasTagName('style'));
+        var rules = styles.map(function(s) {
+          return dom5.serialize(s).trim();
+        }).join('\n').match(/\.[a-z-]+/g);
+        assert.deepEqual(rules, [
+          '.from-doc-linked-style',
+          '.from-import-linked-style',
+          '.from-import-inline-style',
+          '.from-style-in-doc-head',
+          '.from-style-in-doc-body'
+        ]);
+        done();
+      };
+      process('test/html/style-order-test-doc.html', callback, options);
+    });
   });
 
   suite('Add import', function(){
