@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+- Fix for how assetpath is set when in the same directory, where assetpath attribute
+  for components in same directly were incorrectly set to "/".
+
 ## 1.15.1 - 2016-12-16
 - Amended README and minor text fixes to CHANGELOG post release.
 
@@ -19,9 +22,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed: Stopped moving links with certain rels out of the head tag to avoid breaking
   favicons, manifests, and other such features.
 - Speed enhancements
-
-## 1.14.12 - 2016-11-01
-- Fix for how assetpath is set when in the same directory.
 
 ## 1.14.11 - 2016-04-11
 - Radically simpler inlining design. Move all imports and scripts into document
