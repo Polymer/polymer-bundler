@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   favicons, manifests, and other such features.
 - Speed enhancements
 
+## 1.14.12 - 2016-11-01
+- Fix for how assetpath is set when in the same directory.
+
 ## 1.14.11 - 2016-04-11
 - Radically simpler inlining design. Move all imports and scripts into document
   body, replace imports inline.
