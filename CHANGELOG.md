@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+- Fix for how assetpath is set when in the same directory, where assetpath attribute
+  for components in same directly were incorrectly set to "/".
+
 ## 1.15.1 - 2016-12-16
 - Amended README and minor text fixes to CHANGELOG post release.
 
