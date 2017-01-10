@@ -147,12 +147,12 @@ suite('Path Resolver', function() {
     ].join('\n');
 
     var expected = [
-      '<html><head><link rel="import" href="polymer/polymer.html">',
-      '<link rel="stylesheet" href="my-element/my-element.css">',
+      '<html><head><link rel="import" href="polymer/polymer.html" href-resolved="yes">',
+      '<link rel="stylesheet" href="my-element/my-element.css" href-resolved="yes">',
       '</head><body><dom-module id="my-element" assetpath="my-element/">',
       '<template>',
       '<style>:host { background-image: url("my-element/background.svg"); }</style>',
-      '<div style="position: absolute;"></div>',
+      '<div style="position: absolute;" style-resolved="yes"></div>',
       '</template>',
       '</dom-module>',
       '<script>Polymer({is: "my-element"})</script></body></html>'
@@ -180,9 +180,9 @@ suite('Path Resolver', function() {
 
     var expectedBase = [
       '<html><head>',
-      '<link rel="import" href="my-element/polymer/polymer.html">',
-      '<link rel="stylesheet" href="my-element/zork/my-element.css">',
-      '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
+      '<link rel="import" href="my-element/polymer/polymer.html" href-resolved="yes">',
+      '<link rel="stylesheet" href="my-element/zork/my-element.css" href-resolved="yes">',
+      '</head><body><dom-module id="my-element" assetpath="my-element/zork/" assetpath-resolved="yes">',
       '<template>',
       '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
       '</template>',
