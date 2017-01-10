@@ -1125,6 +1125,25 @@ suite('Vulcan', function() {
       }, {inlineScripts: true});
     });
 
+    test('Assetpath rewriting', function(done) {
+      process('test/html/assetpath/src/app-main/app-main.html', function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var domModules = dom5.queryAll(doc, preds.hasTagName('dom-module'));
+        var assetpaths = domModules.map(function(domModule) {
+          return [dom5.getAttribute(domModule, 'id'), dom5.getAttribute(domModule, 'assetpath')];
+        });
+        assert.deepEqual(assetpaths, [
+          ['test-c', '../../bower_components/test-component/'],
+          ['test-b', '../../bower_components/test-component/src/elements/'],
+          ['test-a', '../../bower_components/test-component/'],
+          ['app-main', null]
+        ]);
+        done();
+      });
+    });
+
     test('Imports in templates should not inline', function(done) {
       process('test/html/inside-template.html', function(err, doc) {
         var importMatcher = preds.AND(
