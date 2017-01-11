@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.0.0-pre.1 - 2017-01-17
+- Complete rewrite of codebase in Typescript and changed from hydrolysis to
+  polymer-analyzer.
+- Built-in support for build sharding.
+- Optionally generates a manifest of each bundle's imports.
+
 ## 1.15.3 - 2017-01-17
 - Fix for how paths are rewritten in nested import scenarios where paths to same
   directory were ignored instead of treated as "." for relative path.
