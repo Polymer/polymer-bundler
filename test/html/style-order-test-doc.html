@@ -11,13 +11,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="imports/regular-style.css">
-  <link rel="import" href="imports/simple-import.html">
-  <link rel="import" href="imports/simple-import.html">
+  <link rel="stylesheet" href="imports/doc-linked-style.css">
+  <link rel="import" href="imports/style-order-test-import.html">
   <title>Sample Build</title>
+  <style type="text/css">
+    .from-style-in-doc-head { color: red; }
+  </style>
 </head>
 <body>
-  <my-element></my-element>
+  <style type="text/css">
+    .from-style-in-doc-body { color: green; }
+  </style>
 </body>
 </html>

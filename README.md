@@ -142,3 +142,12 @@ bundler.bundle([target]).then((bundles) => {
       */
 })
 ```
+
+## Caveats
+
+Because HTML Imports changes the order of execution scripts can have, polymer-bundler
+has to make a few compromises to achieve that same script execution order.
+
+1. Contents of all HTML Import documents will be moved to `<body>`
+
+1. Any scripts or styles, inline or linked, which occur after a `<link rel="import">` node in `<head>` will be moved to `<body>` after the contents of the HTML Import.
