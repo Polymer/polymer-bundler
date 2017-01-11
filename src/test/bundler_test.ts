@@ -392,7 +392,7 @@ suite('Bundler', () => {
     });
 
     test('exhaustive script order testing', () => {
-      return bundle('test/html/scriptorder/index.html', {inlineScripts: true})
+      return bundle('test/html/script-order/index.html', {inlineScripts: true})
           .then((doc) => {
             assert(doc);
             const serialized = parse5.serialize(doc);
@@ -645,19 +645,17 @@ suite('Bundler', () => {
       });
     });
 
-    test(
-        'Remote Scripts and Stylesheets are not removed and media queries are retained',
-        () => {
-          const input = 'test/html/imports/remote-stylesheet.html';
-          return bundle(input, options).then((doc) => {
-            const links = dom5.queryAll(doc, matchers.externalStyle);
-            assert.equal(links.length, 1);
-            const styles = dom5.queryAll(doc, matchers.styleMatcher);
-            assert.equal(styles.length, 1);
-            assert.equal(
-                dom5.getAttribute(styles[0], 'media'), '(min-width: 800px)');
-          });
-        });
+    test('Remote scripts, styles and media queries are preserved', () => {
+      const input = 'test/html/imports/remote-stylesheet.html';
+      return bundle(input, options).then((doc) => {
+        const links = dom5.queryAll(doc, matchers.externalStyle);
+        assert.equal(links.length, 1);
+        const styles = dom5.queryAll(doc, matchers.styleMatcher);
+        assert.equal(styles.length, 1);
+        assert.equal(
+            dom5.getAttribute(styles[0], 'media'), '(min-width: 800px)');
+      });
+    });
 
     test.skip('Absolute paths are correct', () => {
       const root = path.resolve(inputPath, '../..');
