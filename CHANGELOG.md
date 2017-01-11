@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 1.15.3 - 2017-01-17
 - Fix for how paths are rewritten in nested import scenarios where paths to same
   directory were ignored instead of treated as "." for relative path.
 
