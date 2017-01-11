@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+- Fix for how paths are rewritten in nested import scenarios where paths to same
+  directory were ignored instead of treated as "." for relative path.
+
 ## 1.15.2 - 2016-12-16
 - Fix for how assetpath is set when in the same directory, where assetpath attribute
   for components in same directly were incorrectly set to "/".
