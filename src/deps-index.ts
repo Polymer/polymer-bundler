@@ -37,6 +37,8 @@ async function _getTransitiveDependencies(
       const eagerImports = new Set<string>();
       const lazyImports = new Set<string>();
       const entrypointSet = new Set(entrypoints);
+      const urls: [string, string][] = [];
+      imports.forEach((value) => urls.push([value.type, value.url]));
       for (let htmlImport of imports) {
         try {
           console.assert(
@@ -73,7 +75,6 @@ export async function buildDepsIndex(entrypoints: string[], analyzer: Analyzer):
         }
         const dependencyEntry =
             await _getTransitiveDependencies(entrypoint, entrypoints, analyzer);
-        debugger;
         const dependencies = new Set(dependencyEntry.eager);
         dependencies.add(entrypoint);
         entrypointToDependencies.set(entrypoint, dependencies);

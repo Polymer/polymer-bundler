@@ -236,7 +236,7 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
     console.log(err);
     return;
   }
-  if (bundles.size > 1) {
+  if (bundles.size > 1 || options['out-dir']) {
     const outDir = options['out-dir'];
     if (!outDir) {
       throw new Error(

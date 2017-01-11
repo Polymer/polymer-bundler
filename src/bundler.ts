@@ -85,7 +85,7 @@ class Bundler {
   analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
-  excludes: string[];
+  _excludes: string[];
   implicitStrip: boolean;
   inputUrl: string;
   stripComments: boolean;
@@ -104,7 +104,7 @@ class Bundler {
 
     this.addedImports =
         Array.isArray(opts.addedImports) ? opts.addedImports : [];
-    this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
+    this._excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
@@ -126,10 +126,15 @@ class Bundler {
   resolveBundleUrl(
       url: string,
       bundle: AssignedBundle,
-      manifest: BundleManifest): boolean|string {
+      manifest: BundleManifest): string|false {
     const targetBundle = manifest.getBundleForFile(url);
     if (!targetBundle || !targetBundle.url) {
       return false;
+    }
+    for (const exclude of this._excludes) {
+      if (url.search(exclude) > -1) {
+        return false;
+      }
     }
     if (targetBundle.url !== bundle.url) {
       const relative = urlUtils.relativeUrl(bundle.url, targetBundle.url);
@@ -138,14 +143,7 @@ class Bundler {
       }
       return relative;
     }
-    return true;
-  }
-
-  isStripExcludedHref(url: string): boolean {
-    if (!this.stripExcludes) {
-      return false;
-    }
-    return this.stripExcludes.some(r => url.search(r) >= 0);
+    return bundle.url;
   }
 
   isBlankTextNode(node: ASTNode): boolean {
@@ -262,15 +260,15 @@ class Bundler {
       manifest: BundleManifest) {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
-    const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
+    const bundleUrl = this.resolveBundleUrl(resolvedUrl, bundle, manifest);
     if (!bundleUrl) {
       if (reachedImports.has(resolvedUrl)) {
         dom5.remove(htmlImport);
         return;
       } else {
         reachedImports.add(resolvedUrl);
+        return;
       }
-      return;
     }
 
     if (bundleUrl !== bundle.url) {
@@ -467,46 +465,26 @@ class Bundler {
       mapper?: BundleUrlMapper): Promise<DocumentCollection> {
     const bundledDocuments: DocumentCollection =
         new Map<string, BundledDocument>();
-    if (entrypoints.length === 1) {
-      const url = entrypoints[0];
-      const depsIndex = await buildDepsIndex(entrypoints, this.analyzer);
-      const bundles = generateBundles(depsIndex.entrypointToDeps);
-      for (const exclude of this.excludes) {
-        bundles[0].files.delete(exclude);
-      }
-      const manifest =
-          new BundleManifest(bundles, () => new Map([[url, bundles[0]]]));
-      const bundle = {
-        url: url,
-        bundle: bundles[0],
-      };
-      const doc = await this._bundleDocument(bundle, manifest);
-      bundledDocuments.set(
-          url, {ast: doc, files: Array.from(bundles[0].files)});
-      return bundledDocuments;
-    } else {
-      const bundles = new Map<string, ASTNode>();
-      if (!strategy) {
-        strategy = generateSharedDepsMergeStrategy(2);
-      }
-      if (!mapper) {
-        mapper = sharedBundleUrlMapper;
-      }
-      const index = await buildDepsIndex(entrypoints, this.analyzer);
-      const basicBundles = generateBundles(index.entrypointToDeps);
-      const bundlesAfterStrategy = strategy(basicBundles);
-      const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
-      for (const bundleEntry of manifest.bundles) {
-        const bundleUrl = bundleEntry[0];
-        const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-        const bundledAst =
-            await this._bundleDocument(bundle, manifest, bundle.bundle.files);
-        bundledDocuments.set(
-            bundleUrl,
-            {ast: bundledAst, files: Array.from(bundle.bundle.files)});
-      }
-      return bundledDocuments;
+    const bundles = new Map<string, ASTNode>();
+    if (!strategy) {
+      strategy = generateSharedDepsMergeStrategy(2);
     }
+    if (!mapper) {
+      mapper = sharedBundleUrlMapper;
+    }
+    const index = await buildDepsIndex(entrypoints, this.analyzer);
+    const basicBundles = generateBundles(index.entrypointToDeps);
+    const bundlesAfterStrategy = strategy(basicBundles);
+    const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
+    for (const bundleEntry of manifest.bundles) {
+      const bundleUrl = bundleEntry[0];
+      const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
+      const bundledAst =
+          await this._bundleDocument(bundle, manifest, bundle.bundle.files);
+      bundledDocuments.set(
+          bundleUrl, {ast: bundledAst, files: Array.from(bundle.bundle.files)});
+    }
+    return bundledDocuments;
   }
 
   /**
