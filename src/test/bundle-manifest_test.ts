@@ -76,6 +76,33 @@ suite('BundleManifest', () => {
 
   suite('generateBundles', () => {
 
+    test('polymer core generate case', () => {
+      const depsIndex = new Map<string, Set<string>>();
+      depsIndex.set('P', new Set(['P', '1', 'PMini', '2', 'PMicro', '3']));
+      depsIndex.set('PMini', new Set(['PMini', '2', 'PMicro', '3']));
+      depsIndex.set('PMicro', new Set(['PMicro', '3']));
+
+      const bundles = generateBundles(depsIndex).map(serializeBundle).sort();
+      assert.equal(bundles.length, 3);
+      assert.equal(bundles[0], '[PMicro]->[3,PMicro]');
+      assert.equal(bundles[1], '[PMini]->[2,PMini]');
+      assert.equal(bundles[2], '[P]->[1,P]');
+    });
+
+    test('circular dependency case', () => {
+      const depsIndex = new Map<string, Set<string>>();
+      depsIndex.set('A', new Set(['A', '1', 'B', '2', 'C', '3', 'Z']));
+      depsIndex.set('B', new Set(['B', '2', 'A', '1', 'C', '3', 'Z']));
+      depsIndex.set('C', new Set(['C', '3']));
+
+      const bundles = generateBundles(depsIndex).map(serializeBundle).sort();
+      assert.equal(bundles.length, 4);
+      assert.equal(bundles[0], '[A,B]->[1,2,Z]');
+      assert.equal(bundles[1], '[A]->[A]');
+      assert.equal(bundles[2], '[B]->[B]');
+      assert.equal(bundles[3], '[C]->[3,C]');
+    });
+
     test('produces an array of bundles from dependencies index', () => {
       const depsIndex = new Map<string, Set<string>>();
       depsIndex.set('A', new Set(['A', 'B', 'C', 'G']));
