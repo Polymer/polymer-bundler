@@ -183,7 +183,7 @@ class Bundler {
   createHiddenContainerNode(): ASTNode {
     const hidden = dom5.constructors.element('div');
     dom5.setAttribute(hidden, 'hidden', '');
-    dom5.setAttribute(hidden, 'by-vulcanize', '');
+    dom5.setAttribute(hidden, 'by-polymer-bundler', '');
     return hidden;
   }
 

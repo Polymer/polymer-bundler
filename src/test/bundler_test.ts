@@ -119,7 +119,7 @@ suite('Bundler', () => {
     const bodyContainerMatcher = preds.AND(
         preds.hasTagName('div'),
         preds.hasAttr('hidden'),
-        preds.hasAttr('by-vulcanize'));
+        preds.hasAttr('by-polymer-bundler'));
 
     const scriptExpected = preds.hasTagName('script');
     const divExpected = preds.AND(
@@ -699,7 +699,7 @@ suite('Bundler', () => {
 
   suite.skip('Add import', () => {
     const options = {addedImports: ['imports/comment-in-import.html']};
-    test('added import is added to vulcanized doc', () => {
+    test('added import is added to bundled doc', () => {
       return bundle('test/html/default.html', options).then((doc) => {
         assert(doc);
         const hasAddedImport =
@@ -729,7 +729,7 @@ suite('Bundler', () => {
       };
 
       return bundle(
-                 'C:\\Users\\VulcanizeTester\\vulcanize\\test\\html\\default.html',
+                 'C:\\Users\\PolymerBundlerTester\\polymer-bundler\\test\\html\\default.html',
                  options)
           .then((doc) => assert(doc));
     });
@@ -738,7 +738,7 @@ suite('Bundler', () => {
   suite('Regression Testing', () => {
     test('Complicated Ordering', () => {
       // refer to
-      // https://github.com/Polymer/vulcanize/tree/master/test/html/complicated/ordering.svg
+      // https://github.com/Polymer/polymer-bundler/tree/master/test/html/complicated/ordering.svg
       // for visual reference on the document structure for this example
       return bundle('test/html/complicated/A.html', {inlineScripts: true})
           .then((doc) => {

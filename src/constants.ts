@@ -19,5 +19,5 @@ export default {
   URL_ATTR: ['href', 'src', 'action', 'style', 'assetpath'],
   URL_TEMPLATE: '{{.*}}|\\[\\[.*\\]\\]',
   OLD_POLYMER:
-      'This version of vulcanize is not compatible with Polymer < 0.8. Please use vulcanize 0.7.x.'
+      'This version of polymer-bundler is not compatible with Polymer < 0.8. Please use vulcanize 0.7.x.'
 };

@@ -47,9 +47,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/Polymer/vulcanize.git"
+    "url": "git://github.com/Polymer/polymer-bundler.git"
   },
   "bugs": {
-    "url": "https://github.com/Polymer/vulcanize/issues"
+    "url": "https://github.com/Polymer/polymer-bundler/issues"
   }
 }

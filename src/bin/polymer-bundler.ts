@@ -136,7 +136,7 @@ const optionDefinitions = [
 ];
 
 const usage = [
-  {header: 'Usage', content: ['vulcanize [options...] <in-html>']},
+  {header: 'Usage', content: ['polymer-bundler [options...] <in-html>']},
   {header: 'Options', optionList: optionDefinitions},
   {
     header: 'Examples',
@@ -160,7 +160,7 @@ const usage = [
       {
         desc:
             'Inline scripts in \`target.html\` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.',
-        example: 'vulcanize --inline-scripts target.html'
+        example: 'polymer-bundler --inline-scripts target.html'
       },
     ]
   },
@@ -176,7 +176,7 @@ function printHelp() {
 
 const pkg = require('../../package.json');
 function printVersion() {
-  console.log('vulcanize:', pkg.version);
+  console.log('polymer-bundler:', pkg.version);
 }
 
 if (options.version) {

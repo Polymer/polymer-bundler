@@ -84,8 +84,7 @@ export const stylesheetImport: Matcher = predicates.AND(
 export const hiddenDiv: Matcher = predicates.AND(
     predicates.hasTagName('div'),
     predicates.hasAttr('hidden'),
-    predicates.hasAttr('by-vulcanize'));
-
+    predicates.hasAttr('by-polymer-bundler'));
 export const inHiddenDiv: Matcher = predicates.parentMatches(hiddenDiv);
 
 /**

@@ -1,1 +1,1 @@
-vulcanize --out-html index.min.html index.html
+polymer-bundler --out-html index.min.html index.html
