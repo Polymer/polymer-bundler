@@ -1,1 +1,0 @@
-vulcanize --out-html index.min.html index.html

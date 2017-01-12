@@ -1,2 +1,3 @@
 --ui tdd
---slow 300
+--require source-map-support/register
+lib/test

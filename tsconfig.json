@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "isolatedModules": false,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "removeComments": false,
+        "preserveConstEnums": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "lib": ["es2017"],
+        "outDir": "./lib",
+        "declaration": true,
+        "sourceMap": true
+    },
+    "include": [
+        "custom_typings/*.d.ts",
+        "src/**/*.ts"
+    ]
+}

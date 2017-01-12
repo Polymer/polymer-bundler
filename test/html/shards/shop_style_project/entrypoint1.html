@@ -1,0 +1,23 @@
+<link rel="import" href="common.html">
+<link rel="import" href="dep1.html">
+
+<dom-module id="el-one">
+  <template>
+    <paper-button id="tog" on-click="clicked">Toggle spin</paper-button><br>
+    <paper-spinner id="spin" active></paper-spinner>
+  </template>
+  <script>
+    Polymer({
+      is: "el-one",
+      properties: {
+        elone: {
+          value: "one",
+          type: String,
+        },
+      },
+      clicked: function() {
+        this.$.spin.active = !this.$.spin.active;
+      }
+    });
+  </script>
+</dom-module>

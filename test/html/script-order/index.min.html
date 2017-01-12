@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+	<title>Polymer Bundler test</title>
+	</head>
+<body><div hidden="" by-polymer-bundler=""><script src="before.js">
+console.log("Hello from before.js!");
+
+window.BeforeJs = { value: 77 };</script><script src="after.js">
+console.log("Hello from after.js! BeforeJs.value = " + BeforeJs.value);
+</script>
+
+
+</div>
+
+
+</body></html>
