@@ -762,7 +762,6 @@ suite('Bundler', () => {
                 (domModule) =>
                     [dom5.getAttribute(domModule, 'id'),
                      dom5.getAttribute(domModule, 'assetpath')]);
-            console.log(parse5.serialize(doc));
             assert.deepEqual(assetpaths, [
               ['test-c', '../../bower_components/test-component/'],
               ['test-b', '../../bower_components/test-component/src/elements/'],
