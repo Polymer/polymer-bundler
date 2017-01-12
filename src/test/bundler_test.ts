@@ -548,12 +548,16 @@ suite('Bundler', () => {
     });
 
     test('Folder can be excluded', () => {
-      const linkMatcher = preds.hasTagName('link');
+      const linkMatcher = preds.AND(
+          preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
       const options = {excludes: ['test/html/imports/']};
       return bundle('test/html/default.html', options).then((doc) => {
         const links = dom5.queryAll(doc, linkMatcher);
-        // one duplicate import is removed
-        assert.equal(links.length, 2);
+        // one duplicate import is removed.  default.html contains this
+        // duplication:
+        //     <link rel="import" href="imports/simple-import.html">
+        //     <link rel="import" href="imports/simple-import.html">
+        assert.equal(links.length, 1);
       });
     });
   });
