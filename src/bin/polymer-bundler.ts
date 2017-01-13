@@ -19,7 +19,7 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
-import Bundler from '../bundler';
+import {Bundler} from '../bundler';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import {DocumentCollection} from '../document-collection';

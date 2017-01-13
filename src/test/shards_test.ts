@@ -22,7 +22,7 @@ import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
 import {BundleStrategy, BundleUrlMapper, generateSharedDepsMergeStrategy} from '../bundle-manifest';
-import Bundler from '../bundler';
+import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import constants from '../constants';
 import {DocumentCollection} from '../document-collection';
