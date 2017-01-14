@@ -79,7 +79,7 @@ export interface Options {
   stripExcludes?: string[];
 }
 
-class Bundler {
+export class Bundler {
   basePath?: string;
   addedImports: string[];
   analyzer: Analyzer;
@@ -676,5 +676,3 @@ class Bundler {
     // TODO(garlicnation): Add noopResolver for excluded urls.
   }
 }
-
-export default Bundler;

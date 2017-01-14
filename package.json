@@ -3,6 +3,12 @@
   "version": "2.0.0-pre.1",
   "description": "Process Web Components into one output file",
   "main": "lib/bundler.js",
+  "typings": "lib/bundler.d.ts",
+  "files": [
+    "LICENSE",
+    "lib/",
+    "custom_typings/"
+  ],
   "bin": {
     "polymer-bundler": "lib/bin/polymer-bundler.js"
   },
@@ -15,7 +21,7 @@
     "nopt": "^3.0.1",
     "parse5": "^2.2.2",
     "path-posix": "^1.0.0",
-    "polymer-analyzer": "^v2.0.0-alpha.15"
+    "polymer-analyzer": "2.0.0-alpha.20"
   },
   "devDependencies": {
     "@types/chai": "^3.4.30",

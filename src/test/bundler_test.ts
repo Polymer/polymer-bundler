@@ -20,7 +20,7 @@ import * as parse5 from 'parse5';
 import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
-import Bundler from '../bundler';
+import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import constants from '../constants';
 
