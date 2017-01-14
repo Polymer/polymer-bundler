@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.0.0-pre.2 - 2017-01-17
+- Minor API difference the way Bundler class is exported to make it import
+  friendly.
+- Reduced set of files in published package.
+
 ## 2.0.0-pre.1 - 2017-01-17
 - Complete rewrite of codebase in Typescript and changed from hydrolysis to
   polymer-analyzer.
