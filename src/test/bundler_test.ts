@@ -775,6 +775,17 @@ suite('Bundler', () => {
           });
     });
 
+    test('Entrypoint body content should not be wrapped by bundler', () => {
+      return bundle('test/html/default.html').then((doc) => {
+        assert(doc);
+        const myElement = dom5.query(doc, preds.hasTagName('my-element'));
+        assert(myElement);
+        assert(preds.NOT(preds.parentMatches(
+            preds.hasAttr('by-polymer-bundler')))(<parse5.ASTNode>myElement));
+        console.log(parse5.serialize(doc));
+      });
+    });
+
     test.skip('Imports in templates should not inline', () => {
       return bundle('test/html/inside-template.html').then((doc) => {
         const importMatcher = preds.AND(
