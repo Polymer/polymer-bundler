@@ -782,7 +782,6 @@ suite('Bundler', () => {
         assert(myElement);
         assert(preds.NOT(preds.parentMatches(
             preds.hasAttr('by-polymer-bundler')))(<parse5.ASTNode>myElement));
-        console.log(parse5.serialize(doc));
       });
     });
 
