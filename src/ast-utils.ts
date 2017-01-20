@@ -45,6 +45,12 @@ export function insertAllBefore(
   }
 }
 
+export function insertAfter(before: ASTNode, node: ASTNode) {
+  const index = before.parentNode!.childNodes!.indexOf(before);
+  before.parentNode!.childNodes!.splice(index + 1, 0, node);
+  node.parentNode = before.parentNode!;
+}
+
 /**
  * Return all sibling nodes following node.
  */
