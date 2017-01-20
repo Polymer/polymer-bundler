@@ -46,6 +46,7 @@ export function insertAllBefore(
 }
 
 export function insertAfter(before: ASTNode, node: ASTNode) {
+  dom5.remove(node);
   const index = before.parentNode!.childNodes!.indexOf(before);
   before.parentNode!.childNodes!.splice(index + 1, 0, node);
   node.parentNode = before.parentNode!;

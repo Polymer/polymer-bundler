@@ -310,8 +310,6 @@ export class Bundler {
       reachedImports.add(resolvedUrl);
       this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
 
-      // TODO(usergenic): remove the remove() call when PolymerLabs/dom5#35 is
-      // fixed
       let hiddenDiv = dom5.query(body, matchers.hiddenDiv);
       if (!hiddenDiv) {
         hiddenDiv = this.createHiddenContainerNode();
@@ -320,19 +318,15 @@ export class Bundler {
 
       if (hide) {
         if (matchers.afterHiddenDiv(htmlImport)) {
-          dom5.remove(htmlImport);
           dom5.append(hiddenDiv, htmlImport);
         } else if (matchers.beforeHiddenDiv(htmlImport)) {
-          dom5.remove(htmlImport);
           astUtils.prepend(hiddenDiv, htmlImport);
         } else if (!matchers.inHiddenDiv(htmlImport)) {
-          dom5.remove(htmlImport);
           dom5.append(hiddenDiv, htmlImport);
         }
 
       } else {
         if (matchers.inHiddenDiv(htmlImport)) {
-          dom5.remove(htmlImport);
           astUtils.insertAfter(hiddenDiv, htmlImport);
         }
       }
