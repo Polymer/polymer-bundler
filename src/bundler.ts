@@ -333,14 +333,18 @@ export class Bundler {
 
       const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
 
-      // If we're not hiding the import, because we're building the bundle
-      // file based on an entrypoint and we're importing the entrypoint
-      // contents, then we should move the hidden div into the position of the
-      // first html import encountered within the import doc itself.
       if (!hide && nestedImports.length > 0) {
-        // Note that this will move the hidden div out of the doc and into the
-        // import doc before the all of the import doc contents are moved into
-        // the doc.  This is more succinct and convenient than dividing the
+        // If we're currently inlining an entrypoint doc for the bundle,
+        // we are not pushing its content into the hidden div, since the
+        // entrypoint html should be visible.   To preserve the order of script
+        // execution and style overrides, we need to import html prior to the
+        // first html import found in the import doc before the hidden div.
+        // Once we encounter an html import, we import the remainder of the
+        // import doc's html after the hidden div.
+        // To achieve this, we temporarily move the hidden div out of the doc
+        // and into the import doc.  Later, we bring all of the import doc
+        // content into the bundle doc, so the hidden div comes back in.
+        // This approach is more succinct and convenient than dividing the
         // import doc into two halves and importing them before and after the
         // hidden div.
         const firstNestedImport = nestedImports[0]!;
