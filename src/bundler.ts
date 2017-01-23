@@ -263,6 +263,13 @@ export class Bundler {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
     const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
+    // HACK(usergenic):  _bundleDocument is appending .html, presumably so
+    // analyzer sees the bundled document differently than the source document.
+    // This is kind of an obscure hack and it should be fixed.  However, I'm
+    // relying on that behavior here in the comparison to check whether we are
+    // inlining the entrypoint/basis doc itself here.
+    const hide = docUrl !== resolvedUrl + '.html';
+
     if (!bundleUrl) {
       if (reachedImports.has(resolvedUrl)) {
         dom5.remove(htmlImport);
@@ -284,6 +291,9 @@ export class Bundler {
       return;
     }
 
+    const doc = dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
+    const body = dom5.query(doc, dom5.predicates.hasTagName('body'))!;
+
     if (!reachedImports.has(resolvedUrl)) {
       const analyzedImport = await this.analyzer.analyze(resolvedUrl);
       // If the document wasn't loaded for the import during analysis, we can't
@@ -300,37 +310,51 @@ export class Bundler {
       reachedImports.add(resolvedUrl);
       this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
 
-      let importParent: ASTNode;
-      // TODO(usergenic): remove the remove() call when PolymerLabs/dom5#35 is
-      // fixed
-      if (matchers.afterHiddenDiv(htmlImport)) {
-        importParent = dom5.nodeWalkPrior(htmlImport, matchers.hiddenDiv)!;
-        dom5.remove(htmlImport);
-        dom5.append(importParent, htmlImport);
-      } else if (matchers.beforeHiddenDiv(htmlImport)) {
-        const index = htmlImport.parentNode!.childNodes!.indexOf(htmlImport);
-        importParent = htmlImport.parentNode!.childNodes![index + 1];
-        dom5.remove(htmlImport);
-        astUtils.prepend(importParent, htmlImport);
-      } else if (!matchers.inHiddenDiv(htmlImport)) {
-        const hiddenDiv = this.createHiddenContainerNode();
-        dom5.replace(htmlImport, hiddenDiv);
-        dom5.append(hiddenDiv, htmlImport);
-        importParent = hiddenDiv;
-      } else {
-        importParent = htmlImport.parentNode!;
+      let hiddenDiv = dom5.query(body, matchers.hiddenDiv);
+      if (!hiddenDiv) {
+        hiddenDiv = this.createHiddenContainerNode();
+        dom5.append(body, hiddenDiv);
       }
 
-      /**
-       * Find the list of imports, then move the imports to the parent doc, then
-       * inline them.
-       *
-       * Finding them first saves on deduplication, moving them before inlining
-       * them
-       * allows the hidden div to always be found.
-       */
+      if (hide) {
+        if (matchers.afterHiddenDiv(htmlImport)) {
+          dom5.append(hiddenDiv, htmlImport);
+        } else if (matchers.beforeHiddenDiv(htmlImport)) {
+          astUtils.prepend(hiddenDiv, htmlImport);
+        } else if (!matchers.inHiddenDiv(htmlImport)) {
+          dom5.append(hiddenDiv, htmlImport);
+        }
+
+      } else {
+        if (matchers.inHiddenDiv(htmlImport)) {
+          astUtils.insertAfter(hiddenDiv, htmlImport);
+        }
+      }
+
       const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
-      astUtils.insertAllBefore(importParent, htmlImport, importDoc.childNodes!);
+
+      if (!hide && nestedImports.length > 0) {
+        // If we're currently inlining an entrypoint doc for the bundle,
+        // we are not pushing its content into the hidden div, since the
+        // entrypoint html should be visible.   To preserve the order of script
+        // execution and style overrides, we need to import html prior to the
+        // first html import found in the import doc before the hidden div.
+        // Once we encounter an html import, we import the remainder of the
+        // import doc's html after the hidden div.
+        // To achieve this, we temporarily move the hidden div out of the doc
+        // and into the import doc.  Later, we bring all of the import doc
+        // content into the bundle doc, so the hidden div comes back in.
+        // This approach is more succinct and convenient than dividing the
+        // import doc into two halves and importing them before and after the
+        // hidden div.
+        const firstNestedImport = nestedImports[0]!;
+        dom5.insertBefore(
+            firstNestedImport.parentNode!, firstNestedImport, hiddenDiv);
+      }
+
+      // Move all of the import doc content after the html import.
+      astUtils.insertAllBefore(
+          htmlImport.parentNode!, htmlImport, importDoc.childNodes!);
 
       for (const nestedImport of nestedImports) {
         await this.inlineHtmlImport(
@@ -531,14 +555,11 @@ export class Bundler {
     }
     const hiddenDiv = this.createHiddenContainerNode();
     dom5.append(body, hiddenDiv);
-    /**
-     * Add HTML Import elements for each import known to be in the bundle,
-     * in
-     * case the import was moved into the bundle by the strategy.
-     *
-     * This will almost always yield duplicate imports that will get cleaned
-     * up through deduplication.
-     */
+
+    // Add HTML Import elements for each file in the bundle, adding entrypoints
+    // first.  We append the imports in the case any were moved into the bundle
+    // by the strategy.  This will almost always yield duplicate imports that
+    // will get cleaned up through deduplication.
     for (const entrypointUrl of bundle.bundle.entrypoints) {
       if (bundle.bundle.files.has(entrypointUrl)) {
         const newUrl = urlUtils.relativeUrl(bundle.url, entrypointUrl);
@@ -548,12 +569,6 @@ export class Bundler {
         this._appendImport(hiddenDiv, newUrl);
       }
     }
-
-    /**
-     * If there's only one entrypoint, get all of its DOM into the synthetic
-     * import.
-     */
-
     for (const importUrl of bundle.bundle.files) {
       const newUrl = urlUtils.relativeUrl(bundle.url, importUrl);
       if (!newUrl || bundle.bundle.entrypoints.has(newUrl)) {
