@@ -677,24 +677,20 @@ export class Bundler {
     }
 
     if (this.stripComments) {
+      // Deduplicate license comments by use of a Map keyed by comment text.
       const comments: Map<string, ASTNode> = new Map();
+
       dom5.nodeWalkAll(newDocument, dom5.isCommentNode)
           .forEach((comment: ASTNode) => {
             comments.set(comment.data || '', comment);
             dom5.remove(comment);
           });
 
-      // Deduplicate license comments and move to head
-      comments.forEach((comment) => {
+      for (const comment of comments.values()) {
         if (this.isLicenseComment(comment)) {
-          // TODO(usergenic): add prepend to dom5
-          if (head.childNodes && head.childNodes.length) {
-            dom5.insertBefore(head, head.childNodes[0], comment);
-          } else {
-            dom5.append(head, comment);
-          }
+          astUtils.prepend(head, comment);
         }
-      });
+      }
     }
     return newDocument;
 
