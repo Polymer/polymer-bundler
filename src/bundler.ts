@@ -700,7 +700,6 @@ export class Bundler {
     // TODO(garlicnation): find transitive dependencies of specified excluded
     // files.
     // TODO(garlicnation): ignore <link> in <template>
-    // TODO(garlicnation): hide imports in main document, unless already hidden}
     // TODO(garlicnation): Support addedImports
 
     // SAVED FROM buildLoader COMMENTS
