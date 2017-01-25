@@ -73,11 +73,6 @@ suite('Bundler', () => {
 
   suite('Sharded builds', () => {
     test('with 3 entrypoints, all deps are in their places', () => {
-      const imports = preds.AND(
-          preds.hasTagName('link'),
-          preds.hasAttrValue('rel', 'import'),
-          preds.hasAttr('href'),
-          preds.NOT(preds.hasAttrValue('type', 'css')));
       const strategy = generateSharedDepsMergeStrategy(2);
       return bundleMultiple([common, entrypoint1, entrypoint2], strategy)
           .then((docs) => {
@@ -93,6 +88,7 @@ suite('Bundler', () => {
             const elTwo = domModulePredicate('el-two');
             const depOne = domModulePredicate('el-dep1');
             const depTwo = domModulePredicate('el-dep2');
+
             // Check that all the dom modules are in their expected shards
             assertContainsAndExcludes(
                 commonDoc, [commonModule, depOne], [elOne, elTwo, depTwo]);
