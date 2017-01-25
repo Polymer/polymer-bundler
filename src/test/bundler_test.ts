@@ -69,8 +69,7 @@ suite('Bundler', () => {
 
   test('svg is nested correctly', () => {
     return bundle(inputPath).then((doc) => {
-      const svg = dom5.query(doc, preds.hasTagName('template'))!['content']
-                      .childNodes[1];
+      const svg = dom5.query(doc, matchers.template)!['content'].childNodes[1];
       assert.equal(svg.childNodes!.filter(dom5.isElement).length, 6);
     });
   });
@@ -377,8 +376,7 @@ suite('Bundler', () => {
           'order/third-script.js'
         ];
 
-        const scriptMatcher = preds.hasTagName('script');
-        const scripts = dom5.queryAll(doc, scriptMatcher);
+        const scripts = dom5.queryAll(doc, matchers.jsMatcher);
         const actualOrder: Array<string> = [], actualSrc: Array<string> = [];
         scripts.forEach(function(s) {
           actualOrder.push(dom5.getAttribute(s, 'id')!);
@@ -672,11 +670,9 @@ suite('Bundler', () => {
 
     test('Inlined Polymer styles are moved into the <template>', () => {
       return bundle('test/html/default.html', options).then((doc) => {
-        const domModule =
-            dom5.query(doc, dom5.predicates.hasTagName('dom-module'))!;
+        const domModule = dom5.query(doc, preds.hasTagName('dom-module'))!;
         assert(domModule);
-        const template =
-            dom5.query(domModule, dom5.predicates.hasTagName('template'))!;
+        const template = dom5.query(domModule, matchers.template)!;
         assert(template);
         const style =
             dom5.queryAll(template.childNodes![0]!, matchers.styleMatcher);
@@ -688,11 +684,9 @@ suite('Bundler', () => {
         'Inlined Polymer styles will force a dom-module to have a template',
         () => {
           return bundle('test/html/inline-styles.html', options).then((doc) => {
-            const domModule =
-                dom5.query(doc, dom5.predicates.hasTagName('dom-module'))!;
+            const domModule = dom5.query(doc, preds.hasTagName('dom-module'))!;
             assert(domModule);
-            const template =
-                dom5.query(domModule, dom5.predicates.hasTagName('template'))!;
+            const template = dom5.query(domModule, matchers.template)!;
             assert(template);
             const style =
                 dom5.query(template.childNodes![0]!, matchers.styleMatcher);
@@ -748,7 +742,7 @@ suite('Bundler', () => {
           .then((doc) => {
             assert(doc);
             const expected = ['A1', 'C', 'E', 'B', 'D', 'A2'];
-            const scripts = dom5.queryAll(doc, preds.hasTagName('script'));
+            const scripts = dom5.queryAll(doc, matchers.jsMatcher);
             const contents = scripts.map(function(s) {
               return dom5.getTextContent(s).trim();
             });
