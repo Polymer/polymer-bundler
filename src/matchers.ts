@@ -106,3 +106,5 @@ const nextToHiddenDiv = (offset: number) => {
 };
 export const beforeHiddenDiv = nextToHiddenDiv(1);
 export const afterHiddenDiv = nextToHiddenDiv(-1);
+export const orderedImperative: Matcher = predicates.OR(
+    htmlImport, jsMatcher, styleMatcher, externalStyle, polymerExternalStyle);
