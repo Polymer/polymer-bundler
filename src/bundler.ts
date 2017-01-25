@@ -46,6 +46,7 @@ export interface Options {
   // or other hint to fix the top-level folder.
   basePath?: string;
 
+  // TODO(usergenic): Added Imports is not yet supported.
   addedImports?: string[];
 
   // The instance of the Polymer Analyzer which has completed analysis
