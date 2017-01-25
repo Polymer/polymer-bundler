@@ -290,7 +290,7 @@ export class Bundler {
     }
 
     const doc = dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
-    const body = dom5.query(doc, dom5.predicates.hasTagName('body'))!;
+    const body = dom5.query(doc, matchers.body)!;
 
     if (!reachedImports.has(resolvedUrl)) {
       const analyzedImport = await this.analyzer.analyze(resolvedUrl);
@@ -308,16 +308,14 @@ export class Bundler {
       reachedImports.add(resolvedUrl);
       this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
 
-      let hiddenDiv = dom5.query(body, matchers.hiddenDiv);
+      let hiddenDiv = dom5.query(body, matchers.hiddenDiv)!;
       if (!hiddenDiv) {
-        throw new Error('hiddenDiv not created in synthesized bundle');
+        hiddenDiv = this.createHiddenContainerNode();
+        dom5.append(body, hiddenDiv);
       }
 
-      if (matchers.afterHiddenDiv(htmlImport)) {
-        dom5.append(hiddenDiv, htmlImport);
-      } else if (matchers.beforeHiddenDiv(htmlImport)) {
-        astUtils.prepend(hiddenDiv, htmlImport);
-      } else if (!matchers.inHiddenDiv(htmlImport)) {
+      // Move the import into the hidden div, unless it's already there.
+      if (!matchers.inHiddenDiv(htmlImport)) {
         dom5.append(hiddenDiv, htmlImport);
       }
 
@@ -554,9 +552,7 @@ export class Bundler {
     const unhiddenHtmlImports = dom5.queryAll(
         document,
         dom5.predicates.AND(
-            matchers.htmlImport,
-            dom5.predicates.NOT(
-                dom5.predicates.parentMatches(matchers.hiddenDiv))));
+            matchers.htmlImport, dom5.predicates.NOT(matchers.inHiddenDiv)));
     for (const htmlImport of unhiddenHtmlImports) {
       dom5.append(hiddenDiv, htmlImport);
     }

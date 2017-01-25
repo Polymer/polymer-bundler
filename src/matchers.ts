@@ -61,8 +61,6 @@ export const domModule: Matcher = predicates.AND(
     predicates.hasTagName('dom-module'),
     predicates.hasAttr('id'),
     predicates.NOT(predicates.hasAttr('assetpath')));
-export const meta: Matcher = predicates.AND(
-    predicates.hasTagName('meta'), predicates.hasAttr('charset'));
 export const polymerElement: Matcher = predicates.hasTagName('polymer-element');
 export const externalJavascript: Matcher =
     predicates.AND(predicates.hasAttr('src'), jsMatcher);
