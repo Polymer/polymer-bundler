@@ -181,11 +181,31 @@ export class Bundler {
    * Creates a hidden container <div> to which inlined content will be
    * appended.
    */
-  createHiddenContainerNode(): ASTNode {
+  createHiddenDiv(): ASTNode {
     const hidden = dom5.constructors.element('div');
     dom5.setAttribute(hidden, 'hidden', '');
     dom5.setAttribute(hidden, 'by-polymer-bundler', '');
     return hidden;
+  }
+
+  findOrCreateHiddenDiv(document: ASTNode): ASTNode {
+    const hiddenDiv =
+        dom5.query(document, matchers.hiddenDiv) || this.createHiddenDiv();
+    if (!hiddenDiv.parentNode) {
+      const firstHtmlImport = dom5.query(document, matchers.htmlImport);
+      const body = dom5.query(document, matchers.body);
+      if (body) {
+        if (firstHtmlImport &&
+            dom5.predicates.parentMatches(matchers.body)(firstHtmlImport)) {
+          astUtils.insertAfter(firstHtmlImport, hiddenDiv);
+        } else {
+          astUtils.prepend(body, hiddenDiv);
+        }
+      } else {
+        dom5.append(document, hiddenDiv);
+      }
+    }
+    return hiddenDiv;
   }
 
   /**
@@ -290,8 +310,9 @@ export class Bundler {
       return;
     }
 
-    const doc = dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
-    const body = dom5.query(doc, matchers.body)!;
+    const document =
+        dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
+    const body = dom5.query(document, matchers.body)!;
 
     if (!reachedImports.has(resolvedUrl)) {
       const analyzedImport = await this.analyzer.analyze(resolvedUrl);
@@ -309,15 +330,9 @@ export class Bundler {
       reachedImports.add(resolvedUrl);
       this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
 
-      let hiddenDiv = dom5.query(body, matchers.hiddenDiv)!;
-      if (!hiddenDiv) {
-        hiddenDiv = this.createHiddenContainerNode();
-        dom5.append(body, hiddenDiv);
-      }
-
       // Move the import into the hidden div, unless it's already there.
       if (!matchers.inHiddenDiv(htmlImport)) {
-        dom5.append(hiddenDiv, htmlImport);
+        dom5.append(this.findOrCreateHiddenDiv(document), htmlImport);
       }
 
       const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
@@ -515,90 +530,151 @@ export class Bundler {
     return newNode;
   }
 
-  private _prepareBundleDocument(html: string): ASTNode {
-    const document = parse5.parse(html);
-    const head = dom5.query(document, matchers.head);
-    if (!head) {
-      throw new Error('No head tag in bundle document');
+  private async _inlineHtmlImports(
+      url: UrlString,
+      document: ASTNode,
+      bundle: AssignedBundle,
+      bundleManifest: BundleManifest) {
+    const reachedImports = new Set<UrlString>();
+    const htmlImports = dom5.queryAll(document, matchers.htmlImport);
+    for (const htmlImport of htmlImports) {
+      await this.inlineHtmlImport(
+          url, htmlImport, reachedImports, bundle, bundleManifest);
     }
-    const body = dom5.query(document, matchers.body);
-    if (!body) {
-      throw new Error('No body tag in bundle document');
-    }
-    const hiddenDiv = this.createHiddenContainerNode();
+  }
 
-    const firstHtmlImport = dom5.query(document, matchers.htmlImport);
-    if (firstHtmlImport &&
-        dom5.predicates.parentMatches(matchers.body)(firstHtmlImport)) {
-      astUtils.insertAfter(firstHtmlImport, hiddenDiv);
-    } else {
-      astUtils.prepend(body, hiddenDiv);
+  /**
+   * Replace all external javascript tags (`<script src="...">`)
+   * with `<script>` tags containing the file contents inlined.
+   */
+  private async _inlineScripts(url: UrlString, document: ASTNode) {
+    const scriptImports = dom5.queryAll(document, matchers.externalJavascript);
+    for (const externalScript of scriptImports) {
+      await this.inlineScript(url, externalScript);
     }
+  }
 
-    if (head.childNodes) {
-      let moveImperatives = false;
-      for (const headChild of head.childNodes!) {
-        if (matchers.htmlImport(headChild)) {
-          moveImperatives = true;
-        }
-        if (moveImperatives) {
-          if (matchers.orderedImperative(headChild)) {
-            dom5.append(hiddenDiv, headChild);
-          }
-        }
+  /**
+   * Replace all polymer stylesheet imports (`<link rel="import" type="css">`)
+   * with `<style>` tags containing the file contents, with internal URLs
+   * relatively transposed as necessary.
+   */
+  private async _inlineStylesheetImports(url: UrlString, document: ASTNode) {
+    const cssImports = dom5.queryAll(document, matchers.stylesheetImport);
+    for (const cssLink of cssImports) {
+      const style = await this.inlineStylesheet(url, cssLink);
+      if (style) {
+        this.moveDomModuleStyleIntoTemplate(style);
       }
     }
-    // Let's move any remaining htmlImports that are not inside the hidden div
-    // already, into the hidden div.
+  }
+
+  /**
+   * Replace all external stylesheet references, in `<link rel="stylesheet">`
+   * tags with `<style>` tags containing file contents, with internal URLs
+   * relatively transposed as necessary.
+   */
+  private async _inlineStylesheetLinks(url: UrlString, document: ASTNode) {
+    const cssLinks = dom5.queryAll(document, matchers.externalStyle);
+    for (const cssLink of cssLinks) {
+      await this.inlineStylesheet(url, cssLink);
+    }
+  }
+
+  /**
+   * When an HTML Import is encountered in the head of the document, it needs
+   * to be moved into the hidden div and any subsequent order-dependent
+   * imperatives (imports, styles, scripts) must also be move into the
+   * hidden div.
+   */
+  private _moveOrderedImperativesFromHeadIntoHiddenDiv(document: ASTNode) {
+    const head = dom5.query(document, matchers.head);
+    if (!head) {
+      return;
+    }
+    const firstHtmlImport = dom5.query(head, matchers.htmlImport);
+    if (!firstHtmlImport) {
+      return;
+    }
+    for (const node of [firstHtmlImport].concat(
+             astUtils.siblingsAfter(firstHtmlImport))) {
+      if (matchers.orderedImperative(node)) {
+        dom5.append(this.findOrCreateHiddenDiv(document), node);
+      }
+    }
+  }
+
+  /**
+   * Move any remaining htmlImports that are not inside the hidden div
+   * already, into the hidden div.
+   */
+  private _moveUnhiddenHtmlImportsIntoHiddenDiv(document: ASTNode) {
     const unhiddenHtmlImports = dom5.queryAll(
         document,
         dom5.predicates.AND(
             matchers.htmlImport, dom5.predicates.NOT(matchers.inHiddenDiv)));
     for (const htmlImport of unhiddenHtmlImports) {
-      dom5.append(hiddenDiv, htmlImport);
+      dom5.append(this.findOrCreateHiddenDiv(document), htmlImport);
     }
+  }
+
+  /**
+   * Generate a fresh document (ASTNode) to bundle contents into.
+   * If we're building a bundle which is based on an existing file, we
+   * should load that file and prepare it as the bundle document, otherwise
+   * we'll create a clean/empty html document.
+   */
+  private async _prepareBundleDocument(bundle: AssignedBundle):
+      Promise<ASTNode> {
+    const html = bundle.bundle.files.has(bundle.url) ?
+        (await this.analyzer.analyze(bundle.url)).parsedDocument.contents :
+        '';
+    const document = parse5.parse(html);
+    this._moveOrderedImperativesFromHeadIntoHiddenDiv(document);
+    this._moveUnhiddenHtmlImportsIntoHiddenDiv(document);
     return document;
+  }
+
+  /**
+   * Find all comment nodes in the document, removing them from the document
+   * if they are note license comments, and if they are license comments,
+   * deduplicate them and prepend them in document's head.
+   */
+  private _stripComments(document: ASTNode) {
+    // Use of a Map keyed by comment text enables deduplication.
+    const comments: Map<string, ASTNode> = new Map();
+    dom5.nodeWalkAll(document, dom5.isCommentNode)
+        .forEach((comment: ASTNode) => {
+          comments.set(comment.data || '', comment);
+          dom5.remove(comment);
+        });
+    const head = dom5.query(document, matchers.head);
+    for (const comment of comments.values()) {
+      if (this.isLicenseComment(comment)) {
+        astUtils.prepend(head || document, comment);
+      }
+    }
   }
 
   private async _synthesizeBundleContents(
       bundle: AssignedBundle,
       reachedImports: Set<UrlString>) {
-    let document;
-
-    if (bundle.bundle.files.has(bundle.url)) {
-      document = this._prepareBundleDocument(
-          (await this.analyzer.analyze(bundle.url)).parsedDocument.contents);
-      // reachedImports.add(bundleEntrypointUrl);
-    } else {
-      document = this._prepareBundleDocument('');
-    }
-
+    const document = await this._prepareBundleDocument(bundle);
     const body = dom5.query(document, matchers.body);
     if (!body) {
       throw new Error('Unexpected return from parse5.parse');
     }
 
-    const hiddenDiv = dom5.query(document, matchers.hiddenDiv)!;
-
-    // Add HTML Import elements for each file in the bundle, adding entrypoints
-    // first.  We append the imports in the case any were moved into the bundle
-    // by the strategy.  This will almost always yield duplicate imports that
-    // will get cleaned up through deduplication.
-    for (const entrypointUrl of bundle.bundle.entrypoints) {
-      if (bundle.bundle.files.has(entrypointUrl)) {
-        const newUrl = urlUtils.relativeUrl(bundle.url, entrypointUrl);
-        if (!newUrl) {
-          continue;
-        }
-        this._appendImport(hiddenDiv, newUrl);
-      }
-    }
+    // Add HTML Import elements for each file in the bundle.  We append all the
+    // imports in the case any were moved into the bundle by the strategy.
+    // While this will almost always yield duplicate imports, they will be
+    // cleaned up through deduplication during the import phase.
     for (const importUrl of bundle.bundle.files) {
       const newUrl = urlUtils.relativeUrl(bundle.url, importUrl);
-      if (!newUrl || bundle.bundle.entrypoints.has(newUrl)) {
+      if (!newUrl) {
         continue;
       }
-      this._appendImport(hiddenDiv, newUrl);
+      this._appendImport(this.findOrCreateHiddenDiv(document), newUrl);
     }
     return document;
   }
@@ -610,90 +686,44 @@ export class Bundler {
     const url = bundle.url;
     // Set tracking imports that have been reached.
     const inlinedImports: Set<UrlString> = new Set();
-    const newDocument =
+    const document =
         await this._synthesizeBundleContents(bundle, inlinedImports);
     let analyzedRoot: any;
     try {
       analyzedRoot =
-          await this.analyzer.analyze(url, parse5.serialize(newDocument));
+          await this.analyzer.analyze(url, parse5.serialize(document));
     } catch (err) {
       throw new Error('Unable to analyze document!');
     }
 
-    const head: ASTNode = dom5.query(newDocument, matchers.head)!;
-    const body: ASTNode = dom5.query(newDocument, matchers.body)!;
+    const head: ASTNode = dom5.query(document, matchers.head)!;
+    const body: ASTNode = dom5.query(document, matchers.body)!;
 
-    // Create a hidden div to target.
-    const hiddenDiv = dom5.query(body, matchers.hiddenDiv);
-    if (!hiddenDiv) {
-      throw new Error('hiddenDiv not created in synthesized bundle');
-    }
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
 
-    this.rewriteImportedUrls(newDocument, url, url);
+    this.rewriteImportedUrls(document, url, url);
 
     // Old Polymer versions are not supported, so warn user.
     this.oldPolymerCheck(analyzedRoot);
 
-    // Move htmlImports out of head into a hiddenDiv in body
-    const htmlImports = dom5.queryAll(newDocument, matchers.htmlImport);
-    htmlImports.forEach((htmlImport) => {
-      if (elementInHead(htmlImport)) {
-        if (!hiddenDiv.parentNode) {
-          astUtils.prepend(body, hiddenDiv);
-        }
-        astUtils.prependAll(hiddenDiv, astUtils.siblingsAfter(htmlImport));
-        astUtils.prepend(hiddenDiv, htmlImport);
-      }
-    });
-
     const reachedImports = new Set<UrlString>();
 
     // Inline all HTML Imports, using "reachedImports" for deduplication.
-    for (const htmlImport of htmlImports) {
-      await this.inlineHtmlImport(
-          url, htmlImport, reachedImports, bundle, bundleManifest);
-    }
+    await this._inlineHtmlImports(url, document, bundle, bundleManifest);
 
     if (this.enableScriptInlining) {
-      const scriptImports =
-          dom5.queryAll(newDocument, matchers.externalJavascript);
-      for (const externalScript of scriptImports) {
-        await this.inlineScript(url, externalScript);
-      }
+      await this._inlineScripts(url, document);
     }
 
     if (this.enableCssInlining) {
-      const cssImports = dom5.queryAll(newDocument, matchers.stylesheetImport);
-      for (const cssLink of cssImports) {
-        const style = await this.inlineStylesheet(url, cssLink);
-        if (style) {
-          this.moveDomModuleStyleIntoTemplate(style);
-        }
-      }
-      const cssLinks = dom5.queryAll(newDocument, matchers.externalStyle);
-      for (const cssLink of cssLinks) {
-        await this.inlineStylesheet(url, cssLink);
-      }
+      await this._inlineStylesheetLinks(url, document);
+      await this._inlineStylesheetImports(url, document);
     }
 
     if (this.stripComments) {
-      // Deduplicate license comments by use of a Map keyed by comment text.
-      const comments: Map<string, ASTNode> = new Map();
-
-      dom5.nodeWalkAll(newDocument, dom5.isCommentNode)
-          .forEach((comment: ASTNode) => {
-            comments.set(comment.data || '', comment);
-            dom5.remove(comment);
-          });
-
-      for (const comment of comments.values()) {
-        if (this.isLicenseComment(comment)) {
-          astUtils.prepend(head, comment);
-        }
-      }
+      this._stripComments(document);
     }
-    return newDocument;
+    return document;
 
     // LATER
     // TODO(garlicnation): resolve <base> tags.
