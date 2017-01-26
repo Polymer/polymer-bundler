@@ -142,13 +142,6 @@ export class Bundler {
     return true;
   }
 
-  isStripExcludedHref(url: string): boolean {
-    if (!this.stripExcludes) {
-      return false;
-    }
-    return this.stripExcludes.some(r => url.search(r) >= 0);
-  }
-
   isBlankTextNode(node: ASTNode): boolean {
     return node && dom5.isTextNode(node) &&
         !/\S/.test(dom5.getTextContent(node));
