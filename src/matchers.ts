@@ -57,7 +57,7 @@ export const head: Matcher = predicates.hasTagName('head');
 export const body: Matcher = predicates.hasTagName('body');
 export const base: Matcher = predicates.hasTagName('base');
 export const template: Matcher = predicates.hasTagName('template');
-export const domModule: Matcher = predicates.AND(
+export const domModuleWithoutAssetpath: Matcher = predicates.AND(
     predicates.hasTagName('dom-module'),
     predicates.hasAttr('id'),
     predicates.NOT(predicates.hasAttr('assetpath')));
