@@ -34,6 +34,14 @@ import {BundledDocument, DocumentCollection} from './document-collection';
 import {buildDepsIndex} from './deps-index';
 import {UrlString} from './url-utils';
 
+// TODO(usergenic): Want to figure out a way to get rid of the basePath param
+// used in the inline functions, because it feels obnoxious to have to pass it
+// around for an only-occasionally used case.
+
+/**
+ * Inlines the contents of the document returned by the script tag's src url
+ * into the script tag content and removes the src attribute.
+ */
 export async function inlineScript(
     docUrl: UrlString,
     externalScript: ASTNode,
@@ -59,6 +67,10 @@ export async function inlineScript(
   return scriptContent;
 }
 
+/**
+ * Inlines the contents of the stylesheet returned by the link tag's href url
+ * into a style tag and removes the link tag.
+ */
 export async function inlineStylesheet(
     basePath: string|undefined,
     docUrl: UrlString,
