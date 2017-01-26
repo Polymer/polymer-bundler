@@ -173,9 +173,8 @@ export class Bundler {
     return importUtils.inlineScript(
         docUrl,
         externalScript,
-        url => this.analyzer.analyze(url)
-                   .then(doc => doc.parsedDocument.contents)
-                   .catch(err => undefined));
+        url => this.analyzer.analyze(url).then(
+            doc => doc.parsedDocument.contents));
   }
 
   /**
@@ -188,9 +187,8 @@ export class Bundler {
         this.basePath,
         docUrl,
         cssLink,
-        url => this.analyzer.analyze(url)
-                   .then(doc => doc.parsedDocument.contents)
-                   .catch(err => undefined));
+        url => this.analyzer.analyze(url).then(
+            doc => doc.parsedDocument.contents));
   }
 
   /**
