@@ -187,8 +187,9 @@ export class Bundler {
     return importUtils.inlineScript(
         docUrl,
         externalScript,
-        url => this.analyzer.analyze(url).then(
-            doc => doc.parsedDocument.contents));
+        url => this.analyzer.analyze(url)
+                   .then(doc => doc.parsedDocument.contents)
+                   .catch(err => undefined));
   }
 
   /**
@@ -201,8 +202,9 @@ export class Bundler {
         this.basePath,
         docUrl,
         cssLink,
-        url => this.analyzer.analyze(url).then(
-            doc => doc.parsedDocument.contents));
+        url => this.analyzer.analyze(url)
+                   .then(doc => doc.parsedDocument.contents)
+                   .catch(err => undefined));
   }
 
   /**
@@ -325,7 +327,7 @@ export class Bundler {
       if (!newUrl) {
         continue;
       }
-      this._appendImport(this._findOrCreateHiddenDiv(document), newUrl);
+      this._appendHtmlImport(this._findOrCreateHiddenDiv(document), newUrl);
     }
     return document;
   }
@@ -334,7 +336,7 @@ export class Bundler {
    * Append a <link rel="import" node to `node` with a value of `url` for
    * the "href" attribute.
    */
-  private _appendImport(node: ASTNode, url: UrlString): ASTNode {
+  private _appendHtmlImport(node: ASTNode, url: UrlString): ASTNode {
     const newNode = dom5.constructors.element('link');
     dom5.setAttribute(newNode, 'rel', 'import');
     dom5.setAttribute(newNode, 'href', url);
