@@ -115,20 +115,18 @@ export class Bundler {
   }
 
   /**
-   * Given a single URL to an entry-point html document, produce a single
-   * document with HTML imports, external stylesheets and external scripts
-   * inlined, according to the options for this Bundler.
-   *
-   * Given Multiple urls, produce a sharded build by applying the provided
-   * strategy.
+   * Given urls to entrypoint html documents, produce a collection of bundled
+   * documents with HTML imports, external stylesheets and external scripts
+   * inlined according to the options for this Bundler.
    *
    * @param {Array<string>} entrypoints The list of entrypoints that will be
    *     analyzed for dependencies. The results of the analysis will be passed
    *     to the `strategy`. An array of length 1 will bypass the strategy and
    *     directly bundle the document.
    * @param {BundleStrategy} strategy The strategy used to construct the
-   *     output bundles. See 'polymer-analyzer/lib/bundle-manifest' for
-   *     examples. UNUSED.
+   *     output bundles. See 'polymer-analyzer/lib/bundle-manifest'.
+   * @param {BundleUrlMapper} mapper A function that produces urls for the
+   *     generated bundles. See 'polymer-analyzer/lib/bundle-manifest'.
    */
   async bundle(
       entrypoints: string[],

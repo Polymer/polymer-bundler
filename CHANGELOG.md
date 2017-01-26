@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+- Changed the way bundle documents are generated, so that bundles based on a
+  source file retain their HTML structure instead of always being synthesized
+  from a blank document.
+- bundle() is the only public method on Bundler class now.
+
 ## 2.0.0-pre.2 - 2017-01-17
 - Minor API difference the way Bundler class is exported to make it import
   friendly.

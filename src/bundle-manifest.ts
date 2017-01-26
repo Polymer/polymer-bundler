@@ -18,6 +18,10 @@ import {UrlString} from './url-utils';
  * A bundle strategy function is used to transform an array of bundles.
  */
 export type BundleStrategy = (bundles: Bundle[]) => Bundle[];
+
+/**
+ * A bundle url mapper function produces a map of urls to bundles.
+ */
 export type BundleUrlMapper = (bundles: Bundle[]) => Map<UrlString, Bundle>;
 
 /**
