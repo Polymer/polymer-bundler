@@ -145,14 +145,20 @@ export class Bundler {
     }
     const index = await buildDepsIndex(entrypoints, this.analyzer);
     const basicBundles = generateBundles(index.entrypointToDeps);
+
+    // Remove excluded files from bundles.
     for (const bundle of basicBundles) {
       for (const exclude of this.excludes) {
         bundle.files.delete(exclude);
       }
     }
+
+    // Remove bundles which have no files (due to excludes).
     const filteredBundles = basicBundles.filter(b => b.files.size > 0);
-    const bundlesAfterStrategy = strategy(filteredBundles);
-    const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
+
+    // Apply strategy and build the bundle manifest.
+    const manifest = new BundleManifest(strategy(filteredBundles), mapper);
+
     for (const bundleEntry of manifest.bundles) {
       const bundleUrl = bundleEntry[0];
       const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
@@ -161,6 +167,7 @@ export class Bundler {
       bundledDocuments.set(
           bundleUrl, {ast: bundledAst, files: Array.from(bundle.bundle.files)});
     }
+
     return bundledDocuments;
     //    }
   }
