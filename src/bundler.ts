@@ -278,26 +278,36 @@ export class Bundler {
     const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
     const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
-    if (docUrl === resolvedUrl) {
+
+    // Don't reprocess the same file again.
+    if (reachedImports.has(resolvedUrl)) {
       this.removeElementAndNewline(htmlImport);
       return;
     }
 
+    // If we can't find a bundle for the referenced import, record that we've
+    // processed it, but don't remove the import link.  Browser will handle it.
     if (!bundleUrl) {
-      if (reachedImports.has(resolvedUrl)) {
-        this.removeElementAndNewline(htmlImport);
-        return;
-      } else {
-        reachedImports.add(resolvedUrl);
-      }
+      reachedImports.add(resolvedUrl);
       return;
     }
 
+    // Don't inline an import into itself.
+    if (docUrl === resolvedUrl) {
+      reachedImports.add(resolvedUrl);
+      this.removeElementAndNewline(htmlImport);
+      return;
+    }
+
+    // Guard against inlining a import we've already processed.
+    if (reachedImports.has(bundleUrl)) {
+      this.removeElementAndNewline(htmlImport);
+      return;
+    }
+
+    // If the html import refers to a file which is bundled and has a different
+    // url, then lets just rewrite the href to point to the bundle url.
     if (bundleUrl !== bundle.url) {
-      if (reachedImports.has(bundleUrl)) {
-        this.removeElementAndNewline(htmlImport);
-        return;
-      }
       const relative = urlUtils.relativeUrl(docUrl, bundleUrl) || bundleUrl;
       dom5.setAttribute(htmlImport, 'href', relative);
       reachedImports.add(bundleUrl);
@@ -307,47 +317,36 @@ export class Bundler {
     const document =
         dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
     const body = dom5.query(document, matchers.body)!;
+    const analyzedImport = await this.analyzer.analyze(resolvedUrl);
 
-    if (!reachedImports.has(resolvedUrl)) {
-      const analyzedImport = await this.analyzer.analyze(resolvedUrl);
-      // If the document wasn't loaded for the import during analysis, we can't
-      // inline it.
-      if (!analyzedImport) {
-        // TODO(usergenic): What should the behavior be when we don't have the
-        // document to inline available in the analyzer?
-        throw new Error(`Unable to analyze ${resolvedUrl}`);
-      }
-      // Is there a better way to get what we want other than using
-      // parseFragment?
-      const importDoc =
-          parse5.parseFragment(analyzedImport.parsedDocument.contents);
-      reachedImports.add(resolvedUrl);
-      this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
-
-      // Move the import into the hidden div, unless it's already there.
-      if (!matchers.inHiddenDiv(htmlImport)) {
-        this.removeElementAndNewline(htmlImport);
-        dom5.append(this.findOrCreateHiddenDiv(document), htmlImport);
-      }
-
-      const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
-
-      // Move all of the import doc content after the html import.
-      astUtils.insertAllBefore(
-          htmlImport.parentNode!, htmlImport, importDoc.childNodes!);
-
-      for (const nestedImport of nestedImports) {
-        await this.inlineHtmlImport(
-            docUrl, nestedImport, reachedImports, bundle, manifest);
-      }
+    // If the document wasn't loaded for the import during analysis, we can't
+    // inline it.
+    if (!analyzedImport) {
+      // TODO(usergenic): What should the behavior be when we don't have the
+      // document to inline available in the analyzer?
+      throw new Error(`Unable to analyze ${resolvedUrl}`);
     }
 
-    if (reachedImports.has(resolvedUrl)) {
-      this.removeElementAndNewline(htmlImport);
-    } else {
-      // If we've never seen this import before, lets add it to the set so we
-      // will deduplicate if we encounter it again.
-      reachedImports.add(resolvedUrl);
+    // Is there a better way to get what we want other than using
+    // parseFragment?
+    const importDoc =
+        parse5.parseFragment(analyzedImport.parsedDocument.contents);
+    this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
+    const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
+
+    // Move all of the import doc content after the html import.
+    astUtils.insertAllBefore(
+        htmlImport.parentNode!, htmlImport, importDoc.childNodes!);
+    this.removeElementAndNewline(htmlImport);
+
+    // If we've never seen this import before, lets add it to the set so we
+    // will deduplicate if we encounter it again.
+    reachedImports.add(resolvedUrl);
+
+    // Recursively process the nested imports.
+    for (const nestedImport of nestedImports) {
+      await this.inlineHtmlImport(
+          docUrl, nestedImport, reachedImports, bundle, manifest);
     }
   }
 
@@ -363,6 +362,13 @@ export class Bundler {
     });
   }
 
+  /**
+   * Given a string of CSS, return a version where all occurrences of urls,
+   * have been rewritten based on the relationship of the import url to the
+   * main doc url.
+   * TODO(usergenic): This is a static method that should probably be moved to
+   * urlUtils or similar.
+   */
   rewriteImportedStyleTextUrls(
       importUrl: string,
       mainDocUrl: string,
@@ -379,7 +385,29 @@ export class Bundler {
       importDoc: ASTNode,
       importUrl: string,
       mainDocUrl: string) {
-    // rewrite URLs in element attributes
+    this._rewriteImportedElementAttrUrls(importDoc, importUrl, mainDocUrl);
+    this._rewriteImportedStyleUrls(importDoc, importUrl, mainDocUrl);
+    this._rewriteImportedDomModuleAssetpaths(importDoc, importUrl, mainDocUrl);
+  }
+
+  private _rewriteImportedDomModuleAssetpaths(
+      importDoc: ASTNode,
+      importUrl: string,
+      mainDocUrl: string) {
+    const domModules = dom5.queryAll(importDoc, matchers.domModule);
+    for (let i = 0, node: ASTNode; i < domModules.length; i++) {
+      node = domModules[i];
+      let assetPathUrl = urlUtils.rewriteImportedRelPath(
+          this.basePath, importUrl, mainDocUrl, '');
+      assetPathUrl = pathPosix.dirname(assetPathUrl) + '/';
+      dom5.setAttribute(node, 'assetpath', assetPathUrl);
+    }
+  }
+
+  private _rewriteImportedElementAttrUrls(
+      importDoc: ASTNode,
+      importUrl: string,
+      mainDocUrl: string) {
     const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
     let attrValue: string|null;
     for (let i = 0, node: ASTNode; i < nodes.length; i++) {
@@ -403,7 +431,12 @@ export class Bundler {
         }
       }
     }
-    // rewrite URLs in stylesheets
+  }
+
+  private _rewriteImportedStyleUrls(
+      importDoc: ASTNode,
+      importUrl: string,
+      mainDocUrl: string) {
     const styleNodes = astUtils.querySelectorAllWithTemplates(
         importDoc, matchers.styleMatcher);
     for (let i = 0, node: ASTNode; i < styleNodes.length; i++) {
@@ -412,15 +445,6 @@ export class Bundler {
       styleText =
           this.rewriteImportedStyleTextUrls(importUrl, mainDocUrl, styleText);
       dom5.setTextContent(node, styleText);
-    }
-    // add assetpath to dom-modules in importDoc
-    const domModules = dom5.queryAll(importDoc, matchers.domModule);
-    for (let i = 0, node: ASTNode; i < domModules.length; i++) {
-      node = domModules[i];
-      let assetPathUrl = urlUtils.rewriteImportedRelPath(
-          this.basePath, importUrl, mainDocUrl, '');
-      assetPathUrl = pathPosix.dirname(assetPathUrl) + '/';
-      dom5.setAttribute(node, 'assetpath', assetPathUrl);
     }
   }
 
