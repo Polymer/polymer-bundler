@@ -115,12 +115,11 @@ export class Bundler {
   }
 
   /**
-   * Given a URL to an entry-point html document, produce a single document
-   * with HTML imports, external stylesheets and external scripts inlined,
-   * according to the options for this Bundler.
+   * Given a single URL to an entry-point html document, produce a single
+   * document with HTML imports, external stylesheets and external scripts
+   * inlined, according to the options for this Bundler.
    *
-   * TODO: Given Multiple urls, produces a sharded build by applying the
-   * provided
+   * Given Multiple urls, produce a sharded build by applying the provided
    * strategy.
    *
    * @param {Array<string>} entrypoints The list of entrypoints that will be
@@ -137,46 +136,33 @@ export class Bundler {
       mapper?: BundleUrlMapper): Promise<DocumentCollection> {
     const bundledDocuments: DocumentCollection =
         new Map<string, BundledDocument>();
-    if (entrypoints.length === 1) {
-      const url = entrypoints[0];
-      const depsIndex = await buildDepsIndex(entrypoints, this.analyzer);
-      const bundles = generateBundles(depsIndex.entrypointToDeps);
-      for (const exclude of this.excludes) {
-        bundles[0].files.delete(exclude);
-      }
-      const manifest =
-          new BundleManifest(bundles, () => new Map([[url, bundles[0]]]));
-      const bundle = {
-        url: url,
-        bundle: bundles[0],
-      };
-      const doc = await this._bundleDocument(bundle, manifest);
-      bundledDocuments.set(
-          url, {ast: doc, files: Array.from(bundles[0].files)});
-      return bundledDocuments;
-    } else {
-      const bundles = new Map<string, ASTNode>();
-      if (!strategy) {
-        strategy = generateSharedDepsMergeStrategy(2);
-      }
-      if (!mapper) {
-        mapper = sharedBundleUrlMapper;
-      }
-      const index = await buildDepsIndex(entrypoints, this.analyzer);
-      const basicBundles = generateBundles(index.entrypointToDeps);
-      const bundlesAfterStrategy = strategy(basicBundles);
-      const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
-      for (const bundleEntry of manifest.bundles) {
-        const bundleUrl = bundleEntry[0];
-        const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-        const bundledAst =
-            await this._bundleDocument(bundle, manifest, bundle.bundle.files);
-        bundledDocuments.set(
-            bundleUrl,
-            {ast: bundledAst, files: Array.from(bundle.bundle.files)});
-      }
-      return bundledDocuments;
+
+    if (!strategy) {
+      strategy = generateSharedDepsMergeStrategy(2);
     }
+    if (!mapper) {
+      mapper = sharedBundleUrlMapper;
+    }
+    const index = await buildDepsIndex(entrypoints, this.analyzer);
+    const basicBundles = generateBundles(index.entrypointToDeps);
+    for (const bundle of basicBundles) {
+      for (const exclude of this.excludes) {
+        bundle.files.delete(exclude);
+      }
+    }
+    const filteredBundles = basicBundles.filter(b => b.files.size > 0);
+    const bundlesAfterStrategy = strategy(filteredBundles);
+    const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
+    for (const bundleEntry of manifest.bundles) {
+      const bundleUrl = bundleEntry[0];
+      const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
+      const bundledAst =
+          await this._bundleDocument(bundle, manifest, bundle.bundle.files);
+      bundledDocuments.set(
+          bundleUrl, {ast: bundledAst, files: Array.from(bundle.bundle.files)});
+    }
+    return bundledDocuments;
+    //    }
   }
 
   /**
