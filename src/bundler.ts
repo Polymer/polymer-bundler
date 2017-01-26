@@ -144,17 +144,18 @@ export class Bundler {
 
   isBlankTextNode(node: ASTNode): boolean {
     return node && dom5.isTextNode(node) &&
-        !/\S/.test(dom5.getTextContent(node));
+        /^\s*$/.test(dom5.getTextContent(node));
   }
 
   removeElementAndNewline(node: ASTNode, replacement?: ASTNode) {
     // when removing nodes, remove the newline after it as well
-    const siblings = node.parentNode!.childNodes!;
-    const nextIdx = siblings.indexOf(node) + 1;
-    const next = siblings[nextIdx];
+    const siblings = Array.from(node.parentNode!.childNodes!);
+    let nextIdx = siblings.indexOf(node) + 1;
+    let next = siblings[nextIdx];
     // remove next node if it is blank text
-    if (this.isBlankTextNode(next)) {
+    while (next && this.isBlankTextNode(next)) {
       dom5.remove(next);
+      next = siblings[++nextIdx];
     }
     if (replacement) {
       dom5.replace(node, replacement);
@@ -278,13 +279,13 @@ export class Bundler {
     const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
     const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
     if (docUrl === resolvedUrl) {
-      dom5.remove(htmlImport);
+      this.removeElementAndNewline(htmlImport);
       return;
     }
 
     if (!bundleUrl) {
       if (reachedImports.has(resolvedUrl)) {
-        dom5.remove(htmlImport);
+        this.removeElementAndNewline(htmlImport);
         return;
       } else {
         reachedImports.add(resolvedUrl);
@@ -294,7 +295,7 @@ export class Bundler {
 
     if (bundleUrl !== bundle.url) {
       if (reachedImports.has(bundleUrl)) {
-        dom5.remove(htmlImport);
+        this.removeElementAndNewline(htmlImport);
         return;
       }
       const relative = urlUtils.relativeUrl(docUrl, bundleUrl) || bundleUrl;
@@ -325,6 +326,7 @@ export class Bundler {
 
       // Move the import into the hidden div, unless it's already there.
       if (!matchers.inHiddenDiv(htmlImport)) {
+        this.removeElementAndNewline(htmlImport);
         dom5.append(this.findOrCreateHiddenDiv(document), htmlImport);
       }
 
@@ -341,7 +343,7 @@ export class Bundler {
     }
 
     if (reachedImports.has(resolvedUrl)) {
-      dom5.remove(htmlImport);
+      this.removeElementAndNewline(htmlImport);
     } else {
       // If we've never seen this import before, lets add it to the set so we
       // will deduplicate if we encounter it again.
@@ -439,11 +441,11 @@ export class Bundler {
     }
     let template = dom5.query(domModule, matchers.template);
     if (!template) {
-      template = dom5.constructors.element('template');
-      dom5.append(domModule, template !);
+      template = dom5.constructors.element('template')!;
+      dom5.append(domModule, template);
     }
-    dom5.remove(style);
-    astUtils.prepend(template !, style);
+    this.removeElementAndNewline(style);
+    astUtils.prepend(template, style);
   }
 
   /**
@@ -592,6 +594,7 @@ export class Bundler {
     for (const node of [firstHtmlImport].concat(
              astUtils.siblingsAfter(firstHtmlImport))) {
       if (matchers.orderedImperative(node)) {
+        this.removeElementAndNewline(node);
         dom5.append(this.findOrCreateHiddenDiv(document), node);
       }
     }
@@ -607,6 +610,7 @@ export class Bundler {
         dom5.predicates.AND(
             matchers.htmlImport, dom5.predicates.NOT(matchers.inHiddenDiv)));
     for (const htmlImport of unhiddenHtmlImports) {
+      this.removeElementAndNewline(htmlImport);
       dom5.append(this.findOrCreateHiddenDiv(document), htmlImport);
     }
   }
@@ -639,7 +643,7 @@ export class Bundler {
     dom5.nodeWalkAll(document, dom5.isCommentNode)
         .forEach((comment: ASTNode) => {
           comments.set(comment.data || '', comment);
-          dom5.remove(comment);
+          this.removeElementAndNewline(comment);
         });
     const head = dom5.query(document, matchers.head);
     for (const comment of comments.values()) {
