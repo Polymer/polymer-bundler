@@ -17,6 +17,9 @@ import {ASTNode, treeAdapters} from 'parse5';
 
 import * as matchers from './matchers';
 
+/**
+ * Move the `node` to be the immediate sibling after the `before` node.
+ */
 export function insertAfter(before: ASTNode, node: ASTNode) {
   dom5.remove(node);
   const index = before.parentNode!.childNodes!.indexOf(before);
@@ -24,9 +27,13 @@ export function insertAfter(before: ASTNode, node: ASTNode) {
   node.parentNode = before.parentNode!;
 }
 
+/**
+ * Move the entire collection of nodes to be the immediate sibling before the
+ * `after` node.
+ */
 export function insertAllBefore(
-    target: ASTNode, oldNode: ASTNode, nodes: ASTNode[]) {
-  let lastNode = oldNode;
+    target: ASTNode, after: ASTNode, nodes: ASTNode[]) {
+  let lastNode = after;
   for (let n = nodes.length - 1; n >= 0; n--) {
     const node = nodes[n];
     dom5.insertBefore(target, lastNode, node);

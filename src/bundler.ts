@@ -295,25 +295,6 @@ export class Bundler {
   }
 
   /**
-   * Check the document for references to the old `<polymer-element>` custom
-   * element.  If one is found, throw an error calling it out.
-   * TODO(usergenic): Migrate "Old Polymer" detection to polymer-analyzer with
-   * deprecated feature scanners.
-   * TODO(usergenic): This behavior is a bit severe and would prevent developers
-   * from using their own custom element named polymer-element, which they may
-   * choose to do for unrelated reasons.
-   */
-  oldPolymerCheck(analyzedRoot: Document) {
-    analyzedRoot.getByKind('document').forEach((d) => {
-      if (d.parsedDocument instanceof ParsedHtmlDocument &&
-          dom5.query(d.parsedDocument.ast, matchers.polymerElement)) {
-        throw new Error(
-            constants.OLD_POLYMER + ' File: ' + d.parsedDocument.url);
-      }
-    });
-  }
-
-  /**
    * Add HTML Import elements for each file in the bundle.  We append all the
    * imports in the case any were moved into the bundle by the strategy.
    * While this will almost always yield duplicate imports, they will be
@@ -393,9 +374,6 @@ export class Bundler {
     const elementInHead = dom5.predicates.parentMatches(matchers.head);
 
     importUtils.rewriteImportedUrls(this.basePath, document, url, url);
-
-    // Old Polymer versions are not supported, so warn user.
-    this.oldPolymerCheck(document);
 
     const reachedImports = new Set<UrlString>();
 

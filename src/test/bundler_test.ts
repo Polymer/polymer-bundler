@@ -147,21 +147,6 @@ suite('Bundler', () => {
     });
   });
 
-  test('Old Polymer is detected and warns', () => {
-
-    return bundle('test/html/old-polymer.html')
-        .then((doc) => {
-          throw new Error('should have thrown');
-        })
-        .catch((err) => {
-          assert.equal(
-              err.message.toLowerCase(),
-              (constants.OLD_POLYMER + ' File: test/html/old-polymer.html')
-                  .toLowerCase());
-        });
-  });
-
-
   test('Paths for import bodies are resolved correctly', () => {
     const anchorMatcher = preds.hasTagName('a');
     const input = 'test/html/multiple-imports.html';
