@@ -41,11 +41,19 @@ export function insertAllBefore(
   }
 }
 
+/**
+ * Return true if node is a text node that is empty or consists only of white
+ * space.
+ */
 export function isBlankTextNode(node: ASTNode): boolean {
   return node && dom5.isTextNode(node) &&
       /^\s*$/.test(dom5.getTextContent(node));
 }
 
+/**
+ * Return true if node is a comment node consisting of a license (annotated by
+ * the `@license` string.)
+ */
 export function isLicenseComment(node: ASTNode): boolean {
   if (dom5.isCommentNode(node)) {
     return dom5.getTextContent(node).indexOf('@license') > -1;
@@ -53,22 +61,14 @@ export function isLicenseComment(node: ASTNode): boolean {
   return false;
 }
 
-
+/**
+ * Inserts the node as the first child of the parent.
+ */
 export function prepend(parent: ASTNode, node: ASTNode) {
   if (parent.childNodes && parent.childNodes.length) {
     dom5.insertBefore(parent, parent.childNodes[0], node);
   } else {
     dom5.append(parent, node);
-  }
-}
-
-export function prependAll(parent: ASTNode, nodes: ASTNode[]) {
-  let moveIndex = nodes.length - 1;
-  while (moveIndex >= 0) {
-    const nodeToMove = nodes[moveIndex];
-    dom5.remove(nodeToMove);
-    prepend(parent, nodeToMove);
-    moveIndex--;
   }
 }
 

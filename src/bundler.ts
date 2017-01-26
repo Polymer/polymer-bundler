@@ -367,10 +367,6 @@ export class Bundler {
     const url = bundle.url;
     const document = await this._prepareBundleDocument(bundle);
     this._appendHtmlImportsForBundle(document, bundle);
-
-    const head: ASTNode = dom5.query(document, matchers.head)!;
-    const body: ASTNode = dom5.query(document, matchers.body)!;
-
     importUtils.rewriteImportedUrls(this.basePath, document, url, url);
 
     await this._inlineHtmlImports(url, document, bundle, bundleManifest);
@@ -415,6 +411,10 @@ export class Bundler {
     return hiddenDiv;
   }
 
+  /**
+   * Replace html import links in the document with the contents of the
+   * imported file, but only once per url.
+   */
   private async _inlineHtmlImports(
       url: UrlString,
       document: ASTNode,
@@ -489,6 +489,7 @@ export class Bundler {
     astUtils.removeElementAndNewline(style);
     astUtils.prepend(template, style);
   }
+
   /**
    * When an HTML Import is encountered in the head of the document, it needs
    * to be moved into the hidden div and any subsequent order-dependent
