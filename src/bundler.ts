@@ -371,13 +371,8 @@ export class Bundler {
     const head: ASTNode = dom5.query(document, matchers.head)!;
     const body: ASTNode = dom5.query(document, matchers.body)!;
 
-    const elementInHead = dom5.predicates.parentMatches(matchers.head);
-
     importUtils.rewriteImportedUrls(this.basePath, document, url, url);
 
-    const reachedImports = new Set<UrlString>();
-
-    // Inline all HTML Imports, using "reachedImports" for deduplication.
     await this._inlineHtmlImports(url, document, bundle, bundleManifest);
 
     if (this.enableScriptInlining) {
