@@ -166,119 +166,6 @@ export class Bundler {
   }
 
   /**
-   * Inline external script content into their tags, converting
-   * `<script src="..."></script>`  tags to `<script>...</script>` tags.
-   */
-  async inlineScript(docUrl: string, externalScript: ASTNode) {
-    return importUtils.inlineScript(
-        docUrl,
-        externalScript,
-        url => this.analyzer.analyze(url).then(
-            doc => doc.parsedDocument.contents));
-  }
-
-  /**
-   * Inline a stylesheet (either from deprecated polymer-style css import `<link
-   * rel="import" type="css">` import or regular external stylesheet link
-   * `<link rel="stylesheet">`.
-   */
-  async inlineStylesheet(docUrl: string, cssLink: ASTNode) {
-    return await importUtils.inlineStylesheet(
-        this.basePath,
-        docUrl,
-        cssLink,
-        url => this.analyzer.analyze(url).then(
-            doc => doc.parsedDocument.contents));
-  }
-
-  /**
-   * Inline external HTML files `<link type="import" href="...">`
-   * TODO(usergenic): Refactor method to simplify and encapsulate case handling
-   *     for hidden div adjacency etc.
-   */
-  async inlineHtmlImport(
-      docUrl: string,
-      htmlImport: ASTNode,
-      reachedImports: Set<string>,
-      bundle: AssignedBundle,
-      manifest: BundleManifest) {
-    const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
-    const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
-    const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
-
-    // Don't reprocess the same file again.
-    if (reachedImports.has(resolvedUrl)) {
-      astUtils.removeElementAndNewline(htmlImport);
-      return;
-    }
-
-    // If we can't find a bundle for the referenced import, record that we've
-    // processed it, but don't remove the import link.  Browser will handle it.
-    if (!bundleUrl) {
-      reachedImports.add(resolvedUrl);
-      return;
-    }
-
-    // Don't inline an import into itself.
-    if (docUrl === resolvedUrl) {
-      reachedImports.add(resolvedUrl);
-      astUtils.removeElementAndNewline(htmlImport);
-      return;
-    }
-
-    // Guard against inlining a import we've already processed.
-    if (reachedImports.has(bundleUrl)) {
-      astUtils.removeElementAndNewline(htmlImport);
-      return;
-    }
-
-    // If the html import refers to a file which is bundled and has a different
-    // url, then lets just rewrite the href to point to the bundle url.
-    if (bundleUrl !== bundle.url) {
-      const relative = urlUtils.relativeUrl(docUrl, bundleUrl) || bundleUrl;
-      dom5.setAttribute(htmlImport, 'href', relative);
-      reachedImports.add(bundleUrl);
-      return;
-    }
-
-    const document =
-        dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
-    const body = dom5.query(document, matchers.body)!;
-    const analyzedImport = await this.analyzer.analyze(resolvedUrl);
-
-    // If the document wasn't loaded for the import during analysis, we can't
-    // inline it.
-    if (!analyzedImport) {
-      // TODO(usergenic): What should the behavior be when we don't have the
-      // document to inline available in the analyzer?
-      throw new Error(`Unable to analyze ${resolvedUrl}`);
-    }
-
-    // Is there a better way to get what we want other than using
-    // parseFragment?
-    const importDoc =
-        parse5.parseFragment(analyzedImport.parsedDocument.contents);
-    importUtils.rewriteImportedUrls(
-        this.basePath, importDoc, resolvedUrl, docUrl);
-    const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
-
-    // Move all of the import doc content after the html import.
-    astUtils.insertAllBefore(
-        htmlImport.parentNode!, htmlImport, importDoc.childNodes!);
-    astUtils.removeElementAndNewline(htmlImport);
-
-    // If we've never seen this import before, lets add it to the set so we
-    // will deduplicate if we encounter it again.
-    reachedImports.add(resolvedUrl);
-
-    // Recursively process the nested imports.
-    for (const nestedImport of nestedImports) {
-      await this.inlineHtmlImport(
-          docUrl, nestedImport, reachedImports, bundle, manifest);
-    }
-  }
-
-  /**
    * Add HTML Import elements for each file in the bundle.  We append all the
    * imports in the case any were moved into the bundle by the strategy.
    * While this will almost always yield duplicate imports, they will be
@@ -396,6 +283,93 @@ export class Bundler {
   }
 
   /**
+   * Inline external HTML files `<link type="import" href="...">`
+   * TODO(usergenic): Refactor method to simplify and encapsulate case handling
+   *     for hidden div adjacency etc.
+   */
+  private async _inlineHtmlImport(
+      docUrl: string,
+      htmlImport: ASTNode,
+      reachedImports: Set<string>,
+      bundle: AssignedBundle,
+      manifest: BundleManifest) {
+    const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
+    const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
+    const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
+
+    // Don't reprocess the same file again.
+    if (reachedImports.has(resolvedUrl)) {
+      astUtils.removeElementAndNewline(htmlImport);
+      return;
+    }
+
+    // If we can't find a bundle for the referenced import, record that we've
+    // processed it, but don't remove the import link.  Browser will handle it.
+    if (!bundleUrl) {
+      reachedImports.add(resolvedUrl);
+      return;
+    }
+
+    // Don't inline an import into itself.
+    if (docUrl === resolvedUrl) {
+      reachedImports.add(resolvedUrl);
+      astUtils.removeElementAndNewline(htmlImport);
+      return;
+    }
+
+    // Guard against inlining a import we've already processed.
+    if (reachedImports.has(bundleUrl)) {
+      astUtils.removeElementAndNewline(htmlImport);
+      return;
+    }
+
+    // If the html import refers to a file which is bundled and has a different
+    // url, then lets just rewrite the href to point to the bundle url.
+    if (bundleUrl !== bundle.url) {
+      const relative = urlUtils.relativeUrl(docUrl, bundleUrl) || bundleUrl;
+      dom5.setAttribute(htmlImport, 'href', relative);
+      reachedImports.add(bundleUrl);
+      return;
+    }
+
+    const document =
+        dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
+    const body = dom5.query(document, matchers.body)!;
+    const analyzedImport = await this.analyzer.analyze(resolvedUrl);
+
+    // If the document wasn't loaded for the import during analysis, we can't
+    // inline it.
+    if (!analyzedImport) {
+      // TODO(usergenic): What should the behavior be when we don't have the
+      // document to inline available in the analyzer?
+      throw new Error(`Unable to analyze ${resolvedUrl}`);
+    }
+
+    // Is there a better way to get what we want other than using
+    // parseFragment?
+    const importDoc =
+        parse5.parseFragment(analyzedImport.parsedDocument.contents);
+    importUtils.rewriteImportedUrls(
+        this.basePath, importDoc, resolvedUrl, docUrl);
+    const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
+
+    // Move all of the import doc content after the html import.
+    astUtils.insertAllBefore(
+        htmlImport.parentNode!, htmlImport, importDoc.childNodes!);
+    astUtils.removeElementAndNewline(htmlImport);
+
+    // If we've never seen this import before, lets add it to the set so we
+    // will deduplicate if we encounter it again.
+    reachedImports.add(resolvedUrl);
+
+    // Recursively process the nested imports.
+    for (const nestedImport of nestedImports) {
+      await this._inlineHtmlImport(
+          docUrl, nestedImport, reachedImports, bundle, manifest);
+    }
+  }
+
+  /**
    * Replace html import links in the document with the contents of the
    * imported file, but only once per url.
    */
@@ -407,9 +381,21 @@ export class Bundler {
     const reachedImports = new Set<UrlString>();
     const htmlImports = dom5.queryAll(document, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
-      await this.inlineHtmlImport(
+      await this._inlineHtmlImport(
           url, htmlImport, reachedImports, bundle, bundleManifest);
     }
+  }
+
+  /**
+   * Inline external script content into their tags, converting
+   * `<script src="..."></script>`  tags to `<script>...</script>` tags.
+   */
+  private async _inlineScript(docUrl: string, externalScript: ASTNode) {
+    return importUtils.inlineScript(
+        docUrl,
+        externalScript,
+        url => this.analyzer.analyze(url).then(
+            doc => doc.parsedDocument.contents));
   }
 
   /**
@@ -419,8 +405,22 @@ export class Bundler {
   private async _inlineScripts(url: UrlString, document: ASTNode) {
     const scriptImports = dom5.queryAll(document, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
-      await this.inlineScript(url, externalScript);
+      await this._inlineScript(url, externalScript);
     }
+  }
+
+  /**
+   * Inline a stylesheet (either from deprecated polymer-style css import `<link
+   * rel="import" type="css">` import or regular external stylesheet link
+   * `<link rel="stylesheet">`.
+   */
+  private async _inlineStylesheet(docUrl: string, cssLink: ASTNode) {
+    return await importUtils.inlineStylesheet(
+        this.basePath,
+        docUrl,
+        cssLink,
+        url => this.analyzer.analyze(url).then(
+            doc => doc.parsedDocument.contents));
   }
 
   /**
@@ -431,7 +431,7 @@ export class Bundler {
   private async _inlineStylesheetImports(url: UrlString, document: ASTNode) {
     const cssImports = dom5.queryAll(document, matchers.stylesheetImport);
     for (const cssLink of cssImports) {
-      const style = await this.inlineStylesheet(url, cssLink);
+      const style = await this._inlineStylesheet(url, cssLink);
       if (style) {
         this._moveDomModuleStyleIntoTemplate(style);
       }
@@ -446,7 +446,7 @@ export class Bundler {
   private async _inlineStylesheetLinks(url: UrlString, document: ASTNode) {
     const cssLinks = dom5.queryAll(document, matchers.externalStyle);
     for (const cssLink of cssLinks) {
-      await this.inlineStylesheet(url, cssLink);
+      await this._inlineStylesheet(url, cssLink);
     }
   }
 
