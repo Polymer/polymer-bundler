@@ -18,12 +18,7 @@ import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import * as path from 'path';
-import {Analyzer} from 'polymer-analyzer';
-import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
-import {Bundler} from '../bundler';
-import {Options as BundlerOptions} from '../bundler';
-import constants from '../constants';
 import * as importUtils from '../import-utils';
 
 chai.config.showDiff = true;
