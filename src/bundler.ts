@@ -417,7 +417,7 @@ export class Bundler {
     }
 
     if (this.stripComments) {
-      this._stripComments(document);
+      astUtils.stripComments(document);
     }
     return document;
   }
@@ -575,26 +575,5 @@ export class Bundler {
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(document);
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(document);
     return document;
-  }
-
-  /**
-   * Find all comment nodes in the document, removing them from the document
-   * if they are note license comments, and if they are license comments,
-   * deduplicate them and prepend them in document's head.
-   */
-  private _stripComments(document: ASTNode) {
-    // Use of a Map keyed by comment text enables deduplication.
-    const comments: Map<string, ASTNode> = new Map();
-    dom5.nodeWalkAll(document, dom5.isCommentNode)
-        .forEach((comment: ASTNode) => {
-          comments.set(comment.data || '', comment);
-          astUtils.removeElementAndNewline(comment);
-        });
-    const head = dom5.query(document, matchers.head);
-    for (const comment of comments.values()) {
-      if (astUtils.isLicenseComment(comment)) {
-        astUtils.prepend(head || document, comment);
-      }
-    }
   }
 }
