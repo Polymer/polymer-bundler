@@ -386,13 +386,6 @@ export class Bundler {
     const url = bundle.url;
     const document = await this._prepareBundleDocument(bundle);
     this._appendHtmlImportsForBundle(document, bundle);
-    let analyzedRoot: any;
-    try {
-      analyzedRoot =
-          await this.analyzer.analyze(url, parse5.serialize(document));
-    } catch (err) {
-      throw new Error('Unable to analyze document!');
-    }
 
     const head: ASTNode = dom5.query(document, matchers.head)!;
     const body: ASTNode = dom5.query(document, matchers.body)!;
@@ -402,7 +395,7 @@ export class Bundler {
     importUtils.rewriteImportedUrls(this.basePath, document, url, url);
 
     // Old Polymer versions are not supported, so warn user.
-    this.oldPolymerCheck(analyzedRoot);
+    this.oldPolymerCheck(document);
 
     const reachedImports = new Set<UrlString>();
 
