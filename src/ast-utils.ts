@@ -18,14 +18,14 @@ import {ASTNode, treeAdapters} from 'parse5';
 import * as matchers from './matchers';
 
 /**
- * Move the `node` to be the immediate sibling after the `before` node.
+ * Move the `node` to be the immediate sibling after the `target` node.
  * TODO(usergenic): Migrate this code to polymer/dom5
  */
-export function insertAfter(before: ASTNode, node: ASTNode) {
+export function insertAfter(target: ASTNode, node: ASTNode) {
   dom5.remove(node);
-  const index = before.parentNode!.childNodes!.indexOf(before);
-  before.parentNode!.childNodes!.splice(index + 1, 0, node);
-  node.parentNode = before.parentNode!;
+  const index = target.parentNode!.childNodes!.indexOf(target);
+  target.parentNode!.childNodes!.splice(index + 1, 0, node);
+  node.parentNode = target.parentNode!;
 }
 
 /**
