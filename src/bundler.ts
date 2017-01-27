@@ -121,8 +121,7 @@ export class Bundler {
    *
    * @param {Array<string>} entrypoints The list of entrypoints that will be
    *     analyzed for dependencies. The results of the analysis will be passed
-   *     to the `strategy`. An array of length 1 will bypass the strategy and
-   *     directly bundle the document.
+   *     to the `strategy`.
    * @param {BundleStrategy} strategy The strategy used to construct the
    *     output bundles. See 'polymer-analyzer/lib/bundle-manifest'.
    * @param {BundleUrlMapper} mapper A function that produces urls for the
