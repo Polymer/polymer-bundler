@@ -123,9 +123,9 @@ export class Bundler {
    *     analyzed for dependencies. The results of the analysis will be passed
    *     to the `strategy`.
    * @param {BundleStrategy} strategy The strategy used to construct the
-   *     output bundles. See 'polymer-analyzer/lib/bundle-manifest'.
+   *     output bundles. See 'polymer-analyzer/src/bundle-manifest'.
    * @param {BundleUrlMapper} mapper A function that produces urls for the
-   *     generated bundles. See 'polymer-analyzer/lib/bundle-manifest'.
+   *     generated bundles. See 'polymer-analyzer/src/bundle-manifest'.
    */
   async bundle(
       entrypoints: string[],
