@@ -165,8 +165,11 @@ export function rewriteImportedStyleUrls(
     importDoc: ASTNode,
     importUrl: string,
     mainDocUrl: string) {
-  const styleNodes =
-      astUtils.querySelectorAllWithTemplates(importDoc, matchers.styleMatcher);
+  const styleNodes = dom5.queryAll(
+      importDoc,
+      matchers.styleMatcher,
+      undefined,
+      dom5.childNodesIncludeTemplate);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
     styleText = importUtils.rewriteImportedStyleTextUrls(
