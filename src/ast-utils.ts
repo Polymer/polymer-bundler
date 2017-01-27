@@ -19,6 +19,7 @@ import * as matchers from './matchers';
 
 /**
  * Move the `node` to be the immediate sibling after the `before` node.
+ * TODO(usergenic): Migrate this code to polymer/dom5
  */
 export function insertAfter(before: ASTNode, node: ASTNode) {
   dom5.remove(node);
@@ -47,7 +48,7 @@ export function insertAllBefore(
  */
 export function isBlankTextNode(node: ASTNode): boolean {
   return node && dom5.isTextNode(node) &&
-      /^\s*$/.test(dom5.getTextContent(node));
+      dom5.getTextContent(node).trim() === '';
 }
 
 /**
@@ -63,6 +64,7 @@ export function isLicenseComment(node: ASTNode): boolean {
 
 /**
  * Inserts the node as the first child of the parent.
+ * TODO(usergenic): Migrate this code to polymer/dom5
  */
 export function prepend(parent: ASTNode, node: ASTNode) {
   if (parent.childNodes && parent.childNodes.length) {
