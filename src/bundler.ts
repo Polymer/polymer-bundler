@@ -288,8 +288,6 @@ export class Bundler {
 
   /**
    * Inline external HTML files `<link type="import" href="...">`
-   * TODO(usergenic): Refactor method to simplify and encapsulate case handling
-   *     for hidden div adjacency etc.
    */
   private async _inlineHtmlImport(
       docUrl: string,
@@ -297,80 +295,15 @@ export class Bundler {
       reachedImports: Set<string>,
       bundle: AssignedBundle,
       manifest: BundleManifest) {
-    const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
-    const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
-    const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
-
-    // Don't reprocess the same file again.
-    if (reachedImports.has(resolvedUrl)) {
-      astUtils.removeElementAndNewline(htmlImport);
-      return;
-    }
-
-    // If we can't find a bundle for the referenced import, record that we've
-    // processed it, but don't remove the import link.  Browser will handle it.
-    if (!bundleUrl) {
-      reachedImports.add(resolvedUrl);
-      return;
-    }
-
-    // Don't inline an import into itself.
-    if (docUrl === resolvedUrl) {
-      reachedImports.add(resolvedUrl);
-      astUtils.removeElementAndNewline(htmlImport);
-      return;
-    }
-
-    // Guard against inlining a import we've already processed.
-    if (reachedImports.has(bundleUrl)) {
-      astUtils.removeElementAndNewline(htmlImport);
-      return;
-    }
-
-    // If the html import refers to a file which is bundled and has a different
-    // url, then lets just rewrite the href to point to the bundle url.
-    if (bundleUrl !== bundle.url) {
-      const relative = urlUtils.relativeUrl(docUrl, bundleUrl) || bundleUrl;
-      dom5.setAttribute(htmlImport, 'href', relative);
-      reachedImports.add(bundleUrl);
-      return;
-    }
-
-    const document =
-        dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
-    const body = dom5.query(document, matchers.body)!;
-    const analyzedImport = await this.analyzer.analyze(resolvedUrl);
-
-    // If the document wasn't loaded for the import during analysis, we can't
-    // inline it.
-    if (!analyzedImport) {
-      // TODO(usergenic): What should the behavior be when we don't have the
-      // document to inline available in the analyzer?
-      throw new Error(`Unable to analyze ${resolvedUrl}`);
-    }
-
-    // Is there a better way to get what we want other than using
-    // parseFragment?
-    const importDoc =
-        parse5.parseFragment(analyzedImport.parsedDocument.contents);
-    importUtils.rewriteImportedUrls(
-        this.basePath, importDoc, resolvedUrl, docUrl);
-    const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
-
-    // Move all of the import doc content after the html import.
-    astUtils.insertAllBefore(
-        htmlImport.parentNode!, htmlImport, importDoc.childNodes!);
-    astUtils.removeElementAndNewline(htmlImport);
-
-    // If we've never seen this import before, lets add it to the set so we
-    // will deduplicate if we encounter it again.
-    reachedImports.add(resolvedUrl);
-
-    // Recursively process the nested imports.
-    for (const nestedImport of nestedImports) {
-      await this._inlineHtmlImport(
-          docUrl, nestedImport, reachedImports, bundle, manifest);
-    }
+    return importUtils.inlineHtmlImport(
+        this.basePath,
+        docUrl,
+        htmlImport,
+        reachedImports,
+        bundle,
+        manifest,
+        url => this.analyzer.analyze(url).then(
+            doc => doc.parsedDocument.contents));
   }
 
   /**
