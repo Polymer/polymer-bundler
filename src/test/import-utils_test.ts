@@ -19,7 +19,8 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import * as path from 'path';
 
-import * as importUtils from '../import-utils';
+const rewire = require('rewire');
+const importUtils = rewire('../import-utils');
 
 chai.config.showDiff = true;
 
@@ -57,7 +58,9 @@ suite('import-utils', () => {
         '}'
       ].join('\n');
 
-      const actual = importUtils.rewriteImportedStyleTextUrls(
+      const _rewriteImportedStyleTextUrls =
+          importUtils.__get__('_rewriteImportedStyleTextUrls');
+      const actual = _rewriteImportedStyleTextUrls(
           undefined, importDocPath, mainDocPath, css);
       assert.equal(actual, expected);
     });

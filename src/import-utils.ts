@@ -176,7 +176,7 @@ export async function inlineStylesheet(
   }
 
   const media = dom5.getAttribute(cssLink, 'media');
-  const resolvedStylesheetContent = rewriteImportedStyleTextUrls(
+  const resolvedStylesheetContent = _rewriteImportedStyleTextUrls(
       basePath, resolvedStylesheetUrl, docUrl, stylesheetContent);
   const styleNode = dom5.constructors.element('style');
 
@@ -190,11 +190,26 @@ export async function inlineStylesheet(
 }
 
 /**
+ * Walk through an import document, and rewrite all urls so they are
+ * correctly relative to the main document url as they've been
+ * imported from the import url.
+ */
+export function rewriteImportedUrls(
+    basePath: string|undefined,
+    importDoc: ASTNode,
+    importUrl: string,
+    mainDocUrl: string) {
+  _rewriteImportedElementAttrUrls(basePath, importDoc, importUrl, mainDocUrl);
+  _rewriteImportedStyleUrls(basePath, importDoc, importUrl, mainDocUrl);
+  _setImportedDomModuleAssetpaths(basePath, importDoc, importUrl, mainDocUrl);
+}
+
+/**
  * Find all element attributes which express urls and rewrite them so they
  * are correctly relative to the main document url as they've been
  * imported from the import url.
  */
-export function rewriteImportedElementAttrUrls(
+function _rewriteImportedElementAttrUrls(
     basePath: string|undefined,
     importDoc: ASTNode,
     importUrl: string,
@@ -206,7 +221,7 @@ export function rewriteImportedElementAttrUrls(
       if (attrValue && !urlUtils.isTemplatedUrl(attrValue)) {
         let relUrl: string;
         if (attr === 'style') {
-          relUrl = rewriteImportedStyleTextUrls(
+          relUrl = _rewriteImportedStyleTextUrls(
               basePath, importUrl, mainDocUrl, attrValue);
         } else {
           relUrl = urlUtils.rewriteImportedRelPath(
@@ -228,7 +243,7 @@ export function rewriteImportedElementAttrUrls(
  * TODO(usergenic): This is a static method that should probably be moved to
  * urlUtils or similar.
  */
-export function rewriteImportedStyleTextUrls(
+function _rewriteImportedStyleTextUrls(
     basePath: string|undefined,
     importUrl: string,
     mainDocUrl: string,
@@ -246,7 +261,7 @@ export function rewriteImportedStyleTextUrls(
  * correctly relative to the main document url as they've been imported from
  * the import url.
  */
-export function rewriteImportedStyleUrls(
+function _rewriteImportedStyleUrls(
     basePath: string|undefined,
     importDoc: ASTNode,
     importUrl: string,
@@ -258,32 +273,17 @@ export function rewriteImportedStyleUrls(
       dom5.childNodesIncludeTemplate);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
-    styleText = rewriteImportedStyleTextUrls(
+    styleText = _rewriteImportedStyleTextUrls(
         basePath, importUrl, mainDocUrl, styleText);
     dom5.setTextContent(node, styleText);
   }
 }
 
 /**
- * Walk through an import document, and rewrite all urls so they are
- * correctly relative to the main document url as they've been
- * imported from the import url.
- */
-export function rewriteImportedUrls(
-    basePath: string|undefined,
-    importDoc: ASTNode,
-    importUrl: string,
-    mainDocUrl: string) {
-  rewriteImportedElementAttrUrls(basePath, importDoc, importUrl, mainDocUrl);
-  rewriteImportedStyleUrls(basePath, importDoc, importUrl, mainDocUrl);
-  setImportedDomModuleAssetpaths(basePath, importDoc, importUrl, mainDocUrl);
-}
-
-/**
  * Set the assetpath attribute of all imported dom-modules which don't yet
  * have them.
  */
-export function setImportedDomModuleAssetpaths(
+function _setImportedDomModuleAssetpaths(
     basePath: string|undefined,
     importDoc: ASTNode,
     importUrl: string,
