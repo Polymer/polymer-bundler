@@ -100,12 +100,6 @@ options.
     target file
 - `redirects`: An array of strings with the format `URI|PATH` where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.
 - `stripComments`: Remove non-license HTML comments.
-- `inputUrl`: A URL string that will override the `target` argument to
-    `polymer-bundler.process()`.
-    By design, gulp and grunt plugins expect to work on the given file path.
-    `polymer-bundler` has its own file loader, and expects to be given URLs. In
-    instances where the filename cannot be used as a URL `inputUrl` will
-    override the filename.
 - `loader`: A [hydrolysis](https://www.npmjs.com/package/hydrolysis) loader.
     This loader is generated with the `target` argument to `vulcan.process` and
     the `exclude` paths. A custom loader can be given if more advanced setups

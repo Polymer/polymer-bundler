@@ -41,6 +41,7 @@ import {UrlString} from './url-utils';
 // TODO(garlicnation): Add noopResolver for external urls.
 // TODO(garlicnation): Add noopResolver for excluded urls.
 // TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
+// TODO(usergenic): Add plylog
 export interface Options {
   // When provided, relative paths will be converted to absolute paths where
   // `basePath` is the root url.  This path is equal to the folder of the
@@ -67,9 +68,6 @@ export interface Options {
   // the output document.
   inlineScripts?: boolean;
 
-  // TODO(usergenic): Not-Yet-Implemented- document when supported.
-  inputUrl?: string;
-
   // Remove of all comments (except those containing '@license') when true.
   stripComments?: boolean;
 
@@ -85,7 +83,6 @@ export class Bundler {
   enableScriptInlining: boolean;
   excludes: string[];
   implicitStrip: boolean;
-  inputUrl: string;
   stripComments: boolean;
   stripExcludes: string[];
 
@@ -104,8 +101,6 @@ export class Bundler {
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
-    this.inputUrl =
-        String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
   }
 
   /**
