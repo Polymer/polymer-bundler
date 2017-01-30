@@ -280,11 +280,13 @@ export class Bundler {
     if (!mapper) {
       mapper = bundleManifestLib.sharedBundleUrlMapper;
     }
-    const bundles = bundleManifestLib.generateBundles(
-        (await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer))
-            .entrypointToDeps);
-    return new BundleManifest(
-        strategy(this._filterExcludesFromBundles(bundles)), mapper);
+    const dependencyIndex =
+        await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
+    let bundles =
+        bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
+    bundles = this._filterExcludesFromBundles(bundles);
+    bundles = strategy(bundles);
+    return new BundleManifest(bundles, mapper);
   }
 
   /**
