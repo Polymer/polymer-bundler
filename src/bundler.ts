@@ -29,9 +29,10 @@ import * as astUtils from './ast-utils';
 import * as importUtils from './import-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import {Bundle, BundleStrategy, AssignedBundle, generateBundles, BundleUrlMapper, BundleManifest, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
+import * as bundleManifestLib from './bundle-manifest';
+import {Bundle, BundleStrategy, AssignedBundle, BundleUrlMapper, BundleManifest} from './bundle-manifest';
 import {BundledDocument, DocumentCollection} from './document-collection';
-import {buildDepsIndex} from './deps-index';
+import * as depsIndexLib from './deps-index';
 import {UrlString} from './url-utils';
 
 // TODO(usergenic): Document every one of these options.
@@ -131,30 +132,13 @@ export class Bundler {
       entrypoints: string[],
       strategy?: BundleStrategy,
       mapper?: BundleUrlMapper): Promise<DocumentCollection> {
+    // TODO(usergenic): Expose the generateBundleManifest operation
+    // as public and make the interface for bundle method take a manifest.
+    const manifest =
+        await this._generateBundleManifest(entrypoints, strategy, mapper);
+
     const bundledDocuments: DocumentCollection =
         new Map<string, BundledDocument>();
-
-    if (!strategy) {
-      strategy = generateSharedDepsMergeStrategy(2);
-    }
-    if (!mapper) {
-      mapper = sharedBundleUrlMapper;
-    }
-    const index = await buildDepsIndex(entrypoints, this.analyzer);
-    const basicBundles = generateBundles(index.entrypointToDeps);
-
-    // Remove excluded files from bundles.
-    for (const bundle of basicBundles) {
-      for (const exclude of this.excludes) {
-        bundle.files.delete(exclude);
-      }
-    }
-
-    // Remove bundles which have no files (due to excludes).
-    const filteredBundles = basicBundles.filter(b => b.files.size > 0);
-
-    // Apply strategy and build the bundle manifest.
-    const manifest = new BundleManifest(strategy(filteredBundles), mapper);
 
     for (const bundleEntry of manifest.bundles) {
       const bundleUrl = bundleEntry[0];
@@ -166,7 +150,6 @@ export class Bundler {
     }
 
     return bundledDocuments;
-    //    }
   }
 
   /**
@@ -273,6 +256,23 @@ export class Bundler {
   }
 
   /**
+   * Given an array of Bundles, remove all files from bundles which are in the
+   * "excludes" set.  Remove any bundles which are left empty after excluded
+   * files are removed.
+   */
+  private _filterExcludesFromBundles(bundles: Bundle[]) {
+    // Remove excluded files from bundles.
+    for (const bundle of bundles) {
+      for (const exclude of this.excludes) {
+        bundle.files.delete(exclude);
+      }
+    }
+
+    // Remove bundles which have no files (due to excludes).
+    return bundles.filter(b => b.files.size > 0);
+  }
+
+  /**
    * Given a document, search for the hidden div, if it isn't found, then
    * create it.  After creating it, attach it to the desired location.  Then
    * return it.
@@ -284,6 +284,27 @@ export class Bundler {
       this._attachHiddenDiv(document, hiddenDiv);
     }
     return hiddenDiv;
+  }
+
+  /**
+   * Generates a BundleManifest with all bundles defined, using entrypoints,
+   * strategy and mapper.
+   */
+  private async _generateBundleManifest(
+      entrypoints: string[],
+      strategy?: BundleStrategy,
+      mapper?: BundleUrlMapper): Promise<BundleManifest> {
+    if (!strategy) {
+      strategy = bundleManifestLib.generateSharedDepsMergeStrategy();
+    }
+    if (!mapper) {
+      mapper = bundleManifestLib.sharedBundleUrlMapper;
+    }
+    const bundles = bundleManifestLib.generateBundles(
+        (await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer))
+            .entrypointToDeps);
+    return new BundleManifest(
+        strategy(this._filterExcludesFromBundles(bundles)), mapper);
   }
 
   /**
