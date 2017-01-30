@@ -35,17 +35,16 @@ import {BundledDocument, DocumentCollection} from './document-collection';
 import * as depsIndexLib from './deps-index';
 import {UrlString} from './url-utils';
 
-// TODO(usergenic): Document every one of these options.
+// TODO(garlicnation): resolve <base> tags.
+// TODO(garlicnation): find transitive dependencies of specified excluded files.
+// TODO(garlicnation): ignore <link> in <template>
+// TODO(garlicnation): Add noopResolver for external urls.
+// TODO(garlicnation): Add noopResolver for excluded urls.
+// TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
 export interface Options {
   // When provided, relative paths will be converted to absolute paths where
   // `basePath` is the root url.  This path is equal to the folder of the
   // bundled url document of the analyzer.
-  //
-  // TODO(usergenic): If multiple `bundle()` calls are made `basePath` can
-  // produce incompatile absolute paths if the same `basePath` is used for
-  // `bundle()` targets in different folders.  Possible solutions include
-  // removing basePath behavior altogether or supplementing it with a `rootPath`
-  // or other hint to fix the top-level folder.
   basePath?: string;
 
   // The instance of the Polymer Analyzer which has completed analysis
@@ -204,16 +203,6 @@ export class Bundler {
    * Produces a document containing the content of all of the bundle's files.
    * If the bundle's url resolves to an existing html file, that file will be
    * used as the basis for the generated document.
-   *
-   * TODO(garlicnation): resolve <base> tags.
-   * TODO(garlicnation): find transitive dependencies of specified excluded
-   * files.
-   * TODO(garlicnation): ignore <link> in <template>
-   *
-   * SAVED FROM buildLoader COMMENTS
-   * TODO(garlicnation): Add noopResolver for external urls.
-   * TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
-   * TODO(garlicnation): Add noopResolver for excluded urls.
    */
   private async _bundleDocument(
       docBundle: AssignedBundle,
