@@ -139,7 +139,7 @@ export async function inlineScript(
     script = await loader(resolvedUrl);
   } catch (err) {
     // If a script doesn't load, skip inlining.
-    // TODO(garlicnation): use a "canLoad" api on analyzer.
+    // TODO(usergenic): Add plylog logging for load error.
   }
 
   if (script === undefined) {
@@ -168,7 +168,8 @@ export async function inlineStylesheet(
   try {
     stylesheetContent = await loader(resolvedStylesheetUrl);
   } catch (err) {
-    // Pass here since there's no canLoad api from the analyzer.
+    // If a stylesheet doesn't load, skip inlining.
+    // TODO(usergenic): Add plylog logging for load error.
   }
 
   if (stylesheetContent === undefined) {
