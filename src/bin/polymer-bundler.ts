@@ -186,6 +186,7 @@ function stringToRegExp(str: string) {
   return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
 }
 
+options.basePath = options['abspath'];
 options.excludes = options.exclude || [];
 options.redirects = options.redirect || [];
 options.stripExcludes = options['strip-exclude'] || [];
