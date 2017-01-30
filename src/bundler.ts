@@ -48,9 +48,6 @@ export interface Options {
   // or other hint to fix the top-level folder.
   basePath?: string;
 
-  // TODO(usergenic): Added Imports is not yet supported.
-  addedImports?: string[];
-
   // The instance of the Polymer Analyzer which has completed analysis
   analyzer?: Analyzer;
 
@@ -84,7 +81,6 @@ export interface Options {
 
 export class Bundler {
   basePath?: string;
-  addedImports: string[];
   analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
@@ -105,8 +101,6 @@ export class Bundler {
 
     this.basePath = opts.basePath;
 
-    this.addedImports =
-        Array.isArray(opts.addedImports) ? opts.addedImports : [];
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
@@ -215,7 +209,6 @@ export class Bundler {
    * TODO(garlicnation): find transitive dependencies of specified excluded
    * files.
    * TODO(garlicnation): ignore <link> in <template>
-   * TODO(garlicnation): Support addedImports
    *
    * SAVED FROM buildLoader COMMENTS
    * TODO(garlicnation): Add noopResolver for external urls.

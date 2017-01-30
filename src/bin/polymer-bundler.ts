@@ -61,14 +61,6 @@ const optionDefinitions = [
         'Takes an argument in the form of URI|PATH where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.'
   },
   {
-    name: 'add-import',
-    type: String,
-    multiple: true,
-    description:
-        'Add this import to the target HTML before vulcanizing. Can be used multiple times',
-    typeLabel: `${pathArgument}`
-  },
-  {
     name: 'strip-exclude',
     type: String,
     multiple: true,
@@ -194,7 +186,6 @@ function stringToRegExp(str: string) {
   return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
 }
 
-options.addedImports = options['add-import'] || [];
 options.excludes = options.exclude || [];
 options.redirects = options.redirect || [];
 options.stripExcludes = options['strip-exclude'] || [];
