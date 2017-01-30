@@ -367,13 +367,14 @@ export class Bundler {
    * `<link rel="import" type="css">` would generate inline `<style>`.
    * Migrates these `<style>` tags into available `<template>` of the
    * `<dom-module>`.  Will create a `<template>` container if not present.
+   *
+   * TODO(usergenic): Why is this in bundler... shouldn't this be some kind of
+   * polyup or pre-bundle operation?
    */
   private _moveDomModuleStyleIntoTemplate(style: ASTNode) {
     const domModule =
         dom5.nodeWalkAncestors(style, dom5.predicates.hasTagName('dom-module'));
     if (!domModule) {
-      // TODO(usergenic): We *shouldn't* get here, but if we do, it's because
-      // the analyzer messed up.
       return;
     }
     let template = dom5.query(domModule, matchers.template);
