@@ -46,59 +46,60 @@ export async function inlineHtmlImport(
     docUrl: string,
     htmlImport: ASTNode,
     reachedImports: Set<string>,
-    bundle: AssignedBundle,
+    docBundle: AssignedBundle,
     manifest: BundleManifest,
     loader: (url: UrlString) => Promise<string>) {
-  const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
-  const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
-  const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
+  const rawImportUrl: string = dom5.getAttribute(htmlImport, 'href')!;
+  const resolvedImportUrl: string = urlLib.resolve(docUrl, rawImportUrl);
+  const importBundleUrl = manifest.bundleUrlForFile.get(resolvedImportUrl);
 
   // Don't reprocess the same file again.
-  if (reachedImports.has(resolvedUrl)) {
+  if (reachedImports.has(resolvedImportUrl)) {
     astUtils.removeElementAndNewline(htmlImport);
     return;
   }
 
   // If we can't find a bundle for the referenced import, record that we've
   // processed it, but don't remove the import link.  Browser will handle it.
-  if (!bundleUrl) {
-    reachedImports.add(resolvedUrl);
+  if (!importBundleUrl) {
+    reachedImports.add(resolvedImportUrl);
     return;
   }
 
   // Don't inline an import into itself.
-  if (docUrl === resolvedUrl) {
-    reachedImports.add(resolvedUrl);
+  if (docUrl === resolvedImportUrl) {
+    reachedImports.add(resolvedImportUrl);
     astUtils.removeElementAndNewline(htmlImport);
     return;
   }
 
   // Guard against inlining a import we've already processed.
-  if (reachedImports.has(bundleUrl)) {
+  if (reachedImports.has(importBundleUrl)) {
     astUtils.removeElementAndNewline(htmlImport);
     return;
   }
 
   // If the html import refers to a file which is bundled and has a different
   // url, then lets just rewrite the href to point to the bundle url.
-  if (bundleUrl !== bundle.url) {
-    const relative = urlUtils.relativeUrl(docUrl, bundleUrl) || bundleUrl;
+  if (importBundleUrl !== docBundle.url) {
+    const relative =
+        urlUtils.relativeUrl(docUrl, importBundleUrl) || importBundleUrl;
     dom5.setAttribute(htmlImport, 'href', relative);
-    reachedImports.add(bundleUrl);
+    reachedImports.add(importBundleUrl);
     return;
   }
 
   const document =
       dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
   const body = dom5.query(document, matchers.body)!;
-  const importSource = await loader(resolvedUrl).catch(err => {
-    throw new Error(`Unable to analyze ${resolvedUrl}`);
+  const importSource = await loader(resolvedImportUrl).catch(err => {
+    throw new Error(`Unable to analyze ${resolvedImportUrl}`);
   });
 
   // Is there a better way to get what we want other than using
   // parseFragment?
   const importDoc = parse5.parseFragment(importSource);
-  rewriteImportedUrls(basePath, importDoc, resolvedUrl, docUrl);
+  rewriteImportedUrls(basePath, importDoc, resolvedImportUrl, docUrl);
   const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
 
   // Move all of the import doc content after the html import.
@@ -108,7 +109,7 @@ export async function inlineHtmlImport(
 
   // If we've never seen this import before, lets add it to the set so we
   // will deduplicate if we encounter it again.
-  reachedImports.add(resolvedUrl);
+  reachedImports.add(resolvedImportUrl);
 
   // Recursively process the nested imports.
   for (const nestedImport of nestedImports) {
@@ -117,7 +118,7 @@ export async function inlineHtmlImport(
         docUrl,
         nestedImport,
         reachedImports,
-        bundle,
+        docBundle,
         manifest,
         loader);
   }
