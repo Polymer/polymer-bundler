@@ -26,7 +26,6 @@ import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import constants from './constants';
 import * as astUtils from './ast-utils';
-import * as importUtils from './import-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
 import {Bundle, BundleStrategy, AssignedBundle, generateBundles, BundleUrlMapper, BundleManifest, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
@@ -99,7 +98,7 @@ export async function inlineHtmlImport(
   // Is there a better way to get what we want other than using
   // parseFragment?
   const importDoc = parse5.parseFragment(importSource);
-  importUtils.rewriteImportedUrls(basePath, importDoc, resolvedUrl, docUrl);
+  rewriteImportedUrls(basePath, importDoc, resolvedUrl, docUrl);
   const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
 
   // Move all of the import doc content after the html import.
@@ -258,7 +257,7 @@ export function rewriteImportedStyleUrls(
       dom5.childNodesIncludeTemplate);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
-    styleText = importUtils.rewriteImportedStyleTextUrls(
+    styleText = rewriteImportedStyleTextUrls(
         basePath, importUrl, mainDocUrl, styleText);
     dom5.setTextContent(node, styleText);
   }
