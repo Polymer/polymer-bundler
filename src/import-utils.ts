@@ -93,7 +93,7 @@ export async function inlineHtmlImport(
       dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
   const body = dom5.query(document, matchers.body)!;
   const importSource = await loader(resolvedImportUrl).catch(err => {
-    throw new Error(`Unable to analyze ${resolvedImportUrl}`);
+    throw new Error(`Unable to load ${resolvedImportUrl}: ${err.message}`);
   });
 
   // Is there a better way to get what we want other than using
