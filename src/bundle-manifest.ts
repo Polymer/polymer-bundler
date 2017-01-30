@@ -162,8 +162,11 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
  * dependencies which are shared by at least 2 entrypoints:
  *   `[a]->[a,b], [c]->[c,e], [a,c,f,g]->[d,f,g,h]`
  */
-export function generateSharedDepsMergeStrategy(minEntrypoints: number):
+export function generateSharedDepsMergeStrategy(minEntrypoints?: number):
     BundleStrategy {
+  if (minEntrypoints === undefined) {
+    minEntrypoints = 2;
+  }
   return (bundles: Bundle[]): Bundle[] => {
     const newBundles: Bundle[] = [];
     const sharedBundles: Bundle[] = [];
