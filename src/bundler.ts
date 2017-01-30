@@ -287,26 +287,6 @@ export class Bundler {
   }
 
   /**
-   * Inline external HTML files `<link type="import" href="...">`
-   */
-  private async _inlineHtmlImport(
-      docUrl: string,
-      htmlImport: ASTNode,
-      reachedImports: Set<string>,
-      bundle: AssignedBundle,
-      manifest: BundleManifest) {
-    return importUtils.inlineHtmlImport(
-        this.basePath,
-        docUrl,
-        htmlImport,
-        reachedImports,
-        bundle,
-        manifest,
-        url => this.analyzer.analyze(url).then(
-            doc => doc.parsedDocument.contents));
-  }
-
-  /**
    * Replace html import links in the document with the contents of the
    * imported file, but only once per url.
    */
@@ -318,21 +298,15 @@ export class Bundler {
     const reachedImports = new Set<UrlString>();
     const htmlImports = dom5.queryAll(document, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
-      await this._inlineHtmlImport(
-          url, htmlImport, reachedImports, bundle, bundleManifest);
+      await importUtils.inlineHtmlImport(
+          this.basePath,
+          url,
+          htmlImport,
+          reachedImports,
+          bundle,
+          bundleManifest,
+          this._loadFileContents.bind(this));
     }
-  }
-
-  /**
-   * Inline external script content into their tags, converting
-   * `<script src="..."></script>`  tags to `<script>...</script>` tags.
-   */
-  private async _inlineScript(docUrl: string, externalScript: ASTNode) {
-    return importUtils.inlineScript(
-        docUrl,
-        externalScript,
-        url => this.analyzer.analyze(url).then(
-            doc => doc.parsedDocument.contents));
   }
 
   /**
@@ -342,22 +316,9 @@ export class Bundler {
   private async _inlineScripts(url: UrlString, document: ASTNode) {
     const scriptImports = dom5.queryAll(document, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
-      await this._inlineScript(url, externalScript);
+      await importUtils.inlineScript(
+          url, externalScript, this._loadFileContents.bind(this));
     }
-  }
-
-  /**
-   * Inline a stylesheet (either from deprecated polymer-style css import `<link
-   * rel="import" type="css">` import or regular external stylesheet link
-   * `<link rel="stylesheet">`.
-   */
-  private async _inlineStylesheet(docUrl: string, cssLink: ASTNode) {
-    return await importUtils.inlineStylesheet(
-        this.basePath,
-        docUrl,
-        cssLink,
-        url => this.analyzer.analyze(url).then(
-            doc => doc.parsedDocument.contents));
   }
 
   /**
@@ -368,7 +329,8 @@ export class Bundler {
   private async _inlineStylesheetImports(url: UrlString, document: ASTNode) {
     const cssImports = dom5.queryAll(document, matchers.stylesheetImport);
     for (const cssLink of cssImports) {
-      const style = await this._inlineStylesheet(url, cssLink);
+      const style = await importUtils.inlineStylesheet(
+          this.basePath, url, cssLink, this._loadFileContents.bind(this));
       if (style) {
         this._moveDomModuleStyleIntoTemplate(style);
       }
@@ -383,8 +345,17 @@ export class Bundler {
   private async _inlineStylesheetLinks(url: UrlString, document: ASTNode) {
     const cssLinks = dom5.queryAll(document, matchers.externalStyle);
     for (const cssLink of cssLinks) {
-      await this._inlineStylesheet(url, cssLink);
+      await importUtils.inlineStylesheet(
+          this.basePath, url, cssLink, this._loadFileContents.bind(this));
     }
+  }
+
+  /**
+   * Return a file's contents as a string, given its url.
+   */
+  private async _loadFileContents(url: UrlString): Promise<string> {
+    const analyzedDocument = await this.analyzer.analyze(url);
+    return analyzedDocument.parsedDocument.contents;
   }
 
   /**
@@ -459,7 +430,7 @@ export class Bundler {
   private async _prepareBundleDocument(bundle: AssignedBundle):
       Promise<ASTNode> {
     const html = bundle.bundle.files.has(bundle.url) ?
-        (await this.analyzer.analyze(bundle.url)).parsedDocument.contents :
+        await this._loadFileContents(bundle.url) :
         '';
     const document = parse5.parse(html);
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(document);
