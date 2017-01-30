@@ -207,6 +207,10 @@ export class Bundler {
   }
 
   /**
+   * Produces a document containing the content of all of the bundle's files.
+   * If the bundle's url resolves to an existing html file, that file will be
+   * used as the basis for the generated document.
+   *
    * TODO(garlicnation): resolve <base> tags.
    * TODO(garlicnation): find transitive dependencies of specified excluded
    * files.
@@ -219,23 +223,22 @@ export class Bundler {
    * TODO(garlicnation): Add noopResolver for excluded urls.
    */
   private async _bundleDocument(
-      bundle: AssignedBundle,
+      docBundle: AssignedBundle,
       bundleManifest: BundleManifest,
       bundleImports?: Set<string>): Promise<ASTNode> {
-    const url = bundle.url;
-    const document = await this._prepareBundleDocument(bundle);
-    this._appendHtmlImportsForBundle(document, bundle);
-    importUtils.rewriteImportedUrls(this.basePath, document, url, url);
+    const docUrl = docBundle.url;
+    const document = await this._prepareBundleDocument(docBundle);
+    this._appendHtmlImportsForBundle(document, docBundle);
+    importUtils.rewriteImportedUrls(this.basePath, document, docUrl, docUrl);
 
-    await this._inlineHtmlImports(url, document, bundle, bundleManifest);
+    await this._inlineHtmlImports(docUrl, document, docBundle, bundleManifest);
 
     if (this.enableScriptInlining) {
-      await this._inlineScripts(url, document);
+      await this._inlineScripts(docUrl, document);
     }
-
     if (this.enableCssInlining) {
-      await this._inlineStylesheetLinks(url, document);
-      await this._inlineStylesheetImports(url, document);
+      await this._inlineStylesheetLinks(docUrl, document);
+      await this._inlineStylesheetImports(docUrl, document);
     }
 
     if (this.stripComments) {
