@@ -28,7 +28,7 @@ import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
 
 
-// TODO(garlicnation): resolve <base> tags.
+// TODO(usergenic): resolve <base> tags.
 // TODO(garlicnation): find transitive dependencies of specified excluded files.
 // TODO(garlicnation): ignore <link> in <template>
 // TODO(garlicnation): Add noopResolver for external urls.
