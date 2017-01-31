@@ -35,14 +35,14 @@ export type UrlString = string;
 /**
  * Returns true if the href is an absolute path.
  */
-export function isAbsolutePath(href: string): boolean {
+export function isAbsolutePath(href: UrlString): boolean {
   return constants.ABS_URL.test(href);
 }
 
 /**
  * Returns true if the href is a templated value, i.e. `{{...}}` or `[[...]]`
  */
-export function isTemplatedUrl(href: string): boolean {
+export function isTemplatedUrl(href: UrlString): boolean {
   return href.search(constants.URL_TEMPLATE) >= 0;
 }
 
@@ -51,7 +51,7 @@ export function isTemplatedUrl(href: string): boolean {
  * the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
  * `/a/` is correctly treated as a folder path where `/a` is not.
  */
-export function relativeUrl(fromUri: string, toUri: string): string {
+export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   const fromUrl = url.parse(fromUri)!;
   const toUrl = url.parse(toUri)!;
   // Return the toUri as-is if there are conflicting components which
@@ -80,10 +80,10 @@ export function relativeUrl(fromUri: string, toUri: string): string {
  * using `basePath` as its root.
  */
 export function rewriteImportedRelPath(
-    basePath: string|undefined,
-    importUrl: string,
-    mainDocUrl: string,
-    href: string): string {
+    basePath: UrlString|undefined,
+    importUrl: UrlString,
+    mainDocUrl: UrlString,
+    href: UrlString): UrlString {
   if (isAbsolutePath(href)) {
     return href;
   }

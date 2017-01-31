@@ -258,7 +258,7 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
  * Return the entrypoint that represents the given bundle, or null if no
  * entrypoint represents the bundle.
  */
-function getBundleEntrypoint(bundle: Bundle): string|null {
+function getBundleEntrypoint(bundle: Bundle): UrlString|null {
   for (const entrypoint of bundle.entrypoints) {
     if (bundle.files.has(entrypoint)) {
       return entrypoint;

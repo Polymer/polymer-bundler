@@ -46,13 +46,13 @@ export interface Options {
   // When provided, relative paths will be converted to absolute paths where
   // `basePath` is the root url.  This path is equal to the folder of the
   // bundled url document of the analyzer.
-  basePath?: string;
+  basePath?: UrlString;
 
   // The instance of the Polymer Analyzer which has completed analysis
   analyzer?: Analyzer;
 
   // URLs of files that should not be inlined.
-  excludes?: string[];
+  excludes?: UrlString[];
 
   // *DANGEROUS*! Avoid stripping imports of the transitive dependencies of
   // excluded imports (i.e. where listed in `excludes` option or where contained
@@ -71,20 +71,20 @@ export interface Options {
   // Remove of all comments (except those containing '@license') when true.
   stripComments?: boolean;
 
-  // Paths of files that should not be inlined and which should have all links
+  // URLs of files that should not be inlined and which should have all links
   // removed.
-  stripExcludes?: string[];
+  stripExcludes?: UrlString[];
 }
 
 export class Bundler {
-  basePath?: string;
+  basePath?: UrlString;
   analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
-  excludes: string[];
+  excludes: UrlString[];
   implicitStrip: boolean;
   stripComments: boolean;
-  stripExcludes: string[];
+  stripExcludes: UrlString[];
 
   constructor(options?: Options) {
     const opts = options ? options : {};
@@ -117,7 +117,7 @@ export class Bundler {
    *     generated bundles. See 'polymer-analyzer/src/bundle-manifest'.
    */
   async bundle(
-      entrypoints: string[],
+      entrypoints: UrlString[],
       strategy?: BundleStrategy,
       mapper?: BundleUrlMapper): Promise<DocumentCollection> {
     // TODO(usergenic): Expose the generateBundleManifest operation
@@ -271,7 +271,7 @@ export class Bundler {
    * strategy and mapper.
    */
   private async _generateBundleManifest(
-      entrypoints: string[],
+      entrypoints: UrlString[],
       strategy?: BundleStrategy,
       mapper?: BundleUrlMapper): Promise<BundleManifest> {
     if (!strategy) {
@@ -298,14 +298,14 @@ export class Bundler {
       document: ASTNode,
       bundle: AssignedBundle,
       bundleManifest: BundleManifest) {
-    const reachedImports = new Set<UrlString>();
+    const visitedUrls = new Set<UrlString>();
     const htmlImports = dom5.queryAll(document, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
       await importUtils.inlineHtmlImport(
           this.basePath,
           url,
           htmlImport,
-          reachedImports,
+          visitedUrls,
           bundle,
           bundleManifest,
           this._loadFileContents.bind(this));
