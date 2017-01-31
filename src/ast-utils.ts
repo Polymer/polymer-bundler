@@ -19,7 +19,9 @@ import * as matchers from './matchers';
 
 /**
  * Move the `node` to be the immediate sibling after the `target` node.
- * TODO(usergenic): Migrate this code to polymer/dom5
+ * TODO(usergenic): Migrate this code to polymer/dom5 and when you do, use
+ * insertNode which will handle the remove and the splicing in once you have
+ * the index.
  */
 export function insertAfter(target: ASTNode, node: ASTNode) {
   dom5.remove(node);
