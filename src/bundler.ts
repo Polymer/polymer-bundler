@@ -11,48 +11,36 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import * as path from 'path';
-import * as urlLib from 'url';
-const pathPosix = path.posix;
 import * as dom5 from 'dom5';
-import encodeString from './third_party/UglifyJS2/encode-string';
-
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
-import {Document, ScannedDocument} from 'polymer-analyzer/lib/model/document';
-import {Import} from 'polymer-analyzer/lib/model/import';
-import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
+import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
-import constants from './constants';
+
 import * as astUtils from './ast-utils';
+import * as bundleManifestLib from './bundle-manifest';
+import {AssignedBundle, Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-manifest';
+import * as depsIndexLib from './deps-index';
+import {BundledDocument, DocumentCollection} from './document-collection';
+import * as importUtils from './import-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import {Bundle, BundleStrategy, AssignedBundle, generateBundles, BundleUrlMapper, BundleManifest, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
-import {BundledDocument, DocumentCollection} from './document-collection';
-import {buildDepsIndex} from './deps-index';
 import {UrlString} from './url-utils';
 
-// TODO(usergenic): Document every one of these options.
+
+// TODO(usergenic): resolve <base> tags.
+// TODO(garlicnation): find transitive dependencies of specified excluded files.
+// TODO(garlicnation): ignore <link> in <template>
+// TODO(garlicnation): Add noopResolver for external urls.
+// TODO(garlicnation): Add noopResolver for excluded urls.
+// TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
+// TODO(usergenic): Add plylog
 export interface Options {
-  // When provided, relative paths will be converted to absolute paths where
-  // `basePath` is the root url.  This path is equal to the folder of the
-  // bundled url document of the analyzer.
-  //
-  // TODO(usergenic): If multiple `bundle()` calls are made `basePath` can
-  // produce incompatile absolute paths if the same `basePath` is used for
-  // `bundle()` targets in different folders.  Possible solutions include
-  // removing basePath behavior altogether or supplementing it with a `rootPath`
-  // or other hint to fix the top-level folder.
-  basePath?: string;
-
-  addedImports?: string[];
-
   // The instance of the Polymer Analyzer which has completed analysis
   analyzer?: Analyzer;
 
   // URLs of files that should not be inlined.
-  excludes?: string[];
+  excludes?: UrlString[];
 
   // *DANGEROUS*! Avoid stripping imports of the transitive dependencies of
   // excluded imports (i.e. where listed in `excludes` option or where contained
@@ -68,28 +56,22 @@ export interface Options {
   // the output document.
   inlineScripts?: boolean;
 
-  // TODO(usergenic): Not-Yet-Implemented- document when supported.
-  inputUrl?: string;
-
   // Remove of all comments (except those containing '@license') when true.
   stripComments?: boolean;
 
-  // Paths of files that should not be inlined and which should have all links
+  // URLs of files that should not be inlined and which should have all links
   // removed.
-  stripExcludes?: string[];
+  stripExcludes?: UrlString[];
 }
 
 export class Bundler {
-  basePath?: string;
-  addedImports: string[];
   analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
-  excludes: string[];
+  excludes: UrlString[];
   implicitStrip: boolean;
-  inputUrl: string;
   stripComments: boolean;
-  stripExcludes: string[];
+  stripExcludes: UrlString[];
 
   constructor(options?: Options) {
     const opts = options ? options : {};
@@ -100,87 +82,136 @@ export class Bundler {
     // implicitStrip should be true by default
     this.implicitStrip = !Boolean(opts.noImplicitStrip);
 
-    this.basePath = opts.basePath;
-
-    this.addedImports =
-        Array.isArray(opts.addedImports) ? opts.addedImports : [];
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
-    this.inputUrl =
-        String(opts.inputUrl) === opts.inputUrl ? opts.inputUrl : '';
   }
-
 
   /**
-   * Return the URL this import should point to in the given bundle.
+   * Given urls to entrypoint html documents, produce a collection of bundled
+   * documents with HTML imports, external stylesheets and external scripts
+   * inlined according to the options for this Bundler.
    *
-   * If the URL is part of the bundle, this method returns `true`.
-   *
-   * If the URL is part of another bundle, this method returns the url of that
-   * bundle.
-   *
-   * If the URL isn't part of a bundle, this method returns `false`
+   * @param {Array<string>} entrypoints The list of entrypoints that will be
+   *     analyzed for dependencies. The results of the analysis will be passed
+   *     to the `strategy`.
+   * @param {BundleStrategy} strategy The strategy used to construct the
+   *     output bundles. See 'polymer-analyzer/src/bundle-manifest'.
+   * @param {BundleUrlMapper} mapper A function that produces urls for the
+   *     generated bundles. See 'polymer-analyzer/src/bundle-manifest'.
    */
-  resolveBundleUrl(
-      url: string,
-      bundle: AssignedBundle,
-      manifest: BundleManifest): boolean|string {
-    const targetBundle = manifest.getBundleForFile(url);
-    if (!targetBundle || !targetBundle.url) {
-      return false;
+  async bundle(
+      entrypoints: UrlString[],
+      strategy?: BundleStrategy,
+      mapper?: BundleUrlMapper): Promise<DocumentCollection> {
+    // TODO(usergenic): Expose the generateBundleManifest operation
+    // as public and make the interface for bundle method take a manifest.
+    const manifest =
+        await this._generateBundleManifest(entrypoints, strategy, mapper);
+
+    const bundledDocuments: DocumentCollection =
+        new Map<string, BundledDocument>();
+
+    for (const bundleEntry of manifest.bundles) {
+      const bundleUrl = bundleEntry[0];
+      const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
+      const bundledAst =
+          await this._bundleDocument(bundle, manifest, bundle.bundle.files);
+      bundledDocuments.set(
+          bundleUrl, {ast: bundledAst, files: Array.from(bundle.bundle.files)});
     }
-    if (targetBundle.url !== bundle.url) {
-      const relative = urlUtils.relativeUrl(bundle.url, targetBundle.url);
-      if (!relative) {
-        throw new Error('Unable to compute relative url to bundle');
+
+    return bundledDocuments;
+  }
+
+  /**
+   * Add HTML Import elements for each file in the bundle.  We append all the
+   * imports in the case any were moved into the bundle by the strategy.
+   * While this will almost always yield duplicate imports, they will be
+   * cleaned up through deduplication during the import phase.
+   */
+  private _appendHtmlImportsForBundle(
+      document: ASTNode,
+      bundle: AssignedBundle) {
+    for (const importUrl of bundle.bundle.files) {
+      const newUrl = urlUtils.relativeUrl(bundle.url, importUrl);
+      if (!newUrl) {
+        continue;
       }
-      return relative;
+      this._appendHtmlImport(this._findOrCreateHiddenDiv(document), newUrl);
     }
-    return true;
   }
 
-  isStripExcludedHref(url: string): boolean {
-    if (!this.stripExcludes) {
-      return false;
-    }
-    return this.stripExcludes.some(r => url.search(r) >= 0);
+  /**
+   * Append a <link rel="import" node to `node` with a value of `url` for
+   * the "href" attribute.
+   */
+  private _appendHtmlImport(node: ASTNode, url: UrlString) {
+    const newNode = dom5.constructors.element('link');
+    dom5.setAttribute(newNode, 'rel', 'import');
+    dom5.setAttribute(newNode, 'href', url);
+    dom5.append(node, newNode);
   }
 
-  isBlankTextNode(node: ASTNode): boolean {
-    return node && dom5.isTextNode(node) &&
-        !/\S/.test(dom5.getTextContent(node));
-  }
-
-  removeElementAndNewline(node: ASTNode, replacement?: ASTNode) {
-    // when removing nodes, remove the newline after it as well
-    const siblings = node.parentNode!.childNodes!;
-    const nextIdx = siblings.indexOf(node) + 1;
-    const next = siblings[nextIdx];
-    // remove next node if it is blank text
-    if (this.isBlankTextNode(next)) {
-      dom5.remove(next);
-    }
-    if (replacement) {
-      dom5.replace(node, replacement);
+  /**
+   * Set the hidden div at the appropriate location within the document.  The
+   * goal is to place the hidden div at the same place as the first html
+   * import.  However, the div can't be placed in the `<head>` of the document
+   * so if first import is found in the head, we prepend the div to the body.
+   * If there is no body, we'll just attach the hidden div to the document at
+   * the end.
+   */
+  private _attachHiddenDiv(document: ASTNode, hiddenDiv: ASTNode) {
+    const firstHtmlImport = dom5.query(document, matchers.htmlImport);
+    const body = dom5.query(document, matchers.body);
+    if (body) {
+      if (firstHtmlImport &&
+          dom5.predicates.parentMatches(matchers.body)(firstHtmlImport)) {
+        astUtils.insertAfter(firstHtmlImport, hiddenDiv);
+      } else {
+        astUtils.prepend(body, hiddenDiv);
+      }
     } else {
-      dom5.remove(node);
+      dom5.append(document, hiddenDiv);
     }
   }
 
-  isLicenseComment(node: ASTNode): boolean {
-    if (dom5.isCommentNode(node)) {
-      return dom5.getTextContent(node).indexOf('@license') > -1;
+  /**
+   * Produces a document containing the content of all of the bundle's files.
+   * If the bundle's url resolves to an existing html file, that file will be
+   * used as the basis for the generated document.
+   */
+  private async _bundleDocument(
+      docBundle: AssignedBundle,
+      bundleManifest: BundleManifest,
+      bundleImports?: Set<string>): Promise<ASTNode> {
+    const docUrl = docBundle.url;
+    const document = await this._prepareBundleDocument(docBundle);
+    this._appendHtmlImportsForBundle(document, docBundle);
+    importUtils.rewriteImportedUrls(document, docUrl, docUrl);
+
+    await this._inlineHtmlImports(docUrl, document, docBundle, bundleManifest);
+
+    if (this.enableScriptInlining) {
+      await this._inlineScripts(docUrl, document);
     }
-    return false;
+    if (this.enableCssInlining) {
+      await this._inlineStylesheetLinks(docUrl, document);
+      await this._inlineStylesheetImports(docUrl, document);
+    }
+
+    if (this.stripComments) {
+      astUtils.stripComments(document);
+    }
+    return document;
   }
 
   /**
    * Creates a hidden container <div> to which inlined content will be
    * appended.
    */
-  createHiddenContainerNode(): ASTNode {
+  private _createHiddenDiv(): ASTNode {
     const hidden = dom5.constructors.element('div');
     dom5.setAttribute(hidden, 'hidden', '');
     dom5.setAttribute(hidden, 'by-polymer-bundler', '');
@@ -188,260 +219,134 @@ export class Bundler {
   }
 
   /**
-   * Inline external scripts <script src="*">
+   * Given an array of Bundles, remove all files from bundles which are in the
+   * "excludes" set.  Remove any bundles which are left empty after excluded
+   * files are removed.
    */
-  async inlineScript(docUrl: string, externalScript: ASTNode):
-      Promise<ASTNode|undefined> {
-    const rawUrl: string = dom5.getAttribute(externalScript, 'src')!;
-    const resolvedUrl = urlLib.resolve(docUrl, rawUrl);
-    let script: Document|null = null;
-    try {
-      script = await this.analyzer.analyze(resolvedUrl);
-    } catch (err) {
-      // If a script doesn't load, skip inlining.
-      // TODO(garlicnation): use a "canLoad" api on analyzer.
+  private _filterExcludesFromBundles(bundles: Bundle[]) {
+    // Remove excluded files from bundles.
+    for (const bundle of bundles) {
+      for (const exclude of this.excludes) {
+        bundle.files.delete(exclude);
+      }
     }
 
-    if (!script) {
-      return;
+    let b = 0;
+    while (b < bundles.length) {
+      if (bundles[b].files.size < 0) {
+        bundles.splice(b, 1);
+        continue;
+      }
+      ++b;
     }
-
-    // Second argument 'true' tells encodeString to escape <script> tags.
-    const scriptContent = encodeString(script.parsedDocument.contents, true);
-    dom5.removeAttribute(externalScript, 'src');
-    dom5.setTextContent(externalScript, scriptContent);
-
-    return externalScript;
   }
 
   /**
-   * Inline a stylesheet (either from deprecated polymer-style css import `<link
-   * rel="import" type="css">` import or regular external stylesheet link
-   * `<link rel="stylesheet">`.
+   * Given a document, search for the hidden div, if it isn't found, then
+   * create it.  After creating it, attach it to the desired location.  Then
+   * return it.
    */
-  async inlineStylesheet(docUrl: string, cssLink: ASTNode):
-      Promise<ASTNode|undefined> {
-    const stylesheetUrl: string = dom5.getAttribute(cssLink, 'href')!;
-    const resolvedStylesheetUrl = urlLib.resolve(docUrl, stylesheetUrl);
-    let stylesheetImport: Document|null = null;
-    try {
-      stylesheetImport = await this.analyzer.analyze(resolvedStylesheetUrl);
-    } catch (err) {
-      // Pass here since there's no canLoad api from the analyzer.
+  private _findOrCreateHiddenDiv(document: ASTNode): ASTNode {
+    const hiddenDiv =
+        dom5.query(document, matchers.hiddenDiv) || this._createHiddenDiv();
+    if (!hiddenDiv.parentNode) {
+      this._attachHiddenDiv(document, hiddenDiv);
     }
-
-    if (!stylesheetImport) {
-      return;
-    }
-
-    const media = dom5.getAttribute(cssLink, 'media');
-    const stylesheetContent = stylesheetImport.parsedDocument.contents;
-    const resolvedStylesheetContent = this.rewriteImportedStyleTextUrls(
-        resolvedStylesheetUrl, docUrl, stylesheetContent);
-    const styleNode = dom5.constructors.element('style');
-
-    if (media) {
-      dom5.setAttribute(styleNode, 'media', media);
-    }
-
-    dom5.replace(cssLink, styleNode);
-    dom5.setTextContent(styleNode, resolvedStylesheetContent);
-    return styleNode;
+    return hiddenDiv;
   }
 
   /**
-   * Inline external HTML files <link type="import" href="*">
-   * TODO(usergenic): Refactor method to simplify and encapsulate case handling
-   *     for hidden div adjacency etc.
+   * Generates a BundleManifest with all bundles defined, using entrypoints,
+   * strategy and mapper.
    */
-  async inlineHtmlImport(
-      docUrl: string,
-      htmlImport: ASTNode,
-      reachedImports: Set<string>,
+  private async _generateBundleManifest(
+      entrypoints: UrlString[],
+      strategy?: BundleStrategy,
+      mapper?: BundleUrlMapper): Promise<BundleManifest> {
+    if (!strategy) {
+      strategy = bundleManifestLib.generateSharedDepsMergeStrategy();
+    }
+    if (!mapper) {
+      mapper = bundleManifestLib.sharedBundleUrlMapper;
+    }
+    const dependencyIndex =
+        await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
+    let bundles =
+        bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
+    this._filterExcludesFromBundles(bundles);
+    bundles = strategy(bundles);
+    return new BundleManifest(bundles, mapper);
+  }
+
+  /**
+   * Replace html import links in the document with the contents of the
+   * imported file, but only once per url.
+   */
+  private async _inlineHtmlImports(
+      url: UrlString,
+      document: ASTNode,
       bundle: AssignedBundle,
-      manifest: BundleManifest) {
-    const rawUrl: string = dom5.getAttribute(htmlImport, 'href')!;
-    const resolvedUrl: string = urlLib.resolve(docUrl, rawUrl);
-    const bundleUrl = manifest.bundleUrlForFile.get(resolvedUrl);
-    // HACK(usergenic):  _bundleDocument is appending .html, presumably so
-    // analyzer sees the bundled document differently than the source document.
-    // This is kind of an obscure hack and it should be fixed.  However, I'm
-    // relying on that behavior here in the comparison to check whether we are
-    // inlining the entrypoint/basis doc itself here.
-    const hide = docUrl !== resolvedUrl + '.html';
-
-    if (!bundleUrl) {
-      if (reachedImports.has(resolvedUrl)) {
-        dom5.remove(htmlImport);
-        return;
-      } else {
-        reachedImports.add(resolvedUrl);
-      }
-      return;
-    }
-
-    if (bundleUrl !== bundle.url) {
-      if (reachedImports.has(bundleUrl)) {
-        dom5.remove(htmlImport);
-        return;
-      }
-      const relative = urlUtils.relativeUrl(docUrl, bundleUrl) || bundleUrl;
-      dom5.setAttribute(htmlImport, 'href', relative);
-      reachedImports.add(bundleUrl);
-      return;
-    }
-
-    const doc = dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
-    const body = dom5.query(doc, dom5.predicates.hasTagName('body'))!;
-
-    if (!reachedImports.has(resolvedUrl)) {
-      const analyzedImport = await this.analyzer.analyze(resolvedUrl);
-      // If the document wasn't loaded for the import during analysis, we can't
-      // inline it.
-      if (!analyzedImport) {
-        // TODO(usergenic): What should the behavior be when we don't have the
-        // document to inline available in the analyzer?
-        throw new Error(`Unable to analyze ${resolvedUrl}`);
-      }
-      // Is there a better way to get what we want other than using
-      // parseFragment?
-      const importDoc =
-          parse5.parseFragment(analyzedImport.parsedDocument.contents);
-      reachedImports.add(resolvedUrl);
-      this.rewriteImportedUrls(importDoc, resolvedUrl, docUrl);
-
-      let hiddenDiv = dom5.query(body, matchers.hiddenDiv);
-      if (!hiddenDiv) {
-        hiddenDiv = this.createHiddenContainerNode();
-        dom5.append(body, hiddenDiv);
-      }
-
-      if (hide) {
-        if (matchers.afterHiddenDiv(htmlImport)) {
-          dom5.append(hiddenDiv, htmlImport);
-        } else if (matchers.beforeHiddenDiv(htmlImport)) {
-          astUtils.prepend(hiddenDiv, htmlImport);
-        } else if (!matchers.inHiddenDiv(htmlImport)) {
-          dom5.append(hiddenDiv, htmlImport);
-        }
-
-      } else {
-        if (matchers.inHiddenDiv(htmlImport)) {
-          astUtils.insertAfter(hiddenDiv, htmlImport);
-        }
-      }
-
-      const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
-
-      if (!hide && nestedImports.length > 0) {
-        // If we're currently inlining an entrypoint doc for the bundle,
-        // we are not pushing its content into the hidden div, since the
-        // entrypoint html should be visible.   To preserve the order of script
-        // execution and style overrides, we need to import html prior to the
-        // first html import found in the import doc before the hidden div.
-        // Once we encounter an html import, we import the remainder of the
-        // import doc's html after the hidden div.
-        // To achieve this, we temporarily move the hidden div out of the doc
-        // and into the import doc.  Later, we bring all of the import doc
-        // content into the bundle doc, so the hidden div comes back in.
-        // This approach is more succinct and convenient than dividing the
-        // import doc into two halves and importing them before and after the
-        // hidden div.
-        const firstNestedImport = nestedImports[0]!;
-        dom5.insertBefore(
-            firstNestedImport.parentNode!, firstNestedImport, hiddenDiv);
-      }
-
-      // Move all of the import doc content after the html import.
-      astUtils.insertAllBefore(
-          htmlImport.parentNode!, htmlImport, importDoc.childNodes!);
-
-      for (const nestedImport of nestedImports) {
-        await this.inlineHtmlImport(
-            docUrl, nestedImport, reachedImports, bundle, manifest);
-      }
-    }
-
-    if (reachedImports.has(resolvedUrl)) {
-      dom5.remove(htmlImport);
-    } else {
-      // If we've never seen this import before, lets add it to the set so we
-      // will deduplicate if we encounter it again.
-      reachedImports.add(resolvedUrl);
+      bundleManifest: BundleManifest) {
+    const visitedUrls = new Set<UrlString>();
+    const htmlImports = dom5.queryAll(document, matchers.htmlImport);
+    for (const htmlImport of htmlImports) {
+      await importUtils.inlineHtmlImport(
+          url,
+          htmlImport,
+          visitedUrls,
+          bundle,
+          bundleManifest,
+          this._loadFileContents.bind(this));
     }
   }
 
-  // TODO(usergenic): Migrate "Old Polymer" detection to polymer-analyzer with
-  // deprecated feature scanners.
-  oldPolymerCheck(analyzedRoot: Document) {
-    analyzedRoot.getByKind('document').forEach((d) => {
-      if (d.parsedDocument instanceof ParsedHtmlDocument &&
-          dom5.query(d.parsedDocument.ast, matchers.polymerElement)) {
-        throw new Error(
-            constants.OLD_POLYMER + ' File: ' + d.parsedDocument.url);
-      }
-    });
+  /**
+   * Replace all external javascript tags (`<script src="...">`)
+   * with `<script>` tags containing the file contents inlined.
+   */
+  private async _inlineScripts(url: UrlString, document: ASTNode) {
+    const scriptImports = dom5.queryAll(document, matchers.externalJavascript);
+    for (const externalScript of scriptImports) {
+      await importUtils.inlineScript(
+          url, externalScript, this._loadFileContents.bind(this));
+    }
   }
 
-  rewriteImportedStyleTextUrls(
-      importUrl: string,
-      mainDocUrl: string,
-      cssText: string): string {
-    return cssText.replace(constants.URL, match => {
-      let path = match.replace(/["']/g, '').slice(4, -1);
-      path = urlUtils.rewriteImportedRelPath(
-          this.basePath, importUrl, mainDocUrl, path);
-      return 'url("' + path + '")';
-    });
-  }
-
-  rewriteImportedUrls(
-      importDoc: ASTNode,
-      importUrl: string,
-      mainDocUrl: string) {
-    // rewrite URLs in element attributes
-    const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
-    let attrValue: string|null;
-    for (let i = 0, node: ASTNode; i < nodes.length; i++) {
-      node = nodes[i];
-      for (let j = 0, attr: string; j < constants.URL_ATTR.length; j++) {
-        attr = constants.URL_ATTR[j];
-        attrValue = dom5.getAttribute(node, attr);
-        if (attrValue && !urlUtils.isTemplatedUrl(attrValue)) {
-          let relUrl: string;
-          if (attr === 'style') {
-            relUrl = this.rewriteImportedStyleTextUrls(
-                importUrl, mainDocUrl, attrValue);
-          } else {
-            relUrl = urlUtils.rewriteImportedRelPath(
-                this.basePath, importUrl, mainDocUrl, attrValue);
-            if (attr === 'assetpath' && relUrl.slice(-1) !== '/') {
-              relUrl += '/';
-            }
-          }
-          dom5.setAttribute(node, attr, relUrl);
-        }
+  /**
+   * Replace all polymer stylesheet imports (`<link rel="import" type="css">`)
+   * with `<style>` tags containing the file contents, with internal URLs
+   * relatively transposed as necessary.
+   */
+  private async _inlineStylesheetImports(url: UrlString, document: ASTNode) {
+    const cssImports = dom5.queryAll(document, matchers.stylesheetImport);
+    for (const cssLink of cssImports) {
+      const style = await importUtils.inlineStylesheet(
+          url, cssLink, this._loadFileContents.bind(this));
+      if (style) {
+        this._moveDomModuleStyleIntoTemplate(style);
       }
     }
-    // rewrite URLs in stylesheets
-    const styleNodes = astUtils.querySelectorAllWithTemplates(
-        importDoc, matchers.styleMatcher);
-    for (let i = 0, node: ASTNode; i < styleNodes.length; i++) {
-      node = styleNodes[i];
-      let styleText = dom5.getTextContent(node);
-      styleText =
-          this.rewriteImportedStyleTextUrls(importUrl, mainDocUrl, styleText);
-      dom5.setTextContent(node, styleText);
+  }
+
+  /**
+   * Replace all external stylesheet references, in `<link rel="stylesheet">`
+   * tags with `<style>` tags containing file contents, with internal URLs
+   * relatively transposed as necessary.
+   */
+  private async _inlineStylesheetLinks(url: UrlString, document: ASTNode) {
+    const cssLinks = dom5.queryAll(document, matchers.externalStyle);
+    for (const cssLink of cssLinks) {
+      await importUtils.inlineStylesheet(
+          url, cssLink, this._loadFileContents.bind(this));
     }
-    // add assetpath to dom-modules in importDoc
-    const domModules = dom5.queryAll(importDoc, matchers.domModule);
-    for (let i = 0, node: ASTNode; i < domModules.length; i++) {
-      node = domModules[i];
-      let assetPathUrl = urlUtils.rewriteImportedRelPath(
-          this.basePath, importUrl, mainDocUrl, '');
-      assetPathUrl = pathPosix.dirname(assetPathUrl) + '/';
-      dom5.setAttribute(node, 'assetpath', assetPathUrl);
-    }
+  }
+
+  /**
+   * Return a file's contents as a string, given its url.
+   */
+  private async _loadFileContents(url: UrlString): Promise<string> {
+    const analyzedDocument = await this.analyzer.analyze(url);
+    return analyzedDocument.parsedDocument.contents;
   }
 
   /**
@@ -450,244 +355,78 @@ export class Bundler {
    * `<link rel="import" type="css">` would generate inline `<style>`.
    * Migrates these `<style>` tags into available `<template>` of the
    * `<dom-module>`.  Will create a `<template>` container if not present.
+   *
+   * TODO(usergenic): Why is this in bundler... shouldn't this be some kind of
+   * polyup or pre-bundle operation?
    */
-  moveDomModuleStyleIntoTemplate(style: ASTNode) {
+  private _moveDomModuleStyleIntoTemplate(style: ASTNode) {
     const domModule =
         dom5.nodeWalkAncestors(style, dom5.predicates.hasTagName('dom-module'));
     if (!domModule) {
-      // TODO(usergenic): We *shouldn't* get here, but if we do, it's because
-      // the analyzer messed up.
       return;
     }
     let template = dom5.query(domModule, matchers.template);
     if (!template) {
-      template = dom5.constructors.element('template');
-      dom5.append(domModule, template !);
+      template = dom5.constructors.element('template')!;
+      dom5.append(domModule, template);
     }
-    dom5.remove(style);
-    astUtils.prepend(template !, style);
+    astUtils.removeElementAndNewline(style);
+    astUtils.prepend(template, style);
   }
 
   /**
-   * Given a URL to an entry-point html document, produce a single document
-   * with HTML imports, external stylesheets and external scripts inlined,
-   * according to the options for this Bundler.
-   *
-   * TODO: Given Multiple urls, produces a sharded build by applying the
-   * provided
-   * strategy.
-   *
-   * @param {Array<string>} entrypoints The list of entrypoints that will be
-   *     analyzed for dependencies. The results of the analysis will be passed
-   *     to the `strategy`. An array of length 1 will bypass the strategy and
-   *     directly bundle the document.
-   * @param {BundleStrategy} strategy The strategy used to construct the
-   *     output bundles. See 'polymer-analyzer/lib/bundle-manifest' for
-   *     examples. UNUSED.
+   * When an HTML Import is encountered in the head of the document, it needs
+   * to be moved into the hidden div and any subsequent order-dependent
+   * imperatives (imports, styles, scripts) must also be move into the
+   * hidden div.
    */
-  async bundle(
-      entrypoints: string[],
-      strategy?: BundleStrategy,
-      mapper?: BundleUrlMapper): Promise<DocumentCollection> {
-    const bundledDocuments: DocumentCollection =
-        new Map<string, BundledDocument>();
-    if (entrypoints.length === 1) {
-      const url = entrypoints[0];
-      const depsIndex = await buildDepsIndex(entrypoints, this.analyzer);
-      const bundles = generateBundles(depsIndex.entrypointToDeps);
-      for (const exclude of this.excludes) {
-        bundles[0].files.delete(exclude);
+  private _moveOrderedImperativesFromHeadIntoHiddenDiv(document: ASTNode) {
+    const head = dom5.query(document, matchers.head);
+    if (!head) {
+      return;
+    }
+    const firstHtmlImport = dom5.query(head, matchers.htmlImport);
+    if (!firstHtmlImport) {
+      return;
+    }
+    for (const node of [firstHtmlImport].concat(
+             astUtils.siblingsAfter(firstHtmlImport))) {
+      if (matchers.orderedImperative(node)) {
+        astUtils.removeElementAndNewline(node);
+        dom5.append(this._findOrCreateHiddenDiv(document), node);
       }
-      const manifest =
-          new BundleManifest(bundles, () => new Map([[url, bundles[0]]]));
-      const bundle = {
-        url: url,
-        bundle: bundles[0],
-      };
-      const doc = await this._bundleDocument(bundle, manifest);
-      bundledDocuments.set(
-          url, {ast: doc, files: Array.from(bundles[0].files)});
-      return bundledDocuments;
-    } else {
-      const bundles = new Map<string, ASTNode>();
-      if (!strategy) {
-        strategy = generateSharedDepsMergeStrategy(2);
-      }
-      if (!mapper) {
-        mapper = sharedBundleUrlMapper;
-      }
-      const index = await buildDepsIndex(entrypoints, this.analyzer);
-      const basicBundles = generateBundles(index.entrypointToDeps);
-      const bundlesAfterStrategy = strategy(basicBundles);
-      const manifest = new BundleManifest(bundlesAfterStrategy, mapper);
-      for (const bundleEntry of manifest.bundles) {
-        const bundleUrl = bundleEntry[0];
-        const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-        const bundledAst =
-            await this._bundleDocument(bundle, manifest, bundle.bundle.files);
-        bundledDocuments.set(
-            bundleUrl,
-            {ast: bundledAst, files: Array.from(bundle.bundle.files)});
-      }
-      return bundledDocuments;
     }
   }
 
   /**
-   * Append a <link rel="import" node to `node` with a value of `url` for
-   * the "href" attribute.
+   * Move any remaining htmlImports that are not inside the hidden div
+   * already, into the hidden div.
    */
-  private _appendImport(node: ASTNode, url: UrlString): ASTNode {
-    const newNode = dom5.constructors.element('link');
-    dom5.setAttribute(newNode, 'rel', 'import');
-    dom5.setAttribute(newNode, 'href', url);
-    dom5.append(node, newNode);
-    return newNode;
+  private _moveUnhiddenHtmlImportsIntoHiddenDiv(document: ASTNode) {
+    const unhiddenHtmlImports = dom5.queryAll(
+        document,
+        dom5.predicates.AND(
+            matchers.htmlImport, dom5.predicates.NOT(matchers.inHiddenDiv)));
+    for (const htmlImport of unhiddenHtmlImports) {
+      astUtils.removeElementAndNewline(htmlImport);
+      dom5.append(this._findOrCreateHiddenDiv(document), htmlImport);
+    }
   }
 
-  private async _synthesizeBundleContents(
-      bundle: AssignedBundle,
-      reachedImports: Set<UrlString>) {
-    const document = parse5.parse('');
-    const body = dom5.query(document, matchers.body);
-    if (!body) {
-      throw new Error('Unexpected return from parse5.parse');
-    }
-    const hiddenDiv = this.createHiddenContainerNode();
-    dom5.append(body, hiddenDiv);
-
-    // Add HTML Import elements for each file in the bundle, adding entrypoints
-    // first.  We append the imports in the case any were moved into the bundle
-    // by the strategy.  This will almost always yield duplicate imports that
-    // will get cleaned up through deduplication.
-    for (const entrypointUrl of bundle.bundle.entrypoints) {
-      if (bundle.bundle.files.has(entrypointUrl)) {
-        const newUrl = urlUtils.relativeUrl(bundle.url, entrypointUrl);
-        if (!newUrl) {
-          continue;
-        }
-        this._appendImport(hiddenDiv, newUrl);
-      }
-    }
-    for (const importUrl of bundle.bundle.files) {
-      const newUrl = urlUtils.relativeUrl(bundle.url, importUrl);
-      if (!newUrl || bundle.bundle.entrypoints.has(newUrl)) {
-        continue;
-      }
-      this._appendImport(hiddenDiv, newUrl);
-    }
+  /**
+   * Generate a fresh document (ASTNode) to bundle contents into.
+   * If we're building a bundle which is based on an existing file, we
+   * should load that file and prepare it as the bundle document, otherwise
+   * we'll create a clean/empty html document.
+   */
+  private async _prepareBundleDocument(bundle: AssignedBundle):
+      Promise<ASTNode> {
+    const html = bundle.bundle.files.has(bundle.url) ?
+        await this._loadFileContents(bundle.url) :
+        '';
+    const document = parse5.parse(html);
+    this._moveOrderedImperativesFromHeadIntoHiddenDiv(document);
+    this._moveUnhiddenHtmlImportsIntoHiddenDiv(document);
     return document;
-  }
-
-  private async _bundleDocument(
-      bundle: AssignedBundle,
-      bundleManifest: BundleManifest,
-      bundleImports?: Set<string>): Promise<ASTNode> {
-    const url = bundle.url + '.html';
-    // Set tracking imports that have been reached.
-    const inlinedImports: Set<UrlString> = new Set();
-    const newDocument =
-        await this._synthesizeBundleContents(bundle, inlinedImports);
-    let analyzedRoot: any;
-    try {
-      analyzedRoot =
-          await this.analyzer.analyze(url, parse5.serialize(newDocument));
-    } catch (err) {
-      throw new Error('Unable to analyze document!');
-    }
-
-
-    const head: ASTNode = dom5.query(newDocument, matchers.head)!;
-    const body: ASTNode = dom5.query(newDocument, matchers.body)!;
-
-
-    // Create a hidden div to target.
-    const hiddenDiv = dom5.query(body, matchers.hiddenDiv);
-    if (!hiddenDiv) {
-      throw new Error('hiddenDiv not created in synthesized bundle');
-    }
-    const elementInHead = dom5.predicates.parentMatches(matchers.head);
-
-    this.rewriteImportedUrls(newDocument, url, url);
-
-    // Old Polymer versions are not supported, so warn user.
-    this.oldPolymerCheck(analyzedRoot);
-
-    // Move htmlImports out of head into a hiddenDiv in body
-    const htmlImports = dom5.queryAll(newDocument, matchers.htmlImport);
-    htmlImports.forEach((htmlImport) => {
-      if (elementInHead(htmlImport)) {
-        if (!hiddenDiv.parentNode) {
-          astUtils.prepend(body, hiddenDiv);
-        }
-        astUtils.prependAll(hiddenDiv, astUtils.siblingsAfter(htmlImport));
-        astUtils.prepend(hiddenDiv, htmlImport);
-      }
-    });
-
-    const reachedImports = new Set<UrlString>();
-
-    // Inline all HTML Imports, using "reachedImports" for deduplication.
-    for (const htmlImport of htmlImports) {
-      await this.inlineHtmlImport(
-          url, htmlImport, reachedImports, bundle, bundleManifest);
-    }
-
-    if (this.enableScriptInlining) {
-      const scriptImports =
-          dom5.queryAll(newDocument, matchers.externalJavascript);
-      for (const externalScript of scriptImports) {
-        await this.inlineScript(url, externalScript);
-      }
-    }
-
-    if (this.enableCssInlining) {
-      const cssImports = dom5.queryAll(newDocument, matchers.stylesheetImport);
-      for (const cssLink of cssImports) {
-        const style = await this.inlineStylesheet(url, cssLink);
-        if (style) {
-          this.moveDomModuleStyleIntoTemplate(style);
-        }
-      }
-      const cssLinks = dom5.queryAll(newDocument, matchers.externalStyle);
-      for (const cssLink of cssLinks) {
-        await this.inlineStylesheet(url, cssLink);
-      }
-    }
-
-    if (this.stripComments) {
-      const comments: Map<string, ASTNode> = new Map();
-      dom5.nodeWalkAll(newDocument, dom5.isCommentNode)
-          .forEach((comment: ASTNode) => {
-            comments.set(comment.data || '', comment);
-            dom5.remove(comment);
-          });
-
-      // Deduplicate license comments and move to head
-      comments.forEach((comment) => {
-        if (this.isLicenseComment(comment)) {
-          // TODO(usergenic): add prepend to dom5
-          if (head.childNodes && head.childNodes.length) {
-            dom5.insertBefore(head, head.childNodes[0], comment);
-          } else {
-            dom5.append(head, comment);
-          }
-        }
-      });
-    }
-    return newDocument;
-
-    // LATER
-    // TODO(garlicnation): resolve <base> tags.
-    // TODO(garlicnation): find transitive dependencies of specified excluded
-    // files.
-    // TODO(garlicnation): ignore <link> in <template>
-    // TODO(garlicnation): hide imports in main document, unless already hidden}
-    // TODO(garlicnation): Support addedImports
-
-    // SAVED FROM buildLoader COMMENTS
-    // TODO(garlicnation): Add noopResolver for external urls.
-    // TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
-    // TODO(garlicnation): Add noopResolver for excluded urls.
   }
 }

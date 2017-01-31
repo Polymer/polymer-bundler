@@ -17,9 +17,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 
 import * as chai from 'chai';
-import * as dom5 from 'dom5';
 
-import * as matchers from '../matchers';
 import * as urlUtils from '../url-utils';
 
 
@@ -30,25 +28,14 @@ suite('URL Utils', () => {
 
   suite('Rewrite imported relative paths', () => {
 
-    let basePath: string|undefined;
-
     const importDocPath = '/foo/bar/my-element/index.html';
     const mainDocPath = '/foo/bar/index.html';
 
-    beforeEach(() => basePath = undefined);
-
     function testRewrite(val: string, expected: string, msg?: string) {
-      const actual = urlUtils.rewriteImportedRelPath(
-          basePath, importDocPath, mainDocPath, val);
+      const actual =
+          urlUtils.rewriteImportedRelPath(importDocPath, mainDocPath, val);
       assert.equal(actual, expected, msg);
     }
-
-    test('Rewrite Paths with basePath', () => {
-      basePath = '/base/path/';
-
-      testRewrite('rel/path', '/base/path/my-element/rel/path');
-      testRewrite('../rel/path', '/base/path/rel/path');
-    });
 
     test('Rewrite Paths', () => {
       testRewrite('biz.jpg', 'my-element/biz.jpg', 'local');
@@ -57,8 +44,7 @@ suite('URL Utils', () => {
     });
 
     test('Rewrite Paths with absolute paths', () => {
-      basePath = '/foo/bar/';
-      testRewrite('biz.jpg', '/foo/bar/my-element/biz.jpg', 'local');
+      testRewrite('biz.jpg', 'my-element/biz.jpg', 'local');
       testRewrite('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
       testRewrite('#foo', '#foo', 'hash');
     });

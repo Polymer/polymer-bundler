@@ -17,20 +17,12 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 
 import * as chai from 'chai';
-import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 
 import * as ast from '../ast-utils';
-import * as matchers from '../matchers';
 
 
 const assert = chai.assert;
-
-const normalize = (html: string) => {
-  const parsed = parse5.parse(html);
-  dom5.normalize(parsed);
-  return parse5.serialize(parsed);
-};
 
 suite('AST Utils', function() {
 
@@ -44,19 +36,6 @@ suite('AST Utils', function() {
         parse5.serialize(ol.parentNode!),
         parse5.serialize(
             parse5.parseFragment(`<ol><li>3<li>1<li>2<li>4<li>5</ol>`)));
-  });
-
-  test('prependAll', () => {
-    const orderedList =
-        parse5.parseFragment(`<ol><li>1<li>2<li>3<li>4<li>5</ol>`);
-    const ol = orderedList.childNodes![0]!;
-    const li3 = ol.childNodes![2]!;
-    const li5 = ol.childNodes![4]!;
-    ast.prependAll(ol, [li3, li5]);
-    assert.equal(
-        parse5.serialize(ol.parentNode!),
-        parse5.serialize(
-            parse5.parseFragment(`<ol><li>3<li>5<li>1<li>2<li>4</ol>`)));
   });
 
   test('siblingsAfter', () => {

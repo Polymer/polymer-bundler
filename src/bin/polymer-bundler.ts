@@ -15,7 +15,6 @@
 import * as commandLineArgs from 'command-line-args';
 import * as commandLineUsage from 'command-line-usage';
 import * as fs from 'fs';
-import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
@@ -32,14 +31,6 @@ const pathArgument = '[underline]{path}';
 
 const optionDefinitions = [
   {name: 'help', type: Boolean, alias: 'h', description: 'Print this message'},
-  {
-    name: 'abspath',
-    type: String,
-    alias: 'p',
-    description: `specify ${pathArgument} as the "webserver root", ` +
-        `make all adjusted urls absolute`,
-    typeLabel: `${pathArgument}`
-  },
   {
     name: 'version',
     type: Boolean,
@@ -59,14 +50,6 @@ const optionDefinitions = [
     multiple: true,
     description:
         'Takes an argument in the form of URI|PATH where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.'
-  },
-  {
-    name: 'add-import',
-    type: String,
-    multiple: true,
-    description:
-        'Add this import to the target HTML before vulcanizing. Can be used multiple times',
-    typeLabel: `${pathArgument}`
   },
   {
     name: 'strip-exclude',
@@ -189,12 +172,6 @@ if (options.help || !entrypoints) {
   process.exit(0);
 }
 
-// escape a regex string and return a new RegExp
-function stringToRegExp(str: string) {
-  return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
-}
-
-options.addedImports = options['add-import'] || [];
 options.excludes = options.exclude || [];
 options.redirects = options.redirect || [];
 options.stripExcludes = options['strip-exclude'] || [];

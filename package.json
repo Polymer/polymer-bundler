@@ -33,6 +33,7 @@
     "eslint": "^2.8.0",
     "firebase": "^2.4.1",
     "mocha": "^2.2.4",
+    "rewire": "^2.5.2",
     "source-map-support": "^0.4.2",
     "tslint": "^3.15.1",
     "typescript": "^2.0.3",

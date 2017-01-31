@@ -57,12 +57,10 @@ export const head: Matcher = predicates.hasTagName('head');
 export const body: Matcher = predicates.hasTagName('body');
 export const base: Matcher = predicates.hasTagName('base');
 export const template: Matcher = predicates.hasTagName('template');
-export const domModule: Matcher = predicates.AND(
+export const domModuleWithoutAssetpath: Matcher = predicates.AND(
     predicates.hasTagName('dom-module'),
     predicates.hasAttr('id'),
     predicates.NOT(predicates.hasAttr('assetpath')));
-export const meta: Matcher = predicates.AND(
-    predicates.hasTagName('meta'), predicates.hasAttr('charset'));
 export const polymerElement: Matcher = predicates.hasTagName('polymer-element');
 export const externalJavascript: Matcher =
     predicates.AND(predicates.hasAttr('src'), jsMatcher);
@@ -106,3 +104,5 @@ const nextToHiddenDiv = (offset: number) => {
 };
 export const beforeHiddenDiv = nextToHiddenDiv(1);
 export const afterHiddenDiv = nextToHiddenDiv(-1);
+export const orderedImperative: Matcher = predicates.OR(
+    htmlImport, jsMatcher, styleMatcher, externalStyle, polymerExternalStyle);

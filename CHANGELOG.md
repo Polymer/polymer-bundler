@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+- Changed the way bundle documents are generated, so that bundles based on a
+  source file retain their HTML structure instead of always being synthesized
+  from a blank document.
+- bundle() is the only public method on Bundler class now.
+- Bundler does not explicitly throw an error if it spots a `<polymer-element>`
+  somewhere in a document.
+- `--add-import` and `--importUrl` options have been removed.  These features,
+  as expressed, need to be conceptually reworked to work in bundler's new
+  multi-bundle paradigm.
+- `--abspath`/`basePath` have been removed, anticipating their reimplementation
+  in `polymer-build`.  https://github.com/polymer/polymer-build/issues/117
+
 ## 2.0.0-pre.2 - 2017-01-17
 - Minor API difference the way Bundler class is exported to make it import
   friendly.

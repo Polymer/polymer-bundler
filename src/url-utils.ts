@@ -17,9 +17,6 @@
 
 import * as path from 'path';
 import * as url from 'url';
-import * as dom5 from 'dom5';
-import * as matchers from './matchers';
-import {ASTNode} from 'parse5';
 import constants from './constants';
 
 const pathPosix = path.posix;
@@ -32,25 +29,30 @@ const sharedRelativeUrlProperties =
  */
 export type UrlString = string;
 
-// Returns true if the href is an absolute path.
-export function isAbsolutePath(href: string): boolean {
+/**
+ * Returns true if the href is an absolute path.
+ */
+export function isAbsolutePath(href: UrlString): boolean {
   return constants.ABS_URL.test(href);
 }
 
-// Returns true if the href is a templated value, i.e. `{{...}}` or `[[...]]`
-export function isTemplatedUrl(href: string): boolean {
+/**
+ * Returns true if the href is a templated value, i.e. `{{...}}` or `[[...]]`
+ */
+export function isTemplatedUrl(href: UrlString): boolean {
   return href.search(constants.URL_TEMPLATE) >= 0;
 }
 
-// Computes the most succinct form of a relative URL representing the path from
-// the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
-// `/a/` is correctly treated as a folder path where `/a` is not.
-export function relativeUrl(fromUri: string, toUri: string): string {
+/**
+ * Computes the most succinct form of a relative URL representing the path from
+ * the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
+ * `/a/` is correctly treated as a folder path where `/a` is not.
+ */
+export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   const fromUrl = url.parse(fromUri)!;
   const toUrl = url.parse(toUri)!;
   // Return the toUri as-is if there are conflicting components which
-  // prohibit
-  // calculating a relative form.
+  // prohibit calculating a relative form.
   if (sharedRelativeUrlProperties.some(
           p => toUrl[p] !== null && fromUrl[p] !== toUrl[p])) {
     return toUri;
@@ -68,22 +70,17 @@ export function relativeUrl(fromUri: string, toUri: string): string {
   return url.format(toUrl);
 }
 
-// Modifies an href by the relative difference between the `mainDocUrl` and
-// `importUrl` which is the location of the imported document containing the
-// href.  If `basePath` is defined, it rewrites the path as an absolute path
-// using `basePath` as its root.
+/**
+ * Modifies an href by the relative difference between the `mainDocUrl` and
+ * `importUrl` which is the location of the imported document containing the
+ * href.
+ */
 export function rewriteImportedRelPath(
-    basePath: string|undefined,
-    importUrl: string,
-    mainDocUrl: string,
-    href: string): string {
+    importUrl: UrlString, mainDocUrl: UrlString, href: UrlString): UrlString {
   if (isAbsolutePath(href)) {
     return href;
   }
   const absUrl = url.resolve(importUrl, href);
-  if (basePath) {
-    return url.resolve(basePath, relativeUrl(mainDocUrl, absUrl));
-  }
   const parsedFrom = url.parse(mainDocUrl);
   const parsedTo = url.parse(absUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&

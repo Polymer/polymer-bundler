@@ -17,20 +17,17 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
-import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
-import {BundleStrategy, BundleUrlMapper, generateSharedDepsMergeStrategy} from '../bundle-manifest';
+import {BundleStrategy, generateSharedDepsMergeStrategy} from '../bundle-manifest';
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
-import constants from '../constants';
 import {DocumentCollection} from '../document-collection';
 
 chai.config.showDiff = true;
 
 const assert = chai.assert;
-const matchers = require('../matchers');
 const preds = dom5.predicates;
 
 const domModulePredicate = (id: string) => {
@@ -43,8 +40,6 @@ suite('Bundler', () => {
   const common = 'test/html/shards/shop_style_project/common.html';
   const entrypoint1 = 'test/html/shards/shop_style_project/entrypoint1.html';
   const entrypoint2 = 'test/html/shards/shop_style_project/entrypoint2.html';
-
-  let doc: parse5.ASTNode;
 
   function bundleMultiple(
       inputPath: string[], strategy: BundleStrategy, opts?: BundlerOptions):
@@ -73,11 +68,6 @@ suite('Bundler', () => {
 
   suite('Sharded builds', () => {
     test('with 3 entrypoints, all deps are in their places', () => {
-      const imports = preds.AND(
-          preds.hasTagName('link'),
-          preds.hasAttrValue('rel', 'import'),
-          preds.hasAttr('href'),
-          preds.NOT(preds.hasAttrValue('type', 'css')));
       const strategy = generateSharedDepsMergeStrategy(2);
       return bundleMultiple([common, entrypoint1, entrypoint2], strategy)
           .then((docs) => {
@@ -93,6 +83,7 @@ suite('Bundler', () => {
             const elTwo = domModulePredicate('el-two');
             const depOne = domModulePredicate('el-dep1');
             const depTwo = domModulePredicate('el-dep2');
+
             // Check that all the dom modules are in their expected shards
             assertContainsAndExcludes(
                 commonDoc, [commonModule, depOne], [elOne, elTwo, depTwo]);

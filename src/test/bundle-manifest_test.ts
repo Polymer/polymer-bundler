@@ -16,12 +16,11 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 
-import {Bundle, BundleManifest, generateBundles, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, sharedBundleUrlMapper, TransitiveDependenciesMap} from '../bundle-manifest';
+import {Bundle, BundleManifest, generateBundles, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, TransitiveDependenciesMap} from '../bundle-manifest';
 
 chai.config.showDiff = true;
 
 const assert = chai.assert;
-const matchers = require('../matchers');
 
 suite('BundleManifest', () => {
 
