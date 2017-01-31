@@ -232,7 +232,7 @@ export class Bundler {
     }
 
     // Remove bundles which have no files (due to excludes).
-    return bundles.filter(b => b.files.size > 0);
+    bundles.splice(0, bundles.length, ...bundles.filter(b => b.files.size > 0));
   }
 
   /**
@@ -267,7 +267,7 @@ export class Bundler {
         await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
     let bundles =
         bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
-    bundles = this._filterExcludesFromBundles(bundles);
+    this._filterExcludesFromBundles(bundles);
     bundles = strategy(bundles);
     return new BundleManifest(bundles, mapper);
   }

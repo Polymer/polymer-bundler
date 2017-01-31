@@ -85,9 +85,12 @@ export async function inlineHtmlImport(
     return;
   }
 
-  const importSource = await loader(resolvedImportUrl).catch(err => {
+  let importSource: string;
+  try {
+    importSource = await loader(resolvedImportUrl);
+  } catch (err) {
     throw new Error(`Unable to load ${resolvedImportUrl}: ${err.message}`);
-  });
+  }
 
   const importDoc = parse5.parseFragment(importSource);
   rewriteImportedUrls(importDoc, resolvedImportUrl, docUrl);
