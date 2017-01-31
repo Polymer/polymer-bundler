@@ -59,16 +59,18 @@ export async function inlineHtmlImport(
     return;
   }
 
+  // We've never seen this import before, so we'll add it to the set to guard
+  // against processing it again in the future.
+  visitedUrls.add(resolvedImportUrl);
+
   // If we can't find a bundle for the referenced import, record that we've
   // processed it, but don't remove the import link.  Browser will handle it.
   if (!importBundleUrl) {
-    visitedUrls.add(resolvedImportUrl);
     return;
   }
 
   // Don't inline an import into itself.
   if (docUrl === resolvedImportUrl) {
-    visitedUrls.add(resolvedImportUrl);
     astUtils.removeElementAndNewline(htmlImport);
     return;
   }
@@ -106,10 +108,6 @@ export async function inlineHtmlImport(
   astUtils.insertAllBefore(
       htmlImport.parentNode!, htmlImport, importDoc.childNodes!);
   astUtils.removeElementAndNewline(htmlImport);
-
-  // If we've never seen this import before, lets add it to the set so we
-  // will deduplicate if we encounter it again.
-  visitedUrls.add(resolvedImportUrl);
 
   // Recursively process the nested imports.
   for (const nestedImport of nestedImports) {
