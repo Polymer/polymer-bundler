@@ -231,8 +231,14 @@ export class Bundler {
       }
     }
 
-    // Remove bundles which have no files (due to excludes).
-    bundles.splice(0, bundles.length, ...bundles.filter(b => b.files.size > 0));
+    let b = 0;
+    while (b < bundles.length) {
+      if (bundles[b].files.size < 0) {
+        bundles.splice(b, 1);
+      } else {
+        ++b;
+      }
+    }
   }
 
   /**
