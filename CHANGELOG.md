@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   as expressed, need to be conceptually reworked to work in bundler's new
   multi-bundle paradigm.
 - `--abspath`/`basePath` have been removed, anticipating their reimplementation
-  in `polymer-build`.
+  in `polymer-build`.  https://github.com/polymer/polymer-build/issues/117
 
 ## 2.0.0-pre.2 - 2017-01-17
 - Minor API difference the way Bundler class is exported to make it import
