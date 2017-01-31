@@ -75,7 +75,9 @@ export async function inlineHtmlImport(
     return;
   }
 
-  // Guard against inlining a import we've already processed.
+  // If we've previously visited a url that is part of a bundle, it means we've
+  // handled that entire bundle, so we guard against inlining any other file
+  // from that bundle by checking the visited urls for the bundle url itself.
   if (visitedUrls.has(importBundleUrl)) {
     astUtils.removeElementAndNewline(htmlImport);
     return;
