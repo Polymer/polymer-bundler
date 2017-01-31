@@ -141,7 +141,6 @@ export class Bundler {
       }
       this._appendHtmlImport(this._findOrCreateHiddenDiv(document), newUrl);
     }
-    return document;
   }
 
   /**
