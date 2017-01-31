@@ -22,7 +22,7 @@ for this step).
 ## Options
 - `-h`|`--help`: print this message
 - `-v`|`--version`: print version number
-- `-p <arg>`|`--abspath <arg>`: use <arg> as the "webserver root", make all adjusted urls absolute
+- `-p <arg>`|`--base-path <arg>`: use <arg> as the "webserver root", prefixing all adjusted urls
 - `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
@@ -61,7 +61,7 @@ will inline the HTML Imports of `target.html` that are not in the directory
 `path/to/target/subpath` nor `path/to/target/subpath2`.
 
 If the `--strip-exclude` flag is used, the HTML Import `<link>` tags that
-point to resources in `path/totarget/subpath` and `path/to/target/subpath2/`
+point to resources in `path/to/target/subpath` and `path/to/target/subpath2/`
 will also be removed.
 
 The command
@@ -89,7 +89,7 @@ polymer-bundler as a library has two exported function.
 
 `polymer-bundler` constructor takes an object of options similar to the command line
 options.
-- `abspath`: A folder to treat as "webroot".
+- `basePath`: A folder to treat as "webroot".
   - When specified, use an absolute path to `target`.
 - `excludes`: An array of strings with regular expressions to exclude paths from being inlined.
 - `stripExcludes`: Similar to `excludes`, but strips the imports from the output entirely.
@@ -114,7 +114,7 @@ var Analyzer = require('polymer-analyzer');
 
 
 var bundler = new Bundler({
-  abspath: '',
+  basePath: '',
   excludes: [
     '\\.css$'
   ],

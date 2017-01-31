@@ -33,7 +33,7 @@ const pathArgument = '[underline]{path}';
 const optionDefinitions = [
   {name: 'help', type: Boolean, alias: 'h', description: 'Print this message'},
   {
-    name: 'abspath',
+    name: 'base-path',
     type: String,
     alias: 'p',
     description: `specify ${pathArgument} as the "webserver root", ` +
@@ -186,7 +186,7 @@ function stringToRegExp(str: string) {
   return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
 }
 
-options.basePath = options['abspath'];
+options.basePath = options['base-path'];
 options.excludes = options.exclude || [];
 options.redirects = options.redirect || [];
 options.stripExcludes = options['strip-exclude'] || [];
