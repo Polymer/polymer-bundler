@@ -235,9 +235,9 @@ export class Bundler {
     while (b < bundles.length) {
       if (bundles[b].files.size < 0) {
         bundles.splice(b, 1);
-      } else {
-        ++b;
+        continue;
       }
+      ++b;
     }
   }
 
