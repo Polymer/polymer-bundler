@@ -73,21 +73,14 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
 /**
  * Modifies an href by the relative difference between the `mainDocUrl` and
  * `importUrl` which is the location of the imported document containing the
- * href.  If `basePath` is defined, it rewrites the path as an absolute path
- * using `basePath` as its root.
+ * href.
  */
 export function rewriteImportedRelPath(
-    basePath: UrlString|undefined,
-    importUrl: UrlString,
-    mainDocUrl: UrlString,
-    href: UrlString): UrlString {
+    importUrl: UrlString, mainDocUrl: UrlString, href: UrlString): UrlString {
   if (isAbsolutePath(href)) {
     return href;
   }
   const absUrl = url.resolve(importUrl, href);
-  if (basePath) {
-    return url.resolve(basePath, relativeUrl(mainDocUrl, absUrl));
-  }
   const parsedFrom = url.parse(mainDocUrl);
   const parsedTo = url.parse(absUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&

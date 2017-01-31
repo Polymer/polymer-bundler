@@ -226,27 +226,6 @@ suite('Bundler', () => {
     });
   });
 
-  suite('Absolute Paths', () => {
-    test('Output with Absolute paths with basePath', () => {
-      const root = path.resolve(inputPath, '../..');
-      const target = '/html/default.html';
-      const analyzer = new Analyzer({urlLoader: new FSUrlLoader(root)});
-      const options = {basePath: '/html/', analyzer: analyzer};
-      const domModule = preds.AND(
-          preds.hasTagName('dom-module'),
-          preds.hasAttrValue('assetpath', '/html/imports/'));
-      const stylesheet = preds.AND(
-          preds.hasTagName('link'),
-          preds.hasAttrValue('rel', 'import'),
-          preds.hasAttrValue('type', 'css'),
-          preds.hasAttrValue('href', '/html/imports/simple-style.css'));
-      return bundle(target, options).then((doc) => {
-        assert.ok(dom5.query(doc, domModule));
-        assert.ok(dom5.query(doc, stylesheet));
-      });
-    });
-  });
-
   suite('Redirect', () => {
     test('Redirected paths load properly', () => {
       const options = {

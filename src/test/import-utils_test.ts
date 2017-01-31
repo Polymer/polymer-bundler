@@ -56,8 +56,8 @@ suite('import-utils', () => {
 
       const _rewriteImportedStyleTextUrls =
           importUtils.__get__('_rewriteImportedStyleTextUrls');
-      const actual = _rewriteImportedStyleTextUrls(
-          undefined, importDocPath, mainDocPath, css);
+      const actual =
+          _rewriteImportedStyleTextUrls(importDocPath, mainDocPath, css);
       assert.equal(actual, expected);
     });
 
@@ -87,8 +87,7 @@ suite('import-utils', () => {
       ].join('\n');
 
       const ast = parse5.parse(html);
-      importUtils.rewriteImportedUrls(
-          undefined, ast, importDocPath, mainDocPath);
+      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
       assert.equal(actual, expected, 'relative');
@@ -121,8 +120,7 @@ suite('import-utils', () => {
 
       const ast = parse5.parse(htmlBase);
       // pathRewriter.acid(ast, inputPath);
-      importUtils.rewriteImportedUrls(
-          undefined, ast, importDocPath, mainDocPath);
+      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
       assert.equal(actual, expectedBase, 'base');
@@ -155,8 +153,7 @@ suite('import-utils', () => {
 
       const ast = parse5.parse(htmlBase);
       // pathRewriter.acid(ast, inputPath);
-      importUtils.rewriteImportedUrls(
-          undefined, ast, importDocPath, mainDocPath);
+      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
       assert.equal(actual, expectedBase, 'base');
@@ -172,8 +169,7 @@ suite('import-utils', () => {
       ].join('\n');
 
       const ast = parse5.parse(htmlBase);
-      importUtils.rewriteImportedUrls(
-          undefined, ast, importDocPath, mainDocPath);
+      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
       assert.equal(actual, expectedBase, 'base target');
@@ -188,8 +184,7 @@ suite('import-utils', () => {
       ].join('\n');
 
       const ast = parse5.parse(base);
-      importUtils.rewriteImportedUrls(
-          undefined, ast, importDocPath, mainDocPath);
+      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
       assert.equal(actual, base, 'templated urls');

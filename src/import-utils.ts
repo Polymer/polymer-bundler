@@ -26,18 +26,15 @@ import * as urlUtils from './url-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {UrlString} from './url-utils';
 
-// TODO(usergenic): Want to figure out a way to get rid of the basePath param
-// used in the inline functions, because it feels obnoxious to have to pass it
-// around for an only-occasionally used case.  Revisit the organization of this
-// module and *consider* building a class to encapsulate the common document
-// details like docUrl and docBundle and global notions like manifest etc.
+// TODO(usergenic): Revisit the organization of this module and *consider*
+// building a class to encapsulate the common document details like docUrl and
+// docBundle and global notions like manifest etc.
 
 /**
  * Inline the contents of the html document returned by the link tag's href
  * at the location of the link tag and then remove the link tag.
  */
 export async function inlineHtmlImport(
-    basePath: UrlString|undefined,
     docUrl: UrlString,
     htmlImport: ASTNode,
     visitedUrls: Set<UrlString>,
@@ -93,7 +90,7 @@ export async function inlineHtmlImport(
   });
 
   const importDoc = parse5.parseFragment(importSource);
-  rewriteImportedUrls(basePath, importDoc, resolvedImportUrl, docUrl);
+  rewriteImportedUrls(importDoc, resolvedImportUrl, docUrl);
   const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
 
   // Move all of the import doc content after the html import.
@@ -104,13 +101,7 @@ export async function inlineHtmlImport(
   // Recursively process the nested imports.
   for (const nestedImport of nestedImports) {
     await inlineHtmlImport(
-        basePath,
-        docUrl,
-        nestedImport,
-        visitedUrls,
-        docBundle,
-        manifest,
-        loader);
+        docUrl, nestedImport, visitedUrls, docBundle, manifest, loader);
   }
 }
 
@@ -148,7 +139,6 @@ export async function inlineScript(
  * into a style tag and removes the link tag.
  */
 export async function inlineStylesheet(
-    basePath: UrlString|undefined,
     docUrl: UrlString,
     cssLink: ASTNode,
     loader: (url: UrlString) => Promise<string>) {
@@ -168,7 +158,7 @@ export async function inlineStylesheet(
 
   const media = dom5.getAttribute(cssLink, 'media');
   const resolvedStylesheetContent = _rewriteImportedStyleTextUrls(
-      basePath, resolvedStylesheetUrl, docUrl, stylesheetContent);
+      resolvedStylesheetUrl, docUrl, stylesheetContent);
   const styleNode = dom5.constructors.element('style');
 
   if (media) {
@@ -186,13 +176,10 @@ export async function inlineStylesheet(
  * imported from the import url.
  */
 export function rewriteImportedUrls(
-    basePath: UrlString|undefined,
-    importDoc: ASTNode,
-    importUrl: UrlString,
-    mainDocUrl: UrlString) {
-  _rewriteImportedElementAttrUrls(basePath, importDoc, importUrl, mainDocUrl);
-  _rewriteImportedStyleUrls(basePath, importDoc, importUrl, mainDocUrl);
-  _setImportedDomModuleAssetpaths(basePath, importDoc, importUrl, mainDocUrl);
+    importDoc: ASTNode, importUrl: UrlString, mainDocUrl: UrlString) {
+  _rewriteImportedElementAttrUrls(importDoc, importUrl, mainDocUrl);
+  _rewriteImportedStyleUrls(importDoc, importUrl, mainDocUrl);
+  _setImportedDomModuleAssetpaths(importDoc, importUrl, mainDocUrl);
 }
 
 /**
@@ -201,10 +188,7 @@ export function rewriteImportedUrls(
  * imported from the import url.
  */
 function _rewriteImportedElementAttrUrls(
-    basePath: UrlString|undefined,
-    importDoc: ASTNode,
-    importUrl: UrlString,
-    mainDocUrl: UrlString) {
+    importDoc: ASTNode, importUrl: UrlString, mainDocUrl: UrlString) {
   const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
   for (const node of nodes) {
     for (const attr of constants.URL_ATTR) {
@@ -212,11 +196,11 @@ function _rewriteImportedElementAttrUrls(
       if (attrValue && !urlUtils.isTemplatedUrl(attrValue)) {
         let relUrl: UrlString;
         if (attr === 'style') {
-          relUrl = _rewriteImportedStyleTextUrls(
-              basePath, importUrl, mainDocUrl, attrValue);
+          relUrl =
+              _rewriteImportedStyleTextUrls(importUrl, mainDocUrl, attrValue);
         } else {
-          relUrl = urlUtils.rewriteImportedRelPath(
-              basePath, importUrl, mainDocUrl, attrValue);
+          relUrl =
+              urlUtils.rewriteImportedRelPath(importUrl, mainDocUrl, attrValue);
           if (attr === 'assetpath' && relUrl.slice(-1) !== '/') {
             relUrl += '/';
           }
@@ -235,14 +219,10 @@ function _rewriteImportedElementAttrUrls(
  * urlUtils or similar.
  */
 function _rewriteImportedStyleTextUrls(
-    basePath: UrlString|undefined,
-    importUrl: UrlString,
-    mainDocUrl: UrlString,
-    cssText: string): string {
+    importUrl: UrlString, mainDocUrl: UrlString, cssText: string): string {
   return cssText.replace(constants.URL, match => {
     let path = match.replace(/["']/g, '').slice(4, -1);
-    path =
-        urlUtils.rewriteImportedRelPath(basePath, importUrl, mainDocUrl, path);
+    path = urlUtils.rewriteImportedRelPath(importUrl, mainDocUrl, path);
     return 'url("' + path + '")';
   });
 }
@@ -253,10 +233,7 @@ function _rewriteImportedStyleTextUrls(
  * the import url.
  */
 function _rewriteImportedStyleUrls(
-    basePath: UrlString|undefined,
-    importDoc: ASTNode,
-    importUrl: UrlString,
-    mainDocUrl: UrlString) {
+    importDoc: ASTNode, importUrl: UrlString, mainDocUrl: UrlString) {
   const styleNodes = dom5.queryAll(
       importDoc,
       matchers.styleMatcher,
@@ -264,8 +241,7 @@ function _rewriteImportedStyleUrls(
       dom5.childNodesIncludeTemplate);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
-    styleText = _rewriteImportedStyleTextUrls(
-        basePath, importUrl, mainDocUrl, styleText);
+    styleText = _rewriteImportedStyleTextUrls(importUrl, mainDocUrl, styleText);
     dom5.setTextContent(node, styleText);
   }
 }
@@ -275,16 +251,13 @@ function _rewriteImportedStyleUrls(
  * have them.
  */
 function _setImportedDomModuleAssetpaths(
-    basePath: UrlString|undefined,
-    importDoc: ASTNode,
-    importUrl: UrlString,
-    mainDocUrl: UrlString) {
+    importDoc: ASTNode, importUrl: UrlString, mainDocUrl: UrlString) {
   const domModules =
       dom5.queryAll(importDoc, matchers.domModuleWithoutAssetpath);
   for (let i = 0, node: ASTNode; i < domModules.length; i++) {
     node = domModules[i];
     let assetPathUrl =
-        urlUtils.rewriteImportedRelPath(basePath, importUrl, mainDocUrl, '');
+        urlUtils.rewriteImportedRelPath(importUrl, mainDocUrl, '');
     assetPathUrl = pathPosix.dirname(assetPathUrl) + '/';
     dom5.setAttribute(node, 'assetpath', assetPathUrl);
   }

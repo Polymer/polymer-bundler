@@ -22,7 +22,6 @@ for this step).
 ## Options
 - `-h`|`--help`: print this message
 - `-v`|`--version`: print version number
-- `-p <arg>`|`--base-path <arg>`: use <arg> as the "webserver root", prefixing all adjusted urls
 - `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
@@ -89,8 +88,6 @@ polymer-bundler as a library has two exported function.
 
 `polymer-bundler` constructor takes an object of options similar to the command line
 options.
-- `basePath`: A folder to treat as "webroot".
-  - When specified, use an absolute path to `target`.
 - `excludes`: An array of strings with regular expressions to exclude paths from being inlined.
 - `stripExcludes`: Similar to `excludes`, but strips the imports from the output entirely.
     - If `stripExcludes` is empty, it will be set the value of `excludes` by default.
@@ -114,7 +111,6 @@ var Analyzer = require('polymer-analyzer');
 
 
 var bundler = new Bundler({
-  basePath: '',
   excludes: [
     '\\.css$'
   ],

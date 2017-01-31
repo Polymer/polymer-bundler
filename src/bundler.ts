@@ -36,11 +36,6 @@ import {UrlString} from './url-utils';
 // TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
 // TODO(usergenic): Add plylog
 export interface Options {
-  // When provided, relative paths will be converted to absolute paths where
-  // `basePath` is the root url.  This path is equal to the folder of the
-  // bundled url document of the analyzer.
-  basePath?: UrlString;
-
   // The instance of the Polymer Analyzer which has completed analysis
   analyzer?: Analyzer;
 
@@ -70,7 +65,6 @@ export interface Options {
 }
 
 export class Bundler {
-  basePath?: UrlString;
   analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
@@ -87,8 +81,6 @@ export class Bundler {
 
     // implicitStrip should be true by default
     this.implicitStrip = !Boolean(opts.noImplicitStrip);
-
-    this.basePath = opts.basePath;
 
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
     this.stripComments = Boolean(opts.stripComments);
@@ -199,7 +191,7 @@ export class Bundler {
     const docUrl = docBundle.url;
     const document = await this._prepareBundleDocument(docBundle);
     this._appendHtmlImportsForBundle(document, docBundle);
-    importUtils.rewriteImportedUrls(this.basePath, document, docUrl, docUrl);
+    importUtils.rewriteImportedUrls(document, docUrl, docUrl);
 
     await this._inlineHtmlImports(docUrl, document, docBundle, bundleManifest);
 
@@ -295,7 +287,6 @@ export class Bundler {
     const htmlImports = dom5.queryAll(document, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
       await importUtils.inlineHtmlImport(
-          this.basePath,
           url,
           htmlImport,
           visitedUrls,
@@ -326,7 +317,7 @@ export class Bundler {
     const cssImports = dom5.queryAll(document, matchers.stylesheetImport);
     for (const cssLink of cssImports) {
       const style = await importUtils.inlineStylesheet(
-          this.basePath, url, cssLink, this._loadFileContents.bind(this));
+          url, cssLink, this._loadFileContents.bind(this));
       if (style) {
         this._moveDomModuleStyleIntoTemplate(style);
       }
@@ -342,7 +333,7 @@ export class Bundler {
     const cssLinks = dom5.queryAll(document, matchers.externalStyle);
     for (const cssLink of cssLinks) {
       await importUtils.inlineStylesheet(
-          this.basePath, url, cssLink, this._loadFileContents.bind(this));
+          url, cssLink, this._loadFileContents.bind(this));
     }
   }
 
