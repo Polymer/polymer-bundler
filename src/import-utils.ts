@@ -28,7 +28,9 @@ import {UrlString} from './url-utils';
 
 // TODO(usergenic): Want to figure out a way to get rid of the basePath param
 // used in the inline functions, because it feels obnoxious to have to pass it
-// around for an only-occasionally used case.
+// around for an only-occasionally used case.  Revisit the organization of this
+// module and *consider* building a class to encapsulate the common document
+// details like docUrl and docBundle and global notions like manifest etc.
 
 /**
  * Inline the contents of the html document returned by the link tag's href
