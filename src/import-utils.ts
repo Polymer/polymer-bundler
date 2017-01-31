@@ -88,8 +88,8 @@ export async function inlineHtmlImport(
   let importSource: string;
   try {
     importSource = await loader(resolvedImportUrl);
-  } catch (err) {
-    throw new Error(`Unable to load ${resolvedImportUrl}: ${err.message}`);
+  } catch (e) {
+    throw new Error(`Unable to load ${resolvedImportUrl}: ${e.message}`);
   }
 
   const importDoc = parse5.parseFragment(importSource);
@@ -121,9 +121,10 @@ export async function inlineScript(
   let script: string|undefined = undefined;
   try {
     script = await loader(resolvedUrl);
-  } catch (err) {
+  } catch (e) {
     // If a script doesn't load, skip inlining.
     // TODO(usergenic): Add plylog logging for load error.
+    console.warn(`Unable to load script at ${resolvedUrl}: ${e.message}`);
   }
 
   if (script === undefined) {
@@ -146,13 +147,14 @@ export async function inlineStylesheet(
     cssLink: ASTNode,
     loader: (url: UrlString) => Promise<string>) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
-  const resolvedStylesheetUrl = urlLib.resolve(docUrl, stylesheetUrl);
+  const resolvedUrl = urlLib.resolve(docUrl, stylesheetUrl);
   let stylesheetContent: string|undefined = undefined;
   try {
-    stylesheetContent = await loader(resolvedStylesheetUrl);
-  } catch (err) {
+    stylesheetContent = await loader(resolvedUrl);
+  } catch (e) {
     // If a stylesheet doesn't load, skip inlining.
     // TODO(usergenic): Add plylog logging for load error.
+    console.warn(`Unable to load stylesheet at ${resolvedUrl}: ${e.message}`);
   }
 
   if (stylesheetContent === undefined) {
@@ -160,8 +162,8 @@ export async function inlineStylesheet(
   }
 
   const media = dom5.getAttribute(cssLink, 'media');
-  const resolvedStylesheetContent = _rewriteImportedStyleTextUrls(
-      resolvedStylesheetUrl, docUrl, stylesheetContent);
+  const resolvedStylesheetContent =
+      _rewriteImportedStyleTextUrls(resolvedUrl, docUrl, stylesheetContent);
   const styleNode = dom5.constructors.element('style');
 
   if (media) {
