@@ -90,8 +90,6 @@ export async function inlineHtmlImport(
     throw new Error(`Unable to load ${resolvedImportUrl}: ${err.message}`);
   });
 
-  // Is there a better way to get what we want other than using
-  // parseFragment?
   const importDoc = parse5.parseFragment(importSource);
   rewriteImportedUrls(basePath, importDoc, resolvedImportUrl, docUrl);
   const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
