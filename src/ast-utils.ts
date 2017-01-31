@@ -13,7 +13,7 @@
  */
 
 import * as dom5 from 'dom5';
-import {ASTNode, treeAdapters} from 'parse5';
+import {ASTNode} from 'parse5';
 
 import * as matchers from './matchers';
 

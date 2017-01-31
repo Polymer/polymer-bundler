@@ -17,9 +17,6 @@
 
 import * as path from 'path';
 import * as url from 'url';
-import * as dom5 from 'dom5';
-import * as matchers from './matchers';
-import {ASTNode} from 'parse5';
 import constants from './constants';
 
 const pathPosix = path.posix;

@@ -17,20 +17,12 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 
 import * as chai from 'chai';
-import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 
 import * as ast from '../ast-utils';
-import * as matchers from '../matchers';
 
 
 const assert = chai.assert;
-
-const normalize = (html: string) => {
-  const parsed = parse5.parse(html);
-  dom5.normalize(parsed);
-  return parse5.serialize(parsed);
-};
 
 suite('AST Utils', function() {
 

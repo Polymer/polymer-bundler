@@ -135,7 +135,6 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
   for (const entry of invertedIndex.entries()) {
     const dep: UrlString = entry[0];
     const entrypoints: Set<UrlString> = entry[1];
-    const entrypointsArray = Array.from(entrypoints);
 
     // Find the bundle defined by the specific set of shared dependant
     // entrypoints.
@@ -283,32 +282,4 @@ export function sharedBundleUrlMapper(bundles: Bundle[]):
     }
   }
   return urlMap;
-}
-
-/**
- * Compute the intersection of all of the passed `sets`.
- * See: https://en.wikipedia.org/wiki/Intersection_(set_theory)
- */
-function setIntersection<T>(sets: Set<T>[]): Set<T> {
-  return sets.reduce((previous, current) => {
-    const reduced = new Set<T>();
-    for (const entry of previous) {
-      if (current.has(entry)) {
-        reduced.add(entry);
-      }
-    }
-    return reduced;
-  });
-}
-
-/**
- * Returns a list of the sets of entrypoints, for use in performing
- * set intersection and subtraction on the sets.
- */
-function getEntrypointSets(bundles: Bundle[]): Set<string>[] {
-  const list: Set<string>[] = [];
-  for (const bundle of bundles) {
-    list.push(bundle.entrypoints);
-  }
-  return list;
 }

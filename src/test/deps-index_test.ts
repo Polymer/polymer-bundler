@@ -16,25 +16,12 @@
 /// <reference path="../../node_modules/@types/node/index.d.ts" />
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
-import * as dom5 from 'dom5';
-import parse5 = require('parse5');
-import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
-import constants from '../constants';
 import {buildDepsIndex} from '../deps-index';
 
 chai.config.showDiff = true;
-
-const assert = chai.assert;
-const matchers = require('../matchers');
-const preds = dom5.predicates;
-
-const domModulePredicate = (id: string) => {
-  return preds.AND(
-      preds.hasAttrValue('id', id), preds.hasTagName('dom-module'));
-};
 
 suite('Bundler', () => {
   const common = 'test/html/shards/polymer_style_project/common.html';
@@ -43,7 +30,6 @@ suite('Bundler', () => {
   const endpoint1 = 'test/html/shards/polymer_style_project/endpoint1.html';
   const endpoint2 = 'test/html/shards/polymer_style_project/endpoint2.html';
 
-  let doc: parse5.ASTNode;
   let analyzer: Analyzer;
   beforeEach(() => {
     analyzer = new Analyzer({urlLoader: new FSUrlLoader()});

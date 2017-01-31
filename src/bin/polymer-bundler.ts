@@ -15,7 +15,6 @@
 import * as commandLineArgs from 'command-line-args';
 import * as commandLineUsage from 'command-line-usage';
 import * as fs from 'fs';
-import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
@@ -179,11 +178,6 @@ if (options.version) {
 if (options.help || !entrypoints) {
   printHelp();
   process.exit(0);
-}
-
-// escape a regex string and return a new RegExp
-function stringToRegExp(str: string) {
-  return new RegExp(str.replace(/[-\/\\*+?.()|[\]{}]/g, '\\$&'));
 }
 
 options.basePath = options['base-path'];

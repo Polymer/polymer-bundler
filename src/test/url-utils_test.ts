@@ -17,9 +17,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 
 import * as chai from 'chai';
-import * as dom5 from 'dom5';
 
-import * as matchers from '../matchers';
 import * as urlUtils from '../url-utils';
 
 

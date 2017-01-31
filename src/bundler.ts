@@ -11,29 +11,22 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import * as path from 'path';
-import * as urlLib from 'url';
-const pathPosix = path.posix;
 import * as dom5 from 'dom5';
-import encodeString from './third_party/UglifyJS2/encode-string';
-
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
-import {Document, ScannedDocument} from 'polymer-analyzer/lib/model/document';
-import {Import} from 'polymer-analyzer/lib/model/import';
-import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
+import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
-import constants from './constants';
+
 import * as astUtils from './ast-utils';
+import * as bundleManifestLib from './bundle-manifest';
+import {AssignedBundle, Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-manifest';
+import * as depsIndexLib from './deps-index';
+import {BundledDocument, DocumentCollection} from './document-collection';
 import * as importUtils from './import-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import * as bundleManifestLib from './bundle-manifest';
-import {Bundle, BundleStrategy, AssignedBundle, BundleUrlMapper, BundleManifest} from './bundle-manifest';
-import {BundledDocument, DocumentCollection} from './document-collection';
-import * as depsIndexLib from './deps-index';
 import {UrlString} from './url-utils';
+
 
 // TODO(garlicnation): resolve <base> tags.
 // TODO(garlicnation): find transitive dependencies of specified excluded files.

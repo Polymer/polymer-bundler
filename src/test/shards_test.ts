@@ -17,20 +17,17 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
-import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
-import {BundleStrategy, BundleUrlMapper, generateSharedDepsMergeStrategy} from '../bundle-manifest';
+import {BundleStrategy, generateSharedDepsMergeStrategy} from '../bundle-manifest';
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
-import constants from '../constants';
 import {DocumentCollection} from '../document-collection';
 
 chai.config.showDiff = true;
 
 const assert = chai.assert;
-const matchers = require('../matchers');
 const preds = dom5.predicates;
 
 const domModulePredicate = (id: string) => {
@@ -43,8 +40,6 @@ suite('Bundler', () => {
   const common = 'test/html/shards/shop_style_project/common.html';
   const entrypoint1 = 'test/html/shards/shop_style_project/entrypoint1.html';
   const entrypoint2 = 'test/html/shards/shop_style_project/entrypoint2.html';
-
-  let doc: parse5.ASTNode;
 
   function bundleMultiple(
       inputPath: string[], strategy: BundleStrategy, opts?: BundlerOptions):

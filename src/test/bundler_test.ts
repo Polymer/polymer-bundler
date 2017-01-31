@@ -22,7 +22,6 @@ import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
-import constants from '../constants';
 
 chai.config.showDiff = true;
 
@@ -33,8 +32,6 @@ const preds = dom5.predicates;
 suite('Bundler', () => {
   let bundler: Bundler;
   const inputPath = 'test/html/default.html';
-
-  let doc: parse5.ASTNode;
 
   function bundle(
       inputPath: string, opts?: BundlerOptions): Promise<parse5.ASTNode> {

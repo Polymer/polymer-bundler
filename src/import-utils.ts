@@ -19,18 +19,11 @@ import encodeString from './third_party/UglifyJS2/encode-string';
 
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import {Analyzer, Options as AnalyzerOptions} from 'polymer-analyzer';
-import {Document, ScannedDocument} from 'polymer-analyzer/lib/model/document';
-import {Import} from 'polymer-analyzer/lib/model/import';
-import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
-import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 import constants from './constants';
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 import * as urlUtils from './url-utils';
-import {Bundle, BundleStrategy, AssignedBundle, generateBundles, BundleUrlMapper, BundleManifest, sharedBundleUrlMapper, generateSharedDepsMergeStrategy} from './bundle-manifest';
-import {BundledDocument, DocumentCollection} from './document-collection';
-import {buildDepsIndex} from './deps-index';
+import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {UrlString} from './url-utils';
 
 // TODO(usergenic): Want to figure out a way to get rid of the basePath param
@@ -93,9 +86,6 @@ export async function inlineHtmlImport(
     return;
   }
 
-  const document =
-      dom5.nodeWalkAncestors(htmlImport, (node) => !node.parentNode)!;
-  const body = dom5.query(document, matchers.body)!;
   const importSource = await loader(resolvedImportUrl).catch(err => {
     throw new Error(`Unable to load ${resolvedImportUrl}: ${err.message}`);
   });

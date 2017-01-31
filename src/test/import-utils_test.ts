@@ -15,9 +15,7 @@
 /// <reference path="../../node_modules/@types/node/index.d.ts" />
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
-import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
-import * as path from 'path';
 
 const rewire = require('rewire');
 const importUtils = rewire('../import-utils');
@@ -25,8 +23,6 @@ const importUtils = rewire('../import-utils');
 chai.config.showDiff = true;
 
 const assert = chai.assert;
-const matchers = require('../matchers');
-const preds = dom5.predicates;
 
 suite('import-utils', () => {
   suite('Path rewriting', () => {
