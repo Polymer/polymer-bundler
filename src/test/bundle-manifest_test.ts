@@ -157,14 +157,23 @@ suite('BundleManifest', () => {
     suite('generateShellMergeStrategy', () => {
 
       test('produces function to merge shared deps in shell', () => {
-        const shellStrategy = generateShellMergeStrategy('D', 2);
-        const shelled = shellStrategy(bundles).map(serializeBundle).sort();
-        assert.equal(shelled.length, 4);
+        const shellStrategy3 = generateShellMergeStrategy('D', 3);
+        const shelled3 = shellStrategy3(bundles).map(serializeBundle).sort();
+        assert.equal(shelled3.length, 6);
+        assert.equal(shelled3[0], '[A,B,C,D]->[3,6,8,D]');
+        assert.equal(shelled3[1], '[A,B]->[2]');
+        assert.equal(shelled3[2], '[A]->[1,A]');
+        assert.equal(shelled3[3], '[B,C]->[5]');
+        assert.equal(shelled3[4], '[B]->[4,B]');
+        assert.equal(shelled3[5], '[C]->[7,C]');
 
-        assert.equal(shelled[0], '[A,B,C,D]->[2,3,5,6,8,D]');
-        assert.equal(shelled[1], '[A]->[1,A]');
-        assert.equal(shelled[2], '[B]->[4,B]');
-        assert.equal(shelled[3], '[C]->[7,C]');
+        const shellStrategy2 = generateShellMergeStrategy('D', 2);
+        const shelled2 = shellStrategy2(bundles).map(serializeBundle).sort();
+        assert.equal(shelled2.length, 4);
+        assert.equal(shelled2[0], '[A,B,C,D]->[2,3,5,6,8,D]');
+        assert.equal(shelled2[1], '[A]->[1,A]');
+        assert.equal(shelled2[2], '[B]->[4,B]');
+        assert.equal(shelled2[3], '[C]->[7,C]');
       });
     });
 
