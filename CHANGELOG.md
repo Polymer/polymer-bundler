@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 2.0.0-pre.3 - 2017-01-31
 - Changed the way bundle documents are generated, so that bundles based on a
   source file retain their HTML structure instead of always being synthesized
   from a blank document.
