@@ -67,17 +67,18 @@ export async function inlineHtmlImport(
     return;
   }
 
-  // If we've previously visited a url that is part of a bundle, it means we've
-  // handled that entire bundle, so we guard against inlining any other file
-  // from that bundle by checking the visited urls for the bundle url itself.
-  if (visitedUrls.has(importBundleUrl)) {
-    astUtils.removeElementAndNewline(htmlImport);
-    return;
-  }
-
   // If the html import refers to a file which is bundled and has a different
   // url, then lets just rewrite the href to point to the bundle url.
   if (importBundleUrl !== docBundle.url) {
+    // If we've previously visited a url that is part of another bundle, it
+    // means we've handled that entire bundle, so we guard against inlining any
+    // other file from that bundle by checking the visited urls for the bundle
+    // url itself.
+    if (visitedUrls.has(importBundleUrl)) {
+      astUtils.removeElementAndNewline(htmlImport);
+      return;
+    }
+
     const relative =
         urlUtils.relativeUrl(docUrl, importBundleUrl) || importBundleUrl;
     dom5.setAttribute(htmlImport, 'href', relative);
