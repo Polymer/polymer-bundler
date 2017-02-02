@@ -213,7 +213,7 @@ export function generateShellMergeStrategy(
     }
     const sharedBundles = newBundles.filter(
         (bundle) => bundle.entrypoints.size >= minEntrypoints &&
-            bundle !== shellBundle);
+            bundle !== shellBundle && !getBundleEntrypoint(bundle));
     for (const sharedBundle of sharedBundles) {
       newBundles.splice(newBundles.indexOf(shellBundle), 1);
       newBundles.splice(newBundles.indexOf(sharedBundle), 1);
