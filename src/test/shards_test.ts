@@ -103,7 +103,7 @@ suite('Bundler', () => {
       const strategy = generateShellMergeStrategy(shell, 2);
       return bundleMultiple([shell, entrypoint1, entrypoint2], strategy)
           .then((docs) => {
-            //      assert.equal(docs.size, 3);
+            assert.equal(docs.size, 3);
             const shellDoc: parse5.ASTNode = docs.get(shell)!.ast;
             assert.isDefined(shellDoc);
             const entrypoint1Doc = docs.get(entrypoint1)!;
