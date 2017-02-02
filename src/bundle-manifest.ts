@@ -207,15 +207,18 @@ export function generateShellMergeStrategy(
       minEntrypoints = 2;
     }
     const newBundles = generateSharedDepsMergeStrategy(minEntrypoints)(bundles);
+    let shellBundle = newBundles.find(bundle => bundle.files.has(shell));
+    if (!shellBundle) {
+      throw new Error(`No bundle found containing specified shell ${shell}`);
+    }
     const sharedBundles = newBundles.filter(
-        (bundle) => bundle.entrypoints.size >= minEntrypoints);
+        (bundle) => bundle.entrypoints.size >= minEntrypoints &&
+            bundle !== shellBundle);
     for (const sharedBundle of sharedBundles) {
-      const shellBundle = newBundles.find((bundle) => bundle.files.has(shell));
-      if (shellBundle && sharedBundle && shellBundle !== sharedBundle) {
-        newBundles.splice(newBundles.indexOf(shellBundle), 1);
-        newBundles.splice(newBundles.indexOf(sharedBundle), 1);
-        newBundles.push(mergeBundles([shellBundle, sharedBundle]));
-      }
+      newBundles.splice(newBundles.indexOf(shellBundle), 1);
+      newBundles.splice(newBundles.indexOf(sharedBundle), 1);
+      shellBundle = mergeBundles([shellBundle, sharedBundle]);
+      newBundles.push(shellBundle);
     }
     return newBundles;
   };

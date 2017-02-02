@@ -174,6 +174,16 @@ suite('BundleManifest', () => {
         assert.equal(shelled2[1], '[A]->[1,A]');
         assert.equal(shelled2[2], '[B]->[4,B]');
         assert.equal(shelled2[3], '[C]->[7,C]');
+
+        const shellStrategyDefault = generateShellMergeStrategy('D');
+        const shelledDefault =
+            shellStrategyDefault(bundles).map(serializeBundle).sort();
+        assert.deepEqual(shelledDefault, shelled2);
+      });
+
+      test('throws an error if shell does not exist in any bundle', () => {
+        const shellStrategy = generateShellMergeStrategy('X');
+        assert.throws(() => shellStrategy(bundles));
       });
     });
 
