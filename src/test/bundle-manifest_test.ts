@@ -262,6 +262,8 @@ suite('BundleManifest', () => {
         '[D]->[8,D]'
       ].map(deserializeBundle);
 
+      const strategy9 = generateSharedDepsMergeStrategy(9);
+      const bundles9 = strategy9(bundles).map(serializeBundle).sort();
       const strategy3 = generateSharedDepsMergeStrategy(3);
       const bundles3 = strategy3(bundles).map(serializeBundle).sort();
       const strategy2 = generateSharedDepsMergeStrategy(2);
@@ -307,6 +309,11 @@ suite('BundleManifest', () => {
           '[C]->[7,C]',
           '[D]->[8,D]'
         ]);
+      });
+
+      test('does not change bundles if threshold is not met', () => {
+        const originalBundles = bundles.map(serializeBundle).sort();
+        assert.deepEqual(bundles9, originalBundles);
       });
 
       // TODO(usergenic): It feels like the generateSharedDepsMergeStrategy
