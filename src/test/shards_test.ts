@@ -72,13 +72,15 @@ suite('Bundler', () => {
       const strategy = generateSharedDepsMergeStrategy(2);
       return bundleMultiple([common, entrypoint1, entrypoint2], strategy)
           .then((docs) => {
-            assert.equal(docs.size, 3);
+            assert.equal(docs.size, 4);
             const commonDoc: parse5.ASTNode = docs.get(common)!.ast;
             assert.isDefined(commonDoc);
-            const entrypoint1Doc = docs.get(entrypoint1)!;
+            const entrypoint1Doc = docs.get(entrypoint1)!.ast;
             assert.isDefined(entrypoint1Doc);
-            const entrypoint2Doc = docs.get(entrypoint2)!;
+            const entrypoint2Doc = docs.get(entrypoint2)!.ast;
             assert.isDefined(entrypoint2Doc);
+            const sharedDoc = docs.get('shared_bundle_1.html')!.ast;
+            assert.isDefined(sharedDoc);
             const commonModule = domModulePredicate('common-module');
             const elOne = domModulePredicate('el-one');
             const elTwo = domModulePredicate('el-two');
@@ -87,15 +89,13 @@ suite('Bundler', () => {
 
             // Check that all the dom modules are in their expected shards
             assertContainsAndExcludes(
-                commonDoc, [commonModule, depOne], [elOne, elTwo, depTwo]);
+                commonDoc, [commonModule], [elOne, elTwo, depOne, depTwo]);
             assertContainsAndExcludes(
-                entrypoint1Doc.ast,
-                [elOne],
-                [commonModule, elTwo, depOne, depTwo]);
+                sharedDoc, [depOne], [elOne, elTwo, depTwo]);
             assertContainsAndExcludes(
-                entrypoint2Doc.ast,
-                [elTwo, depTwo],
-                [commonModule, elOne, depOne]);
+                entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
+            assertContainsAndExcludes(
+                entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
           });
     });
 
@@ -106,9 +106,9 @@ suite('Bundler', () => {
             assert.equal(docs.size, 3);
             const shellDoc: parse5.ASTNode = docs.get(shell)!.ast;
             assert.isDefined(shellDoc);
-            const entrypoint1Doc = docs.get(entrypoint1)!;
+            const entrypoint1Doc = docs.get(entrypoint1)!.ast;
             assert.isDefined(entrypoint1Doc);
-            const entrypoint2Doc = docs.get(entrypoint2)!;
+            const entrypoint2Doc = docs.get(entrypoint2)!.ast;
             assert.isDefined(entrypoint2Doc);
             const shellDiv = dom5.predicates.hasAttrValue('id', 'shell');
             const commonModule = domModulePredicate('common-module');
@@ -123,13 +123,9 @@ suite('Bundler', () => {
                 [shellDiv, commonModule, depOne],
                 [elOne, elTwo, depTwo]);
             assertContainsAndExcludes(
-                entrypoint1Doc.ast,
-                [elOne],
-                [commonModule, elTwo, depOne, depTwo]);
+                entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
             assertContainsAndExcludes(
-                entrypoint2Doc.ast,
-                [elTwo, depTwo],
-                [commonModule, elOne, depOne]);
+                entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
           });
     });
   });
