@@ -32,8 +32,6 @@ export type BundleUrlMapper = (bundles: Bundle[]) => Map<UrlString, Bundle>;
  */
 export type TransitiveDependenciesMap = Map<UrlString, Set<UrlString>>;
 
-
-
 /**
  * A bundle is a grouping of files which serve the need of one or more
  * entrypoint files.
@@ -150,6 +148,51 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
 }
 
 /**
+ * Chains multiple bundle strategy functions together so the output of one
+ * becomes the input of the next and so-on.
+ */
+export function composeStrategies(strategies: BundleStrategy[]) {
+  return strategies.reduce((s1, s2) => (b) => s2(s1(b)));
+}
+
+/**
+ * Generates a strategy function which finds all non-entrypoint bundles which
+ * are dependencies of the given entrypoint and merges them into that
+ * entrypoint's bundle.
+ */
+export function generateEagerMergeStrategy(entrypoint: UrlString):
+    BundleStrategy {
+  return generateMatchMergeStrategy(
+      entrypoint,
+      b => b.entrypoints.has(entrypoint) && !getBundleEntrypoint(b));
+}
+
+/**
+ * Generates a strategy function which finds all bundles matching the predicate
+ * function and merges them into the bundle containing the target file.
+ */
+export function generateMatchMergeStrategy(
+    target: UrlString,
+    predicate: (matchBundle: Bundle, targetBundle: Bundle) =>
+        boolean): BundleStrategy {
+  return (bundles: Bundle[]): Bundle[] => {
+    let targetBundle = bundles.find(bundle => bundle.files.has(target));
+    if (!targetBundle) {
+      throw new Error(`No bundle found containing file ${target}`);
+    }
+    const newBundles = Array.from(bundles);
+    const bundlesToMerge = newBundles.filter(
+        matchBundle => matchBundle === targetBundle ||
+            predicate(matchBundle, targetBundle!));
+    for (const bundle of bundlesToMerge) {
+      newBundles.splice(newBundles.indexOf(bundle), 1);
+    }
+    newBundles.push(mergeBundles(bundlesToMerge));
+    return newBundles;
+  };
+}
+
+/**
  * Generates a strategy function to merge all bundles where the dependencies
  * for a bundle are shared by at least 2 entrypoints (default; set
  * `minEntrypoints` to change threshold).
@@ -166,34 +209,10 @@ export function generateSharedDepsMergeStrategy(minEntrypoints?: number):
   if (minEntrypoints === undefined) {
     minEntrypoints = 2;
   }
-  return (bundles: Bundle[]): Bundle[] => {
-    const newBundles: Bundle[] = [];
-    const sharedBundles: Bundle[] = [];
-    const allEntrypoints = new Set<UrlString>();
-    for (const bundle of bundles) {
-      bundle.entrypoints.forEach(
-          (entrypoint) => allEntrypoints.add(entrypoint));
-      if (bundle.entrypoints.size >= minEntrypoints &&
-          !getBundleEntrypoint(bundle)) {
-        sharedBundles.push(bundle);
-      } else {
-        newBundles.push(
-            new Bundle(new Set(bundle.entrypoints), new Set(bundle.files)));
-      }
-    }
-    for (let i = 0; i < newBundles.length; i++) {
-      const bundle = newBundles[i];
-      if (setEquals(bundle.entrypoints, allEntrypoints)) {
-        newBundles.splice(i, 1)[0];
-        sharedBundles.push(bundle);
-        break;
-      }
-    }
-    if (sharedBundles.length > 0) {
-      newBundles.push(mergeBundles(sharedBundles));
-    }
-    return newBundles;
-  };
+  return (bundles: Bundle[]): Bundle[] => mergeMatchingBundles(
+             bundles,
+             bundle => bundle.entrypoints.size >= minEntrypoints &&
+                 !getBundleEntrypoint(bundle));
 }
 
 /**
@@ -202,26 +221,16 @@ export function generateSharedDepsMergeStrategy(minEntrypoints?: number):
  */
 export function generateShellMergeStrategy(
     shell: UrlString, minEntrypoints?: number): BundleStrategy {
-  return (bundles: Bundle[]): Bundle[] => {
-    if (minEntrypoints === undefined) {
-      minEntrypoints = 2;
-    }
-    const newBundles = generateSharedDepsMergeStrategy(minEntrypoints)(bundles);
-    let shellBundle = newBundles.find(bundle => bundle.files.has(shell));
-    if (!shellBundle) {
-      throw new Error(`No bundle found containing specified shell ${shell}`);
-    }
-    const sharedBundles = newBundles.filter(
-        (bundle) => bundle.entrypoints.size >= minEntrypoints &&
-            bundle !== shellBundle && !getBundleEntrypoint(bundle));
-    for (const sharedBundle of sharedBundles) {
-      newBundles.splice(newBundles.indexOf(shellBundle), 1);
-      newBundles.splice(newBundles.indexOf(sharedBundle), 1);
-      shellBundle = mergeBundles([shellBundle, sharedBundle]);
-      newBundles.push(shellBundle);
-    }
-    return newBundles;
-  };
+  if (minEntrypoints === undefined) {
+    minEntrypoints = 2;
+  }
+  return composeStrategies([
+    generateEagerMergeStrategy(shell),
+    generateSharedDepsMergeStrategy(minEntrypoints),
+    generateMatchMergeStrategy(
+        shell,
+        b => b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b))
+  ]);
 }
 
 /**
@@ -259,6 +268,21 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
     }
   }
   return newBundle;
+}
+
+/**
+ * Return a new bundle array where all bundles within it matching the predicate
+ * are merged.
+ */
+export function mergeMatchingBundles(
+    bundles: Bundle[], predicate: (bundle: Bundle) => boolean): Bundle[] {
+  const newBundles = Array.from(bundles);
+  const bundlesToMerge = newBundles.filter(predicate);
+  for (const bundle of bundlesToMerge) {
+    newBundles.splice(newBundles.indexOf(bundle), 1);
+  }
+  newBundles.push(mergeBundles(bundlesToMerge));
+  return newBundles;
 }
 
 /**
