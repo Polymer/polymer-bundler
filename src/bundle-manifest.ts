@@ -278,10 +278,12 @@ export function mergeMatchingBundles(
     bundles: Bundle[], predicate: (bundle: Bundle) => boolean): Bundle[] {
   const newBundles = Array.from(bundles);
   const bundlesToMerge = newBundles.filter(predicate);
-  for (const bundle of bundlesToMerge) {
-    newBundles.splice(newBundles.indexOf(bundle), 1);
+  if (bundlesToMerge.length > 1) {
+    for (const bundle of bundlesToMerge) {
+      newBundles.splice(newBundles.indexOf(bundle), 1);
+    }
+    newBundles.push(mergeBundles(bundlesToMerge));
   }
-  newBundles.push(mergeBundles(bundlesToMerge));
   return newBundles;
 }
 
