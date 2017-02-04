@@ -172,18 +172,15 @@ export function generateEagerMergeStrategy(entrypoint: UrlString):
  * function and merges them into the bundle containing the target file.
  */
 export function generateMatchMergeStrategy(
-    target: UrlString,
-    predicate: (matchBundle: Bundle, targetBundle: Bundle) =>
-        boolean): BundleStrategy {
+    target: UrlString, predicate: (b: Bundle) => boolean): BundleStrategy {
   return (bundles: Bundle[]): Bundle[] => {
-    let targetBundle = bundles.find((bundle) => bundle.files.has(target));
+    let targetBundle = bundles.find((b) => b.files.has(target));
     if (!targetBundle) {
       throw new Error(`No bundle found containing file ${target}`);
     }
     const newBundles = Array.from(bundles);
-    const bundlesToMerge = newBundles.filter(
-        (matchBundle) => matchBundle === targetBundle ||
-            predicate(matchBundle, targetBundle!));
+    const bundlesToMerge =
+        newBundles.filter((b) => b === targetBundle || predicate(b));
     for (const bundle of bundlesToMerge) {
       newBundles.splice(newBundles.indexOf(bundle), 1);
     }
