@@ -164,7 +164,7 @@ export function generateEagerMergeStrategy(entrypoint: UrlString):
     BundleStrategy {
   return generateMatchMergeStrategy(
       entrypoint,
-      b => b.entrypoints.has(entrypoint) && !getBundleEntrypoint(b));
+      (b) => b.entrypoints.has(entrypoint) && !getBundleEntrypoint(b));
 }
 
 /**
@@ -176,13 +176,13 @@ export function generateMatchMergeStrategy(
     predicate: (matchBundle: Bundle, targetBundle: Bundle) =>
         boolean): BundleStrategy {
   return (bundles: Bundle[]): Bundle[] => {
-    let targetBundle = bundles.find(bundle => bundle.files.has(target));
+    let targetBundle = bundles.find((bundle) => bundle.files.has(target));
     if (!targetBundle) {
       throw new Error(`No bundle found containing file ${target}`);
     }
     const newBundles = Array.from(bundles);
     const bundlesToMerge = newBundles.filter(
-        matchBundle => matchBundle === targetBundle ||
+        (matchBundle) => matchBundle === targetBundle ||
             predicate(matchBundle, targetBundle!));
     for (const bundle of bundlesToMerge) {
       newBundles.splice(newBundles.indexOf(bundle), 1);
@@ -211,8 +211,8 @@ export function generateSharedDepsMergeStrategy(minEntrypoints?: number):
   }
   return (bundles: Bundle[]): Bundle[] => mergeMatchingBundles(
              bundles,
-             bundle => bundle.entrypoints.size >= minEntrypoints &&
-                 !getBundleEntrypoint(bundle));
+             (b) => b.entrypoints.size >= minEntrypoints &&
+                 !getBundleEntrypoint(b));
 }
 
 /**
@@ -226,10 +226,9 @@ export function generateShellMergeStrategy(
   }
   return composeStrategies([
     generateEagerMergeStrategy(shell),
-    generateSharedDepsMergeStrategy(minEntrypoints),
     generateMatchMergeStrategy(
         shell,
-        b => b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b))
+        (b) => b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b))
   ]);
 }
 

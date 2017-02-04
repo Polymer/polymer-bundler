@@ -54,7 +54,7 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   // Return the toUri as-is if there are conflicting components which
   // prohibit calculating a relative form.
   if (sharedRelativeUrlProperties.some(
-          p => toUrl[p] !== null && fromUrl[p] !== toUrl[p])) {
+          (p) => toUrl[p] !== null && fromUrl[p] !== toUrl[p])) {
     return toUri;
   }
   const fromDir = fromUrl.pathname !== undefined ?
@@ -64,7 +64,7 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   // Note, below, the _ character is appended so that paths with trailing
   // slash retain the trailing slash in the path.relative result.
   const relPath = path.relative(fromDir, toDir + '_').replace(/_$/, '');
-  sharedRelativeUrlProperties.forEach(p => toUrl[p] = null);
+  sharedRelativeUrlProperties.forEach((p) => toUrl[p] = null);
   toUrl.path = undefined;
   toUrl.pathname = relPath;
   return url.format(toUrl);

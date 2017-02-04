@@ -134,16 +134,16 @@ suite('BundleManifest', () => {
       ].map(deserializeBundle);
 
       const strategyABCD = composeStrategies([
-        generateMatchMergeStrategy('B', b => b.entrypoints.has('A')),
-        generateMatchMergeStrategy('D', b => b.entrypoints.has('C'))
+        generateMatchMergeStrategy('B', (b) => b.entrypoints.has('A')),
+        generateMatchMergeStrategy('D', (b) => b.entrypoints.has('C'))
       ]);
 
       const composedABCD = strategyABCD(bundles).map(serializeBundle).sort();
       assert.deepEqual(composedABCD, ['[A,B,C,D]->[1,2,3,4,5,6,7,8,A,B,C,D]']);
 
       const strategyCDBD = composeStrategies([
-        generateMatchMergeStrategy('D', b => b.entrypoints.has('C')),
-        generateMatchMergeStrategy('D', b => b.entrypoints.has('B'))
+        generateMatchMergeStrategy('D', (b) => b.entrypoints.has('C')),
+        generateMatchMergeStrategy('D', (b) => b.entrypoints.has('B'))
       ]);
 
       const composedCDBD = strategyCDBD(bundles).map(serializeBundle).sort();
