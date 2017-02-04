@@ -163,30 +163,17 @@ export function composeStrategies(strategies: BundleStrategy[]) {
 export function generateEagerMergeStrategy(entrypoint: UrlString):
     BundleStrategy {
   return generateMatchMergeStrategy(
-      entrypoint,
-      (b) => b.entrypoints.has(entrypoint) && !getBundleEntrypoint(b));
+      (b) => b.files.has(entrypoint) ||
+          b.entrypoints.has(entrypoint) && !getBundleEntrypoint(b));
 }
 
 /**
  * Generates a strategy function which finds all bundles matching the predicate
  * function and merges them into the bundle containing the target file.
  */
-export function generateMatchMergeStrategy(
-    target: UrlString, predicate: (b: Bundle) => boolean): BundleStrategy {
-  return (bundles: Bundle[]): Bundle[] => {
-    let targetBundle = bundles.find((b) => b.files.has(target));
-    if (!targetBundle) {
-      throw new Error(`No bundle found containing file ${target}`);
-    }
-    const newBundles = Array.from(bundles);
-    const bundlesToMerge =
-        newBundles.filter((b) => b === targetBundle || predicate(b));
-    for (const bundle of bundlesToMerge) {
-      newBundles.splice(newBundles.indexOf(bundle), 1);
-    }
-    newBundles.push(mergeBundles(bundlesToMerge));
-    return newBundles;
-  };
+export function generateMatchMergeStrategy(predicate: (b: Bundle) => boolean):
+    BundleStrategy {
+  return (bundles: Bundle[]) => mergeMatchingBundles(bundles, predicate);
 }
 
 /**
@@ -224,8 +211,8 @@ export function generateShellMergeStrategy(
   return composeStrategies([
     generateEagerMergeStrategy(shell),
     generateMatchMergeStrategy(
-        shell,
-        (b) => b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b))
+        (b) => b.files.has(shell) ||
+            b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b))
   ]);
 }
 

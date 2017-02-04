@@ -134,16 +134,20 @@ suite('BundleManifest', () => {
       ].map(deserializeBundle);
 
       const strategyABCD = composeStrategies([
-        generateMatchMergeStrategy('B', (b) => b.entrypoints.has('A')),
-        generateMatchMergeStrategy('D', (b) => b.entrypoints.has('C'))
+        generateMatchMergeStrategy(
+            (b) => b.files.has('B') || b.entrypoints.has('A')),
+        generateMatchMergeStrategy(
+            (b) => b.files.has('D') || b.entrypoints.has('C'))
       ]);
 
       const composedABCD = strategyABCD(bundles).map(serializeBundle).sort();
       assert.deepEqual(composedABCD, ['[A,B,C,D]->[1,2,3,4,5,6,7,8,A,B,C,D]']);
 
       const strategyCDBD = composeStrategies([
-        generateMatchMergeStrategy('D', (b) => b.entrypoints.has('C')),
-        generateMatchMergeStrategy('D', (b) => b.entrypoints.has('B'))
+        generateMatchMergeStrategy(
+            (b) => b.files.has('D') || b.entrypoints.has('C')),
+        generateMatchMergeStrategy(
+            (b) => b.files.has('D') || b.entrypoints.has('B'))
       ]);
 
       const composedCDBD = strategyCDBD(bundles).map(serializeBundle).sort();
@@ -222,11 +226,6 @@ suite('BundleManifest', () => {
             '[D]->[8,D]',
             '[E]->[E]'
           ]);
-        });
-
-        test('throws an error if shell does not exist in any bundle', () => {
-          const eagerStrategy = generateEagerMergeStrategy('X');
-          assert.throws(() => eagerStrategy(bundles));
         });
       });
 
