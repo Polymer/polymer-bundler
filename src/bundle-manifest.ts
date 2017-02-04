@@ -193,10 +193,8 @@ export function generateSharedDepsMergeStrategy(minEntrypoints?: number):
   if (minEntrypoints === undefined) {
     minEntrypoints = 2;
   }
-  return (bundles: Bundle[]): Bundle[] => mergeMatchingBundles(
-             bundles,
-             (b) => b.entrypoints.size >= minEntrypoints &&
-                 !getBundleEntrypoint(b));
+  return generateMatchMergeStrategy(
+      (b) => b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b));
 }
 
 /**
