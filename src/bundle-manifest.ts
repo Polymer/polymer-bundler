@@ -193,6 +193,9 @@ export function generateSharedDepsMergeStrategy(minEntrypoints?: number):
   if (minEntrypoints === undefined) {
     minEntrypoints = 2;
   }
+  if (minEntrypoints < 0) {
+    throw new Error(`Minimum entrypoints argument must be non-negative`);
+  }
   return generateMatchMergeStrategy(
       (b) => b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b));
 }
@@ -205,6 +208,9 @@ export function generateShellMergeStrategy(
     shell: UrlString, minEntrypoints?: number): BundleStrategy {
   if (minEntrypoints === undefined) {
     minEntrypoints = 2;
+  }
+  if (minEntrypoints < 0) {
+    throw new Error(`Minimum entrypoints argument must be non-negative`);
   }
   return composeStrategies([
     generateEagerMergeStrategy(shell),
