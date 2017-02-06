@@ -23,7 +23,7 @@ export interface Matcher { (node: parse5.ASTNode): boolean; }
 ;
 
 export const urlAttrMatchers: (Matcher)[] =
-    constants.URL_ATTR.map(attr => predicates.hasAttr(attr));
+    constants.URL_ATTR.map((attr) => predicates.hasAttr(attr));
 
 export const urlAttrs: Matcher = predicates.OR.apply(null, urlAttrMatchers);
 

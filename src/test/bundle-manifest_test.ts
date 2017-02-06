@@ -16,7 +16,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 
-import {Bundle, BundleManifest, generateBundles, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, TransitiveDependenciesMap} from '../bundle-manifest';
+import {Bundle, BundleManifest, composeStrategies, generateBundles, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, TransitiveDependenciesMap} from '../bundle-manifest';
 
 chai.config.showDiff = true;
 
@@ -120,6 +120,134 @@ suite('BundleManifest', () => {
 
   suite('BundleStrategy', () => {
 
+    test('composeStrategies', () => {
+
+      const bundles: Bundle[] = [
+        '[A]->[1,A]',
+        '[B]->[2,B]',
+        '[C]->[3,C]',
+        '[A,B]->[4]',
+        '[A,C]->[5]',
+        '[B,C]->[6]',
+        '[A,B,C]->[7]',
+        '[D]->[8,D]'
+      ].map(deserializeBundle);
+
+      const strategyABCD = composeStrategies([
+        generateMatchMergeStrategy(
+            (b) => b.files.has('B') || b.entrypoints.has('A')),
+        generateMatchMergeStrategy(
+            (b) => b.files.has('D') || b.entrypoints.has('C'))
+      ]);
+
+      const composedABCD = strategyABCD(bundles).map(serializeBundle).sort();
+      assert.deepEqual(composedABCD, ['[A,B,C,D]->[1,2,3,4,5,6,7,8,A,B,C,D]']);
+
+      const strategyCDBD = composeStrategies([
+        generateMatchMergeStrategy(
+            (b) => b.files.has('D') || b.entrypoints.has('C')),
+        generateMatchMergeStrategy(
+            (b) => b.files.has('D') || b.entrypoints.has('B'))
+      ]);
+
+      const composedCDBD = strategyCDBD(bundles).map(serializeBundle).sort();
+      assert.deepEqual(
+          composedCDBD, ['[A,B,C,D]->[2,3,4,5,6,7,8,B,C,D]', '[A]->[1,A]']);
+    });
+
+    suite('generateEagerMergeStrategy', () => {
+
+      suite('simple dependency graph', () => {
+        const bundles: Bundle[] = [
+          '[A]->[1,A]',
+          '[A,B]->[2]',
+          '[A,B,C]->[3]',
+          '[B]->[4,B]',
+          '[B,C]->[5]',
+          '[B,C,D]->[6]',
+          '[C]->[7,C]',
+          '[D]->[8,D]',
+          '[E]->[E]',
+        ].map(deserializeBundle);
+
+        const eagerStrategyA = generateEagerMergeStrategy('A');
+        const eagerA = eagerStrategyA(bundles).map(serializeBundle).sort();
+        const eagerStrategyB = generateEagerMergeStrategy('B');
+        const eagerB = eagerStrategyB(bundles).map(serializeBundle).sort();
+        const eagerStrategyD = generateEagerMergeStrategy('D');
+        const eagerD = eagerStrategyD(bundles).map(serializeBundle).sort();
+        const eagerStrategyE = generateEagerMergeStrategy('E');
+        const eagerE = eagerStrategyE(bundles).map(serializeBundle).sort();
+
+        test('merges 2 bundles into eager A', () => {
+          assert.deepEqual(eagerA, [
+            '[A,B,C]->[1,2,3,A]',
+            '[B,C,D]->[6]',
+            '[B,C]->[5]',
+            '[B]->[4,B]',
+            '[C]->[7,C]',
+            '[D]->[8,D]',
+            '[E]->[E]'
+          ]);
+        });
+
+        test('merges 4 bundles into eager B', () => {
+          assert.deepEqual(eagerB, [
+            '[A,B,C,D]->[2,3,4,5,6,B]',
+            '[A]->[1,A]',
+            '[C]->[7,C]',
+            '[D]->[8,D]',
+            '[E]->[E]'
+          ]);
+        });
+
+        test('merges 1 bundle into shell D', () => {
+          assert.deepEqual(eagerD, [
+            '[A,B,C]->[3]',
+            '[A,B]->[2]',
+            '[A]->[1,A]',
+            '[B,C,D]->[6,8,D]',
+            '[B,C]->[5]',
+            '[B]->[4,B]',
+            '[C]->[7,C]',
+            '[E]->[E]'
+          ]);
+        });
+
+        test('merges no bundles into shell E', () => {
+          assert.deepEqual(eagerE, [
+            '[A,B,C]->[3]',
+            '[A,B]->[2]',
+            '[A]->[1,A]',
+            '[B,C,D]->[6]',
+            '[B,C]->[5]',
+            '[B]->[4,B]',
+            '[C]->[7,C]',
+            '[D]->[8,D]',
+            '[E]->[E]'
+          ]);
+        });
+      });
+
+      test('will not merge entrypoint bundles', () => {
+        const bundles = [
+          '[A]->[1,A]',  //
+          '[A,B]->[2,B]',
+          '[A,C]->[3]',
+          '[A,D]->[5,D]'
+        ].map(deserializeBundle);
+        const eagerStrategy = generateEagerMergeStrategy('A');
+        const eager = eagerStrategy(bundles).map(serializeBundle).sort();
+        assert.deepEqual(
+            eager,
+            [
+              '[A,B]->[2,B]',  //
+              '[A,C]->[1,3,A]',
+              '[A,D]->[5,D]'
+            ]);
+      });
+    });
+
     suite('generateSharedDepsMergeStrategy', () => {
 
       const bundles: Bundle[] = [
@@ -133,6 +261,8 @@ suite('BundleManifest', () => {
         '[D]->[8,D]'
       ].map(deserializeBundle);
 
+      const strategy9 = generateSharedDepsMergeStrategy(9);
+      const bundles9 = strategy9(bundles).map(serializeBundle).sort();
       const strategy3 = generateSharedDepsMergeStrategy(3);
       const bundles3 = strategy3(bundles).map(serializeBundle).sort();
       const strategy2 = generateSharedDepsMergeStrategy(2);
@@ -180,10 +310,15 @@ suite('BundleManifest', () => {
         ]);
       });
 
+      test('does not change bundles if threshold is not met', () => {
+        const originalBundles = bundles.map(serializeBundle).sort();
+        assert.deepEqual(bundles9, originalBundles);
+      });
+
       // TODO(usergenic): It feels like the generateSharedDepsMergeStrategy
       // could do something smarter for the case where groups of deps are
       // exclusive.  Leaving this test here as a future behavior to consider.
-      test.skip('produces a function which generates 2 shared bundles', () => {
+      test.skip('generates distinct bundles for exclusive graphs', () => {
 
         const bundlesSplit: Bundle[] = [
           // group [A,B,C]
@@ -206,12 +341,12 @@ suite('BundleManifest', () => {
 
         assert.deepEqual(bundles2, [
           '[A,B,C]->[2,4]',
-          '[A]->[A,1]',
-          '[B]->[B,3]',
-          '[C]->[C,5]',
+          '[A]->[1,A]',
+          '[B]->[3,B]',
+          '[C]->[5,C]',
           '[D,E,F]->[7,9]',
-          '[D]->[D,6]',
-          '[E]->[E,8]',
+          '[D]->[6,D]',
+          '[E]->[8,E]',
           '[F]->[F]'
         ]);
       });
@@ -219,75 +354,49 @@ suite('BundleManifest', () => {
 
     suite('generateShellMergeStrategy', () => {
 
-      suite('simple dependency graph', () => {
-        const bundles: Bundle[] = [
-          '[A]->[A,1]',
-          '[A,B]->[2]',
-          '[A,B,C]->[3]',
-          '[B]->[B,4]',
-          '[B,C]->[5]',
-          '[B,C,D]->[6]',
-          '[C]->[C,7]',
-          '[D]->[D,8]'
+      test('will merge shop-style shell app dependencies into shell', () => {
+        const bundles = [
+          '[CART]->[1,CART]',
+          '[CART,CHECKOUT]->[2]',
+          '[CART,LIST]->[3]',
+          '[CHECKOUT]->[4,CHECKOUT]',
+          '[DETAIL]->[5,DETAIL]',
+          '[DETAIL,LIST]->[6]',
+          '[LIST]->[7,LIST]',
+          '[SHELL]->[8,SHELL]'
         ].map(deserializeBundle);
 
-        const shellStrategy3 = generateShellMergeStrategy('D', 3);
-        const shelled3 = shellStrategy3(bundles).map(serializeBundle).sort();
-        const shellStrategy2 = generateShellMergeStrategy('D', 2);
-        const shelled2 = shellStrategy2(bundles).map(serializeBundle).sort();
-        const shellStrategyDefault = generateShellMergeStrategy('D');
-        const shelledDefault =
-            shellStrategyDefault(bundles).map(serializeBundle).sort();
+        const shellStrategy2 = generateShellMergeStrategy('SHELL', 2);
+        const shelled = shellStrategy2(bundles).map(serializeBundle).sort();
 
-        test('merge shared deps with min 3 entrypoints in shell', () => {
-          assert.deepEqual(shelled3, [
-            '[A,B,C,D]->[3,6,8,D]',
-            '[A,B]->[2]',
-            '[A]->[1,A]',
-            '[B,C]->[5]',
-            '[B]->[4,B]',
-            '[C]->[7,C]'
-          ]);
-        });
-
-        test('merges shared deps with min 2 entrypoints in shell', () => {
-          assert.deepEqual(shelled2, [
-            '[A,B,C,D]->[2,3,5,6,8,D]',
-            '[A]->[1,A]',
-            '[B]->[4,B]',
-            '[C]->[7,C]'
-          ]);
-        });
-
-        test('default min entrypoints is 2', () => {
-          assert.deepEqual(shelledDefault, shelled2);
-        });
-
-        test('throws an error if shell does not exist in any bundle', () => {
-          const shellStrategy = generateShellMergeStrategy('X');
-          assert.throws(() => shellStrategy(bundles));
-        });
+        assert.deepEqual(shelled, [
+          '[CART,CHECKOUT,DETAIL,LIST,SHELL]->[2,3,6,8,SHELL]',
+          '[CART]->[1,CART]',
+          '[CHECKOUT]->[4,CHECKOUT]',
+          '[DETAIL]->[5,DETAIL]',
+          '[LIST]->[7,LIST]'
+        ]);
       });
 
-      test('shell merge strategy will not merge entrypoints into shell', () => {
+      test('will not merge entrypoint bundles into the shell', () => {
         const bundles = [
           '[A]->[1,A]',  //
           '[A,B]->[2,B]',
           '[A,C]->[3]',
-          '[SHELL]->[5,SHELL]'
+          '[A,C,D]->[5]',
+          '[B,D]->[6,D]'
         ].map(deserializeBundle);
-        const shellStrategy = generateShellMergeStrategy('SHELL');
+        const shellStrategy = generateShellMergeStrategy('B', 2);
         const shelled = shellStrategy(bundles).map(serializeBundle).sort();
         assert.deepEqual(
             shelled,
             [
-              '[A,B]->[2,B]',  //
-              '[A,C,SHELL]->[3,5,SHELL]',
-              '[A]->[1,A]'
+              '[A,B,C,D]->[2,3,5,B]',  //
+              '[A]->[1,A]',
+              '[B,D]->[6,D]'
             ]);
       });
     });
-
   });
 
   suite('Shop example', () => {

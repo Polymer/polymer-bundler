@@ -226,7 +226,7 @@ function _rewriteImportedElementAttrUrls(
  */
 function _rewriteImportedStyleTextUrls(
     importUrl: UrlString, mainDocUrl: UrlString, cssText: string): string {
-  return cssText.replace(constants.URL, match => {
+  return cssText.replace(constants.URL, (match) => {
     let path = match.replace(/["']/g, '').slice(4, -1);
     path = urlUtils.rewriteImportedRelPath(importUrl, mainDocUrl, path);
     return 'url("' + path + '")';
