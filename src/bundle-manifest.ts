@@ -201,16 +201,24 @@ export function generateSharedDepsMergeStrategy(minEntrypoints?: number):
  * bundle for an application shell.
  */
 export function generateShellMergeStrategy(
-    shell: UrlString, minEntrypoints: number): BundleStrategy {
+    shell: UrlString, minEntrypoints?: number): BundleStrategy {
   return (bundles: Bundle[]): Bundle[] => {
+    if (minEntrypoints === undefined) {
+      minEntrypoints = 2;
+    }
     const newBundles = generateSharedDepsMergeStrategy(minEntrypoints)(bundles);
-    const shellBundle = newBundles.find((bundle) => bundle.files.has(shell));
-    const sharedBundle =
-        newBundles.find((bundle) => bundle.entrypoints.size > 1);
-    if (shellBundle && sharedBundle && shellBundle !== sharedBundle) {
+    let shellBundle = newBundles.find(bundle => bundle.files.has(shell));
+    if (!shellBundle) {
+      throw new Error(`No bundle found containing specified shell ${shell}`);
+    }
+    const sharedBundles = newBundles.filter(
+        (bundle) => bundle.entrypoints.size >= minEntrypoints &&
+            bundle !== shellBundle && !getBundleEntrypoint(bundle));
+    for (const sharedBundle of sharedBundles) {
       newBundles.splice(newBundles.indexOf(shellBundle), 1);
       newBundles.splice(newBundles.indexOf(sharedBundle), 1);
-      newBundles.push(mergeBundles([shellBundle, sharedBundle]));
+      shellBundle = mergeBundles([shellBundle, sharedBundle]);
+      newBundles.push(shellBundle);
     }
     return newBundles;
   };

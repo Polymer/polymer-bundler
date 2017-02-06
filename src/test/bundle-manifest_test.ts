@@ -49,8 +49,11 @@ suite('BundleManifest', () => {
 
   suite('constructor and generated maps', () => {
 
-    const bundles =
-        ['[A]->[A,C]', '[B]->[B,D]', '[A,B]->[E]'].map(deserializeBundle);
+    const bundles = [
+      '[A]->[A,C]',  //
+      '[B]->[B,D]',
+      '[A,B]->[E]'
+    ].map(deserializeBundle);
 
     function mapper(bundles: Bundle[]) {
       const entries = bundles.map((bundle): [string, Bundle] => {
@@ -82,12 +85,15 @@ suite('BundleManifest', () => {
       depsIndex.set('F', new Set(['F', 'G']));
 
       const bundles = generateBundles(depsIndex).map(serializeBundle).sort();
-      assert.equal(bundles.length, 5);
-      assert.equal(bundles[0], '[A,D]->[B]');
-      assert.equal(bundles[1], '[A,F]->[G]');
-      assert.equal(bundles[2], '[A]->[A,C]');
-      assert.equal(bundles[3], '[D]->[D,E]');
-      assert.equal(bundles[4], '[F]->[F]');
+      assert.deepEqual(
+          bundles,
+          [
+            '[A,D]->[B]',  //
+            '[A,F]->[G]',
+            '[A]->[A,C]',
+            '[D]->[D,E]',
+            '[F]->[F]'
+          ]);
     });
   });
 
@@ -114,57 +120,171 @@ suite('BundleManifest', () => {
 
   suite('BundleStrategy', () => {
 
-    const bundles: Bundle[] = [
-      '[A]->[A,1]',
-      '[A,B]->[2]',
-      '[A,B,C]->[3]',
-      '[B]->[B,4]',
-      '[B,C]->[5]',
-      '[B,C,D]->[6]',
-      '[C]->[C,7]',
-      '[D]->[D,8]'
-    ].map(deserializeBundle);
-
     suite('generateSharedDepsMergeStrategy', () => {
 
-      test('produces a function to merge bundles with shared deps', () => {
+      const bundles: Bundle[] = [
+        '[A]->[A,1]',
+        '[A,B]->[2]',
+        '[A,B,C]->[3]',
+        '[B]->[4,B]',
+        '[B,C]->[5]',
+        '[B,C,D]->[6]',
+        '[C]->[7,C]',
+        '[D]->[8,D]'
+      ].map(deserializeBundle);
 
-        const strategy3 = generateSharedDepsMergeStrategy(3);
-        const bundles3 = strategy3(bundles).map(serializeBundle).sort();
-        assert.equal(bundles3.length, 7);
-        assert.equal(bundles3[0], '[A,B,C,D]->[3,6]');
-        assert.equal(bundles3[1], '[A,B]->[2]');
-        assert.equal(bundles3[2], '[A]->[1,A]');
-        assert.equal(bundles3[3], '[B,C]->[5]');
-        assert.equal(bundles3[4], '[B]->[4,B]');
-        assert.equal(bundles3[5], '[C]->[7,C]');
-        assert.equal(bundles3[6], '[D]->[8,D]');
+      const strategy3 = generateSharedDepsMergeStrategy(3);
+      const bundles3 = strategy3(bundles).map(serializeBundle).sort();
+      const strategy2 = generateSharedDepsMergeStrategy(2);
+      const bundles2 = strategy2(bundles).map(serializeBundle).sort();
+      const strategyDefault = generateSharedDepsMergeStrategy();
+      const bundlesDefault =
+          strategyDefault(bundles).map(serializeBundle).sort();
+
+      test('merged bundles with at least 2 entrypoints by default', () => {
+        assert.deepEqual(bundlesDefault, bundles2);
+      });
+
+      test('merges bundles with at least 2 entrypoints', () => {
+        assert.deepEqual(bundles2, [
+          '[A,B,C,D]->[2,3,5,6]',
+          '[A]->[1,A]',
+          '[B]->[4,B]',
+          '[C]->[7,C]',
+          '[D]->[8,D]'
+        ]);
+      });
+
+      test('merges bundles with at least 3 entrypoints', () => {
+        assert.deepEqual(bundles3, [
+          '[A,B,C,D]->[3,6]',
+          '[A,B]->[2]',
+          '[A]->[1,A]',
+          '[B,C]->[5]',
+          '[B]->[4,B]',
+          '[C]->[7,C]',
+          '[D]->[8,D]'
+        ]);
+      });
+
+      test('does not modify original bundles array', () => {
+        assert.deepEqual(bundles.map(serializeBundle), [
+          '[A]->[1,A]',
+          '[A,B]->[2]',
+          '[A,B,C]->[3]',
+          '[B]->[4,B]',
+          '[B,C]->[5]',
+          '[B,C,D]->[6]',
+          '[C]->[7,C]',
+          '[D]->[8,D]'
+        ]);
+      });
+
+      // TODO(usergenic): It feels like the generateSharedDepsMergeStrategy
+      // could do something smarter for the case where groups of deps are
+      // exclusive.  Leaving this test here as a future behavior to consider.
+      test.skip('produces a function which generates 2 shared bundles', () => {
+
+        const bundlesSplit: Bundle[] = [
+          // group [A,B,C]
+          '[A]->[1,A]',
+          '[A,B]->[2]',
+          '[B]->[3,B]',
+          '[B,C]->[4]',
+          '[C]->[5,C]',
+
+          // group [D,E,F]
+          '[D]->[6,D]',
+          '[D,E]->[7]',
+          '[E]->[8,E]',
+          '[E,F]->[9]',
+          '[F]->[F]'
+        ].map(deserializeBundle);
 
         const strategy2 = generateSharedDepsMergeStrategy(2);
-        const bundles2 = strategy2(bundles).map(serializeBundle).sort();
-        assert.equal(bundles2.length, 5);
-        assert.equal(bundles2[0], '[A,B,C,D]->[2,3,5,6]');
-        assert.equal(bundles2[1], '[A]->[1,A]');
-        assert.equal(bundles2[2], '[B]->[4,B]');
-        assert.equal(bundles2[3], '[C]->[7,C]');
-        assert.equal(bundles2[4], '[D]->[8,D]');
+        const bundles2 = strategy2(bundlesSplit).map(serializeBundle).sort();
 
-        // Prove the original bundles list is unmodified.
-        assert.equal(bundles.length, 8);
+        assert.deepEqual(bundles2, [
+          '[A,B,C]->[2,4]',
+          '[A]->[A,1]',
+          '[B]->[B,3]',
+          '[C]->[C,5]',
+          '[D,E,F]->[7,9]',
+          '[D]->[D,6]',
+          '[E]->[E,8]',
+          '[F]->[F]'
+        ]);
       });
     });
 
     suite('generateShellMergeStrategy', () => {
 
-      test('produces function to merge shared deps in shell', () => {
-        const shellStrategy = generateShellMergeStrategy('D', 2);
-        const shelled = shellStrategy(bundles).map(serializeBundle).sort();
-        assert.equal(shelled.length, 4);
+      suite('simple dependency graph', () => {
+        const bundles: Bundle[] = [
+          '[A]->[A,1]',
+          '[A,B]->[2]',
+          '[A,B,C]->[3]',
+          '[B]->[B,4]',
+          '[B,C]->[5]',
+          '[B,C,D]->[6]',
+          '[C]->[C,7]',
+          '[D]->[D,8]'
+        ].map(deserializeBundle);
 
-        assert.equal(shelled[0], '[A,B,C,D]->[2,3,5,6,8,D]');
-        assert.equal(shelled[1], '[A]->[1,A]');
-        assert.equal(shelled[2], '[B]->[4,B]');
-        assert.equal(shelled[3], '[C]->[7,C]');
+        const shellStrategy3 = generateShellMergeStrategy('D', 3);
+        const shelled3 = shellStrategy3(bundles).map(serializeBundle).sort();
+        const shellStrategy2 = generateShellMergeStrategy('D', 2);
+        const shelled2 = shellStrategy2(bundles).map(serializeBundle).sort();
+        const shellStrategyDefault = generateShellMergeStrategy('D');
+        const shelledDefault =
+            shellStrategyDefault(bundles).map(serializeBundle).sort();
+
+        test('merge shared deps with min 3 entrypoints in shell', () => {
+          assert.deepEqual(shelled3, [
+            '[A,B,C,D]->[3,6,8,D]',
+            '[A,B]->[2]',
+            '[A]->[1,A]',
+            '[B,C]->[5]',
+            '[B]->[4,B]',
+            '[C]->[7,C]'
+          ]);
+        });
+
+        test('merges shared deps with min 2 entrypoints in shell', () => {
+          assert.deepEqual(shelled2, [
+            '[A,B,C,D]->[2,3,5,6,8,D]',
+            '[A]->[1,A]',
+            '[B]->[4,B]',
+            '[C]->[7,C]'
+          ]);
+        });
+
+        test('default min entrypoints is 2', () => {
+          assert.deepEqual(shelledDefault, shelled2);
+        });
+
+        test('throws an error if shell does not exist in any bundle', () => {
+          const shellStrategy = generateShellMergeStrategy('X');
+          assert.throws(() => shellStrategy(bundles));
+        });
+      });
+
+      test('shell merge strategy will not merge entrypoints into shell', () => {
+        const bundles = [
+          '[A]->[1,A]',  //
+          '[A,B]->[2,B]',
+          '[A,C]->[3]',
+          '[SHELL]->[5,SHELL]'
+        ].map(deserializeBundle);
+        const shellStrategy = generateShellMergeStrategy('SHELL');
+        const shelled = shellStrategy(bundles).map(serializeBundle).sort();
+        assert.deepEqual(
+            shelled,
+            [
+              '[A,B]->[2,B]',  //
+              '[A,C,SHELL]->[3,5,SHELL]',
+              '[A]->[1,A]'
+            ]);
       });
     });
 
