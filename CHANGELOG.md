@@ -5,8 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
-
+## 2.0.0-pre.4 - 2017-02-03
 - Fixed a bug where bundling using generateShellMergeStrategy would result in
   builds missing imports which should have been appended to shell.
 
