@@ -33,7 +33,8 @@ async function _getTransitiveDependencies(
     url: UrlString, entrypoints: UrlString[], analyzer: Analyzer):
     Promise<DependencyMapEntry> {
       const document = await analyzer.analyze(url);
-      const imports = document.getByKind('import');
+      const imports = document.getByKind(
+          'import', {externalPackages: true, imported: true});
       const eagerImports = new Set<UrlString>();
       const lazyImports = new Set<UrlString>();
       for (let htmlImport of imports) {
