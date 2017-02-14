@@ -188,11 +188,10 @@ export function generateMatchMergeStrategy(predicate: (b: Bundle) => boolean):
  * dependencies which are shared by at least 2 entrypoints:
  *   `[a]->[a,b], [c]->[c,e], [a,c,f,g]->[d,f,g,h]`
  */
-export function generateSharedDepsMergeStrategy(minEntrypoints?: number):
+export function generateSharedDepsMergeStrategy(maybeMinEntrypoints?: number):
     BundleStrategy {
-  if (minEntrypoints === undefined) {
-    minEntrypoints = 2;
-  }
+  const minEntrypoints =
+      maybeMinEntrypoints === undefined ? 2 : maybeMinEntrypoints;
   if (minEntrypoints < 0) {
     throw new Error(`Minimum entrypoints argument must be non-negative`);
   }
@@ -205,10 +204,9 @@ export function generateSharedDepsMergeStrategy(minEntrypoints?: number):
  * bundle for an application shell.
  */
 export function generateShellMergeStrategy(
-    shell: UrlString, minEntrypoints?: number): BundleStrategy {
-  if (minEntrypoints === undefined) {
-    minEntrypoints = 2;
-  }
+    shell: UrlString, maybeMinEntrypoints?: number): BundleStrategy {
+  const minEntrypoints =
+      maybeMinEntrypoints === undefined ? 2 : maybeMinEntrypoints;
   if (minEntrypoints < 0) {
     throw new Error(`Minimum entrypoints argument must be non-negative`);
   }
