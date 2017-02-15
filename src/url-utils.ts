@@ -30,6 +30,19 @@ const sharedRelativeUrlProperties =
 export type UrlString = string;
 
 /**
+ * Returns a URL with the basename removed from the pathname.  Strips the
+ * search off of the URL as well, since it will not apply.
+ */
+export function debaseUrl(href: UrlString): UrlString {
+  const u = url.parse(href);
+  if (typeof u.pathname === 'string') {
+    u.pathname = path.dirname(u.pathname + '_').replace(/_$/, '') + '/';
+  }
+  u.search = undefined;
+  return url.format(u);
+}
+
+/**
  * Returns true if the href is an absolute path.
  */
 export function isAbsolutePath(href: UrlString): boolean {
@@ -91,17 +104,4 @@ export function rewriteImportedRelPath(
         {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
   }
   return absUrl;
-}
-
-/**
- * Returns a URL with the basename removed from the pathname.  Strips the
- * search off of the URL as well, since it will not apply.
- */
-export function debaseUrl(href: UrlString): UrlString {
-  const u = url.parse(href);
-  if (typeof u.pathname === 'string') {
-    u.pathname = path.dirname(u.pathname + '_').replace(/_$/, '') + '/';
-  }
-  u.search = undefined;
-  return url.format(u);
 }
