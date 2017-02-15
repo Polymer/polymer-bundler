@@ -94,6 +94,7 @@ export async function inlineHtmlImport(
   }
 
   const importDoc = parse5.parseFragment(importSource);
+  rebaseDocument(resolvedImportUrl, importDoc);
   rewriteImportedUrls(importDoc, resolvedImportUrl, docUrl);
   const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
 
@@ -174,6 +175,31 @@ export async function inlineStylesheet(
   dom5.replace(cssLink, styleNode);
   dom5.setTextContent(styleNode, resolvedStylesheetContent);
   return styleNode;
+}
+
+/*
+ * Given an import document, transform all of its URLs based on the document
+ * base.
+ */
+export async function rebaseDocument(docUrl: UrlString, importDoc: ASTNode) {
+  const baseTag = dom5.query(importDoc, matchers.base);
+  // If there's no base tag, there's nothing to do.
+  if (!baseTag) {
+    return;
+  }
+  for (const baseTag of dom5.queryAll(importDoc, matchers.base)) {
+    astUtils.removeElementAndNewline(baseTag);
+  }
+  if (dom5.predicates.hasAttr('href')(baseTag)) {
+    const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
+    rewriteImportedUrls(importDoc, baseUrl, docUrl);
+  }
+  if (dom5.predicates.hasAttr('target')(baseTag)) {
+    const baseTarget = dom5.getAttribute(baseTag, 'target')!;
+    for (const tag of dom5.queryAll(importDoc, matchers.baseTargetAppliesTo)) {
+      dom5.setAttribute(tag, 'target', baseTarget);
+    }
+  }
 }
 
 /**
@@ -262,9 +288,10 @@ function _setImportedDomModuleAssetpaths(
       dom5.queryAll(importDoc, matchers.domModuleWithoutAssetpath);
   for (let i = 0, node: ASTNode; i < domModules.length; i++) {
     node = domModules[i];
-    let assetPathUrl =
-        urlUtils.rewriteImportedRelPath(importUrl, mainDocUrl, '');
-    assetPathUrl = pathPosix.dirname(assetPathUrl) + '/';
+    const assetPathUrl =
+        urlUtils.relativeUrl(
+            mainDocUrl, pathPosix.dirname(importUrl + '_') + '/') ||
+        './';
     dom5.setAttribute(node, 'assetpath', assetPathUrl);
   }
 }
