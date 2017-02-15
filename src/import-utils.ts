@@ -92,7 +92,7 @@ export async function inlineHtmlImport(
   }
 
   const importDoc = parse5.parseFragment(importSource);
-  rebaseDocument(resolvedImportUrl, importDoc);
+  debaseDocument(resolvedImportUrl, importDoc);
   rewriteImportedUrls(importDoc, resolvedImportUrl, docUrl);
   const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
 
@@ -179,7 +179,7 @@ export async function inlineStylesheet(
  * Given an import document, transform all of its URLs based on the document
  * base.
  */
-export async function rebaseDocument(docUrl: UrlString, importDoc: ASTNode) {
+export async function debaseDocument(docUrl: UrlString, importDoc: ASTNode) {
   const baseTag = dom5.query(importDoc, matchers.base);
   // If there's no base tag, there's nothing to do.
   if (!baseTag) {

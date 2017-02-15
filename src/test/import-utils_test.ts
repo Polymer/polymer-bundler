@@ -122,7 +122,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.rebaseDocument(importDocPath, ast);
+      importUtils.debaseDocument(importDocPath, ast);
       importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
@@ -155,7 +155,7 @@ suite('import-utils', () => {
         </body></html>`;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.rebaseDocument(importDocPath, ast);
+      importUtils.debaseDocument(importDocPath, ast);
       importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
@@ -176,7 +176,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.rebaseDocument(importDocPath, ast);
+      importUtils.debaseDocument(importDocPath, ast);
       importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
