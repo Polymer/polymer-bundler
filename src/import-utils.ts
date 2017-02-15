@@ -28,6 +28,31 @@ import {UrlString} from './url-utils';
 // building a class to encapsulate the common document details like docUrl and
 // docBundle and global notions like manifest etc.
 
+/*
+ * Given an import document with a base tag, transform all of its URLs and set
+ * link and form target attributes and remove the base tag.
+ */
+export async function debaseDocument(docUrl: UrlString, importDoc: ASTNode) {
+  const baseTag = dom5.query(importDoc, matchers.base);
+  // If there's no base tag, there's nothing to do.
+  if (!baseTag) {
+    return;
+  }
+  for (const baseTag of dom5.queryAll(importDoc, matchers.base)) {
+    astUtils.removeElementAndNewline(baseTag);
+  }
+  if (dom5.predicates.hasAttr('href')(baseTag)) {
+    const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
+    rewriteImportedUrls(importDoc, baseUrl, docUrl);
+  }
+  if (dom5.predicates.hasAttr('target')(baseTag)) {
+    const baseTarget = dom5.getAttribute(baseTag, 'target')!;
+    for (const tag of dom5.queryAll(importDoc, matchers.baseTargetAppliesTo)) {
+      dom5.setAttribute(tag, 'target', baseTarget);
+    }
+  }
+}
+
 /**
  * Inline the contents of the html document returned by the link tag's href
  * at the location of the link tag and then remove the link tag.
@@ -173,31 +198,6 @@ export async function inlineStylesheet(
   dom5.replace(cssLink, styleNode);
   dom5.setTextContent(styleNode, resolvedStylesheetContent);
   return styleNode;
-}
-
-/*
- * Given an import document, transform all of its URLs based on the document
- * base.
- */
-export async function debaseDocument(docUrl: UrlString, importDoc: ASTNode) {
-  const baseTag = dom5.query(importDoc, matchers.base);
-  // If there's no base tag, there's nothing to do.
-  if (!baseTag) {
-    return;
-  }
-  for (const baseTag of dom5.queryAll(importDoc, matchers.base)) {
-    astUtils.removeElementAndNewline(baseTag);
-  }
-  if (dom5.predicates.hasAttr('href')(baseTag)) {
-    const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
-    rewriteImportedUrls(importDoc, baseUrl, docUrl);
-  }
-  if (dom5.predicates.hasAttr('target')(baseTag)) {
-    const baseTarget = dom5.getAttribute(baseTag, 'target')!;
-    for (const tag of dom5.queryAll(importDoc, matchers.baseTargetAppliesTo)) {
-      dom5.setAttribute(tag, 'target', baseTarget);
-    }
-  }
 }
 
 /**
