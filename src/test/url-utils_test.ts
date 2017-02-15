@@ -26,6 +26,26 @@ const assert = chai.assert;
 
 suite('URL Utils', () => {
 
+  suite('debaseUrl', () => {
+
+    test('Strips "file.html" basename off url', () => {
+      assert.equal(
+          urlUtils.debaseUrl('https://example.com/path/to/file.html'),
+          'https://example.com/path/to/');
+    });
+
+    test('Strips "something?a=b&c=d" basename and search off url', () => {
+      assert.equal(
+          urlUtils.debaseUrl('https://example.com/path/to/something?a=b&c=d'),
+          'https://example.com/path/to/');
+    });
+
+    test('Handles relative paths', () => {
+      assert.equal(
+          urlUtils.debaseUrl('relative/path/to/file'), 'relative/path/to/');
+    });
+  });
+
   suite('Rewrite imported relative paths', () => {
 
     const importDocPath = '/foo/bar/my-element/index.html';
@@ -98,8 +118,8 @@ suite('URL Utils', () => {
     });
 
     // TODO(usergenic): Update resolveUrl to interpret scheme-less URLs the
-    // same way browsers do, where '//' prefix implies preserved scheme and the
-    // first path segment is actually the host.
+    // same way browsers do, where '//' prefix implies preserved scheme and
+    // the first path segment is actually the host.
     test.skip('Scheme-less URLs should be interpreted as browsers do', () => {
       assert.equal(urlUtils.relativeUrl('//a/b', '/c/d'), 'c/d');
       assert.equal(urlUtils.relativeUrl('/a/b', '//c/d'), '//c/d');

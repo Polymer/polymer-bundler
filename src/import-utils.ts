@@ -11,19 +11,17 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import * as path from 'path';
-import * as urlLib from 'url';
-const pathPosix = path.posix;
 import * as dom5 from 'dom5';
-import encodeString from './third_party/UglifyJS2/encode-string';
-
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import constants from './constants';
+import * as urlLib from 'url';
+
 import * as astUtils from './ast-utils';
-import * as matchers from './matchers';
-import * as urlUtils from './url-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
+import constants from './constants';
+import * as matchers from './matchers';
+import encodeString from './third_party/UglifyJS2/encode-string';
+import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
 
 // TODO(usergenic): Revisit the organization of this module and *consider*
@@ -289,9 +287,7 @@ function _setImportedDomModuleAssetpaths(
   for (let i = 0, node: ASTNode; i < domModules.length; i++) {
     node = domModules[i];
     const assetPathUrl =
-        urlUtils.relativeUrl(
-            mainDocUrl, pathPosix.dirname(importUrl + '_') + '/') ||
-        './';
+        urlUtils.relativeUrl(mainDocUrl, urlUtils.debaseUrl(importUrl)) || './';
     dom5.setAttribute(node, 'assetpath', assetPathUrl);
   }
 }
