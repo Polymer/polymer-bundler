@@ -555,7 +555,10 @@ suite('Bundler', () => {
               ['test-c', '../../bower_components/test-component/'],
               ['test-b', '../../bower_components/test-component/src/elements/'],
               ['test-a', '../../bower_components/test-component/'],
-              ['app-main', './']
+
+              // We don't need an assetpath on app-main because its not been
+              // moved/inlined from another location.
+              ['app-main', null]
             ]);
           });
     });

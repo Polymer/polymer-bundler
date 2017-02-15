@@ -191,7 +191,6 @@ export class Bundler {
 
     this._appendHtmlImportsForBundle(document, docBundle);
     importUtils.rebaseDocument(docUrl, document);
-    importUtils.rewriteImportedUrls(document, docUrl, docUrl);
 
     await this._inlineHtmlImports(docUrl, document, docBundle, bundleManifest);
 
