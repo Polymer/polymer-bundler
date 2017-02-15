@@ -94,13 +94,13 @@ suite('Bundler', () => {
     });
   });
 
-  test.skip('Handle <base> tag', () => {
+  test('Handle <base> tag', () => {
     const span = preds.AND(
         preds.hasTagName('span'), preds.hasAttrValue('href', 'imports/hello'));
     const a = preds.AND(
         preds.hasTagName('a'),
         preds.hasAttrValue('href', 'imports/sub-base/sub-base.html'));
-    return bundle('html/base.html').then((doc) => {
+    return bundle('test/html/base.html').then((doc) => {
       const spanHref = dom5.query(doc, span);
       assert.ok(spanHref);
       const anchorRef = dom5.query(doc, a);
