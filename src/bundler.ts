@@ -188,7 +188,9 @@ export class Bundler {
       bundleImports?: Set<string>): Promise<ASTNode> {
     const docUrl = docBundle.url;
     const document = await this._prepareBundleDocument(docBundle);
+
     this._appendHtmlImportsForBundle(document, docBundle);
+    importUtils.rebaseDocument(docUrl, document);
     importUtils.rewriteImportedUrls(document, docUrl, docUrl);
 
     await this._inlineHtmlImports(docUrl, document, docBundle, bundleManifest);
