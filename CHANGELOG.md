@@ -5,8 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## 2.0.0-pre.5 - 2017-02-14
-- Handle base tags when resolving imports.
+## 2.0.0-pre.5 - 2017-02-15
+- Handle `<base href="...">` values correctly when resolving imports.
+- Apply `<base target="...">` to links and forms in the same document as
+  appropriate.
 
 ## 2.0.0-pre.4 - 2017-02-06
 - Fixed a bug where bundling using generateShellMergeStrategy would result in
