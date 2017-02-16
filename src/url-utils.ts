@@ -91,17 +91,16 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
 }
 
 /**
- * Modifies an href by the relative difference between the `mainDocUrl` and
- * `importUrl` which is the location of the imported document containing the
- * href.
+ * Modifies an href by the relative difference between the old base url and
+ * the new base url.
  */
-export function rewriteImportedRelPath(
-    importUrl: UrlString, mainDocUrl: UrlString, href: UrlString): UrlString {
+export function rewriteHrefBaseUrl(
+    href: UrlString, oldBaseUrl: UrlString, newBaseUrl: UrlString): UrlString {
   if (isAbsolutePath(href)) {
     return href;
   }
-  const absUrl = url.resolve(importUrl, href);
-  const parsedFrom = url.parse(mainDocUrl);
+  const absUrl = url.resolve(oldBaseUrl, href);
+  const parsedFrom = url.parse(newBaseUrl);
   const parsedTo = url.parse(absUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&
       parsedFrom.host === parsedTo.host) {

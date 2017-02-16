@@ -57,10 +57,9 @@ suite('import-utils', () => {
         }
       `;
 
-      const _rewriteImportedStyleTextUrls =
-          importUtils.__get__('_rewriteImportedStyleTextUrls');
-      const actual =
-          _rewriteImportedStyleTextUrls(importDocPath, mainDocPath, css);
+      const _rewriteCssTextBaseUrl =
+          importUtils.__get__('_rewriteCssTextBaseUrl');
+      const actual = _rewriteCssTextBaseUrl(css, importDocPath, mainDocPath);
       assert.equal(actual, expected);
     });
 
@@ -90,7 +89,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(html);
-      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
+      importUtils.rewriteDocumentBaseUrl(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
       assert.equal(stripSpace(actual), stripSpace(expected), 'relative');
@@ -105,7 +104,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(base);
-      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
+      importUtils.rewriteDocumentBaseUrl(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(base), 'templated urls');

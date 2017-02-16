@@ -63,7 +63,7 @@ suite('URL Utils', () => {
 
     function testRewrite(val: string, expected: string, msg?: string) {
       const actual =
-          urlUtils.rewriteImportedRelPath(importDocPath, mainDocPath, val);
+          urlUtils.rewriteHrefBaseUrl(val, importDocPath, mainDocPath);
       assert.equal(actual, expected, msg);
     }
 
