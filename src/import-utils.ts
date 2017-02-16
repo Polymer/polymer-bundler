@@ -32,7 +32,7 @@ import {UrlString} from './url-utils';
  * Given an import document with a base tag, transform all of its URLs and set
  * link and form target attributes and remove the base tag.
  */
-export async function debaseDocument(docUrl: UrlString, importDoc: ASTNode) {
+export function debaseDocument(docUrl: UrlString, importDoc: ASTNode) {
   const baseTag = dom5.query(importDoc, matchers.base);
   const p = dom5.predicates;
   // If there's no base tag, there's nothing to do.
