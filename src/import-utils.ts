@@ -34,6 +34,7 @@ import {UrlString} from './url-utils';
  */
 export async function debaseDocument(docUrl: UrlString, importDoc: ASTNode) {
   const baseTag = dom5.query(importDoc, matchers.base);
+  const p = dom5.predicates;
   // If there's no base tag, there's nothing to do.
   if (!baseTag) {
     return;
@@ -45,9 +46,14 @@ export async function debaseDocument(docUrl: UrlString, importDoc: ASTNode) {
     const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
     rewriteImportedUrls(importDoc, baseUrl, docUrl);
   }
-  if (dom5.predicates.hasAttr('target')(baseTag)) {
+  if (p.hasAttr('target')(baseTag)) {
     const baseTarget = dom5.getAttribute(baseTag, 'target')!;
-    for (const tag of dom5.queryAll(importDoc, matchers.baseTargetAppliesTo)) {
+    const tagsToTarget = dom5.queryAll(
+        importDoc,
+        p.AND(
+            p.OR(p.hasTagName('a'), p.hasTagName('form')),
+            p.NOT(p.hasAttr('target'))));
+    for (const tag of tagsToTarget) {
       dom5.setAttribute(tag, 'target', baseTarget);
     }
   }

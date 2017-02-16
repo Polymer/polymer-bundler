@@ -84,9 +84,6 @@ export const hiddenDiv: Matcher = predicates.AND(
     predicates.hasAttr('hidden'),
     predicates.hasAttr('by-polymer-bundler'));
 export const inHiddenDiv: Matcher = predicates.parentMatches(hiddenDiv);
-export const baseTargetAppliesTo: Matcher = predicates.AND(
-    predicates.OR(predicates.hasTagName('a'), predicates.hasTagName('form')),
-    predicates.NOT(predicates.hasAttr('target')));
 
 /**
  * TODO(usergenic): From garlicnation's PR comment - "This matcher needs to deal
