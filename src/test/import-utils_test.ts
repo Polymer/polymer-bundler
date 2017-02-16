@@ -96,94 +96,6 @@ suite('import-utils', () => {
       assert.equal(stripSpace(actual), stripSpace(expected), 'relative');
     });
 
-    test('Resolve Paths with <base>', () => {
-      const htmlBase = `
-        <base href="zork">
-        <link rel="import" href="../polymer/polymer.html">
-        <link rel="stylesheet" href="my-element.css">
-        <dom-module id="my-element">
-        <template>
-        <style>:host { background-image: url(background.svg); }</style>
-        </template>
-        </dom-module>
-        <script>Polymer({is: "my-element"})</script>
-      `;
-
-      const expectedBase = `
-        <html><head>
-        <link rel="import" href="polymer/polymer.html">
-        <link rel="stylesheet" href="my-element/my-element.css">
-        </head><body><dom-module id="my-element" assetpath="my-element/">
-        <template>
-        <style>:host { background-image: url("my-element/background.svg"); }</style>
-        </template>
-        </dom-module>
-        <script>Polymer({is: "my-element"})</script></body></html>
-      `;
-
-      const ast = parse5.parse(htmlBase);
-      importUtils.debaseDocument(importDocPath, ast);
-      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
-
-      const actual = parse5.serialize(ast);
-      assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
-    });
-
-    test('Resolve Paths with <base> having a trailing /', () => {
-      const htmlBase = `
-        <base href="zork/">
-        <link rel="import" href="../polymer/polymer.html">
-        <link rel="stylesheet" href="my-element.css">
-        <dom-module id="my-element">
-        <template>
-        <style>:host { background-image: url(background.svg); }</style>
-        </template>
-        </dom-module>
-        <script>Polymer({is: "my-element"})</script>`;
-
-      const expectedBase = `
-        <html><head>
-        <link rel="import" href="my-element/polymer/polymer.html">
-        <link rel="stylesheet" href="my-element/zork/my-element.css">
-        </head><body>
-        <dom-module id="my-element" assetpath="my-element/zork/">
-        <template>
-        <style>:host { background-image: url("my-element/zork/background.svg"); }</style>
-        </template>
-        </dom-module>
-        <script>Polymer({is: "my-element"})</script>
-        </body></html>`;
-
-      const ast = parse5.parse(htmlBase);
-      importUtils.debaseDocument(importDocPath, ast);
-      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
-
-      const actual = parse5.serialize(ast);
-      assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
-    });
-
-    test('Resolve <base target>', () => {
-      const htmlBase = `
-        <base target="_blank">
-        <a href="foo.html">LINK</a>
-      `;
-
-      const expectedBase = `
-        <html><head>
-        </head><body>
-        <a href="my-element/foo.html" target="_blank">LINK</a>
-        </body></html>
-      `;
-
-      const ast = parse5.parse(htmlBase);
-      importUtils.debaseDocument(importDocPath, ast);
-      importUtils.rewriteImportedUrls(ast, importDocPath, mainDocPath);
-
-      const actual = parse5.serialize(ast);
-      assert.deepEqual(
-          stripSpace(actual), stripSpace(expectedBase), 'base target');
-    });
-
     test('Leave Templated URLs', () => {
       const base = `
         <html><head></head><body>
@@ -197,6 +109,105 @@ suite('import-utils', () => {
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(base), 'templated urls');
+    });
+  });
+
+  suite('Document <base> tag emulation', () => {
+
+    // The trailing slash is meaningful.
+    test('Resolve Paths with <base href> having a trailing /', () => {
+      const htmlBase = `
+        <base href="components/my-element/">
+        <link rel="import" href="../polymer/polymer.html">
+        <link rel="stylesheet" href="my-element.css">
+        <dom-module id="my-element">
+        <template>
+        <style>:host { background-image: url(background.svg); }</style>
+        </template>
+        </dom-module>
+        <script>Polymer({is: "my-element"})</script>`;
+
+      const expectedBase = `
+        <html><head>
+        <link rel="import" href="components/polymer/polymer.html">
+        <link rel="stylesheet" href="components/my-element/my-element.css">
+        </head><body>
+        <dom-module id="my-element" assetpath="components/my-element/">
+        <template>
+        <style>:host { background-image: url("components/my-element/background.svg"); }</style>
+        </template>
+        </dom-module>
+        <script>Polymer({is: "my-element"})</script>
+        </body></html>`;
+
+      const ast = parse5.parse(htmlBase);
+      importUtils.debaseDocument('the/doc/url', ast);
+
+      const actual = parse5.serialize(ast);
+      assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
+    });
+
+    // Old vulcanize did the wrong thing with base href that had no trailing
+    // slash, so this proves the behavior of bundler is correct in this case.
+    test('Resolve Paths with <base href> with no trailing slash', () => {
+      const htmlBase = `
+        <base href="components/my-element">
+        <link rel="import" href="../polymer/polymer.html">
+        <link rel="stylesheet" href="my-element.css">
+        <dom-module id="my-element">
+        <template>
+        <style>:host { background-image: url(background.svg); }</style>
+        </template>
+        </dom-module>
+        <script>Polymer({is: "my-element"})</script>
+      `;
+
+      const expectedBase = `
+        <html><head>
+        <link rel="import" href="polymer/polymer.html">
+        <link rel="stylesheet" href="components/my-element.css">
+        </head><body><dom-module id="my-element" assetpath="components/">
+        <template>
+        <style>:host { background-image: url("components/background.svg"); }</style>
+        </template>
+        </dom-module>
+        <script>Polymer({is: "my-element"})</script></body></html>
+      `;
+
+      const ast = parse5.parse(htmlBase);
+      importUtils.debaseDocument('the/doc/url', ast);
+
+      const actual = parse5.serialize(ast);
+      assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
+    });
+
+    test('Apply <base target> to all links and forms without target', () => {
+      const htmlBase = `
+        <base target="_blank">
+        <a href="foo.html">LINK</a>
+        <a href="bar.html" target="leavemealone">OTHERLINK</a>
+        <form action="doit"></form>
+        <form action="doitagain" target="leavemealone"></form>
+        <div>Just a div.  I don't need a target</div>
+      `;
+
+      const expectedBase = `
+        <html><head>
+        </head><body>
+        <a href="foo.html" target="_blank">LINK</a>
+        <a href="bar.html" target="leavemealone">OTHERLINK</a>
+        <form action="doit" target="_blank"></form>
+        <form action="doitagain" target="leavemealone"></form>
+        <div>Just a div.  I don't need a target</div>
+        </body></html>
+      `;
+
+      const ast = parse5.parse(htmlBase);
+      importUtils.debaseDocument('the/doc/url', ast);
+
+      const actual = parse5.serialize(ast);
+      assert.deepEqual(
+          stripSpace(actual), stripSpace(expectedBase), 'base target');
     });
   });
 });

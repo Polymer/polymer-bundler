@@ -475,6 +475,24 @@ suite('Bundler', () => {
 
   suite('Regression Testing', () => {
 
+    test('Base tag emulation should not leak to other imports', async() => {
+      const doc = await bundle('test/html/base.html');
+      const clickMe = dom5.query(doc, preds.hasTextValue('CLICK ME'));
+      assert.ok(clickMe);
+
+      // The base target from `test/html/imports/base.html` should apply to the
+      // anchor tag in it.
+      assert.equal(dom5.getAttribute(clickMe!, 'target'), 'foo-frame');
+
+      const doNotClickMe =
+          dom5.query(doc, preds.hasTextValue('DO NOT CLICK ME'));
+      assert.ok(doNotClickMe);
+
+      // The base target from `test/html/imports/base.html` should NOT apply to
+      // the anchor tag in `test/html/imports/base-foo/sub-base.html`
+      assert.isFalse(dom5.hasAttribute(doNotClickMe!, 'target'));
+    });
+
     test('Complicated Ordering', async() => {
       // refer to
       // https://github.com/Polymer/polymer-bundler/tree/master/test/html/complicated/ordering.svg
