@@ -37,7 +37,10 @@ export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
   const u = url.parse(href);
   // Using != so tests for null AND undefined
   if (u.pathname != null) {
-    u.pathname = path.dirname(u.pathname + '_').replace(/_$/, '') + '/';
+    // Suffix path with `_` so that `/a/b/` is treated as `/a/b/_` and that
+    // `path.dirname()` returns `/a/b` because it would otherwise return `/a`
+    // incorrectly.
+    u.pathname = path.dirname(u.pathname + '_') + '/';
   }
   // Assigning to undefined because TSC says type of these is
   // `string | undefined` as opposed to `string | null`
