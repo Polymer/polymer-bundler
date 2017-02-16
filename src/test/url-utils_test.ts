@@ -42,6 +42,13 @@ suite('URL Utils', () => {
           'https://example.com/path/to/');
     });
 
+    test('Strips "#some-hash-value" off url', () => {
+      assert.equal(
+          urlUtils.stripUrlFileSearchAndHash(
+              'https://example.com/path/#some-hash-value'),
+          'https://example.com/path/');
+    });
+
     test('Handles relative paths', () => {
       assert.equal(
           urlUtils.stripUrlFileSearchAndHash('relative/path/to/file'),
