@@ -190,7 +190,7 @@ export class Bundler {
     const document = await this._prepareBundleDocument(docBundle);
 
     this._appendHtmlImportsForBundle(document, docBundle);
-    importUtils.debaseDocument(docUrl, document);
+    importUtils.rewriteDocumentToEmulateBaseTag(docUrl, document);
 
     await this._inlineHtmlImports(docUrl, document, docBundle, bundleManifest);
 

@@ -141,7 +141,7 @@ suite('import-utils', () => {
         </body></html>`;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.debaseDocument('the/doc/url', ast);
+      importUtils.rewriteDocumentToEmulateBaseTag('the/doc/url', ast);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -175,7 +175,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.debaseDocument('the/doc/url', ast);
+      importUtils.rewriteDocumentToEmulateBaseTag('the/doc/url', ast);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -203,7 +203,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.debaseDocument('the/doc/url', ast);
+      importUtils.rewriteDocumentToEmulateBaseTag('the/doc/url', ast);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(
