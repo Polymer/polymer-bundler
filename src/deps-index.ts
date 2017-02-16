@@ -35,7 +35,7 @@ async function _getTransitiveDependencies(
     url: UrlString, entrypoints: UrlString[], analyzer: Analyzer):
     Promise<DependencyMapEntry> {
       const document = await analyzer.analyze(url);
-      const documentBase = document.parsedDocument.baseUrl;
+      const baseUrl = document.parsedDocument.baseUrl;
       const imports = document.getByKind(
           'import', {externalPackages: true, imported: true});
       const eagerImports = new Set<UrlString>();
@@ -51,7 +51,7 @@ async function _getTransitiveDependencies(
           throw err;
         }
         const resolvedHtmlImportUrl = urlLib.resolve(
-            documentBase, urlUtils.relativeUrl(documentBase, htmlImport.url));
+            baseUrl, urlUtils.relativeUrl(baseUrl, htmlImport.url));
         switch (htmlImport.type) {
           case 'html-import':
             eagerImports.add(resolvedHtmlImportUrl);
