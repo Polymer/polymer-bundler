@@ -13,9 +13,6 @@
  */
 import {AssertionError} from 'assert';
 import {Analyzer} from 'polymer-analyzer';
-import * as urlLib from 'url';
-
-import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
 
 export interface DepsIndex {
@@ -35,7 +32,6 @@ async function _getTransitiveDependencies(
     url: UrlString, entrypoints: UrlString[], analyzer: Analyzer):
     Promise<DependencyMapEntry> {
       const document = await analyzer.analyze(url);
-      const baseUrl = document.parsedDocument.baseUrl;
       const imports = document.getByKind(
           'import', {externalPackages: true, imported: true});
       const eagerImports = new Set<UrlString>();
@@ -50,14 +46,13 @@ async function _getTransitiveDependencies(
           }
           throw err;
         }
-        const resolvedHtmlImportUrl = urlLib.resolve(
-            baseUrl, urlUtils.relativeUrl(baseUrl, htmlImport.url));
+
         switch (htmlImport.type) {
           case 'html-import':
-            eagerImports.add(resolvedHtmlImportUrl);
+            eagerImports.add(htmlImport.url);
             break;
           case 'lazy-html-import':
-            lazyImports.add(resolvedHtmlImportUrl);
+            lazyImports.add(htmlImport.url);
             break;
         }
       }
