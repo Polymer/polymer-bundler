@@ -33,12 +33,13 @@ export type UrlString = string;
  * Returns a URL with the basename removed from the pathname.  Strips the
  * search off of the URL as well, since it will not apply.
  */
-export function debaseUrl(href: UrlString): UrlString {
+export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
   const u = url.parse(href);
-  if (typeof u.pathname === 'string') {
+  if (u.pathname !== undefined) {
     u.pathname = path.dirname(u.pathname + '_').replace(/_$/, '') + '/';
   }
   u.search = undefined;
+  u.hash = undefined;
   return url.format(u);
 }
 

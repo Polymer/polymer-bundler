@@ -26,23 +26,26 @@ const assert = chai.assert;
 
 suite('URL Utils', () => {
 
-  suite('debaseUrl', () => {
+  suite('stripUrlFileSearchAndHash', () => {
 
     test('Strips "file.html" basename off url', () => {
       assert.equal(
-          urlUtils.debaseUrl('https://example.com/path/to/file.html'),
+          urlUtils.stripUrlFileSearchAndHash(
+              'https://example.com/path/to/file.html'),
           'https://example.com/path/to/');
     });
 
     test('Strips "something?a=b&c=d" basename and search off url', () => {
       assert.equal(
-          urlUtils.debaseUrl('https://example.com/path/to/something?a=b&c=d'),
+          urlUtils.stripUrlFileSearchAndHash(
+              'https://example.com/path/to/something?a=b&c=d'),
           'https://example.com/path/to/');
     });
 
     test('Handles relative paths', () => {
       assert.equal(
-          urlUtils.debaseUrl('relative/path/to/file'), 'relative/path/to/');
+          urlUtils.stripUrlFileSearchAndHash('relative/path/to/file'),
+          'relative/path/to/');
     });
   });
 

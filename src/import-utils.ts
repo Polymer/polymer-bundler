@@ -293,7 +293,9 @@ function _setImportedDomModuleAssetpaths(
   for (let i = 0, node: ASTNode; i < domModules.length; i++) {
     node = domModules[i];
     const assetPathUrl =
-        urlUtils.relativeUrl(mainDocUrl, urlUtils.debaseUrl(importUrl)) || './';
+        urlUtils.relativeUrl(
+            mainDocUrl, urlUtils.stripUrlFileSearchAndHash(importUrl)) ||
+        './';
     dom5.setAttribute(node, 'assetpath', assetPathUrl);
   }
 }
