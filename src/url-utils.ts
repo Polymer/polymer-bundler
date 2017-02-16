@@ -35,9 +35,12 @@ export type UrlString = string;
  */
 export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
   const u = url.parse(href);
-  if (u.pathname !== undefined) {
+  // Using != so tests for null AND undefined
+  if (u.pathname != null) {
     u.pathname = path.dirname(u.pathname + '_').replace(/_$/, '') + '/';
   }
+  // Assigning to undefined because TSC says type of these is
+  // `string | undefined` as opposed to `string | null`
   u.search = undefined;
   u.hash = undefined;
   return url.format(u);
