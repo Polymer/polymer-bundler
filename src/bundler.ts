@@ -188,6 +188,7 @@ export class Bundler {
       bundleImports?: Set<string>): Promise<ASTNode> {
     const docUrl = docBundle.url;
     const document = await this._prepareBundleDocument(docBundle);
+
     this._appendHtmlImportsForBundle(document, docBundle);
     importUtils.rewriteDocumentToEmulateBaseTag(docUrl, document);
 
