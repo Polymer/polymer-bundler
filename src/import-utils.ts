@@ -239,7 +239,8 @@ function rewriteCssTextBaseUrl(
  */
 function rewriteElementAttrsBaseUrl(
     ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
-  const nodes = dom5.queryAll(ast, matchers.urlAttrs);
+  const nodes = dom5.queryAll(
+      ast, matchers.urlAttrs, undefined, dom5.childNodesIncludeTemplate);
   for (const node of nodes) {
     for (const attr of constants.URL_ATTR) {
       const attrValue = dom5.getAttribute(node, attr);

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   appropriate.
 - License comments are deduplicated properly now.
 - Server-Side Include comments `<!--# ... -->` are no longer stripped.
+- Fixed a bug where element attributes inside `<template>` tags were not
+  being rewritten when html imports were inlined.
 
 ## 2.0.0-pre.5 - 2017-02-14
 - Handle base tags when resolving the dependency graph of imports.

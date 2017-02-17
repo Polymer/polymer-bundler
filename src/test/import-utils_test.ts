@@ -122,6 +122,7 @@ suite('import-utils', () => {
         <dom-module id="my-element">
         <template>
         <style>:host { background-image: url(background.svg); }</style>
+        <img src="bloop.gif">
         </template>
         </dom-module>
         <script>Polymer({is: "my-element"})</script>`;
@@ -134,6 +135,7 @@ suite('import-utils', () => {
         <dom-module id="my-element" assetpath="components/my-element/">
         <template>
         <style>:host { background-image: url("components/my-element/background.svg"); }</style>
+        <img src="components/my-element/bloop.gif">
         </template>
         </dom-module>
         <script>Polymer({is: "my-element"})</script>
@@ -156,6 +158,7 @@ suite('import-utils', () => {
         <dom-module id="my-element">
         <template>
         <style>:host { background-image: url(background.svg); }</style>
+        <img src="bloop.gif">
         </template>
         </dom-module>
         <script>Polymer({is: "my-element"})</script>
@@ -168,6 +171,7 @@ suite('import-utils', () => {
         </head><body><dom-module id="my-element" assetpath="components/">
         <template>
         <style>:host { background-image: url("components/background.svg"); }</style>
+        <img src="components/bloop.gif">
         </template>
         </dom-module>
         <script>Polymer({is: "my-element"})</script></body></html>
