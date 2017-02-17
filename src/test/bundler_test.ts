@@ -279,8 +279,9 @@ suite('Bundler', () => {
       const options = {stripComments: true};
       const doc = await bundle('test/html/comments.html', options);
       const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-      assert.equal(comments.length, 4);
       const commentsExpected = [
+        '#important server-side include business',
+        '# this could be a server-side include too',
         '@license common',
         '@license main',
         '@license import 1',
@@ -298,6 +299,9 @@ suite('Bundler', () => {
       // NOTE: Explicitly not trimming the expected comments to ensure we keep
       // the test fixtures with the same whitespace they currently have.
       const expectedComments = [
+        '#important server-side include business ',
+        '# this could be a server-side include too ',
+        ' #this is not a server-side include ',
         ' @license common ',
         ' @license main ',
         '\n@license common\n',

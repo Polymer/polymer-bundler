@@ -65,6 +65,14 @@ export function isLicenseComment(node: ASTNode): boolean {
 }
 
 /**
+ * Return true if node is a comment node that is a server-side-include.  E.g.
+ * <!--#directive ...-->
+ */
+export function isServerSideIncludeComment(node: ASTNode): boolean {
+  return !!node.data && !!node.data.match(/^#/);
+}
+
+/**
  * Inserts the node as the first child of the parent.
  * TODO(usergenic): Migrate this code to polymer/dom5
  */
@@ -112,6 +120,10 @@ export function stripComments(document: ASTNode) {
   const uniqueLicenseTexts = new Set<string>();
   const licenseComments: ASTNode[] = [];
   for (const comment of dom5.nodeWalkAll(document, dom5.isCommentNode)) {
+    if (isServerSideIncludeComment(comment)) {
+      continue;
+    }
+
     // Make whitespace uniform so we can deduplicate based on actual content.
     const commentText = (comment.data || '').replace(/\s+/g, ' ').trim();
 
