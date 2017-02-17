@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Handle `<base href="...">` values correctly when inlining imports.
 - Apply `<base target="...">` to links and forms in the same document as
   appropriate.
+- License comments are deduplicated properly now.
+- Server-Side Include comments `<!--# ... -->` are no longer stripped.
 
 ## 2.0.0-pre.5 - 2017-02-14
 - Handle base tags when resolving the dependency graph of imports.

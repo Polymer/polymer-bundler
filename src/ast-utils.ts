@@ -65,6 +65,14 @@ export function isLicenseComment(node: ASTNode): boolean {
 }
 
 /**
+ * Return true if node is a comment node that is a server-side-include.  E.g.
+ * <!--#directive ...-->
+ */
+export function isServerSideIncludeComment(node: ASTNode): boolean {
+  return !!node.data && !!node.data.match(/^#/);
+}
+
+/**
  * Inserts the node as the first child of the parent.
  * TODO(usergenic): Migrate this code to polymer/dom5
  */
@@ -109,16 +117,25 @@ export function siblingsAfter(node: ASTNode): ASTNode[] {
  * deduplicate them and prepend them in document's head.
  */
 export function stripComments(document: ASTNode) {
-  // Use of a Map keyed by comment text enables deduplication.
-  const comments: Map<string, ASTNode> = new Map();
-  dom5.nodeWalkAll(document, dom5.isCommentNode).forEach((comment: ASTNode) => {
-    comments.set(comment.data || '', comment);
-    removeElementAndNewline(comment);
-  });
-  const head = dom5.query(document, matchers.head);
-  for (const comment of comments.values()) {
-    if (isLicenseComment(comment)) {
-      prepend(head || document, comment);
+  const uniqueLicenseTexts = new Set<string>();
+  const licenseComments: ASTNode[] = [];
+  for (const comment of dom5.nodeWalkAll(document, dom5.isCommentNode)) {
+    if (isServerSideIncludeComment(comment)) {
+      continue;
     }
+
+    // Make whitespace uniform so we can deduplicate based on actual content.
+    const commentText = (comment.data || '').replace(/\s+/g, ' ').trim();
+
+    if (isLicenseComment(comment) && !uniqueLicenseTexts.has(commentText)) {
+      uniqueLicenseTexts.add(commentText);
+      licenseComments.push(comment);
+    }
+
+    removeElementAndNewline(comment);
+  }
+  const prependTarget = dom5.query(document, matchers.head) || document;
+  for (const comment of licenseComments.reverse()) {
+    prepend(prependTarget, comment);
   }
 }

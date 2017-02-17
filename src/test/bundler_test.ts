@@ -279,27 +279,41 @@ suite('Bundler', () => {
       const options = {stripComments: true};
       const doc = await bundle('test/html/comments.html', options);
       const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
-      assert.equal(comments.length, 3);
-      const commentsExpected =
-          ['@license import 2', '@license import 1', '@license main'];
+      const commentsExpected = [
+        '#important server-side include business',
+        '# this could be a server-side include too',
+        '@license common',
+        '@license main',
+        '@license import 1',
+        '@license import 2'
+      ];
       const commentsActual = comments.map((c) => dom5.getTextContent(c).trim());
-      assert.deepEqual(commentsExpected, commentsActual);
+      assert.deepEqual(commentsActual, commentsExpected);
     });
 
     test('Comments are kept by default', async() => {
       const options = {stripComments: false};
       const doc = await bundle('test/html/comments.html', options);
       const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
+
+      // NOTE: Explicitly not trimming the expected comments to ensure we keep
+      // the test fixtures with the same whitespace they currently have.
       const expectedComments = [
-        '@license main',
-        '@license import 1',
-        'comment in import 1',
-        '@license import 2',
-        'comment in import 2',
-        'comment in main'
+        '#important server-side include business ',
+        '# this could be a server-side include too ',
+        ' #this is not a server-side include ',
+        ' @license common ',
+        ' @license main ',
+        '\n@license common\n',
+        ' @license import 1 ',
+        '\n  @license common\n  ',
+        ' comment in import 1 ',
+        ' @license import 2 ',
+        ' comment in import 2 ',
+        ' comment in main '
       ];
-      const actualComments = comments.map((c) => dom5.getTextContent(c).trim());
-      assert.deepEqual(expectedComments, actualComments);
+      const actualComments = comments.map((c) => dom5.getTextContent(c));
+      assert.deepEqual(actualComments, expectedComments);
     });
 
     test('Folder can be excluded', async() => {
