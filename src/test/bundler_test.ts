@@ -301,6 +301,7 @@ suite('Bundler', () => {
       const expectedComments = [
         '#important server-side include business ',
         '# this could be a server-side include too ',
+        ' #this is not a server-side include ',
         ' @license common ',
         ' @license main ',
         '\n@license common\n',
