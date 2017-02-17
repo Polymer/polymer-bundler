@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+
+## 2.0.0-pre.6 - 2017-02-17
 - Handle `<base href="...">` values correctly when inlining imports.
 - Apply `<base target="...">` to links and forms in the same document as
   appropriate.
