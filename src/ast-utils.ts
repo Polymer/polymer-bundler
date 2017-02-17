@@ -69,7 +69,7 @@ export function isLicenseComment(node: ASTNode): boolean {
  * <!--#directive ...-->
  */
 export function isServerSideIncludeComment(node: ASTNode): boolean {
-  return !!node.data && !!node.data.match(/^#\w/);
+  return !!node.data && !!node.data.match(/^#/);
 }
 
 /**
