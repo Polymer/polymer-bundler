@@ -13,12 +13,11 @@
  */
 import {AssertionError} from 'assert';
 import {Analyzer} from 'polymer-analyzer';
-
 import {UrlString} from './url-utils';
 
 export interface DepsIndex {
   // An index of entrypoint -> html dependencies
-  entrypointToDeps: Map<string, Set<string>>;
+  entrypointToDeps: Map<UrlString, Set<UrlString>>;
 }
 
 type DependencyMapEntry = {
@@ -37,7 +36,7 @@ async function _getTransitiveDependencies(
           'import', {externalPackages: true, imported: true});
       const eagerImports = new Set<UrlString>();
       const lazyImports = new Set<UrlString>();
-      for (let htmlImport of imports) {
+      for (const htmlImport of imports) {
         try {
           console.assert(
               htmlImport.url, 'htmlImport: %s has no url', htmlImport);
@@ -47,6 +46,7 @@ async function _getTransitiveDependencies(
           }
           throw err;
         }
+
         switch (htmlImport.type) {
           case 'html-import':
             eagerImports.add(htmlImport.url);
@@ -61,10 +61,10 @@ async function _getTransitiveDependencies(
 
 export async function buildDepsIndex(
     entrypoints: UrlString[], analyzer: Analyzer): Promise<DepsIndex> {
-  const entrypointToDependencies: Map<string, Set<string>> = new Map();
-  const dependenciesToEntrypoints: Map<string, Set<string>> = new Map();
+  const entrypointToDependencies: Map<UrlString, Set<UrlString>> = new Map();
+  const dependenciesToEntrypoints: Map<UrlString, Set<UrlString>> = new Map();
   const queue = Array.from(entrypoints);
-  const visitedEntrypoints = new Set<string>();
+  const visitedEntrypoints = new Set<UrlString>();
   while (queue.length > 0) {
     const entrypoint = queue.shift()!;
     if (visitedEntrypoints.has(entrypoint)) {

@@ -11,19 +11,17 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import * as path from 'path';
-import * as urlLib from 'url';
-const pathPosix = path.posix;
 import * as dom5 from 'dom5';
-import encodeString from './third_party/UglifyJS2/encode-string';
-
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import constants from './constants';
+import * as urlLib from 'url';
+
 import * as astUtils from './ast-utils';
-import * as matchers from './matchers';
-import * as urlUtils from './url-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
+import constants from './constants';
+import * as matchers from './matchers';
+import encodeString from './third_party/UglifyJS2/encode-string';
+import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
 
 // TODO(usergenic): Revisit the organization of this module and *consider*
@@ -94,7 +92,8 @@ export async function inlineHtmlImport(
   }
 
   const importDoc = parse5.parseFragment(importSource);
-  rewriteImportedUrls(importDoc, resolvedImportUrl, docUrl);
+  rewriteDocumentToEmulateBaseTag(resolvedImportUrl, importDoc);
+  rewriteDocumentBaseUrl(importDoc, resolvedImportUrl, docUrl);
   const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
 
   // Move all of the import doc content after the html import.
@@ -164,7 +163,7 @@ export async function inlineStylesheet(
 
   const media = dom5.getAttribute(cssLink, 'media');
   const resolvedStylesheetContent =
-      _rewriteImportedStyleTextUrls(resolvedUrl, docUrl, stylesheetContent);
+      rewriteCssTextBaseUrl(stylesheetContent, resolvedUrl, docUrl);
   const styleNode = dom5.constructors.element('style');
 
   if (media) {
@@ -176,40 +175,81 @@ export async function inlineStylesheet(
   return styleNode;
 }
 
+/*
+ * Given an import document with a base tag, transform all of its URLs and set
+ * link and form target attributes and remove the base tag.
+ */
+export function rewriteDocumentToEmulateBaseTag(
+    docUrl: UrlString, ast: ASTNode) {
+  const baseTag = dom5.query(ast, matchers.base);
+  const p = dom5.predicates;
+  // If there's no base tag, there's nothing to do.
+  if (!baseTag) {
+    return;
+  }
+  for (const baseTag of dom5.queryAll(ast, matchers.base)) {
+    astUtils.removeElementAndNewline(baseTag);
+  }
+  if (dom5.predicates.hasAttr('href')(baseTag)) {
+    const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
+    rewriteDocumentBaseUrl(ast, baseUrl, docUrl);
+  }
+  if (p.hasAttr('target')(baseTag)) {
+    const baseTarget = dom5.getAttribute(baseTag, 'target')!;
+    const tagsToTarget = dom5.queryAll(
+        ast,
+        p.AND(
+            p.OR(p.hasTagName('a'), p.hasTagName('form')),
+            p.NOT(p.hasAttr('target'))));
+    for (const tag of tagsToTarget) {
+      dom5.setAttribute(tag, 'target', baseTarget);
+    }
+  }
+}
+
 /**
  * Walk through an import document, and rewrite all urls so they are
  * correctly relative to the main document url as they've been
  * imported from the import url.
  */
-export function rewriteImportedUrls(
-    importDoc: ASTNode, importUrl: UrlString, mainDocUrl: UrlString) {
-  _rewriteImportedElementAttrUrls(importDoc, importUrl, mainDocUrl);
-  _rewriteImportedStyleUrls(importDoc, importUrl, mainDocUrl);
-  _setImportedDomModuleAssetpaths(importDoc, importUrl, mainDocUrl);
+export function rewriteDocumentBaseUrl(
+    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
+  rewriteElementAttrsBaseUrl(ast, oldBaseUrl, newBaseUrl);
+  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl);
+  setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
+}
+
+/**
+ * Given a string of CSS, return a version where all occurrences of urls,
+ * have been rewritten based on the relationship of the old base url to the
+ * new base url.
+ */
+function rewriteCssTextBaseUrl(
+    cssText: string, oldBaseUrl: UrlString, newBaseUrl: UrlString): string {
+  return cssText.replace(constants.URL, (match) => {
+    let path = match.replace(/["']/g, '').slice(4, -1);
+    path = urlUtils.rewriteHrefBaseUrl(path, oldBaseUrl, newBaseUrl);
+    return 'url("' + path + '")';
+  });
 }
 
 /**
  * Find all element attributes which express urls and rewrite them so they
- * are correctly relative to the main document url as they've been
- * imported from the import url.
+ * are based on the relationship of the old base url to the new base url.
  */
-function _rewriteImportedElementAttrUrls(
-    importDoc: ASTNode, importUrl: UrlString, mainDocUrl: UrlString) {
-  const nodes = dom5.queryAll(importDoc, matchers.urlAttrs);
+function rewriteElementAttrsBaseUrl(
+    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
+  const nodes = dom5.queryAll(ast, matchers.urlAttrs);
   for (const node of nodes) {
     for (const attr of constants.URL_ATTR) {
       const attrValue = dom5.getAttribute(node, attr);
       if (attrValue && !urlUtils.isTemplatedUrl(attrValue)) {
         let relUrl: UrlString;
         if (attr === 'style') {
-          relUrl =
-              _rewriteImportedStyleTextUrls(importUrl, mainDocUrl, attrValue);
+          relUrl = rewriteCssTextBaseUrl(attrValue, oldBaseUrl, newBaseUrl);
         } else {
           relUrl =
-              urlUtils.rewriteImportedRelPath(importUrl, mainDocUrl, attrValue);
-          if (attr === 'assetpath' && relUrl.slice(-1) !== '/') {
-            relUrl += '/';
-          }
+              urlUtils.rewriteHrefBaseUrl(attrValue, oldBaseUrl, newBaseUrl);
         }
         dom5.setAttribute(node, attr, relUrl);
       }
@@ -218,53 +258,36 @@ function _rewriteImportedElementAttrUrls(
 }
 
 /**
- * Given a string of CSS, return a version where all occurrences of urls,
- * have been rewritten based on the relationship of the import url to the
- * main doc url.
- * TODO(usergenic): This is a static method that should probably be moved to
- * urlUtils or similar.
+ * Find all urls in imported style nodes and rewrite them so they are based
+ * on the relationship of the old base url to the new base url.
  */
-function _rewriteImportedStyleTextUrls(
-    importUrl: UrlString, mainDocUrl: UrlString, cssText: string): string {
-  return cssText.replace(constants.URL, (match) => {
-    let path = match.replace(/["']/g, '').slice(4, -1);
-    path = urlUtils.rewriteImportedRelPath(importUrl, mainDocUrl, path);
-    return 'url("' + path + '")';
-  });
-}
-
-/**
- * Find all urls in imported style nodes and rewrite them so they are now
- * correctly relative to the main document url as they've been imported from
- * the import url.
- */
-function _rewriteImportedStyleUrls(
-    importDoc: ASTNode, importUrl: UrlString, mainDocUrl: UrlString) {
+function rewriteStyleTagsBaseUrl(
+    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
   const styleNodes = dom5.queryAll(
-      importDoc,
-      matchers.styleMatcher,
-      undefined,
-      dom5.childNodesIncludeTemplate);
+      ast, matchers.styleMatcher, undefined, dom5.childNodesIncludeTemplate);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
-    styleText = _rewriteImportedStyleTextUrls(importUrl, mainDocUrl, styleText);
+    styleText = rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);
     dom5.setTextContent(node, styleText);
   }
 }
 
 /**
  * Set the assetpath attribute of all imported dom-modules which don't yet
- * have them.
+ * have them if the base urls are different.
  */
-function _setImportedDomModuleAssetpaths(
-    importDoc: ASTNode, importUrl: UrlString, mainDocUrl: UrlString) {
-  const domModules =
-      dom5.queryAll(importDoc, matchers.domModuleWithoutAssetpath);
+function setDomModuleAssetpaths(
+    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
+  const domModules = dom5.queryAll(ast, matchers.domModuleWithoutAssetpath);
   for (let i = 0, node: ASTNode; i < domModules.length; i++) {
     node = domModules[i];
-    let assetPathUrl =
-        urlUtils.rewriteImportedRelPath(importUrl, mainDocUrl, '');
-    assetPathUrl = pathPosix.dirname(assetPathUrl) + '/';
-    dom5.setAttribute(node, 'assetpath', assetPathUrl);
+    const assetPathUrl = urlUtils.relativeUrl(
+        newBaseUrl, urlUtils.stripUrlFileSearchAndHash(oldBaseUrl));
+
+    // There's no reason to set an assetpath on a dom-module if its different
+    // from the document's base.
+    if (assetPathUrl !== '') {
+      dom5.setAttribute(node, 'assetpath', assetPathUrl);
+    }
   }
 }

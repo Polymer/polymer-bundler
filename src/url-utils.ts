@@ -30,6 +30,26 @@ const sharedRelativeUrlProperties =
 export type UrlString = string;
 
 /**
+ * Returns a URL with the basename removed from the pathname.  Strips the
+ * search off of the URL as well, since it will not apply.
+ */
+export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
+  const u = url.parse(href);
+  // Using != so tests for null AND undefined
+  if (u.pathname != null) {
+    // Suffix path with `_` so that `/a/b/` is treated as `/a/b/_` and that
+    // `path.dirname()` returns `/a/b` because it would otherwise return `/a`
+    // incorrectly.
+    u.pathname = path.dirname(u.pathname + '_') + '/';
+  }
+  // Assigning to undefined because TSC says type of these is
+  // `string | undefined` as opposed to `string | null`
+  u.search = undefined;
+  u.hash = undefined;
+  return url.format(u);
+}
+
+/**
  * Returns true if the href is an absolute path.
  */
 export function isAbsolutePath(href: UrlString): boolean {
@@ -71,17 +91,16 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
 }
 
 /**
- * Modifies an href by the relative difference between the `mainDocUrl` and
- * `importUrl` which is the location of the imported document containing the
- * href.
+ * Modifies an href by the relative difference between the old base url and
+ * the new base url.
  */
-export function rewriteImportedRelPath(
-    importUrl: UrlString, mainDocUrl: UrlString, href: UrlString): UrlString {
+export function rewriteHrefBaseUrl(
+    href: UrlString, oldBaseUrl: UrlString, newBaseUrl: UrlString): UrlString {
   if (isAbsolutePath(href)) {
     return href;
   }
-  const absUrl = url.resolve(importUrl, href);
-  const parsedFrom = url.parse(mainDocUrl);
+  const absUrl = url.resolve(oldBaseUrl, href);
+  const parsedFrom = url.parse(newBaseUrl);
   const parsedTo = url.parse(absUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&
       parsedFrom.host === parsedTo.host) {

@@ -26,6 +26,36 @@ const assert = chai.assert;
 
 suite('URL Utils', () => {
 
+  suite('stripUrlFileSearchAndHash', () => {
+
+    test('Strips "file.html" basename off url', () => {
+      assert.equal(
+          urlUtils.stripUrlFileSearchAndHash(
+              'https://example.com/path/to/file.html'),
+          'https://example.com/path/to/');
+    });
+
+    test('Strips "something?a=b&c=d" basename and search off url', () => {
+      assert.equal(
+          urlUtils.stripUrlFileSearchAndHash(
+              'https://example.com/path/to/something?a=b&c=d'),
+          'https://example.com/path/to/');
+    });
+
+    test('Strips "#some-hash-value" off url', () => {
+      assert.equal(
+          urlUtils.stripUrlFileSearchAndHash(
+              'https://example.com/path/#some-hash-value'),
+          'https://example.com/path/');
+    });
+
+    test('Handles relative paths', () => {
+      assert.equal(
+          urlUtils.stripUrlFileSearchAndHash('relative/path/to/file'),
+          'relative/path/to/');
+    });
+  });
+
   suite('Rewrite imported relative paths', () => {
 
     const importDocPath = '/foo/bar/my-element/index.html';
@@ -33,7 +63,7 @@ suite('URL Utils', () => {
 
     function testRewrite(val: string, expected: string, msg?: string) {
       const actual =
-          urlUtils.rewriteImportedRelPath(importDocPath, mainDocPath, val);
+          urlUtils.rewriteHrefBaseUrl(val, importDocPath, mainDocPath);
       assert.equal(actual, expected, msg);
     }
 
@@ -98,8 +128,8 @@ suite('URL Utils', () => {
     });
 
     // TODO(usergenic): Update resolveUrl to interpret scheme-less URLs the
-    // same way browsers do, where '//' prefix implies preserved scheme and the
-    // first path segment is actually the host.
+    // same way browsers do, where '//' prefix implies preserved scheme and
+    // the first path segment is actually the host.
     test.skip('Scheme-less URLs should be interpreted as browsers do', () => {
       assert.equal(urlUtils.relativeUrl('//a/b', '/c/d'), 'c/d');
       assert.equal(urlUtils.relativeUrl('/a/b', '//c/d'), '//c/d');
