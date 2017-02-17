@@ -57,9 +57,9 @@ suite('import-utils', () => {
         }
       `;
 
-      const _rewriteCssTextBaseUrl =
-          importUtils.__get__('_rewriteCssTextBaseUrl');
-      const actual = _rewriteCssTextBaseUrl(css, importDocPath, mainDocPath);
+      const rewriteCssTextBaseUrl =
+          importUtils.__get__('rewriteCssTextBaseUrl');
+      const actual = rewriteCssTextBaseUrl(css, importDocPath, mainDocPath);
       assert.equal(actual, expected);
     });
 

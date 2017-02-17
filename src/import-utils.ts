@@ -163,7 +163,7 @@ export async function inlineStylesheet(
 
   const media = dom5.getAttribute(cssLink, 'media');
   const resolvedStylesheetContent =
-      _rewriteCssTextBaseUrl(stylesheetContent, resolvedUrl, docUrl);
+      rewriteCssTextBaseUrl(stylesheetContent, resolvedUrl, docUrl);
   const styleNode = dom5.constructors.element('style');
 
   if (media) {
@@ -214,9 +214,9 @@ export function rewriteDocumentToEmulateBaseTag(
  */
 export function rewriteDocumentBaseUrl(
     ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
-  _rewriteElementAttrsBaseUrl(ast, oldBaseUrl, newBaseUrl);
-  _rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl);
-  _setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
+  rewriteElementAttrsBaseUrl(ast, oldBaseUrl, newBaseUrl);
+  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl);
+  setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
 }
 
 /**
@@ -224,7 +224,7 @@ export function rewriteDocumentBaseUrl(
  * have been rewritten based on the relationship of the old base url to the
  * new base url.
  */
-function _rewriteCssTextBaseUrl(
+function rewriteCssTextBaseUrl(
     cssText: string, oldBaseUrl: UrlString, newBaseUrl: UrlString): string {
   return cssText.replace(constants.URL, (match) => {
     let path = match.replace(/["']/g, '').slice(4, -1);
@@ -237,7 +237,7 @@ function _rewriteCssTextBaseUrl(
  * Find all element attributes which express urls and rewrite them so they
  * are based on the relationship of the old base url to the new base url.
  */
-function _rewriteElementAttrsBaseUrl(
+function rewriteElementAttrsBaseUrl(
     ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
   const nodes = dom5.queryAll(ast, matchers.urlAttrs);
   for (const node of nodes) {
@@ -246,7 +246,7 @@ function _rewriteElementAttrsBaseUrl(
       if (attrValue && !urlUtils.isTemplatedUrl(attrValue)) {
         let relUrl: UrlString;
         if (attr === 'style') {
-          relUrl = _rewriteCssTextBaseUrl(attrValue, oldBaseUrl, newBaseUrl);
+          relUrl = rewriteCssTextBaseUrl(attrValue, oldBaseUrl, newBaseUrl);
         } else {
           relUrl =
               urlUtils.rewriteHrefBaseUrl(attrValue, oldBaseUrl, newBaseUrl);
@@ -261,13 +261,13 @@ function _rewriteElementAttrsBaseUrl(
  * Find all urls in imported style nodes and rewrite them so they are based
  * on the relationship of the old base url to the new base url.
  */
-function _rewriteStyleTagsBaseUrl(
+function rewriteStyleTagsBaseUrl(
     ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
   const styleNodes = dom5.queryAll(
       ast, matchers.styleMatcher, undefined, dom5.childNodesIncludeTemplate);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
-    styleText = _rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);
+    styleText = rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);
     dom5.setTextContent(node, styleText);
   }
 }
@@ -276,7 +276,7 @@ function _rewriteStyleTagsBaseUrl(
  * Set the assetpath attribute of all imported dom-modules which don't yet
  * have them if the base urls are different.
  */
-function _setDomModuleAssetpaths(
+function setDomModuleAssetpaths(
     ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
   const domModules = dom5.queryAll(ast, matchers.domModuleWithoutAssetpath);
   for (let i = 0, node: ASTNode; i < domModules.length; i++) {
