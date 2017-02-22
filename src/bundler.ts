@@ -12,9 +12,9 @@
  * http://polymer.github.io/PATENTS.txt
  */
 import * as dom5 from 'dom5';
-import * as parse5 from 'parse5';
-import {ASTNode} from 'parse5';
+import {ASTNode, serialize} from 'parse5';
 import {Analyzer} from 'polymer-analyzer';
+import {Document} from 'polymer-analyzer/lib/model/model';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
 import * as astUtils from './ast-utils';
@@ -132,14 +132,15 @@ export class Bundler {
    * cleaned up through deduplication during the import phase.
    */
   private _appendHtmlImportsForBundle(
-      document: ASTNode,
+      document: Document,
       bundle: AssignedBundle) {
+    const ast = document.parsedDocument.ast;
     for (const importUrl of bundle.bundle.files) {
       const newUrl = urlUtils.relativeUrl(bundle.url, importUrl);
       if (!newUrl) {
         continue;
       }
-      this._appendHtmlImport(this._findOrCreateHiddenDiv(document), newUrl);
+      this._appendHtmlImport(this._findOrCreateHiddenDiv(ast), newUrl);
     }
   }
 
@@ -147,11 +148,11 @@ export class Bundler {
    * Append a <link rel="import" node to `node` with a value of `url` for
    * the "href" attribute.
    */
-  private _appendHtmlImport(node: ASTNode, url: UrlString) {
-    const newNode = dom5.constructors.element('link');
-    dom5.setAttribute(newNode, 'rel', 'import');
-    dom5.setAttribute(newNode, 'href', url);
-    dom5.append(node, newNode);
+  private _appendHtmlImport(ast: ASTNode, url: UrlString) {
+    const link = dom5.constructors.element('link');
+    dom5.setAttribute(link, 'rel', 'import');
+    dom5.setAttribute(link, 'href', url);
+    dom5.append(ast, link);
   }
 
   /**
@@ -162,9 +163,9 @@ export class Bundler {
    * If there is no body, we'll just attach the hidden div to the document at
    * the end.
    */
-  private _attachHiddenDiv(document: ASTNode, hiddenDiv: ASTNode) {
-    const firstHtmlImport = dom5.query(document, matchers.htmlImport);
-    const body = dom5.query(document, matchers.body);
+  private _attachHiddenDiv(ast: ASTNode, hiddenDiv: ASTNode) {
+    const firstHtmlImport = dom5.query(ast, matchers.htmlImport);
+    const body = dom5.query(ast, matchers.body);
     if (body) {
       if (firstHtmlImport &&
           dom5.predicates.parentMatches(matchers.body)(firstHtmlImport)) {
@@ -173,7 +174,7 @@ export class Bundler {
         astUtils.prepend(body, hiddenDiv);
       }
     } else {
-      dom5.append(document, hiddenDiv);
+      dom5.append(ast, hiddenDiv);
     }
   }
 
@@ -186,26 +187,31 @@ export class Bundler {
       docBundle: AssignedBundle,
       bundleManifest: BundleManifest,
       bundleImports?: Set<string>): Promise<ASTNode> {
-    const docUrl = docBundle.url;
-    const document = await this._prepareBundleDocument(docBundle);
-
+    let document = await this._prepareBundleDocument(docBundle);
     this._appendHtmlImportsForBundle(document, docBundle);
-    importUtils.rewriteDocumentToEmulateBaseTag(docUrl, document);
+    importUtils.rewriteAstToEmulateBaseTag(
+        document.parsedDocument.ast, document.url);
 
-    await this._inlineHtmlImports(docUrl, document, docBundle, bundleManifest);
+    // Re-analyzing the document using the updated ast to refresh the scanned
+    // imports, since we may now have appended some that were not initially
+    // present.
+    document = await this.analyzer.analyze(
+        document.url, serialize(document.parsedDocument.ast));
+
+    await this._inlineHtmlImports(document, docBundle, bundleManifest);
 
     if (this.enableScriptInlining) {
-      await this._inlineScripts(docUrl, document);
+      await this._inlineScripts(document);
     }
     if (this.enableCssInlining) {
-      await this._inlineStylesheetLinks(docUrl, document);
-      await this._inlineStylesheetImports(docUrl, document);
+      await this._inlineStylesheetLinks(document);
+      await this._inlineStylesheetImports(document);
     }
 
     if (this.stripComments) {
-      astUtils.stripComments(document);
+      astUtils.stripComments(document.parsedDocument.ast);
     }
-    return document;
+    return document.parsedDocument.ast;
   }
 
   /**
@@ -247,11 +253,11 @@ export class Bundler {
    * create it.  After creating it, attach it to the desired location.  Then
    * return it.
    */
-  private _findOrCreateHiddenDiv(document: ASTNode): ASTNode {
+  private _findOrCreateHiddenDiv(ast: ASTNode): ASTNode {
     const hiddenDiv =
-        dom5.query(document, matchers.hiddenDiv) || this._createHiddenDiv();
+        dom5.query(ast, matchers.hiddenDiv) || this._createHiddenDiv();
     if (!hiddenDiv.parentNode) {
-      this._attachHiddenDiv(document, hiddenDiv);
+      this._attachHiddenDiv(ast, hiddenDiv);
     }
     return hiddenDiv;
   }
@@ -284,20 +290,15 @@ export class Bundler {
    * imported file, but only once per url.
    */
   private async _inlineHtmlImports(
-      url: UrlString,
-      document: ASTNode,
+      document: Document,
       bundle: AssignedBundle,
       bundleManifest: BundleManifest) {
     const visitedUrls = new Set<UrlString>();
-    const htmlImports = dom5.queryAll(document, matchers.htmlImport);
+    const htmlImports =
+        dom5.queryAll(document.parsedDocument.ast, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
       await importUtils.inlineHtmlImport(
-          url,
-          htmlImport,
-          visitedUrls,
-          bundle,
-          bundleManifest,
-          this._loadFileContents.bind(this));
+          document, htmlImport, visitedUrls, bundle, bundleManifest);
     }
   }
 
@@ -305,11 +306,11 @@ export class Bundler {
    * Replace all external javascript tags (`<script src="...">`)
    * with `<script>` tags containing the file contents inlined.
    */
-  private async _inlineScripts(url: UrlString, document: ASTNode) {
-    const scriptImports = dom5.queryAll(document, matchers.externalJavascript);
+  private async _inlineScripts(document: Document) {
+    const scriptImports =
+        dom5.queryAll(document.parsedDocument.ast, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
-      await importUtils.inlineScript(
-          url, externalScript, this._loadFileContents.bind(this));
+      await importUtils.inlineScript(document, externalScript);
     }
   }
 
@@ -318,11 +319,11 @@ export class Bundler {
    * with `<style>` tags containing the file contents, with internal URLs
    * relatively transposed as necessary.
    */
-  private async _inlineStylesheetImports(url: UrlString, document: ASTNode) {
-    const cssImports = dom5.queryAll(document, matchers.stylesheetImport);
+  private async _inlineStylesheetImports(document: Document) {
+    const cssImports =
+        dom5.queryAll(document.parsedDocument.ast, matchers.stylesheetImport);
     for (const cssLink of cssImports) {
-      const style = await importUtils.inlineStylesheet(
-          url, cssLink, this._loadFileContents.bind(this));
+      const style = await importUtils.inlineStylesheet(document, cssLink);
       if (style) {
         this._moveDomModuleStyleIntoTemplate(style);
       }
@@ -334,20 +335,12 @@ export class Bundler {
    * tags with `<style>` tags containing file contents, with internal URLs
    * relatively transposed as necessary.
    */
-  private async _inlineStylesheetLinks(url: UrlString, document: ASTNode) {
-    const cssLinks = dom5.queryAll(document, matchers.externalStyle);
+  private async _inlineStylesheetLinks(document: Document) {
+    const cssLinks =
+        dom5.queryAll(document.parsedDocument.ast, matchers.externalStyle);
     for (const cssLink of cssLinks) {
-      await importUtils.inlineStylesheet(
-          url, cssLink, this._loadFileContents.bind(this));
+      await importUtils.inlineStylesheet(document, cssLink);
     }
-  }
-
-  /**
-   * Return a file's contents as a string, given its url.
-   */
-  private async _loadFileContents(url: UrlString): Promise<string> {
-    const analyzedDocument = await this.analyzer.analyze(url);
-    return analyzedDocument.parsedDocument.contents;
   }
 
   /**
@@ -421,13 +414,13 @@ export class Bundler {
    * we'll create a clean/empty html document.
    */
   private async _prepareBundleDocument(bundle: AssignedBundle):
-      Promise<ASTNode> {
-    const html = bundle.bundle.files.has(bundle.url) ?
-        await this._loadFileContents(bundle.url) :
-        '';
-    const document = parse5.parse(html);
-    this._moveOrderedImperativesFromHeadIntoHiddenDiv(document);
-    this._moveUnhiddenHtmlImportsIntoHiddenDiv(document);
+      Promise<Document> {
+    const document = bundle.bundle.files.has(bundle.url) ?
+        await this.analyzer.analyze(bundle.url) :
+        await this.analyzer.analyze(bundle.url, '');
+    const ast = document.parsedDocument.ast;
+    this._moveOrderedImperativesFromHeadIntoHiddenDiv(ast);
+    this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);
     return document;
   }
 }

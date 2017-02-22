@@ -14,6 +14,7 @@
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
+import {Document} from 'polymer-analyzer/lib/model/model';
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';
@@ -33,14 +34,13 @@ import {UrlString} from './url-utils';
  * at the location of the link tag and then remove the link tag.
  */
 export async function inlineHtmlImport(
-    docUrl: UrlString,
+    document: Document,
     htmlImport: ASTNode,
     visitedUrls: Set<UrlString>,
     docBundle: AssignedBundle,
-    manifest: BundleManifest,
-    loader: (url: UrlString) => Promise<string>) {
+    manifest: BundleManifest) {
   const rawImportUrl = dom5.getAttribute(htmlImport, 'href')!;
-  const resolvedImportUrl = urlLib.resolve(docUrl, rawImportUrl);
+  const resolvedImportUrl = urlLib.resolve(document.url, rawImportUrl);
   const importBundleUrl = manifest.bundleUrlForFile.get(resolvedImportUrl);
 
   // Don't reprocess the same file again.
@@ -60,7 +60,7 @@ export async function inlineHtmlImport(
   }
 
   // Don't inline an import into itself.
-  if (docUrl === resolvedImportUrl) {
+  if (document.url === resolvedImportUrl) {
     astUtils.removeElementAndNewline(htmlImport);
     return;
   }
@@ -78,33 +78,38 @@ export async function inlineHtmlImport(
     }
 
     const relative =
-        urlUtils.relativeUrl(docUrl, importBundleUrl) || importBundleUrl;
+        urlUtils.relativeUrl(document.url, importBundleUrl) || importBundleUrl;
     dom5.setAttribute(htmlImport, 'href', relative);
     visitedUrls.add(importBundleUrl);
     return;
   }
 
-  let importSource: string;
-  try {
-    importSource = await loader(resolvedImportUrl);
-  } catch (e) {
-    throw new Error(`Unable to load ${resolvedImportUrl}: ${e.message}`);
+  // If the analyzer could not load the import document, we can't inline it, so
+  // lets skip it.
+  const importDocument = findInSet(
+      document.getByKind('document', {imported: true}),
+      (d) => d.url === resolvedImportUrl);
+  if (!importDocument) {
+    return;
   }
 
-  const importDoc = parse5.parseFragment(importSource);
-  rewriteDocumentToEmulateBaseTag(resolvedImportUrl, importDoc);
-  rewriteDocumentBaseUrl(importDoc, resolvedImportUrl, docUrl);
-  const nestedImports = dom5.queryAll(importDoc, matchers.htmlImport);
+  // When inlining html documents, we'll parse it as a fragment so that we do
+  // not get html, head or body wrappers.
+  const importAst =
+      parse5.parseFragment(importDocument.parsedDocument.contents);
+  rewriteAstToEmulateBaseTag(importAst, resolvedImportUrl);
+  rewriteAstBaseUrl(importAst, resolvedImportUrl, document.url);
+  const nestedImports = dom5.queryAll(importAst, matchers.htmlImport);
 
   // Move all of the import doc content after the html import.
   astUtils.insertAllBefore(
-      htmlImport.parentNode!, htmlImport, importDoc.childNodes!);
+      htmlImport.parentNode!, htmlImport, importAst.childNodes!);
   astUtils.removeElementAndNewline(htmlImport);
 
   // Recursively process the nested imports.
   for (const nestedImport of nestedImports) {
     await inlineHtmlImport(
-        docUrl, nestedImport, visitedUrls, docBundle, manifest, loader);
+        document, nestedImport, visitedUrls, docBundle, manifest);
   }
 }
 
@@ -113,26 +118,19 @@ export async function inlineHtmlImport(
  * into the script tag content and removes the src attribute.
  */
 export async function inlineScript(
-    docUrl: UrlString,
-    externalScript: ASTNode,
-    loader: (url: UrlString) => Promise<string>) {
+    document: Document, externalScript: ASTNode) {
   const rawUrl = dom5.getAttribute(externalScript, 'src')!;
-  const resolvedUrl = urlLib.resolve(docUrl, rawUrl);
-  let script: string|undefined = undefined;
-  try {
-    script = await loader(resolvedUrl);
-  } catch (e) {
-    // If a script doesn't load, skip inlining.
-    // TODO(usergenic): Add plylog logging for load error.
-    console.warn(`Unable to load script at ${resolvedUrl}: ${e.message}`);
-  }
-
-  if (script === undefined) {
+  const resolvedUrl = urlLib.resolve(document.url, rawUrl);
+  const scriptImport = findInSet(
+      document.getByKind('import', {imported: true}),
+      (imp) => imp.url === resolvedUrl);
+  if (!scriptImport) {
     return;
   }
 
   // Second argument 'true' tells encodeString to escape <script> tags.
-  const scriptContent = encodeString(script, true);
+  const scriptContent =
+      encodeString(scriptImport.document.parsedDocument.contents, true);
   dom5.removeAttribute(externalScript, 'src');
   dom5.setTextContent(externalScript, scriptContent);
   return scriptContent;
@@ -142,28 +140,19 @@ export async function inlineScript(
  * Inlines the contents of the stylesheet returned by the link tag's href url
  * into a style tag and removes the link tag.
  */
-export async function inlineStylesheet(
-    docUrl: UrlString,
-    cssLink: ASTNode,
-    loader: (url: UrlString) => Promise<string>) {
+export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
-  const resolvedUrl = urlLib.resolve(docUrl, stylesheetUrl);
-  let stylesheetContent: string|undefined = undefined;
-  try {
-    stylesheetContent = await loader(resolvedUrl);
-  } catch (e) {
-    // If a stylesheet doesn't load, skip inlining.
-    // TODO(usergenic): Add plylog logging for load error.
-    console.warn(`Unable to load stylesheet at ${resolvedUrl}: ${e.message}`);
-  }
-
-  if (stylesheetContent === undefined) {
+  const resolvedUrl = urlLib.resolve(document.url, stylesheetUrl);
+  const stylesheetImport = findInSet(
+      document.getByKind('import', {imported: true}),
+      (imp) => imp.url === resolvedUrl);
+  if (!stylesheetImport) {
     return;
   }
-
+  const stylesheetContent = stylesheetImport.document.parsedDocument.contents;
   const media = dom5.getAttribute(cssLink, 'media');
   const resolvedStylesheetContent =
-      rewriteCssTextBaseUrl(stylesheetContent, resolvedUrl, docUrl);
+      rewriteCssTextBaseUrl(stylesheetContent, resolvedUrl, document.url);
   const styleNode = dom5.constructors.element('style');
 
   if (media) {
@@ -175,15 +164,14 @@ export async function inlineStylesheet(
   return styleNode;
 }
 
-/*
+/**
  * Given an import document with a base tag, transform all of its URLs and set
  * link and form target attributes and remove the base tag.
  */
-export function rewriteDocumentToEmulateBaseTag(
-    docUrl: UrlString, ast: ASTNode) {
+export function rewriteAstToEmulateBaseTag(ast: ASTNode, docUrl: UrlString) {
   const baseTag = dom5.query(ast, matchers.base);
   const p = dom5.predicates;
-  // If there's no base tag, there's nothing to do.
+  // If there's no base tag, there' s nothing to do.
   if (!baseTag) {
     return;
   }
@@ -192,7 +180,7 @@ export function rewriteDocumentToEmulateBaseTag(
   }
   if (dom5.predicates.hasAttr('href')(baseTag)) {
     const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
-    rewriteDocumentBaseUrl(ast, baseUrl, docUrl);
+    rewriteAstBaseUrl(ast, baseUrl, docUrl);
   }
   if (p.hasAttr('target')(baseTag)) {
     const baseTarget = dom5.getAttribute(baseTag, 'target')!;
@@ -212,11 +200,26 @@ export function rewriteDocumentToEmulateBaseTag(
  * correctly relative to the main document url as they've been
  * imported from the import url.
  */
-export function rewriteDocumentBaseUrl(
+export function rewriteAstBaseUrl(
     ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
   rewriteElementAttrsBaseUrl(ast, oldBaseUrl, newBaseUrl);
   rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl);
   setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
+}
+
+/**
+ * Simple utility function used to find an item in a set with a predicate
+ * function.  Analagous to Array.find(), without requiring converting the set
+ * an Array.
+ */
+function findInSet<T>(set: Set<T>, predicate: (item: T) => boolean): T|
+    undefined {
+  for (const item of set) {
+    if (predicate(item)) {
+      return item;
+    }
+  }
+  return;
 }
 
 /**

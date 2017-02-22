@@ -35,7 +35,8 @@ suite('Bundler', () => {
 
   async function bundle(inputPath: string, opts?: BundlerOptions):
       Promise<parse5.ASTNode> {
-        const bundlerOpts = opts || {};
+        // Don't modify options directly because test-isolation problems occur.
+        const bundlerOpts = Object.assign({}, opts || {});
         if (!bundlerOpts.analyzer) {
           bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
         }
@@ -408,11 +409,13 @@ suite('Bundler', () => {
       assert(content.search('@apply') > -1, '@apply kept');
     });
 
-    test('Remote scripts, styles and media queries are preserved', async() => {
+    test('Remote styles and media queries are preserved', async() => {
       const input = 'test/html/imports/remote-stylesheet.html';
       const doc = await bundle(input, options);
       const links = dom5.queryAll(doc, matchers.externalStyle);
       assert.equal(links.length, 1);
+      assert.match(
+          dom5.getAttribute(links[0]!, 'href'), /fonts.googleapis.com/);
       const styles = dom5.queryAll(doc, matchers.styleMatcher);
       assert.equal(styles.length, 1);
       assert.equal(dom5.getAttribute(styles[0], 'media'), '(min-width: 800px)');
