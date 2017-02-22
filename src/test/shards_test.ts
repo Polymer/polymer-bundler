@@ -42,16 +42,16 @@ suite('Bundler', () => {
   const entrypoint1 = 'test/html/shards/shop_style_project/entrypoint1.html';
   const entrypoint2 = 'test/html/shards/shop_style_project/entrypoint2.html';
 
-  function bundleMultiple(
+  async function bundleMultiple(
       inputPath: string[], strategy: BundleStrategy, opts?: BundlerOptions):
       Promise<DocumentCollection> {
-    const bundlerOpts = opts || {};
-    if (!bundlerOpts.analyzer) {
-      bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
-    }
-    bundler = new Bundler(bundlerOpts);
-    return bundler.bundle(inputPath, strategy);
-  }
+        const bundlerOpts = opts || {};
+        if (!bundlerOpts.analyzer) {
+          bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
+        }
+        bundler = new Bundler(bundlerOpts);
+        return await bundler.bundle(inputPath, strategy);
+      }
 
   function assertContainsAndExcludes(
       doc: parse5.ASTNode,
@@ -68,65 +68,60 @@ suite('Bundler', () => {
   }
 
   suite('Sharded builds', () => {
-    test('with 3 entrypoints, all deps are in their places', () => {
+    test('with 3 entrypoints, all deps are in their places', async() => {
       const strategy = generateSharedDepsMergeStrategy(2);
-      return bundleMultiple([common, entrypoint1, entrypoint2], strategy)
-          .then((docs) => {
-            assert.equal(docs.size, 4);
-            const commonDoc: parse5.ASTNode = docs.get(common)!.ast;
-            assert.isDefined(commonDoc);
-            const entrypoint1Doc = docs.get(entrypoint1)!.ast;
-            assert.isDefined(entrypoint1Doc);
-            const entrypoint2Doc = docs.get(entrypoint2)!.ast;
-            assert.isDefined(entrypoint2Doc);
-            const sharedDoc = docs.get('shared_bundle_1.html')!.ast;
-            assert.isDefined(sharedDoc);
-            const commonModule = domModulePredicate('common-module');
-            const elOne = domModulePredicate('el-one');
-            const elTwo = domModulePredicate('el-two');
-            const depOne = domModulePredicate('el-dep1');
-            const depTwo = domModulePredicate('el-dep2');
+      const docs =
+          await bundleMultiple([common, entrypoint1, entrypoint2], strategy);
+      assert.equal(docs.size, 4);
+      const commonDoc: parse5.ASTNode = docs.get(common)!.ast;
+      assert.isDefined(commonDoc);
+      const entrypoint1Doc = docs.get(entrypoint1)!.ast;
+      assert.isDefined(entrypoint1Doc);
+      const entrypoint2Doc = docs.get(entrypoint2)!.ast;
+      assert.isDefined(entrypoint2Doc);
+      const sharedDoc = docs.get('shared_bundle_1.html')!.ast;
+      assert.isDefined(sharedDoc);
+      const commonModule = domModulePredicate('common-module');
+      const elOne = domModulePredicate('el-one');
+      const elTwo = domModulePredicate('el-two');
+      const depOne = domModulePredicate('el-dep1');
+      const depTwo = domModulePredicate('el-dep2');
 
-            // Check that all the dom modules are in their expected shards
-            assertContainsAndExcludes(
-                commonDoc, [commonModule], [elOne, elTwo, depOne, depTwo]);
-            assertContainsAndExcludes(
-                sharedDoc, [depOne], [elOne, elTwo, depTwo]);
-            assertContainsAndExcludes(
-                entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
-            assertContainsAndExcludes(
-                entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
-          });
+      // Check that all the dom modules are in their expected shards
+      assertContainsAndExcludes(
+          commonDoc, [commonModule], [elOne, elTwo, depOne, depTwo]);
+      assertContainsAndExcludes(sharedDoc, [depOne], [elOne, elTwo, depTwo]);
+      assertContainsAndExcludes(
+          entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
+      assertContainsAndExcludes(
+          entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
     });
 
-    test('with 2 entrypoints and a shell, all deps are in their places', () => {
+    test('with 2 entrypoints and shell, all deps in their places', async() => {
       const strategy = generateShellMergeStrategy(shell, 2);
-      return bundleMultiple([shell, entrypoint1, entrypoint2], strategy)
-          .then((docs) => {
-            assert.equal(docs.size, 3);
-            const shellDoc: parse5.ASTNode = docs.get(shell)!.ast;
-            assert.isDefined(shellDoc);
-            const entrypoint1Doc = docs.get(entrypoint1)!.ast;
-            assert.isDefined(entrypoint1Doc);
-            const entrypoint2Doc = docs.get(entrypoint2)!.ast;
-            assert.isDefined(entrypoint2Doc);
-            const shellDiv = dom5.predicates.hasAttrValue('id', 'shell');
-            const commonModule = domModulePredicate('common-module');
-            const elOne = domModulePredicate('el-one');
-            const elTwo = domModulePredicate('el-two');
-            const depOne = domModulePredicate('el-dep1');
-            const depTwo = domModulePredicate('el-dep2');
+      const docs =
+          await bundleMultiple([shell, entrypoint1, entrypoint2], strategy);
+      assert.equal(docs.size, 3);
+      const shellDoc: parse5.ASTNode = docs.get(shell)!.ast;
+      assert.isDefined(shellDoc);
+      const entrypoint1Doc = docs.get(entrypoint1)!.ast;
+      assert.isDefined(entrypoint1Doc);
+      const entrypoint2Doc = docs.get(entrypoint2)!.ast;
+      assert.isDefined(entrypoint2Doc);
+      const shellDiv = dom5.predicates.hasAttrValue('id', 'shell');
+      const commonModule = domModulePredicate('common-module');
+      const elOne = domModulePredicate('el-one');
+      const elTwo = domModulePredicate('el-two');
+      const depOne = domModulePredicate('el-dep1');
+      const depTwo = domModulePredicate('el-dep2');
 
-            // Check that all the dom modules are in their expected shards
-            assertContainsAndExcludes(
-                shellDoc,
-                [shellDiv, commonModule, depOne],
-                [elOne, elTwo, depTwo]);
-            assertContainsAndExcludes(
-                entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
-            assertContainsAndExcludes(
-                entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
-          });
+      // Check that all the dom modules are in their expected shards
+      assertContainsAndExcludes(
+          shellDoc, [shellDiv, commonModule, depOne], [elOne, elTwo, depTwo]);
+      assertContainsAndExcludes(
+          entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
+      assertContainsAndExcludes(
+          entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
     });
   });
 });
