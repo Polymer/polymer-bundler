@@ -17,6 +17,7 @@
 
 import * as path from 'path';
 import * as url from 'url';
+import {parseUrl} from 'polymer-analyzer/lib/utils';
 import constants from './constants';
 
 const pathPosix = path.posix;
@@ -69,8 +70,8 @@ export function isTemplatedUrl(href: UrlString): boolean {
  * `/a/` is correctly treated as a folder path where `/a` is not.
  */
 export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
-  const fromUrl = url.parse(fromUri)!;
-  const toUrl = url.parse(toUri)!;
+  const fromUrl = parseUrl(fromUri)!;
+  const toUrl = parseUrl(toUri)!;
   // Return the toUri as-is if there are conflicting components which
   // prohibit calculating a relative form.
   if (sharedRelativeUrlProperties.some(
