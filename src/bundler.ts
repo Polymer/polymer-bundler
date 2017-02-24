@@ -109,7 +109,6 @@ export class Bundler {
     // as public and make the interface for bundle method take a manifest.
     const manifest =
         await this._generateBundleManifest(entrypoints, strategy, mapper);
-
     const bundledDocuments: DocumentCollection =
         new Map<string, BundledDocument>();
 
@@ -131,10 +130,7 @@ export class Bundler {
    * While this will almost always yield duplicate imports, they will be
    * cleaned up through deduplication during the import phase.
    */
-  private _appendHtmlImportsForBundle(
-      document: Document,
-      bundle: AssignedBundle) {
-    const ast = document.parsedDocument.ast;
+  private _appendHtmlImportsForBundle(ast: ASTNode, bundle: AssignedBundle) {
     for (const importUrl of bundle.bundle.files) {
       const newUrl = urlUtils.relativeUrl(bundle.url, importUrl);
       if (!newUrl) {
@@ -188,30 +184,32 @@ export class Bundler {
       bundleManifest: BundleManifest,
       bundleImports?: Set<string>): Promise<ASTNode> {
     let document = await this._prepareBundleDocument(docBundle);
-    this._appendHtmlImportsForBundle(document, docBundle);
-    importUtils.rewriteAstToEmulateBaseTag(
-        document.parsedDocument.ast, document.url);
+
+    const ast = astUtils.cloneTree(document.parsedDocument.ast);
+    this._appendHtmlImportsForBundle(ast, docBundle);
+    importUtils.rewriteAstToEmulateBaseTag(ast, document.url);
 
     // Re-analyzing the document using the updated ast to refresh the scanned
     // imports, since we may now have appended some that were not initially
     // present.
-    document = await this.analyzer.analyze(
-        document.url, serialize(document.parsedDocument.ast));
+    document = await this.analyzer.analyze(document.url, serialize(ast));
 
-    await this._inlineHtmlImports(document, docBundle, bundleManifest);
+    // The following set of operations manipulate the ast directly, so
+    await this._inlineHtmlImports(document, ast, docBundle, bundleManifest);
 
     if (this.enableScriptInlining) {
-      await this._inlineScripts(document);
+      await this._inlineScripts(document, ast);
     }
     if (this.enableCssInlining) {
-      await this._inlineStylesheetLinks(document);
-      await this._inlineStylesheetImports(document);
+      await this._inlineStylesheetLinks(document, ast);
+      await this._inlineStylesheetImports(document, ast);
     }
 
     if (this.stripComments) {
-      astUtils.stripComments(document.parsedDocument.ast);
+      astUtils.stripComments(ast);
     }
-    return document.parsedDocument.ast;
+
+    return ast;
   }
 
   /**
@@ -291,11 +289,11 @@ export class Bundler {
    */
   private async _inlineHtmlImports(
       document: Document,
+      ast: ASTNode,
       bundle: AssignedBundle,
       bundleManifest: BundleManifest) {
     const visitedUrls = new Set<UrlString>();
-    const htmlImports =
-        dom5.queryAll(document.parsedDocument.ast, matchers.htmlImport);
+    const htmlImports = dom5.queryAll(ast, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
       await importUtils.inlineHtmlImport(
           document, htmlImport, visitedUrls, bundle, bundleManifest);
@@ -306,9 +304,8 @@ export class Bundler {
    * Replace all external javascript tags (`<script src="...">`)
    * with `<script>` tags containing the file contents inlined.
    */
-  private async _inlineScripts(document: Document) {
-    const scriptImports =
-        dom5.queryAll(document.parsedDocument.ast, matchers.externalJavascript);
+  private async _inlineScripts(document: Document, ast: ASTNode) {
+    const scriptImports = dom5.queryAll(ast, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
       await importUtils.inlineScript(document, externalScript);
     }
@@ -319,9 +316,8 @@ export class Bundler {
    * with `<style>` tags containing the file contents, with internal URLs
    * relatively transposed as necessary.
    */
-  private async _inlineStylesheetImports(document: Document) {
-    const cssImports =
-        dom5.queryAll(document.parsedDocument.ast, matchers.stylesheetImport);
+  private async _inlineStylesheetImports(document: Document, ast: ASTNode) {
+    const cssImports = dom5.queryAll(ast, matchers.stylesheetImport);
     for (const cssLink of cssImports) {
       const style = await importUtils.inlineStylesheet(document, cssLink);
       if (style) {
@@ -335,9 +331,8 @@ export class Bundler {
    * tags with `<style>` tags containing file contents, with internal URLs
    * relatively transposed as necessary.
    */
-  private async _inlineStylesheetLinks(document: Document) {
-    const cssLinks =
-        dom5.queryAll(document.parsedDocument.ast, matchers.externalStyle);
+  private async _inlineStylesheetLinks(document: Document, ast: ASTNode) {
+    const cssLinks = dom5.queryAll(ast, matchers.externalStyle);
     for (const cssLink of cssLinks) {
       await importUtils.inlineStylesheet(document, cssLink);
     }
@@ -374,8 +369,8 @@ export class Bundler {
    * imperatives (imports, styles, scripts) must also be move into the
    * hidden div.
    */
-  private _moveOrderedImperativesFromHeadIntoHiddenDiv(document: ASTNode) {
-    const head = dom5.query(document, matchers.head);
+  private _moveOrderedImperativesFromHeadIntoHiddenDiv(ast: ASTNode) {
+    const head = dom5.query(ast, matchers.head);
     if (!head) {
       return;
     }
@@ -387,7 +382,7 @@ export class Bundler {
              astUtils.siblingsAfter(firstHtmlImport))) {
       if (matchers.orderedImperative(node)) {
         astUtils.removeElementAndNewline(node);
-        dom5.append(this._findOrCreateHiddenDiv(document), node);
+        dom5.append(this._findOrCreateHiddenDiv(ast), node);
       }
     }
   }
@@ -396,14 +391,14 @@ export class Bundler {
    * Move any remaining htmlImports that are not inside the hidden div
    * already, into the hidden div.
    */
-  private _moveUnhiddenHtmlImportsIntoHiddenDiv(document: ASTNode) {
+  private _moveUnhiddenHtmlImportsIntoHiddenDiv(ast: ASTNode) {
     const unhiddenHtmlImports = dom5.queryAll(
-        document,
+        ast,
         dom5.predicates.AND(
             matchers.htmlImport, dom5.predicates.NOT(matchers.inHiddenDiv)));
     for (const htmlImport of unhiddenHtmlImports) {
       astUtils.removeElementAndNewline(htmlImport);
-      dom5.append(this._findOrCreateHiddenDiv(document), htmlImport);
+      dom5.append(this._findOrCreateHiddenDiv(ast), htmlImport);
     }
   }
 
@@ -415,12 +410,13 @@ export class Bundler {
    */
   private async _prepareBundleDocument(bundle: AssignedBundle):
       Promise<Document> {
-    const document = bundle.bundle.files.has(bundle.url) ?
-        await this.analyzer.analyze(bundle.url) :
-        await this.analyzer.analyze(bundle.url, '');
-    const ast = document.parsedDocument.ast;
+    if (!bundle.bundle.files.has(bundle.url)) {
+      return await this.analyzer.analyze(bundle.url, '');
+    }
+    const document = await this.analyzer.analyze(bundle.url);
+    const ast = astUtils.cloneTree(document.parsedDocument.ast);
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(ast);
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);
-    return document;
+    return await this.analyzer.analyze(document.url, serialize(ast));
   }
 }
