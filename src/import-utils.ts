@@ -173,7 +173,7 @@ export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
 export function rewriteAstToEmulateBaseTag(ast: ASTNode, docUrl: UrlString) {
   const baseTag = dom5.query(ast, matchers.base);
   const p = dom5.predicates;
-  // If there's no base tag, there' s nothing to do.
+  // If there's no base tag, there's nothing to do.
   if (!baseTag) {
     return;
   }
