@@ -109,6 +109,7 @@ export class Bundler {
     // as public and make the interface for bundle method take a manifest.
     const manifest =
         await this._generateBundleManifest(entrypoints, strategy, mapper);
+
     const bundledDocuments: DocumentCollection =
         new Map<string, BundledDocument>();
 
