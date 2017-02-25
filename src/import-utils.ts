@@ -117,11 +117,11 @@ export async function inlineHtmlImport(
  * into the script tag content and removes the src attribute.
  */
 export async function inlineScript(document: Document, scriptTag: ASTNode) {
-  const rawUrl = dom5.getAttribute(scriptTag, 'src')!;
-  const resolvedUrl = urlLib.resolve(document.url, rawUrl);
+  const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
+  const resolvedImportUrl = urlLib.resolve(document.url, rawImportUrl);
   const scriptImport = findInSet(
       document.getByKind('html-script', {imported: true}),
-      (i) => i.url === resolvedUrl);
+      (i) => i.url === resolvedImportUrl);
   if (!scriptImport) {
     return;
   }
@@ -140,17 +140,21 @@ export async function inlineScript(document: Document, scriptTag: ASTNode) {
  */
 export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
-  const resolvedUrl = urlLib.resolve(document.url, stylesheetUrl);
-  const stylesheetImport = findInSet(
-      document.getByKind('import', {imported: true}),
-      (imp) => imp.url === resolvedUrl);
+  const resolvedImportUrl = urlLib.resolve(document.url, stylesheetUrl);
+  const stylesheetImport =  // HACK(usergenic): clang-format workaround
+      findInSet(
+          document.getByKind('html-style', {imported: true}),
+          (i) => i.url === resolvedImportUrl) ||
+      findInSet(
+          document.getByKind('css-import', {imported: true}),
+          (i) => i.url === resolvedImportUrl);
   if (!stylesheetImport) {
     return;
   }
   const stylesheetContent = stylesheetImport.document.parsedDocument.contents;
   const media = dom5.getAttribute(cssLink, 'media');
   const resolvedStylesheetContent =
-      rewriteCssTextBaseUrl(stylesheetContent, resolvedUrl, document.url);
+      rewriteCssTextBaseUrl(stylesheetContent, resolvedImportUrl, document.url);
   const styleNode = dom5.constructors.element('style');
 
   if (media) {
