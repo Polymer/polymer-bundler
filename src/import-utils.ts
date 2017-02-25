@@ -35,17 +35,17 @@ import {UrlString} from './url-utils';
  */
 export async function inlineHtmlImport(
     document: Document,
-    htmlImport: ASTNode,
+    linkTag: ASTNode,
     visitedUrls: Set<UrlString>,
     docBundle: AssignedBundle,
     manifest: BundleManifest) {
-  const rawImportUrl = dom5.getAttribute(htmlImport, 'href')!;
+  const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const resolvedImportUrl = urlLib.resolve(document.url, rawImportUrl);
   const importBundleUrl = manifest.bundleUrlForFile.get(resolvedImportUrl);
 
   // Don't reprocess the same file again.
   if (visitedUrls.has(resolvedImportUrl)) {
-    astUtils.removeElementAndNewline(htmlImport);
+    astUtils.removeElementAndNewline(linkTag);
     return;
   }
 
@@ -61,7 +61,7 @@ export async function inlineHtmlImport(
 
   // Don't inline an import into itself.
   if (document.url === resolvedImportUrl) {
-    astUtils.removeElementAndNewline(htmlImport);
+    astUtils.removeElementAndNewline(linkTag);
     return;
   }
 
@@ -73,38 +73,37 @@ export async function inlineHtmlImport(
     // other file from that bundle by checking the visited urls for the bundle
     // url itself.
     if (visitedUrls.has(importBundleUrl)) {
-      astUtils.removeElementAndNewline(htmlImport);
+      astUtils.removeElementAndNewline(linkTag);
       return;
     }
 
     const relative =
         urlUtils.relativeUrl(document.url, importBundleUrl) || importBundleUrl;
-    dom5.setAttribute(htmlImport, 'href', relative);
+    dom5.setAttribute(linkTag, 'href', relative);
     visitedUrls.add(importBundleUrl);
     return;
   }
 
   // If the analyzer could not load the import document, we can't inline it, so
   // lets skip it.
-  const importDocument = findInSet(
-      document.getByKind('document', {imported: true}),
-      (d) => d.url === resolvedImportUrl);
-  if (!importDocument) {
+  const htmlImport = findInSet(
+      document.getByKind('html-import', {imported: true}),
+      (i) => i.url === resolvedImportUrl);
+  if (!htmlImport) {
     return;
   }
 
   // When inlining html documents, we'll parse it as a fragment so that we do
   // not get html, head or body wrappers.
   const importAst =
-      parse5.parseFragment(importDocument.parsedDocument.contents);
+      parse5.parseFragment(htmlImport.document.parsedDocument.contents);
   rewriteAstToEmulateBaseTag(importAst, resolvedImportUrl);
   rewriteAstBaseUrl(importAst, resolvedImportUrl, document.url);
   const nestedImports = dom5.queryAll(importAst, matchers.htmlImport);
 
   // Move all of the import doc content after the html import.
-  astUtils.insertAllBefore(
-      htmlImport.parentNode!, htmlImport, importAst.childNodes!);
-  astUtils.removeElementAndNewline(htmlImport);
+  astUtils.insertAllBefore(linkTag.parentNode!, linkTag, importAst.childNodes!);
+  astUtils.removeElementAndNewline(linkTag);
 
   // Recursively process the nested imports.
   for (const nestedImport of nestedImports) {
@@ -117,13 +116,12 @@ export async function inlineHtmlImport(
  * Inlines the contents of the document returned by the script tag's src url
  * into the script tag content and removes the src attribute.
  */
-export async function inlineScript(
-    document: Document, externalScript: ASTNode) {
-  const rawUrl = dom5.getAttribute(externalScript, 'src')!;
+export async function inlineScript(document: Document, scriptTag: ASTNode) {
+  const rawUrl = dom5.getAttribute(scriptTag, 'src')!;
   const resolvedUrl = urlLib.resolve(document.url, rawUrl);
   const scriptImport = findInSet(
-      document.getByKind('import', {imported: true}),
-      (imp) => imp.url === resolvedUrl);
+      document.getByKind('html-script', {imported: true}),
+      (i) => i.url === resolvedUrl);
   if (!scriptImport) {
     return;
   }
@@ -131,8 +129,8 @@ export async function inlineScript(
   // Second argument 'true' tells encodeString to escape <script> tags.
   const scriptContent =
       encodeString(scriptImport.document.parsedDocument.contents, true);
-  dom5.removeAttribute(externalScript, 'src');
-  dom5.setTextContent(externalScript, scriptContent);
+  dom5.removeAttribute(scriptTag, 'src');
+  dom5.setTextContent(scriptTag, scriptContent);
   return scriptContent;
 }
 
