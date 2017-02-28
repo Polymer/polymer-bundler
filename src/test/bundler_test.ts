@@ -20,6 +20,8 @@ import * as parse5 from 'parse5';
 import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
+
+import {Bundle} from '../bundle-manifest';
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 
@@ -60,6 +62,61 @@ suite('Bundler', () => {
           dom5.queryAll(await bundle(inputPath), preds.hasTagName('dom-module'))
               .length,
           1);
+    });
+
+  });
+
+  suite('Applying strategy', () => {
+    test('bundles html imports added by strategy', async() => {
+      const bundler = new Bundler();
+      // This strategy adds a file not in the original document to the bundle.
+      const strategy = (bundles: Bundle[]): Bundle[] => {
+        bundles.forEach(
+            (b) => b.files.add('test/html/imports/external-script.html'));
+        return bundles;
+      };
+      const documents =
+          await bundler.bundle(['test/html/default.html'], strategy);
+      const document = documents.get('test/html/default.html')!;
+      assert(document);
+
+      // Look for the script tag from the external-script.html source to be
+      // in the document, proving the html import was inlined.
+      const scriptTag = dom5.query(
+          document.ast!,
+          preds.AND(
+              preds.hasTagName('script'),
+              preds.hasAttrValue('src', 'imports/external.js')))!;
+      assert(scriptTag);
+    });
+
+    test('changes the href to another bundle if strategy moved it', async() => {
+      const bundler = new Bundler();
+      // This strategy moves a file to a different bundle.
+      const strategy = (bundles: Bundle[]): Bundle[] => {
+        return [
+          new Bundle(
+              new Set(['test/html/default.html']),
+              new Set(['test/html/default.html'])),
+          new Bundle(
+              new Set(),  //
+              new Set(['test/html/imports/simple-import.html']))
+        ];
+      };
+      const documents =
+          await bundler.bundle(['test/html/default.html'], strategy);
+      const document = documents.get('test/html/default.html')!;
+      assert(document);
+
+      // We've moved the 'imports/simple-import.html' into a shared bundle
+      // so a link to import it now points to the shared bundle instead.
+      const linkTag = dom5.query(
+          document.ast!,
+          preds.AND(
+              preds.hasTagName('link'), preds.hasAttrValue('rel', 'import')))!;
+      assert(linkTag);
+      assert.equal(
+          dom5.getAttribute(linkTag, 'href'), '../../shared_bundle_1.html');
     });
   });
 
