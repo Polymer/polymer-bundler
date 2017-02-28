@@ -87,7 +87,8 @@ export async function inlineHtmlImport(
   // If the analyzer could not load the import document, we can't inline it, so
   // lets skip it.
   const htmlImport = findInSet(
-      document.getByKind('html-import', {imported: true}),
+      document.getByKind(
+          'html-import', {imported: true, externalPackages: true}),
       (i) => i.url === resolvedImportUrl);
   if (!htmlImport) {
     return;
@@ -120,7 +121,8 @@ export async function inlineScript(document: Document, scriptTag: ASTNode) {
   const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
   const resolvedImportUrl = urlLib.resolve(document.url, rawImportUrl);
   const scriptImport = findInSet(
-      document.getByKind('html-script', {imported: true}),
+      document.getByKind(
+          'html-script', {imported: true, externalPackages: true}),
       (i) => i.url === resolvedImportUrl);
   if (!scriptImport) {
     return;
@@ -143,10 +145,12 @@ export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
   const resolvedImportUrl = urlLib.resolve(document.url, stylesheetUrl);
   const stylesheetImport =  // HACK(usergenic): clang-format workaround
       findInSet(
-          document.getByKind('html-style', {imported: true}),
+          document.getByKind(
+              'html-style', {imported: true, externalPackages: true}),
           (i) => i.url === resolvedImportUrl) ||
       findInSet(
-          document.getByKind('css-import', {imported: true}),
+          document.getByKind(
+              'css-import', {imported: true, externalPackages: true}),
           (i) => i.url === resolvedImportUrl);
   if (!stylesheetImport) {
     return;
