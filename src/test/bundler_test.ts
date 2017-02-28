@@ -120,6 +120,16 @@ suite('Bundler', () => {
     });
   });
 
+  suite('external dependencies', () => {
+
+    test('html imports from bower_components are inlined', async() => {
+      const ast = await bundle('test/html/external-dependencies.html');
+      const div =
+          dom5.query(ast, preds.hasAttrValue('id', 'external-dependency'));
+      assert(div);
+    });
+  });
+
   test('svg is nested correctly', async() => {
     const svg =
         dom5.query(await bundle(inputPath), matchers.template)!['content']
