@@ -48,6 +48,7 @@ suite('Bundler', () => {
       }
 
   suite('Default Options', () => {
+
     test('imports removed', async() => {
       const imports = preds.AND(
           preds.hasTagName('link'),
@@ -63,16 +64,18 @@ suite('Bundler', () => {
               .length,
           1);
     });
-
   });
 
   suite('Applying strategy', () => {
-    test('bundles html imports added by strategy', async() => {
-      const bundler = new Bundler();
+
+    test('inlines css/scripts of html imports added by strategy', async() => {
+      const bundler = new Bundler({inlineCss: true, inlineScripts: true});
       // This strategy adds a file not in the original document to the bundle.
       const strategy = (bundles: Bundle[]): Bundle[] => {
-        bundles.forEach(
-            (b) => b.files.add('test/html/imports/external-script.html'));
+        bundles.forEach((b) => {
+          b.files.add('test/html/imports/external-script.html');
+          b.files.add('test/html/imports/import-linked-style.html');
+        });
         return bundles;
       };
       const documents =
@@ -80,14 +83,20 @@ suite('Bundler', () => {
       const document = documents.get('test/html/default.html')!;
       assert(document);
 
-      // Look for the script tag from the external-script.html source to be
-      // in the document, proving the html import was inlined.
-      const scriptTag = dom5.query(
-          document.ast!,
-          preds.AND(
-              preds.hasTagName('script'),
-              preds.hasAttrValue('src', 'imports/external.js')))!;
-      assert(scriptTag);
+      // Look for the script referenced in the external-script.html source.
+      const scriptTags =
+          dom5.queryAll(document.ast!, preds.hasTagName('script'))!;
+      assert.isAtLeast(scriptTags.length, 1);
+      assert.include(
+          dom5.getTextContent(scriptTags.pop()!),
+          `console.log('imports/external.js');`);
+
+      // Look for the css referenced in the import-linked-style.html source.
+      const styleTags =
+          dom5.queryAll(document.ast!, preds.hasTagName('style'))!;
+      assert.isAtLeast(styleTags.length, 1);
+      assert.include(
+          dom5.getTextContent(styleTags.pop()!), `.from-import-linked-style {`);
     });
 
     test('changes the href to another bundle if strategy moved it', async() => {
@@ -121,7 +130,6 @@ suite('Bundler', () => {
   });
 
   suite('external dependencies', () => {
-
     test('html imports from bower_components are inlined', async() => {
       const ast = await bundle('test/html/external-dependencies.html');
       const div =
