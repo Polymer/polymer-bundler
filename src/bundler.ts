@@ -11,6 +11,7 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
+import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import {ASTNode, serialize} from 'parse5';
 import {Analyzer} from 'polymer-analyzer';
@@ -186,7 +187,7 @@ export class Bundler {
       bundleImports?: Set<string>): Promise<ASTNode> {
     let document = await this._prepareBundleDocument(docBundle);
 
-    const ast = astUtils.cloneTree(document.parsedDocument.ast);
+    const ast = clone(document.parsedDocument.ast);
     this._appendHtmlImportsForBundle(ast, docBundle);
     importUtils.rewriteAstToEmulateBaseTag(ast, document.url);
 
@@ -415,7 +416,7 @@ export class Bundler {
       return await this.analyzer.analyze(bundle.url, '');
     }
     const document = await this.analyzer.analyze(bundle.url);
-    const ast = astUtils.cloneTree(document.parsedDocument.ast);
+    const ast = clone(document.parsedDocument.ast);
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(ast);
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);
     return await this.analyzer.analyze(document.url, serialize(ast));

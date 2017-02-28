@@ -13,17 +13,9 @@
  */
 
 import * as dom5 from 'dom5';
-import {ASTNode, parse, serialize} from 'parse5';
+import {ASTNode} from 'parse5';
 
 import * as matchers from './matchers';
-
-/**
- * Creates a clone of the AST.  The clone is hygenic, by reparsing the
- * serialized form of the given AST.
- */
-export function cloneTree(ast: ASTNode): ASTNode {
-  return parse(serialize(ast));
-}
 
 /**
  * Move the `node` to be the immediate sibling after the `target` node.
