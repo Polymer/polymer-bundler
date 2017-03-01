@@ -12,7 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixes issue where protocol-less URLs (those that start with `//`) were
   treated as absolute paths.
 - Renamed/refactored to draw a clearer distinction between ASTs and
-  documents. 
+  documents.
+- Fixes issue where absolute paths in urls would be rewritten in unexpected
+  ways because they were not resolved by the same url resolver rules used
+  by the Analyzer.
 
 ## 2.0.0-pre.6 - 2017-02-17
 - Handle `<base href="...">` values correctly when inlining imports.
