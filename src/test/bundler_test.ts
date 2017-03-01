@@ -40,7 +40,9 @@ suite('Bundler', () => {
         // Don't modify options directly because test-isolation problems occur.
         const bundlerOpts = Object.assign({}, opts || {});
         if (!bundlerOpts.analyzer) {
-          bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
+          bundlerOpts.analyzer = new Analyzer(
+              {urlLoader: new FSUrlLoader(path.dirname(inputPath))});
+          inputPath = path.basename(inputPath);
         }
         bundler = new Bundler(bundlerOpts);
         const documents = await bundler.bundle([inputPath]);
@@ -298,6 +300,17 @@ suite('Bundler', () => {
     // TODO(usergenic): Add tests here to demo common use case of alt domains.
   });
 
+  suite('Absolute paths in URLs', () => {
+
+    test('will be resolved by the analyzer', async() => {
+      const options = {inlineCss: true, inlineScripts: true};
+      const doc = await bundle('test/html/absolute-paths.html', options);
+      const html = parse5.serialize(doc);
+      assert.include(html, '.absolute-paths-style');
+      assert.include(html, 'hello from /absolute-paths/script.js');
+    });
+  });
+
   suite('Excludes', () => {
 
     const htmlImport = preds.AND(
@@ -308,7 +321,7 @@ suite('Bundler', () => {
         preds.hasAttrValue('rel', 'import'),
         preds.hasAttrValue('href', 'imports/simple-import.html'));
 
-    const excludes = ['test/html/imports/simple-import.html'];
+    const excludes = ['imports/simple-import.html'];
 
     test('Excluded imports are not inlined', async() => {
       const doc = await bundle(inputPath, {excludes: excludes});
@@ -455,7 +468,10 @@ suite('Bundler', () => {
     });
 
     test('Firebase works inlined', async() => {
-      const doc = await bundle('test/html/firebase.html', options);
+      const doc = await bundle('test/html/firebase.html', {
+        inlineScripts: true,
+        analyzer: new Analyzer({urlLoader: new FSUrlLoader()}),
+      });
       const scripts = dom5.queryAll(doc, matchers.inlineJavascript)!;
       assert.equal(scripts.length, 1);
       const idx = dom5.getTextContent(scripts[0]).indexOf('</script>');
@@ -601,8 +617,9 @@ suite('Bundler', () => {
     });
 
     test('Assetpath rewriting', async() => {
-      const doc =
-          await bundle('test/html/path-rewriting/src/app-main/app-main.html');
+      const doc = await bundle(
+          'test/html/path-rewriting/src/app-main/app-main.html',
+          {analyzer: new Analyzer({urlLoader: new FSUrlLoader()})});
       assert(doc);
       const domModules = dom5.queryAll(doc, preds.hasTagName('dom-module'));
       const assetpaths = domModules.map(
