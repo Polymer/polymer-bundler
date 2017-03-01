@@ -40,7 +40,8 @@ export async function inlineHtmlImport(
     docBundle: AssignedBundle,
     manifest: BundleManifest) {
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
-  const resolvedImportUrl = urlLib.resolve(document.url, rawImportUrl);
+  const importUrl = urlLib.resolve(document.url, rawImportUrl);
+  const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
   const importBundleUrl = manifest.bundleUrlForFile.get(resolvedImportUrl);
 
   // Don't reprocess the same file again.
@@ -89,7 +90,7 @@ export async function inlineHtmlImport(
   const htmlImport = findInSet(
       document.getByKind(
           'html-import', {imported: true, externalPackages: true}),
-      (i) => i.url === resolvedImportUrl);
+      (i) => i.document && i.document.url === resolvedImportUrl);
   if (!htmlImport) {
     return;
   }
@@ -119,11 +120,12 @@ export async function inlineHtmlImport(
  */
 export async function inlineScript(document: Document, scriptTag: ASTNode) {
   const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
-  const resolvedImportUrl = urlLib.resolve(document.url, rawImportUrl);
+  const importUrl = urlLib.resolve(document.url, rawImportUrl);
+  const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
   const scriptImport = findInSet(
       document.getByKind(
           'html-script', {imported: true, externalPackages: true}),
-      (i) => i.url === resolvedImportUrl);
+      (i) => i.document.url === resolvedImportUrl);
   if (!scriptImport) {
     return;
   }
@@ -142,16 +144,17 @@ export async function inlineScript(document: Document, scriptTag: ASTNode) {
  */
 export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
-  const resolvedImportUrl = urlLib.resolve(document.url, stylesheetUrl);
+  const importUrl = urlLib.resolve(document.url, stylesheetUrl);
+  const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
   const stylesheetImport =  // HACK(usergenic): clang-format workaround
       findInSet(
           document.getByKind(
               'html-style', {imported: true, externalPackages: true}),
-          (i) => i.url === resolvedImportUrl) ||
+          (i) => i.document.url === resolvedImportUrl) ||
       findInSet(
           document.getByKind(
               'css-import', {imported: true, externalPackages: true}),
-          (i) => i.url === resolvedImportUrl);
+          (i) => i.document.url === resolvedImportUrl);
   if (!stylesheetImport) {
     return;
   }

@@ -49,10 +49,10 @@ async function _getTransitiveDependencies(
 
         switch (htmlImport.type) {
           case 'html-import':
-            eagerImports.add(htmlImport.url);
+            eagerImports.add(htmlImport.document.url);
             break;
           case 'lazy-html-import':
-            lazyImports.add(htmlImport.url);
+            lazyImports.add(htmlImport.document.url);
             break;
         }
       }
