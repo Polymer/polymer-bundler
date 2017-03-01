@@ -125,7 +125,7 @@ export async function inlineScript(document: Document, scriptTag: ASTNode) {
   const scriptImport = findInSet(
       document.getByKind(
           'html-script', {imported: true, externalPackages: true}),
-      (i) => i.document.url === resolvedImportUrl);
+      (i) => i.document && i.document.url === resolvedImportUrl);
   if (!scriptImport) {
     return;
   }
@@ -150,11 +150,11 @@ export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
       findInSet(
           document.getByKind(
               'html-style', {imported: true, externalPackages: true}),
-          (i) => i.document.url === resolvedImportUrl) ||
+          (i) => i.document && i.document.url === resolvedImportUrl) ||
       findInSet(
           document.getByKind(
               'css-import', {imported: true, externalPackages: true}),
-          (i) => i.document.url === resolvedImportUrl);
+          (i) => i.document && i.document.url === resolvedImportUrl);
   if (!stylesheetImport) {
     return;
   }
