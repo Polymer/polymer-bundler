@@ -20,6 +20,8 @@ import * as parse5 from 'parse5';
 import * as path from 'path';
 import {Analyzer} from 'polymer-analyzer';
 import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
+
+import {Bundle} from '../bundle-manifest';
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 
@@ -35,9 +37,12 @@ suite('Bundler', () => {
 
   async function bundle(inputPath: string, opts?: BundlerOptions):
       Promise<parse5.ASTNode> {
-        const bundlerOpts = opts || {};
+        // Don't modify options directly because test-isolation problems occur.
+        const bundlerOpts = Object.assign({}, opts || {});
         if (!bundlerOpts.analyzer) {
-          bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
+          bundlerOpts.analyzer = new Analyzer(
+              {urlLoader: new FSUrlLoader(path.dirname(inputPath))});
+          inputPath = path.basename(inputPath);
         }
         bundler = new Bundler(bundlerOpts);
         const documents = await bundler.bundle([inputPath]);
@@ -45,6 +50,7 @@ suite('Bundler', () => {
       }
 
   suite('Default Options', () => {
+
     test('imports removed', async() => {
       const imports = preds.AND(
           preds.hasTagName('link'),
@@ -59,6 +65,78 @@ suite('Bundler', () => {
           dom5.queryAll(await bundle(inputPath), preds.hasTagName('dom-module'))
               .length,
           1);
+    });
+  });
+
+  suite('Applying strategy', () => {
+
+    test('inlines css/scripts of html imports added by strategy', async() => {
+      const bundler = new Bundler({inlineCss: true, inlineScripts: true});
+      // This strategy adds a file not in the original document to the bundle.
+      const strategy = (bundles: Bundle[]): Bundle[] => {
+        bundles.forEach((b) => {
+          b.files.add('test/html/imports/external-script.html');
+          b.files.add('test/html/imports/import-linked-style.html');
+        });
+        return bundles;
+      };
+      const documents =
+          await bundler.bundle(['test/html/default.html'], strategy);
+      const document = documents.get('test/html/default.html')!;
+      assert(document);
+
+      // Look for the script referenced in the external-script.html source.
+      const scriptTags =
+          dom5.queryAll(document.ast!, preds.hasTagName('script'))!;
+      assert.isAtLeast(scriptTags.length, 1);
+      assert.include(
+          dom5.getTextContent(scriptTags.pop()!),
+          `console.log('imports/external.js');`);
+
+      // Look for the css referenced in the import-linked-style.html source.
+      const styleTags =
+          dom5.queryAll(document.ast!, preds.hasTagName('style'))!;
+      assert.isAtLeast(styleTags.length, 1);
+      assert.include(
+          dom5.getTextContent(styleTags.pop()!), `.from-import-linked-style {`);
+    });
+
+    test('changes the href to another bundle if strategy moved it', async() => {
+      const bundler = new Bundler();
+      // This strategy moves a file to a different bundle.
+      const strategy = (bundles: Bundle[]): Bundle[] => {
+        return [
+          new Bundle(
+              new Set(['test/html/default.html']),
+              new Set(['test/html/default.html'])),
+          new Bundle(
+              new Set(),  //
+              new Set(['test/html/imports/simple-import.html']))
+        ];
+      };
+      const documents =
+          await bundler.bundle(['test/html/default.html'], strategy);
+      const document = documents.get('test/html/default.html')!;
+      assert(document);
+
+      // We've moved the 'imports/simple-import.html' into a shared bundle
+      // so a link to import it now points to the shared bundle instead.
+      const linkTag = dom5.query(
+          document.ast!,
+          preds.AND(
+              preds.hasTagName('link'), preds.hasAttrValue('rel', 'import')))!;
+      assert(linkTag);
+      assert.equal(
+          dom5.getAttribute(linkTag, 'href'), '../../shared_bundle_1.html');
+    });
+  });
+
+  suite('external dependencies', () => {
+    test('html imports from bower_components are inlined', async() => {
+      const ast = await bundle('test/html/external-dependencies.html');
+      const div =
+          dom5.query(ast, preds.hasAttrValue('id', 'external-dependency'));
+      assert(div);
     });
   });
 
@@ -222,6 +300,17 @@ suite('Bundler', () => {
     // TODO(usergenic): Add tests here to demo common use case of alt domains.
   });
 
+  suite('Absolute paths in URLs', () => {
+
+    test('will be resolved by the analyzer', async() => {
+      const options = {inlineCss: true, inlineScripts: true};
+      const doc = await bundle('test/html/absolute-paths.html', options);
+      const html = parse5.serialize(doc);
+      assert.include(html, '.absolute-paths-style');
+      assert.include(html, 'hello from /absolute-paths/script.js');
+    });
+  });
+
   suite('Excludes', () => {
 
     const htmlImport = preds.AND(
@@ -232,7 +321,7 @@ suite('Bundler', () => {
         preds.hasAttrValue('rel', 'import'),
         preds.hasAttrValue('href', 'imports/simple-import.html'));
 
-    const excludes = ['test/html/imports/simple-import.html'];
+    const excludes = ['imports/simple-import.html'];
 
     test('Excluded imports are not inlined', async() => {
       const doc = await bundle(inputPath, {excludes: excludes});
@@ -379,7 +468,10 @@ suite('Bundler', () => {
     });
 
     test('Firebase works inlined', async() => {
-      const doc = await bundle('test/html/firebase.html', options);
+      const doc = await bundle('test/html/firebase.html', {
+        inlineScripts: true,
+        analyzer: new Analyzer({urlLoader: new FSUrlLoader()}),
+      });
       const scripts = dom5.queryAll(doc, matchers.inlineJavascript)!;
       assert.equal(scripts.length, 1);
       const idx = dom5.getTextContent(scripts[0]).indexOf('</script>');
@@ -408,11 +500,13 @@ suite('Bundler', () => {
       assert(content.search('@apply') > -1, '@apply kept');
     });
 
-    test('Remote scripts, styles and media queries are preserved', async() => {
+    test('Remote styles and media queries are preserved', async() => {
       const input = 'test/html/imports/remote-stylesheet.html';
       const doc = await bundle(input, options);
       const links = dom5.queryAll(doc, matchers.externalStyle);
       assert.equal(links.length, 1);
+      assert.match(
+          dom5.getAttribute(links[0]!, 'href'), /fonts.googleapis.com/);
       const styles = dom5.queryAll(doc, matchers.styleMatcher);
       assert.equal(styles.length, 1);
       assert.equal(dom5.getAttribute(styles[0], 'media'), '(min-width: 800px)');
@@ -523,8 +617,9 @@ suite('Bundler', () => {
     });
 
     test('Assetpath rewriting', async() => {
-      const doc =
-          await bundle('test/html/path-rewriting/src/app-main/app-main.html');
+      const doc = await bundle(
+          'test/html/path-rewriting/src/app-main/app-main.html',
+          {analyzer: new Analyzer({urlLoader: new FSUrlLoader()})});
       assert(doc);
       const domModules = dom5.queryAll(doc, preds.hasTagName('dom-module'));
       const assetpaths = domModules.map(

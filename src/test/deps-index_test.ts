@@ -53,8 +53,8 @@ suite('Bundler', () => {
         expectedEntries.sort(sortEntry);
         if (actualEntries.length !== expectedEntries.length) {
           throw new chai.AssertionError(
-              `Expected ${expectedEntries.length
-              } entries, got ${actualEntries.length} instead`);
+              `Expected ${expectedEntries.length} entries, ` +
+              `got ${actualEntries.length} instead`);
         }
 
         for (let i = 0; i < actualEntries.length; i++) {

@@ -127,10 +127,7 @@ suite('URL Utils', () => {
           '../b/?q=y#2');
     });
 
-    // TODO(usergenic): Update resolveUrl to interpret scheme-less URLs the
-    // same way browsers do, where '//' prefix implies preserved scheme and
-    // the first path segment is actually the host.
-    test.skip('Scheme-less URLs should be interpreted as browsers do', () => {
+    test('Scheme-less URLs should be interpreted as browsers do', () => {
       assert.equal(urlUtils.relativeUrl('//a/b', '/c/d'), 'c/d');
       assert.equal(urlUtils.relativeUrl('/a/b', '//c/d'), '//c/d');
     });

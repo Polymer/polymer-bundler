@@ -40,11 +40,9 @@ suite('BundleManifest', () => {
    */
   function serializeBundle(bundle: Bundle): string {
     assert(bundle, `Tried to serialize ${bundle}`);
-    return `[${Array.from(bundle.entrypoints)
-        .sort()
-        .join()}]->[${Array.from(bundle.files)
-        .sort()
-        .join()}]`;
+    const entrypoints = Array.from(bundle.entrypoints).sort().join();
+    const files = Array.from(bundle.files).sort().join();
+    return `[${entrypoints}]->[${files}]`;
   }
 
   suite('constructor and generated maps', () => {

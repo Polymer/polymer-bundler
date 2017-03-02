@@ -13,6 +13,7 @@
     "polymer-bundler": "lib/bin/polymer-bundler.js"
   },
   "dependencies": {
+    "clone": "^2.1.0",
     "command-line-args": "^3.0.1",
     "command-line-usage": "^3.0.3",
     "dom5": "^2.0.0",
@@ -21,10 +22,11 @@
     "nopt": "^3.0.1",
     "parse5": "^2.2.2",
     "path-posix": "^1.0.0",
-    "polymer-analyzer": "2.0.0-alpha.27"
+    "polymer-analyzer": "2.0.0-alpha.28"
   },
   "devDependencies": {
     "@types/chai": "^3.4.30",
+    "@types/clone": "^0.1.30",
     "@types/mocha": "^2.2.29",
     "@types/node": "^6.0.33",
     "@types/parse5": "^2.2.33",
