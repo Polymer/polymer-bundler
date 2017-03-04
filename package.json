@@ -22,7 +22,7 @@
     "nopt": "^3.0.1",
     "parse5": "^2.2.2",
     "path-posix": "^1.0.0",
-    "polymer-analyzer": "2.0.0-alpha.28"
+    "polymer-analyzer": "2.0.0-alpha.30"
   },
   "devDependencies": {
     "@types/chai": "^3.4.30",
