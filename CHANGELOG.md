@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+<!--## Unreleased-->
+
+## 2.0.0-pre.7 - 2017-03-03
+
 - Uses `polymer-analyzer` directly to obtain import document sources and
   ASTs.  This enforces agreement with the Analyzer as to which documents
   should be inlined/bundled.
