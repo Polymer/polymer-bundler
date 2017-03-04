@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 <!--## Unreleased-->
 
-## 2.0.0-pre.7 - 2017-03-03
+## 2.0.0-pre.8 - 2017-03-03
 
 - Uses `polymer-analyzer` directly to obtain import document sources and
   ASTs.  This enforces agreement with the Analyzer as to which documents
@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixes issue where absolute paths in urls would be rewritten in unexpected
   ways because they were not resolved by the same url resolver rules used
   by the Analyzer.
+
+## 2.0.0-pre.7 - 2017-03-03
+
+- Bump dependency on analyzer.
 
 ## 2.0.0-pre.6 - 2017-02-17
 - Handle `<base href="...">` values correctly when inlining imports.
