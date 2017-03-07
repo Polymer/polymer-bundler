@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!--## Unreleased-->
+<!-- ## Unreleased -->
+
+## 2.0.0-pre.9 - 2017-03-07
+- Bump dependency on analyzer
 
 ## 2.0.0-pre.8 - 2017-03-03
 
@@ -21,7 +24,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   by the Analyzer.
 
 ## 2.0.0-pre.7 - 2017-03-03
-
 - Bump dependency on analyzer.
 
 ## 2.0.0-pre.6 - 2017-02-17
