@@ -1,0 +1,8 @@
+{
+"version":3,
+"file":"C.js",
+"lineCount":1,
+"mappings":"AAAAA,OAAAC,IAAA,CAAY,aAAZ;",
+"sources":["C.orig.js"],
+"names":["console","log"]
+}

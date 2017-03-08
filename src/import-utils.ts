@@ -14,6 +14,7 @@
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
+import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
 import {Document} from 'polymer-analyzer/lib/model/model';
 import * as urlLib from 'url';
 
@@ -21,9 +22,11 @@ import * as astUtils from './ast-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import constants from './constants';
 import * as matchers from './matchers';
+import {addOrUpdateSourcemapComment} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
 import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
+
 
 // TODO(usergenic): Revisit the organization of this module and *consider*
 // building a class to encapsulate the common document details like docUrl and
@@ -38,7 +41,8 @@ export async function inlineHtmlImport(
     linkTag: ASTNode,
     visitedUrls: Set<UrlString>,
     docBundle: AssignedBundle,
-    manifest: BundleManifest) {
+    manifest: BundleManifest,
+    enableSourcemaps: boolean) {
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
   const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
@@ -97,10 +101,14 @@ export async function inlineHtmlImport(
 
   // When inlining html documents, we'll parse it as a fragment so that we do
   // not get html, head or body wrappers.
-  const importAst =
-      parse5.parseFragment(htmlImport.document.parsedDocument.contents);
+  const importAst = parse5.parseFragment(
+      htmlImport.document.parsedDocument.contents, {locationInfo: true});
   rewriteAstToEmulateBaseTag(importAst, resolvedImportUrl);
   rewriteAstBaseUrl(importAst, resolvedImportUrl, document.url);
+
+  if (enableSourcemaps) {
+    await addSourcemapsToInlineScripts(document, importAst, resolvedImportUrl);
+  }
   const nestedImports = dom5.queryAll(importAst, matchers.htmlImport);
 
   // Move all of the import doc content after the html import.
@@ -110,7 +118,12 @@ export async function inlineHtmlImport(
   // Recursively process the nested imports.
   for (const nestedImport of nestedImports) {
     await inlineHtmlImport(
-        document, nestedImport, visitedUrls, docBundle, manifest);
+        document,
+        nestedImport,
+        visitedUrls,
+        docBundle,
+        manifest,
+        enableSourcemaps);
   }
 }
 
@@ -118,7 +131,8 @@ export async function inlineHtmlImport(
  * Inlines the contents of the document returned by the script tag's src url
  * into the script tag content and removes the src attribute.
  */
-export async function inlineScript(document: Document, scriptTag: ASTNode) {
+export async function inlineScript(
+    document: Document, scriptTag: ASTNode, enableSourcemaps: boolean) {
   const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
   const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
@@ -131,10 +145,15 @@ export async function inlineScript(document: Document, scriptTag: ASTNode) {
   }
 
   // Second argument 'true' tells encodeString to escape <script> tags.
-  const scriptContent =
-      encodeString(scriptImport.document.parsedDocument.contents, true);
+  let scriptContent = scriptImport.document.parsedDocument.contents;
+
+  if (enableSourcemaps) {
+    scriptContent = await addOrUpdateSourcemapComment(
+        document.analyzer, resolvedImportUrl, scriptContent, 0, 0);
+  }
+
   dom5.removeAttribute(scriptTag, 'src');
-  dom5.setTextContent(scriptTag, scriptContent);
+  dom5.setTextContent(scriptTag, encodeString(scriptContent, true));
   return scriptContent;
 }
 
@@ -214,6 +233,35 @@ export function rewriteAstBaseUrl(
   rewriteElementAttrsBaseUrl(ast, oldBaseUrl, newBaseUrl);
   rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl);
   setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
+}
+
+/**
+ * Walk through inline scripts of an import document.
+ * For each script create identity source maps unless one already exists.
+ *
+ * The generated script mapping detail is the relative location within
+ * the script tag. Later this will be updated to account for the
+ * line offset within the final bundle.
+ */
+export async function addSourcemapsToInlineScripts(
+    document: Document, ast: ASTNode, oldBaseUrl: UrlString) {
+  const inlineScripts = dom5.queryAll(ast, matchers.inlineJavascript);
+  const parsedHtmlDocument = document.parsedDocument as ParsedHtmlDocument;
+  const promises = inlineScripts.map(scriptAst => {
+    let content = dom5.getTextContent(scriptAst);
+    const sourceRange = parsedHtmlDocument.sourceRangeForStartTag(scriptAst)!;
+    return addOrUpdateSourcemapComment(
+               document.analyzer,
+               oldBaseUrl,
+               content,
+               sourceRange.end.line,
+               sourceRange.end.column)
+        .then(updatedContent => {
+          dom5.setTextContent(scriptAst, encodeString(updatedContent));
+        });
+  });
+
+  return Promise.all(promises);
 }
 
 /**

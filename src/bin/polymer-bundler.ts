@@ -115,6 +115,12 @@ const optionDefinitions = [
     multiple: true,
     description:
         'Input HTML. If not specified, will be the last command line argument.'
+  },
+  {
+    name: 'sourcemaps',
+    type: Boolean,
+    defaultOption: false,
+    description: 'Create and process sourcemaps for scripts.'
   }
 ];
 

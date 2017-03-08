@@ -27,6 +27,7 @@ for this step).
 - `--inline-css`: Inline external stylesheets.
 - `--redirect <uri>|<path>`: Takes an argument in the form of URI|PATH where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.
 - `--strip-comments`: Strips all HTML comments not containing an @license from the document.
+- `--sourcemaps`: Honor (or create) sourcemaps for inline script tags.
 - `--out-html <path>`: If specified, output will be written to <path> instead of stdout.
 - `--out-dir <path>`: If specified, output will be written to <path>. Necessary if bundling multiple files.
 
@@ -96,6 +97,7 @@ options.
 - `addedImports`: Additional HTML imports to inline, added to the end of the
     target file
 - `redirects`: An array of strings with the format `URI|PATH` where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.
+- `sourcemaps`: Honor (or create) sourcemaps for inline scripts
 - `stripComments`: Remove non-license HTML comments.
 - `loader`: A [hydrolysis](https://www.npmjs.com/package/hydrolysis) loader.
     This loader is generated with the `target` argument to `vulcan.process` and
