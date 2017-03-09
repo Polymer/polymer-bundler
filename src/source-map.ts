@@ -12,8 +12,8 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import * as acorn from 'acorn';
 import * as dom5 from 'dom5';
+import * as espree from 'espree';
 import * as parse5 from 'parse5';
 import {Analyzer} from 'polymer-analyzer';
 import {AnalysisContext} from 'polymer-analyzer/lib/core/analysis-context';
@@ -50,9 +50,9 @@ function createJsIdentitySourcemap(
     lineOffset: number,
     firstLineCharOffset: number) {
   const generator = new SourceMapGenerator();
-  const tokenizer = acorn.tokenizer(sourceContent, {locations: true});
-  for (let token = tokenizer.getToken(); token.type.label !== 'eof';
-       token = tokenizer.getToken()) {
+  const tokens =
+      espree.tokenize(sourceContent, {loc: true} as espree.ParseOpts);
+  tokens.forEach(token => {
     if (!token.loc) {
       return null;
     }
@@ -66,12 +66,12 @@ function createJsIdentitySourcemap(
       source: sourceUrl
     };
 
-    if (token.type.label === 'name') {
+    if (token.type === 'Identifier') {
       mapping.name = token.value;
     }
 
     generator.addMapping(mapping);
-  }
+  });
 
   return generator.toJSON();
 }
