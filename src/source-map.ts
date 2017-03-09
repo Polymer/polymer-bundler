@@ -18,6 +18,7 @@ import * as parse5 from 'parse5';
 import {Analyzer} from 'polymer-analyzer';
 import {AnalysisContext} from 'polymer-analyzer/lib/core/analysis-context';
 import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
+import {Document} from 'polymer-analyzer/lib/model/model';
 import {RawSourceMap, SourceMapConsumer, SourceMapGenerator} from 'source-map';
 import * as urlLib from 'url';
 
@@ -50,8 +51,8 @@ function createJsIdentitySourcemap(
     lineOffset: number,
     firstLineCharOffset: number) {
   const generator = new SourceMapGenerator();
-  const tokens =
-      espree.tokenize(sourceContent, {loc: true} as espree.ParseOpts);
+  const tokens = espree.tokenize(
+      sourceContent, {loc: true, ecmaVersion: 2017, sourceType: 'module'});
   tokens.forEach(token => {
     if (!token.loc) {
       return null;
@@ -103,9 +104,7 @@ function offsetSourceMap(
 }
 
 export async function getExistingSourcemap(
-    analyzer: AnalysisContext|Analyzer,
-    sourceUrl: string,
-    sourceContent: string) {
+    analyzer: Analyzer, sourceUrl: string, sourceContent: string) {
   const sourceMappingUrlParts = sourceContent.match(sourceMappingUrlExpr);
   if (sourceMappingUrlParts === null) {
     return null;
@@ -145,16 +144,31 @@ export async function addOrUpdateSourcemapComment(
     analyzer: AnalysisContext|Analyzer,
     sourceUrl: string,
     sourceContent: string,
-    lineOffset: number,
-    firstLineCharOffset: number) {
-  let sourcemap =
-      await getExistingSourcemap(analyzer, sourceUrl, sourceContent);
+    originalLineOffset: number,
+    originalFirstLineCharOffset: number,
+    generatedLineOffset: number,
+    generatedFirtLineCharOffset: number) {
+  let sourcemap: RawSourceMap|null = null;
+  try {
+    sourcemap = await getExistingSourcemap(
+        analyzer as Analyzer, sourceUrl, sourceContent);
+  } catch (ex) {
+    // TODO(ChadKillingsworth) Surface these errors to the user.
+    // They should not be fatal errors though.
+    sourceContent = sourceContent.replace(sourceMappingUrlExpr, '');
+  }
 
   let hasExisting = true;
   if (sourcemap === null) {
     hasExisting = false;
     sourcemap = createJsIdentitySourcemap(
-        sourceUrl, sourceContent, lineOffset, firstLineCharOffset);
+        sourceUrl,
+        sourceContent,
+        originalLineOffset,
+        originalFirstLineCharOffset);
+  } else {
+    sourcemap = offsetSourceMap(
+        sourcemap, generatedLineOffset, generatedFirtLineCharOffset);
   }
 
   if (sourcemap === null) {
@@ -182,9 +196,20 @@ export async function addOrUpdateSourcemapComment(
  * are relative to their position within the script tag itself.
  */
 export function updateSourcemapLocations(
-    parsedDoc: ParsedHtmlDocument, ast: parse5.ASTNode) {
+    document: Document, ast: parse5.ASTNode) {
   // We need to serialize and reparse the dom for updated location information
-  ast = parse5.parse(parse5.serialize(ast), {locationInfo: true});
+  const documentContents = parse5.serialize(ast);
+  ast = parse5.parse(documentContents, {locationInfo: true});
+
+  const reparsedDoc = new ParsedHtmlDocument({
+    url: document.url,
+    contents: documentContents,
+    ast: ast,
+    isInline: document.isInline,
+    locationOffset: undefined,
+    astNode: null
+  });
+
   const inlineScripts = dom5.queryAll(ast, matchers.inlineJavascript);
   inlineScripts.forEach(script => {
     let content = dom5.getTextContent(script);
@@ -199,7 +224,7 @@ export function updateSourcemapLocations(
       return;
     }
 
-    const sourceRange = parsedDoc.sourceRangeForStartTag(script)!;
+    const sourceRange = reparsedDoc.sourceRangeForStartTag(script)!;
     const sourceMap = base64StringToRawSourceMap(sourceMapContentParts[2]);
 
     const updatedMap = offsetSourceMap(

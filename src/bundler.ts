@@ -14,9 +14,8 @@
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import {ASTNode, serialize} from 'parse5';
-import {Analyzer, ParsedHtmlDocument} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 import {Document} from 'polymer-analyzer/lib/model/model';
-import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
 import * as astUtils from './ast-utils';
 import * as bundleManifestLib from './bundle-manifest';
@@ -217,8 +216,7 @@ export class Bundler {
     }
 
     if (this.sourcemaps) {
-      return updateSourcemapLocations(
-          document.parsedDocument as ParsedHtmlDocument, ast);
+      return updateSourcemapLocations(document, ast);
     } else {
       return ast;
     }

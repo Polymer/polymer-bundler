@@ -18,14 +18,12 @@ import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import * as path from 'path';
-import {Analyzer} from 'polymer-analyzer';
-import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
-import {MappingItem, SourceMapConsumer} from 'source-map';
+import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
+import {MappingItem, RawSourceMap, SourceMapConsumer} from 'source-map';
 
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import {getExistingSourcemap} from '../source-map';
-
 
 chai.config.showDiff = true;
 
@@ -50,26 +48,51 @@ suite('Bundler', () => {
 
   function getLine(original: string, lineNum: number) {
     const lines = original.split('\n');
-    if (lines.length >= lineNum) {
-      return lines[lineNum - 1];
-    }
-    return null;
+    return lines[lineNum - 1];
   }
+
+  async function testMapping(
+      sourcemap: RawSourceMap, html: string, name: string) {
+    const consumer = new SourceMapConsumer(sourcemap!);
+    let foundMapping = false;
+    const mappings: MappingItem[] = [];
+    consumer.eachMapping(mapping => mappings.push(mapping));
+    for (let j = 0; j < mappings.length; j++) {
+      if (mappings[j].name === name) {
+        foundMapping = true;
+        const generatedLine = getLine(html, mappings[j].generatedLine);
+        assert(generatedLine, 'generated line not found');
+        assert.equal(
+            mappings[j].generatedColumn,
+            generatedLine!.indexOf(name),
+            'generated column');
+
+        const originalContents = await urlLoader.load(mappings[j].source);
+        const originalLine =
+            getLine(originalContents, mappings[j].originalLine);
+        assert(originalLine, 'original line not found');
+        assert.equal(
+            mappings[j].originalColumn,
+            originalLine!.indexOf(name),
+            'original column');
+      }
+    }
+  }
+
+  const basePath = 'test/html/sourcemaps';
+  const urlLoader = new FSUrlLoader(basePath);
+  const analyzer = new Analyzer({urlLoader: urlLoader});
 
   suite('Sourcemaps', () => {
 
-    test('Basic', async() => {
-      const basePath = 'test/html/sourcemaps';
-      const urlLoader = new FSUrlLoader(basePath);
-      const analyzer = new Analyzer({urlLoader: urlLoader});
+    test('inline', async() => {
       const doc = await bundle(
-          'A.html',
+          'inline.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
       assert(doc);
       const compiledHtml = parse5.serialize(doc);
-
       const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
-      assert.equal(inlineScripts.length, 6);
+      assert.equal(inlineScripts.length, 3);
 
       for (let i = 0; i < inlineScripts.length; i++) {
         if (i === 5) {
@@ -77,31 +100,64 @@ suite('Bundler', () => {
         }
 
         const sourcemap = await getExistingSourcemap(
-            analyzer, 'A.html', dom5.getTextContent(inlineScripts[i]));
+            analyzer, 'inline.html', dom5.getTextContent(inlineScripts[i]));
 
         assert(sourcemap, 'scripts found');
+        await testMapping(sourcemap!, compiledHtml, 'console');
+      }
+    });
 
-        const consumer = new SourceMapConsumer(sourcemap!);
-        let foundMapping = false;
-        const mappings: MappingItem[] = [];
-        consumer.eachMapping(mapping => mappings.push(mapping));
-        for (let j = 0; j < mappings.length; j++) {
-          if (mappings[j].name === 'console') {
-            foundMapping = true;
-            const generatedLine =
-                getLine(compiledHtml, mappings[j].generatedLine);
-            assert(generatedLine, 'line found');
-            assert.equal(
-                mappings[j].generatedColumn, generatedLine!.indexOf('console'));
+    test('external', async() => {
+      const doc = await bundle(
+          'external.html',
+          {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
+      assert(doc);
+      const compiledHtml = parse5.serialize(doc);
+      const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
+      assert.equal(inlineScripts.length, 2);
 
-            const originalContents = await urlLoader.load(mappings[j].source);
-            const originalLine =
-                getLine(originalContents, mappings[j].originalLine);
-            assert(originalLine, 'line found');
-            assert.equal(
-                mappings[j].originalColumn, originalLine!.indexOf('console'));
-          }
-        }
+      for (let i = 0; i < inlineScripts.length; i++) {
+        const sourcemap = await getExistingSourcemap(
+            analyzer, 'external.html', dom5.getTextContent(inlineScripts[i]));
+
+        assert(sourcemap, 'scripts found');
+        await testMapping(sourcemap!, compiledHtml, 'console');
+      }
+    });
+
+    test('combined', async() => {
+      const doc = await bundle(
+          'combined.html',
+          {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
+      assert(doc);
+      const compiledHtml = parse5.serialize(doc);
+      const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
+      assert.equal(inlineScripts.length, 6);
+
+      for (let i = 0; i < inlineScripts.length; i++) {
+        const sourcemap = await getExistingSourcemap(
+            analyzer, 'combined.html', dom5.getTextContent(inlineScripts[i]));
+
+        assert(sourcemap, 'scripts found');
+        await testMapping(sourcemap!, compiledHtml, 'console');
+      }
+    });
+
+    test('invalid existing', async() => {
+      const doc = await bundle(
+          'invalid.html',
+          {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
+      assert(doc);
+      const compiledHtml = parse5.serialize(doc);
+      const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
+      assert.equal(inlineScripts.length, 2);
+
+      for (let i = 0; i < inlineScripts.length; i++) {
+        const sourcemap = await getExistingSourcemap(
+            analyzer, 'invalid.html', dom5.getTextContent(inlineScripts[i]));
+
+        assert(sourcemap, 'scripts found');
+        await testMapping(sourcemap!, compiledHtml, 'console');
       }
     });
   });

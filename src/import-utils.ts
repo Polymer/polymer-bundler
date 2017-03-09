@@ -107,7 +107,8 @@ export async function inlineHtmlImport(
   rewriteAstBaseUrl(importAst, resolvedImportUrl, document.url);
 
   if (enableSourcemaps) {
-    await addSourcemapsToInlineScripts(document, importAst, resolvedImportUrl);
+    await addOrUpdateSourcemapsForInlineScripts(
+        document, importAst, resolvedImportUrl);
   }
   const nestedImports = dom5.queryAll(importAst, matchers.htmlImport);
 
@@ -148,8 +149,16 @@ export async function inlineScript(
   let scriptContent = scriptImport.document.parsedDocument.contents;
 
   if (enableSourcemaps) {
+    // it's easier to calculate offsets if the external script contents don't
+    // start on the same line as the script tag. Offset the map appropriately.
     scriptContent = await addOrUpdateSourcemapComment(
-        document.analyzer, resolvedImportUrl, scriptContent, 0, 0);
+        document.analyzer,
+        resolvedImportUrl,
+        '\n' + scriptContent,
+        -1,
+        0,
+        1,
+        0);
   }
 
   dom5.removeAttribute(scriptTag, 'src');
@@ -243,7 +252,7 @@ export function rewriteAstBaseUrl(
  * the script tag. Later this will be updated to account for the
  * line offset within the final bundle.
  */
-export async function addSourcemapsToInlineScripts(
+export async function addOrUpdateSourcemapsForInlineScripts(
     document: Document, ast: ASTNode, oldBaseUrl: UrlString) {
   const inlineScripts = dom5.queryAll(ast, matchers.inlineJavascript);
   const parsedHtmlDocument = document.parsedDocument as ParsedHtmlDocument;
@@ -255,7 +264,9 @@ export async function addSourcemapsToInlineScripts(
                oldBaseUrl,
                content,
                sourceRange.end.line,
-               sourceRange.end.column)
+               sourceRange.end.column,
+               -sourceRange.end.line + 1,
+               -sourceRange.end.column)
         .then(updatedContent => {
           dom5.setTextContent(scriptAst, encodeString(updatedContent));
         });
