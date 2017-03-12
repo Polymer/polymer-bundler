@@ -34,6 +34,7 @@ for this step).
 - `--strip-comments`: Strips all HTML comments not containing an @license from the document.
 - `--no-implicit-strip`: *DANGEROUS*! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.
 - `--out-html <path>`: If specified, output will be written to <path> instead of stdout.
+- `--out-request-list <path>`: Writes a list of request URLs required to vulcanize <html file> to <path> on success.
 
 ## Usage
 The command
