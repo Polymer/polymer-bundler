@@ -111,7 +111,7 @@ export async function inlineHtmlImport(
       url: document.url,
       contents: htmlImport.document.parsedDocument.contents,
       ast: importAst,
-      isInline: document.isInline,
+      isInline: false,
       locationOffset: undefined,
       astNode: null
     });
