@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- ## Unreleased -->
+- Add a sourcemap option to properly handle or create sourcemaps for
+  script tags
 
 ## 2.0.0-pre.9 - 2017-03-07
 - Bump dependency on analyzer

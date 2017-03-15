@@ -14,9 +14,8 @@
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import {ASTNode, serialize} from 'parse5';
-import {Analyzer} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 import {Document} from 'polymer-analyzer/lib/model/model';
-import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
 
 import * as astUtils from './ast-utils';
 import * as bundleManifestLib from './bundle-manifest';
@@ -25,6 +24,7 @@ import * as depsIndexLib from './deps-index';
 import {BundledDocument, DocumentCollection} from './document-collection';
 import * as importUtils from './import-utils';
 import * as matchers from './matchers';
+import {updateSourcemapLocations} from './source-map';
 import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
 
@@ -57,6 +57,9 @@ export interface Options {
   // the output document.
   inlineScripts?: boolean;
 
+  // Create identity source maps for inline scripts
+  sourcemaps?: boolean;
+
   // Remove of all comments (except those containing '@license') when true.
   stripComments?: boolean;
 
@@ -71,6 +74,7 @@ export class Bundler {
   enableScriptInlining: boolean;
   excludes: UrlString[];
   implicitStrip: boolean;
+  sourcemaps: boolean;
   stripComments: boolean;
   stripExcludes: UrlString[];
 
@@ -82,11 +86,11 @@ export class Bundler {
 
     // implicitStrip should be true by default
     this.implicitStrip = !Boolean(opts.noImplicitStrip);
-
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
+    this.sourcemaps = Boolean(opts.sourcemaps);
   }
 
   /**
@@ -211,7 +215,11 @@ export class Bundler {
       astUtils.stripComments(ast);
     }
 
-    return ast;
+    if (this.sourcemaps) {
+      return updateSourcemapLocations(document, ast);
+    } else {
+      return ast;
+    }
   }
 
   /**
@@ -298,7 +306,12 @@ export class Bundler {
     const htmlImports = dom5.queryAll(ast, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
       await importUtils.inlineHtmlImport(
-          document, htmlImport, visitedUrls, bundle, bundleManifest);
+          document,
+          htmlImport,
+          visitedUrls,
+          bundle,
+          bundleManifest,
+          this.sourcemaps);
     }
   }
 
@@ -309,7 +322,7 @@ export class Bundler {
   private async _inlineScripts(document: Document, ast: ASTNode) {
     const scriptImports = dom5.queryAll(ast, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
-      await importUtils.inlineScript(document, externalScript);
+      await importUtils.inlineScript(document, externalScript, this.sourcemaps);
     }
   }
 
