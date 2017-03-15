@@ -14,7 +14,7 @@
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import {ASTNode, serialize} from 'parse5';
-import {Analyzer, FSUrlLoader, Document} from 'polymer-analyzer';
+import {Analyzer, Document, FSUrlLoader} from 'polymer-analyzer';
 
 import * as astUtils from './ast-utils';
 import * as bundleManifestLib from './bundle-manifest';
