@@ -16,8 +16,7 @@
 /// <reference path="../../node_modules/@types/node/index.d.ts" />
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
-import {Analyzer} from 'polymer-analyzer';
-import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
+import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
 import {buildDepsIndex} from '../deps-index';
 

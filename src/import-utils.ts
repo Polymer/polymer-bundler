@@ -14,8 +14,7 @@
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
-import {Document} from 'polymer-analyzer/lib/model/model';
+import {ParsedHtmlDocument, Document} from 'polymer-analyzer';
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';

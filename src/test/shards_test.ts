@@ -17,8 +17,7 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
-import {Analyzer} from 'polymer-analyzer';
-import {FSUrlLoader} from 'polymer-analyzer/lib/url-loader/fs-url-loader';
+import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
 import {BundleStrategy, generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler} from '../bundler';
