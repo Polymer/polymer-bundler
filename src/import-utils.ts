@@ -107,8 +107,16 @@ export async function inlineHtmlImport(
   rewriteAstBaseUrl(importAst, resolvedImportUrl, document.url);
 
   if (enableSourcemaps) {
+    const reparsedDoc = new ParsedHtmlDocument({
+      url: document.url,
+      contents: htmlImport.document.parsedDocument.contents,
+      ast: importAst,
+      isInline: document.isInline,
+      locationOffset: undefined,
+      astNode: null
+    });
     await addOrUpdateSourcemapsForInlineScripts(
-        document, importAst, resolvedImportUrl);
+        document, reparsedDoc, resolvedImportUrl);
   }
   const nestedImports = dom5.queryAll(importAst, matchers.htmlImport);
 
@@ -253,14 +261,16 @@ export function rewriteAstBaseUrl(
  * line offset within the final bundle.
  */
 export async function addOrUpdateSourcemapsForInlineScripts(
-    document: Document, ast: ASTNode, oldBaseUrl: UrlString) {
-  const inlineScripts = dom5.queryAll(ast, matchers.inlineJavascript);
-  const parsedHtmlDocument = document.parsedDocument as ParsedHtmlDocument;
+    originalDoc: Document,
+    reparsedDoc: ParsedHtmlDocument,
+    oldBaseUrl: UrlString) {
+  const inlineScripts =
+      dom5.queryAll(reparsedDoc.ast, matchers.inlineJavascript);
   const promises = inlineScripts.map(scriptAst => {
     let content = dom5.getTextContent(scriptAst);
-    const sourceRange = parsedHtmlDocument.sourceRangeForStartTag(scriptAst)!;
+    const sourceRange = reparsedDoc.sourceRangeForStartTag(scriptAst)!;
     return addOrUpdateSourcemapComment(
-               document.analyzer,
+               originalDoc.analyzer,
                oldBaseUrl,
                content,
                sourceRange.end.line,
