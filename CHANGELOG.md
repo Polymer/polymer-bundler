@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- ## Unreleased -->
+
+## 2.0.0-pre.10 - 2017-03-15
+
 - Add a sourcemap option to properly handle or create sourcemaps for
   script tags
 

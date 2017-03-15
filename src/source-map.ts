@@ -15,10 +15,8 @@
 import * as dom5 from 'dom5';
 import * as espree from 'espree';
 import * as parse5 from 'parse5';
-import {Analyzer} from 'polymer-analyzer';
+import {Analyzer, ParsedHtmlDocument, Document} from 'polymer-analyzer';
 import {AnalysisContext} from 'polymer-analyzer/lib/core/analysis-context';
-import {ParsedHtmlDocument} from 'polymer-analyzer/lib/html/html-document';
-import {Document} from 'polymer-analyzer/lib/model/model';
 import {RawSourceMap, SourceMapConsumer, SourceMapGenerator} from 'source-map';
 import * as urlLib from 'url';
 
