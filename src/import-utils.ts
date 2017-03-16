@@ -41,6 +41,7 @@ export async function inlineHtmlImport(
     visitedUrls: Set<UrlString>,
     docBundle: AssignedBundle,
     manifest: BundleManifest,
+    stripExcludes: UrlString[],
     enableSourcemaps: boolean) {
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
@@ -56,6 +57,13 @@ export async function inlineHtmlImport(
   // We've never seen this import before, so we'll add it to the set to guard
   // against processing it again in the future.
   visitedUrls.add(resolvedImportUrl);
+
+  // Stripped excluded imports should simply be removed from the DOM
+  if (stripExcludes.find(exclude => resolvedImportUrl.indexOf(exclude) >= 0) !==
+      undefined) {
+    astUtils.removeElementAndNewline(linkTag);
+    return;
+  }
 
   // If we can't find a bundle for the referenced import, record that we've
   // processed it, but don't remove the import link.  Browser will handle it.
@@ -131,6 +139,7 @@ export async function inlineHtmlImport(
         visitedUrls,
         docBundle,
         manifest,
+        stripExcludes,
         enableSourcemaps);
   }
 }

@@ -86,6 +86,8 @@ export class Bundler {
     // implicitStrip should be true by default
     this.implicitStrip = !Boolean(opts.noImplicitStrip);
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
+    this.stripExcludes =
+        Array.isArray(opts.stripExcludes) ? opts.stripExcludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
@@ -310,6 +312,7 @@ export class Bundler {
           visitedUrls,
           bundle,
           bundleManifest,
+          this.stripExcludes,
           this.sourcemaps);
     }
   }
