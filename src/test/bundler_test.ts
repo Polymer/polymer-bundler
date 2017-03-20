@@ -322,6 +322,9 @@ suite('Bundler', () => {
 
     const excludes = ['imports/simple-import.html'];
 
+    const excludedModules = preds.AND(
+        preds.hasTagName('dom-module'), preds.hasAttrValue('id', 'my-element'));
+
     test('Excluded imports are not inlined', async() => {
       const doc = await bundle(inputPath, {excludes: excludes});
       const imports = dom5.queryAll(doc, excluded);
@@ -354,6 +357,8 @@ suite('Bundler', () => {
       const doc = await bundle(inputPath, options);
       const imports = dom5.queryAll(doc, excluded);
       assert.equal(imports.length, 0);
+      const domModules = dom5.queryAll(doc, excludedModules);
+      assert.equal(domModules.length, 0);
     });
 
     test('Strip Excludes does not have to be exact', async() => {
@@ -361,6 +366,8 @@ suite('Bundler', () => {
       const doc = await bundle(inputPath, options);
       const imports = dom5.queryAll(doc, excluded);
       assert.equal(imports.length, 0);
+      const domModules = dom5.queryAll(doc, excludedModules);
+      assert.equal(domModules.length, 0);
     });
 
     test('Excluded comments are removed', async() => {
