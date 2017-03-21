@@ -758,6 +758,20 @@ suite('Vulcan', function() {
       process(path.resolve('test/html/external.html'), callback, options);
     });
 
+    test('Excluded non-existent script will not attempt load', function(done) {
+      var options = {
+        excludes: ["test/html/non-existent.js"]
+      };
+
+      var callback = function(err) {
+        if (err) {
+          return done(err);
+        }
+        done();
+      }
+      process(path.resolve('test/html/non-existent-script.html'), callback, options);
+    });
+
     // Not Implemented
     test.skip('Strip Excludes removes excluded JavaScript', function(done) {
       var options = {
