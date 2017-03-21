@@ -738,6 +738,61 @@ suite('Vulcan', function() {
       process(inputPath, callback, options);
     });
 
+    test('Excluded JavaScript is honored', function(done) {
+      var options = {
+        excludes: ["test/html/external/external.js"],
+        inlineScripts: true
+      };
+
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var script = dom5.query(doc, 
+          preds.AND(
+            preds.hasTagName('script'),
+            preds.hasAttrValue('src', 'external/external.js')));
+        assert.ok(script);
+        done();
+      }
+      process(path.resolve('test/html/external.html'), callback, options);
+    });
+
+    test('Excluded non-existent script will not attempt load', function(done) {
+      var options = {
+        excludes: ["test/html/non-existent.js"]
+      };
+
+      var callback = function(err) {
+        if (err) {
+          return done(err);
+        }
+        done();
+      }
+      process(path.resolve('test/html/non-existent-script.html'), callback, options);
+    });
+
+    // Not Implemented
+    test.skip('Strip Excludes removes excluded JavaScript', function(done) {
+      var options = {
+        excludes: ["test/html/external/external.js"],
+        stripExcludes: true
+      };
+
+      var callback = function(err, doc) {
+        if (err) {
+          return done(err);
+        }
+        var script = dom5.query(doc, 
+          preds.AND(
+            preds.hasTagName('script'),
+            preds.hasAttrValue('src', 'external/external.js')));
+        assert.isNull(script);
+        done();
+      }
+      process(path.resolve('test/html/external.html'), callback, options);
+    });
+
     test('Strip Excludes does not have to be exact', function(done) {
       var options = {
         stripExcludes: ['simple-import']
