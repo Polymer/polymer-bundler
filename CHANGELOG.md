@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+- `excludes` option now honors JavaScript asset references:
+  - Won't attempt to load the JS (which caused errors when local file not present.)
+  - Won't inline excluded JS files.
+
 ## 1.15.3 - 2017-01-17
 - Fix for how paths are rewritten in nested import scenarios where paths to same
   directory were ignored instead of treated as "." for relative path.
