@@ -82,7 +82,8 @@ var args = nopt(
     'no-implicit-strip': Boolean,
     'inline-scripts': Boolean,
     'inline-css': Boolean,
-    'out-html': String
+    'out-html': String,
+    'out-request-list': String
   },
   {
     'h': ['--help'],
@@ -126,15 +127,22 @@ args.implicitStrip = !args['no-implicit-strip'];
 args.inlineScripts = args['inline-scripts'];
 args.inlineCss = args['inline-css'];
 
-(new vulcan(args)).process(target, function(err, content) {
+var vulcanize = new vulcan(args);
+vulcanize.process(target, function(err, content) {
   if (err) {
     process.stderr.write(require('util').inspect(err));
     process.exit(1);
   }
+
+  if (args['out-request-list']) {
+    var urls = Object.keys(vulcanize.loader.requests).filter(function(url) {
+      return !vulcanize.isExcludedHref(url);
+    });
+    fs.writeFileSync(args['out-request-list'], urls.join('\n') + '\n');
+  }
+
   if (args['out-html']) {
-      var fd = fs.openSync(args['out-html'], 'w');
-      fs.writeSync(fd, content + "\n");
-      fs.closeSync(fd);
+    fs.writeFileSync(args['out-html'], content + '\n');
   } else {
     process.stdout.write(content);
   }

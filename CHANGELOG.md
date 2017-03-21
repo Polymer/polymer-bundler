@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `excludes` option now honors JavaScript asset references:
   - Won't attempt to load the JS (which caused errors when local file not present.)
   - Won't inline excluded JS files.
+- Added --out-request-list option, which writes a list of request URLs required
+  to vulcanize <html file> to a given file on success.
 
 ## 1.15.3 - 2017-01-17
 - Fix for how paths are rewritten in nested import scenarios where paths to same
