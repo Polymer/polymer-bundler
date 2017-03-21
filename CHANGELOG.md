@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 1.15.4 - 2017-03-21
 - `excludes` option now honors JavaScript asset references:
   - Won't attempt to load the JS (which caused errors when local file not present.)
   - Won't inline excluded JS files.
