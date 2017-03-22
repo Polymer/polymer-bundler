@@ -45,7 +45,7 @@
     "typings": "^1.3.2"
   },
   "scripts": {
-    "test": "npm run format && tsc && tslint -c tslint.json src/*.ts src/**/*.ts && mocha",
+    "test": "tsc && tslint -c tslint.json src/*.ts src/**/*.ts && mocha",
     "format": "find src | grep '\\.js$\\|\\.ts$' | xargs ./node_modules/.bin/clang-format --style=file -i"
   },
   "author": "The Polymer Project Authors",

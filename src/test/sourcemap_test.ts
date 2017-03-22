@@ -38,7 +38,8 @@ suite('Bundler', () => {
         // Don't modify options directly because test-isolation problems occur.
         const bundlerOpts = Object.assign({}, opts || {});
         if (!bundlerOpts.analyzer) {
-          bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
+          bundlerOpts.analyzer = new Analyzer(
+              {urlLoader: new FSUrlLoader(path.dirname(inputPath))});
           inputPath = path.basename(inputPath);
         }
         bundler = new Bundler(bundlerOpts);

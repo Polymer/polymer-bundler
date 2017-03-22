@@ -20,8 +20,6 @@ import * as url from 'url';
 import {parseUrl} from 'polymer-analyzer/lib/utils';
 import constants from './constants';
 
-const pathPosix = path.posix;
-
 const sharedRelativeUrlProperties =
     ['protocol', 'slashes', 'auth', 'host', 'port', 'hostname'];
 
@@ -39,9 +37,9 @@ export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
   // Using != so tests for null AND undefined
   if (u.pathname != null) {
     // Suffix path with `_` so that `/a/b/` is treated as `/a/b/_` and that
-    // `path.dirname()` returns `/a/b` because it would otherwise return `/a`
-    // incorrectly.
-    u.pathname = path.dirname(u.pathname + '_') + '/';
+    // `path.posix.dirname()` returns `/a/b` because it would otherwise
+    // return `/a` incorrectly.
+    u.pathname = path.posix.dirname(u.pathname + '_') + '/';
   }
   // Assigning to undefined because TSC says type of these is
   // `string | undefined` as opposed to `string | null`
@@ -84,7 +82,7 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   const toDir = toUrl.pathname !== undefined ? toUrl.pathname : '';
   // Note, below, the _ character is appended so that paths with trailing
   // slash retain the trailing slash in the path.relative result.
-  const relPath = path.relative(fromDir, toDir + '_').replace(/_$/, '');
+  const relPath = path.posix.relative(fromDir, toDir + '_').replace(/_$/, '');
   sharedRelativeUrlProperties.forEach((p) => toUrl[p] = null);
   toUrl.path = undefined;
   toUrl.pathname = relPath;
@@ -105,8 +103,8 @@ export function rewriteHrefBaseUrl(
   const parsedTo = url.parse(absUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&
       parsedFrom.host === parsedTo.host) {
-    const pathname = pathPosix.relative(
-        pathPosix.dirname(parsedFrom.pathname || ''), parsedTo.pathname || '');
+    const pathname = path.posix.relative(
+        path.posix.dirname(parsedFrom.pathname || ''), parsedTo.pathname || '');
     return url.format(
         {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
   }
