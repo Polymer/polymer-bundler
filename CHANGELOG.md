@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!-- ## Unreleased -->
+## Unreleased
+- The polymer-bundler CLI now uses the current working directory as
+  the package root folder for its Analyzer, allowing absolute paths to 
+  resolve properly.
 
 ## 2.0.0-pre.11 - 2017-03-20
 - Bump dependency on analyzer

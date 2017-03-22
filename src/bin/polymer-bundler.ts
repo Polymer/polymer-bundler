@@ -184,7 +184,8 @@ options.stripComments = options['strip-comments'];
 options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = options['inline-scripts'];
 options.inlineCss = options['inline-css'];
-options.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
+options.analyzer =
+    new Analyzer({urlLoader: new FSUrlLoader(pathLib.resolve('.'))});
 
 interface JsonManifest {
   [entrypoint: string]: UrlString[];
