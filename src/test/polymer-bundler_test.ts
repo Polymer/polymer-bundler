@@ -40,7 +40,7 @@ suite('polymer-bundler CLI', () => {
         execSync([
           `cd ${projectRoot}`,
           `node ${cli} absolute-paths.html --inline-scripts --inline-css`,
-        ].join(';'))
+        ].join(' && '))
             .toString();
     assert.include(stdout, '.absolute-paths-style');
     assert.include(stdout, 'hello from /absolute-paths/script.js');
