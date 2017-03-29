@@ -29,12 +29,6 @@ import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
 
 
-// TODO(usergenic): resolve <base> tags.
-// TODO(garlicnation): find transitive dependencies of specified excluded files.
-// TODO(garlicnation): ignore <link> in <template>
-// TODO(garlicnation): Add noopResolver for external urls.
-// TODO(garlicnation): Add noopResolver for excluded urls.
-// TODO(garlicnation): Add redirectResolver for fakeprotocol:// urls
 // TODO(usergenic): Add plylog
 export interface Options {
   // The instance of the Polymer Analyzer which has completed analysis
@@ -42,12 +36,6 @@ export interface Options {
 
   // URLs of files that should not be inlined.
   excludes?: UrlString[];
-
-  // *DANGEROUS*! Avoid stripping imports of the transitive dependencies of
-  // excluded imports (i.e. where listed in `excludes` option or where contained
-  // in a folder/descendant of the `excludes` array.)  May result in duplicate
-  // javascript inlining.
-  noImplicitStrip?: boolean;
 
   // When true, inline external CSS file contents into <style> tags in the
   // output document.
@@ -66,10 +54,6 @@ export interface Options {
 
   // Remove of all comments (except those containing '@license') when true.
   stripComments?: boolean;
-
-  // URLs of files that should not be inlined and which should have all links
-  // removed.
-  stripExcludes?: UrlString[];
 }
 
 export interface BundleResult {
@@ -82,11 +66,9 @@ export class Bundler {
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
   excludes: UrlString[];
-  implicitStrip: boolean;
   rewriteUrlsInTemplates: boolean;
   sourcemaps: boolean;
   stripComments: boolean;
-  stripExcludes: UrlString[];
 
   private _overlayUrlLoader: InMemoryOverlayUrlLoader;
 
@@ -107,8 +89,6 @@ export class Bundler {
       this.analyzer = new Analyzer({urlLoader: this._overlayUrlLoader});
     }
 
-    // implicitStrip should be true by default
-    this.implicitStrip = !Boolean(opts.noImplicitStrip);
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);

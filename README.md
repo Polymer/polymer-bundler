@@ -113,14 +113,14 @@ bundler.generateManifest([target]).then((manifest) => {
   bundler.bundle(manifest).then((bundles) => {
     /**
       * do stuff here
-      */      
+      */
   });
 });
 ```
 
 ## Caveats
 
-Because HTML Imports changes the order of execution scripts can have, polymer-bundler has to make a few compromises to achieve that same script 
+Because HTML Imports changes the order of execution scripts can have, polymer-bundler has to make a few compromises to achieve that same script
 execution order.
 
 1. Contents of all HTML Import documents will be moved to `<body>`

@@ -43,30 +43,10 @@ const optionDefinitions = [
         'Exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept'
   },
   {
-    name: 'redirect',
-    type: String,
-    multiple: true,
-    description:
-        'Takes an argument in the form of URI|PATH where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.'
-  },
-  {
-    name: 'strip-exclude',
-    type: String,
-    multiple: true,
-    description: 'Exclude a subpath and strip the link that includes it',
-    typeLabel: `${pathArgument}`
-  },
-  {
     name: 'strip-comments',
     type: Boolean,
     description:
         'Strips all HTML comments not containing an @license from the document'
-  },
-  {
-    name: 'no-implicit-strip',
-    type: Boolean,
-    description:
-        'DANGEROUS! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.'
   },
   {
     name: 'inline-scripts',
@@ -177,8 +157,6 @@ if (options.help || !entrypoints) {
 }
 
 options.excludes = options.exclude || [];
-options.redirects = options.redirect || [];
-options.stripExcludes = options['strip-exclude'] || [];
 options.stripComments = options['strip-comments'];
 options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = options['inline-scripts'];

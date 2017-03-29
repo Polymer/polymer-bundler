@@ -330,10 +330,7 @@ suite('Bundler', () => {
     });
   });
 
-  suite('Excludes', () => {
-
-    const htmlImport = preds.AND(
-        preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
+  suite('excludes', () => {
 
     const excluded = preds.AND(
         preds.hasTagName('link'),
@@ -369,18 +366,10 @@ suite('Bundler', () => {
           assert.equal(badCss.length, 0);
         });
 
-    test('Excluded imports with "Strip Excludes" are removed', async () => {
-      const options = {stripExcludes: excludes};
-      const doc = await bundle(inputPath, options);
-      const imports = dom5.queryAll(doc, excluded);
-      assert.equal(imports.length, 0);
-    });
-
-    test('Strip Excludes does not have to be exact', async () => {
-      const options = {stripExcludes: ['simple-import']};
-      const doc = await bundle(inputPath, options);
-      const imports = dom5.queryAll(doc, excluded);
-      assert.equal(imports.length, 0);
+    test.skip('Excluded CSS is not inlined', async () => {
+      const doc = await bundle(
+          inputPath, {inlineCss: true, excludes: ['imports/simple-style.css']});
+      assert.include(parse5.serialize(doc), 'href="imports/simple-style.css"');
     });
 
     test('Excluded comments are removed', async () => {

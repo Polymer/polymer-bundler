@@ -6,7 +6,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
-
 - BREAKING: Public API change.  The `bundle()` method now takes a manifest
   instead of entrypoints, strategy and mapper.  To produce a manifest,
   use new public method `generateManifest()`.
@@ -25,6 +24,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   https://www.polymer-project.org/2.0/docs/tools/node-support
 - Fixed an issue where bundler was adding `<html>`, `<head>`, and `<body>` tags
   to documents that didn't have them.
+- Removed unused/not-implemented options from the CLI and bundler.
+- Corrected the CLI usage output.
+- Corrected the README.
 
 ## 2.0.0-pre.11 - 2017-03-20
 - Bump dependency on analyzer
@@ -38,7 +40,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Bump dependency on analyzer
 
 ## 2.0.0-pre.8 - 2017-03-03
-
 - Uses `polymer-analyzer` directly to obtain import document sources and
   ASTs.  This enforces agreement with the Analyzer as to which documents
   should be inlined/bundled.
