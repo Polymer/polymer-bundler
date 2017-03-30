@@ -485,20 +485,16 @@ suite('Bundler', () => {
     test('All styles are inlined', async() => {
       const doc = await bundle(inputPath, options);
       const links = dom5.queryAll(doc, matchers.stylesheetImport);
-      const styles = dom5.queryAll(doc, matchers.styleMatcher);
-      const template = dom5.query(doc, matchers.template) || {};
-      const templateStyles = dom5.queryAll(template['content'], matchers.styleMatcher);
+      const styles = dom5.queryAll(doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(links.length, 0);
-      assert.equal(styles.length + templateStyles.length, 2);
+      assert.equal(styles.length, 2);
     });
 
     test('Inlined styles have proper paths', async() => {
       const doc = await bundle('test/html/inline-styles.html', options);
-      const styles = dom5.queryAll(doc, matchers.styleMatcher);
-      const template = dom5.query(doc, matchers.template) || {};
-      const templateStyles = dom5.queryAll(template['content'], matchers.styleMatcher);
-      assert.equal(styles.length + templateStyles.length, 2);
-      const content = dom5.getTextContent(templateStyles[0]);
+      const styles = dom5.queryAll(doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
+      assert.equal(styles.length, 2);
+      const content = dom5.getTextContent(styles[1]);
       assert(content.search('imports/foo.jpg') > -1, 'path adjusted');
       assert(content.search('@apply') > -1, '@apply kept');
     });
@@ -529,9 +525,9 @@ suite('Bundler', () => {
       assert(domModule);
       const template = dom5.query(domModule, matchers.template)!;
       assert(template);
-      const style =
-          dom5.queryAll(template['content'], matchers.styleMatcher);
-      assert.equal(style.length, 1);
+
+      const styles = dom5.queryAll(template, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
+      assert.equal(styles.length, 1);
     });
 
     test(
@@ -541,8 +537,7 @@ suite('Bundler', () => {
           assert(domModule);
           const template = dom5.query(domModule, matchers.template)!;
           assert(template);
-          const style =
-              dom5.query(template['content'], matchers.styleMatcher);
+        const style = dom5.query(template, matchers.styleMatcher, dom5.childNodesIncludeTemplate);
           assert(style);
         });
   });
