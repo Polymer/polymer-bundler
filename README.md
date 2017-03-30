@@ -8,8 +8,7 @@ polymer-bundler is a library for packaging project assets for production to mini
 
 ## Relationship to Polymer CLI
 
-The [Polymer CLI](https://github.com/Polymer/polymer-cli) uses `polymer-bundle`
-
+The [Polymer CLI](https://github.com/Polymer/polymer-cli) uses [polymer-build](https://github.com/Polymer/polymer-build), which uses polymer-bundler, so you can think of the CLI's build pre-configured polymer-build pipeline including polymer-bundler. Setting this up for you makes the CLI easy to use, but as a command-line wrapper its customization options are more limited. polymer-bundler allows you to completely customize your bundle strategy.
 
 ## Usage
 
@@ -86,8 +85,7 @@ will remove HTML comments, except for those that begin with `@license`.  License
 
 polymer-bundler as a library has two exported function.
 
-`polymer-bundler` constructor takes an object of options similar to the
-command line options:
+`polymer-bundler` constructor takes an object of options similar to the command line options:
 
 - `excludes`: An array of strings with regular expressions to exclude paths from being inlined.
 - `inlineCss`: Inline external stylesheets.
@@ -127,5 +125,4 @@ execution order.
 
 1. Contents of all HTML Import documents will be moved to `<body>`
 
-1. Any scripts or styles, inline or linked, which occur after a `<link rel="import">` node in `<head>` will be moved to `<body>` after
-   the contents of the HTML Import.
+1. Any scripts or styles, inline or linked, which occur after a `<link rel="import">` node in `<head>` will be moved to `<body>` after the contents of the HTML Import.
