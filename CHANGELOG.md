@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- ## Unreleased -->
 
+- BREAKING: Public API change.  The `bundle()` method now takes a manifest
+  instead of entrypoints, strategy and mapper.  To produce a manifest,
+  use new public method `generateManifest()`.
+
 ## 2.0.0-pre.11 - 2017-03-20
 - Bump dependency on analyzer
 
