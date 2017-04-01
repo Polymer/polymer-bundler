@@ -98,19 +98,7 @@ export class Bundler {
   }
 
   /**
-   * Given urls to entrypoint html documents, produce a collection of bundled
-   * documents with HTML imports, external stylesheets and external scripts
-   * inlined according to the options for this Bundler.
-   *
-   * @param {Array<string>} entrypoints The list of entrypoints that will be
-   *     analyzed for dependencies. The results of the analysis will be passed
-   *     to the `strategy`.
-   * @param {BundleStrategy} strategy The strategy used to construct the
-   *     output bundles. See 'polymer-analyzer/src/bundle-manifest'.
-   * @param {BundleUrlMapper} mapper A function that produces urls for the
-   *     generated bundles. See 'polymer-analyzer/src/bundle-manifest'.
-
-   * Given urls to entrypoint html documents, produce a collection of bundled
+   * Given a manifest describing the bundles, produce a collection of bundled
    * documents with HTML imports, external stylesheets and external scripts
    * inlined according to the options for this Bundler.
    *
@@ -137,13 +125,13 @@ export class Bundler {
    * Generates a BundleManifest with all bundles defined, using entrypoints,
    * strategy and mapper.
    *
-   * @param {Array<string>} entrypoints The list of entrypoints that will be
-   *     analyzed for dependencies. The results of the analysis will be passed
-   *     to the `strategy`.
-   * @param {BundleStrategy} strategy The strategy used to construct the
-   *     output bundles. See 'polymer-analyzer/src/bundle-manifest'.
-   * @param {BundleUrlMapper} mapper A function that produces urls for the
-   *     generated bundles. See 'polymer-analyzer/src/bundle-manifest'.
+   * @param entrypoints - The list of entrypoints that will be analyzed for
+   *     dependencies. The results of the analysis will be passed to the
+   *     `strategy`.
+   * @param strategy - The strategy used to construct the output bundles.
+   *     See 'polymer-analyzer/src/bundle-manifest'.
+   * @param mapper - A function that produces urls for the generated bundles.
+   *     See 'polymer-analyzer/src/bundle-manifest'.
    */
   async generateManifest(
       entrypoints: UrlString[],
