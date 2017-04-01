@@ -102,8 +102,7 @@ export class Bundler {
    * documents with HTML imports, external stylesheets and external scripts
    * inlined according to the options for this Bundler.
    *
-   * @param {BundleManifest} manifest The manifest that describes the bundles
-   *     to be produced.
+   * @param manifest - The manifest that describes the bundles to be produced.
    */
   async bundle(manifest: BundleManifest): Promise<DocumentCollection> {
     const bundledDocuments: DocumentCollection =
