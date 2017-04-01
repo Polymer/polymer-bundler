@@ -49,7 +49,8 @@ suite('Bundler', () => {
           bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
         }
         bundler = new Bundler(bundlerOpts);
-        return await bundler.bundle(inputPath, strategy);
+        const manifest = await bundler.generateManifest(inputPath, strategy);
+        return await bundler.bundle(manifest);
       }
 
   function assertContainsAndExcludes(

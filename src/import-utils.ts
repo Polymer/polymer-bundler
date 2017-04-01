@@ -45,7 +45,7 @@ export async function inlineHtmlImport(
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
   const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
-  const importBundleUrl = manifest.bundleUrlForFile.get(resolvedImportUrl);
+  const importBundle = manifest.getBundleForFile(resolvedImportUrl);
 
   // Don't reprocess the same file again.
   if (visitedUrls.has(resolvedImportUrl)) {
@@ -59,7 +59,7 @@ export async function inlineHtmlImport(
 
   // If we can't find a bundle for the referenced import, record that we've
   // processed it, but don't remove the import link.  Browser will handle it.
-  if (!importBundleUrl) {
+  if (!importBundle) {
     return;
   }
 
@@ -71,20 +71,20 @@ export async function inlineHtmlImport(
 
   // If the html import refers to a file which is bundled and has a different
   // url, then lets just rewrite the href to point to the bundle url.
-  if (importBundleUrl !== docBundle.url) {
+  if (importBundle.url !== docBundle.url) {
     // If we've previously visited a url that is part of another bundle, it
     // means we've handled that entire bundle, so we guard against inlining any
     // other file from that bundle by checking the visited urls for the bundle
     // url itself.
-    if (visitedUrls.has(importBundleUrl)) {
+    if (visitedUrls.has(importBundle.url)) {
       astUtils.removeElementAndNewline(linkTag);
       return;
     }
 
     const relative =
-        urlUtils.relativeUrl(document.url, importBundleUrl) || importBundleUrl;
+        urlUtils.relativeUrl(document.url, importBundle.url) || importBundle.url;
     dom5.setAttribute(linkTag, 'href', relative);
-    visitedUrls.add(importBundleUrl);
+    visitedUrls.add(importBundle.url);
     return;
   }
 

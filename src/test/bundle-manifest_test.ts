@@ -67,7 +67,7 @@ suite('BundleManifest', () => {
     });
 
     test('enables bundles to be found by constituent file', () => {
-      assert.equal(manifest.bundleUrlForFile.get('E'), 'A_B');
+      assert.equal(manifest.getBundleForFile('E')!.url, 'A_B');
       assert.equal(
           serializeBundle(manifest.getBundleForFile('E')!.bundle),
           '[A,B]->[E]');

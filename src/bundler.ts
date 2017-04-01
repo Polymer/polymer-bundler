@@ -67,6 +67,11 @@ export interface Options {
   stripExcludes?: UrlString[];
 }
 
+export interface BundleResult {
+  documents: DocumentCollection;
+  manifest: BundleManifest;
+}
+
 export class Bundler {
   analyzer: Analyzer;
   enableCssInlining: boolean;
@@ -93,27 +98,13 @@ export class Bundler {
   }
 
   /**
-   * Given urls to entrypoint html documents, produce a collection of bundled
+   * Given a manifest describing the bundles, produce a collection of bundled
    * documents with HTML imports, external stylesheets and external scripts
    * inlined according to the options for this Bundler.
    *
-   * @param {Array<string>} entrypoints The list of entrypoints that will be
-   *     analyzed for dependencies. The results of the analysis will be passed
-   *     to the `strategy`.
-   * @param {BundleStrategy} strategy The strategy used to construct the
-   *     output bundles. See 'polymer-analyzer/src/bundle-manifest'.
-   * @param {BundleUrlMapper} mapper A function that produces urls for the
-   *     generated bundles. See 'polymer-analyzer/src/bundle-manifest'.
+   * @param manifest - The manifest that describes the bundles to be produced.
    */
-  async bundle(
-      entrypoints: UrlString[],
-      strategy?: BundleStrategy,
-      mapper?: BundleUrlMapper): Promise<DocumentCollection> {
-    // TODO(usergenic): Expose the generateBundleManifest operation
-    // as public and make the interface for bundle method take a manifest.
-    const manifest =
-        await this._generateBundleManifest(entrypoints, strategy, mapper);
-
+  async bundle(manifest: BundleManifest): Promise<DocumentCollection> {
     const bundledDocuments: DocumentCollection =
         new Map<string, BundledDocument>();
 
@@ -127,6 +118,37 @@ export class Bundler {
     }
 
     return bundledDocuments;
+  }
+
+  /**
+   * Generates a BundleManifest with all bundles defined, using entrypoints,
+   * strategy and mapper.
+   *
+   * @param entrypoints - The list of entrypoints that will be analyzed for
+   *     dependencies. The results of the analysis will be passed to the
+   *     `strategy`.
+   * @param strategy - The strategy used to construct the output bundles.
+   *     See 'polymer-analyzer/src/bundle-manifest'.
+   * @param mapper - A function that produces urls for the generated bundles.
+   *     See 'polymer-analyzer/src/bundle-manifest'.
+   */
+  async generateManifest(
+      entrypoints: UrlString[],
+      strategy?: BundleStrategy,
+      mapper?: BundleUrlMapper): Promise<BundleManifest> {
+    if (!strategy) {
+      strategy = bundleManifestLib.generateSharedDepsMergeStrategy();
+    }
+    if (!mapper) {
+      mapper = bundleManifestLib.sharedBundleUrlMapper;
+    }
+    const dependencyIndex =
+        await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
+    let bundles =
+        bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
+    this._filterExcludesFromBundles(bundles);
+    bundles = strategy(bundles);
+    return new BundleManifest(bundles, mapper);
   }
 
   /**
@@ -267,29 +289,6 @@ export class Bundler {
       this._attachHiddenDiv(ast, hiddenDiv);
     }
     return hiddenDiv;
-  }
-
-  /**
-   * Generates a BundleManifest with all bundles defined, using entrypoints,
-   * strategy and mapper.
-   */
-  private async _generateBundleManifest(
-      entrypoints: UrlString[],
-      strategy?: BundleStrategy,
-      mapper?: BundleUrlMapper): Promise<BundleManifest> {
-    if (!strategy) {
-      strategy = bundleManifestLib.generateSharedDepsMergeStrategy();
-    }
-    if (!mapper) {
-      mapper = bundleManifestLib.sharedBundleUrlMapper;
-    }
-    const dependencyIndex =
-        await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
-    let bundles =
-        bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
-    this._filterExcludesFromBundles(bundles);
-    bundles = strategy(bundles);
-    return new BundleManifest(bundles, mapper);
   }
 
   /**
