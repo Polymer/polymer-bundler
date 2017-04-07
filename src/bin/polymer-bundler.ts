@@ -214,7 +214,8 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
       }
       strategy = generateShellMergeStrategy(shell, 2);
     }
-    bundles = await bundler.bundle(entrypoints, strategy);
+    const manifest = await bundler.generateManifest(entrypoints, strategy);
+    bundles = await bundler.bundle(manifest);
   } catch (err) {
     console.log(err);
     return;

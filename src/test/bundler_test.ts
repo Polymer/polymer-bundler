@@ -44,7 +44,8 @@ suite('Bundler', () => {
           inputPath = path.basename(inputPath);
         }
         bundler = new Bundler(bundlerOpts);
-        const documents = await bundler.bundle([inputPath]);
+        const manifest = await bundler.generateManifest([inputPath]);
+        const documents = await bundler.bundle(manifest);
         return documents.get(inputPath)!.ast;
       }
 
@@ -79,8 +80,9 @@ suite('Bundler', () => {
         });
         return bundles;
       };
-      const documents =
-          await bundler.bundle(['test/html/default.html'], strategy);
+      const manifest =
+          await bundler.generateManifest(['test/html/default.html'], strategy);
+      const documents = await bundler.bundle(manifest);
       const document = documents.get('test/html/default.html')!;
       assert(document);
 
@@ -113,8 +115,9 @@ suite('Bundler', () => {
               new Set(['test/html/imports/simple-import.html']))
         ];
       };
-      const documents =
-          await bundler.bundle(['test/html/default.html'], strategy);
+      const manifest =
+          await bundler.generateManifest(['test/html/default.html'], strategy);
+      const documents = await bundler.bundle(manifest);
       const document = documents.get('test/html/default.html')!;
       assert(document);
 

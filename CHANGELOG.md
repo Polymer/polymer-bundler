@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+
+- BREAKING: Public API change.  The `bundle()` method now takes a manifest
+  instead of entrypoints, strategy and mapper.  To produce a manifest,
+  use new public method `generateManifest()`.
 - The polymer-bundler CLI now uses the current working directory as
   the package root folder for its Analyzer, allowing absolute paths to 
   resolve properly.

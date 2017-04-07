@@ -43,7 +43,8 @@ suite('Bundler', () => {
           inputPath = path.basename(inputPath);
         }
         bundler = new Bundler(bundlerOpts);
-        const documents = await bundler.bundle([inputPath]);
+        const manifest = await bundler.generateManifest([inputPath]);
+        const documents = await bundler.bundle(manifest);
         return documents.get(inputPath)!.ast;
       }
 
