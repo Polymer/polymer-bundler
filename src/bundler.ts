@@ -13,7 +13,7 @@
  */
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
-import {ASTNode, serialize} from 'parse5';
+import {ASTNode, serialize, treeAdapters} from 'parse5';
 import {Analyzer, Document, FSUrlLoader} from 'polymer-analyzer';
 
 import * as astUtils from './ast-utils';
@@ -370,10 +370,12 @@ export class Bundler {
     let template = dom5.query(domModule, matchers.template);
     if (!template) {
       template = dom5.constructors.element('template')!;
-      dom5.append(domModule, template);
+      treeAdapters.default.setTemplateContent(
+          template, dom5.constructors.fragment());
+      astUtils.prepend(domModule, template);
     }
     astUtils.removeElementAndNewline(style);
-    astUtils.prepend(template, style);
+    astUtils.prepend(treeAdapters.default.getTemplateContent(template), style);
   }
 
   /**
