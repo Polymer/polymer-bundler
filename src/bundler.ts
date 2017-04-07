@@ -370,10 +370,11 @@ export class Bundler {
     let template = dom5.query(domModule, matchers.template);
     if (!template) {
       template = dom5.constructors.element('template')!;
-      dom5.append(domModule, template);
+      template['content'] = dom5.constructors.fragment();
+      astUtils.prepend(domModule, template);
     }
     astUtils.removeElementAndNewline(style);
-    astUtils.prepend(template, style);
+    astUtils.prepend(template['content'], style);
   }
 
   /**
