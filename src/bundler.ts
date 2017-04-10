@@ -95,6 +95,7 @@ export class Bundler {
     // TODO(usergenic): We can't delegate to `canLoad` directly, so we're
     // proxying via the analyzer's `canResolveUrl` method.  We need to either
     // expose `urlLoader` publicly on the analyzer or add a `canLoad` method.
+    // https://github.com/Polymer/polymer-analyzer/issues/612
     if (opts.analyzer) {
       this._overlayUrlLoader = new InMemoryOverlayUrlLoader({
         canLoad: (url: string) => opts.analyzer!.canResolveUrl(url),
