@@ -91,17 +91,9 @@ export class Bundler {
     // In order for the bundler to use a given analyzer, we'll have to fork it
     // so we can provide our own overlayUrlLoader which falls back to the
     // analyzer's load method.
-    //
-    // TODO(usergenic): We can't delegate to `canLoad` directly, so we're
-    // proxying via the analyzer's `canResolveUrl` method.  We need to either
-    // expose `urlLoader` publicly on the analyzer or add a `canLoad` method.
-    // https://github.com/Polymer/polymer-analyzer/issues/612
     if (opts.analyzer) {
       const analyzer = opts.analyzer;
-      this._overlayUrlLoader = new InMemoryOverlayUrlLoader({
-        canLoad: (url: string) => analyzer.canResolveUrl(url),
-        load: async(url: string) => analyzer.load(url),
-      });
+      this._overlayUrlLoader = new InMemoryOverlayUrlLoader(analyzer);
       this.analyzer = analyzer._fork({urlLoader: this._overlayUrlLoader});
     } else {
       this._overlayUrlLoader =
