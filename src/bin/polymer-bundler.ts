@@ -19,7 +19,6 @@ import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
-import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
 import {BundleStrategy, generateShellMergeStrategy} from '../bundle-manifest';
@@ -184,8 +183,6 @@ options.stripComments = options['strip-comments'];
 options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = options['inline-scripts'];
 options.inlineCss = options['inline-css'];
-options.analyzer =
-    new Analyzer({urlLoader: new FSUrlLoader(pathLib.resolve('.'))});
 
 interface JsonManifest {
   [entrypoint: string]: UrlString[];
