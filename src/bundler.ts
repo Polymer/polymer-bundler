@@ -97,11 +97,12 @@ export class Bundler {
     // expose `urlLoader` publicly on the analyzer or add a `canLoad` method.
     // https://github.com/Polymer/polymer-analyzer/issues/612
     if (opts.analyzer) {
+      const analyzer = opts.analyzer;
       this._overlayUrlLoader = new InMemoryOverlayUrlLoader({
-        canLoad: (url: string) => opts.analyzer!.canResolveUrl(url),
-        load: async(url: string) => opts.analyzer!.load(url),
+        canLoad: (url: string) => analyzer.canResolveUrl(url),
+        load: async(url: string) => analyzer.load(url),
       });
-      this.analyzer = opts.analyzer._fork({urlLoader: this._overlayUrlLoader});
+      this.analyzer = analyzer._fork({urlLoader: this._overlayUrlLoader});
     } else {
       this._overlayUrlLoader =
           new InMemoryOverlayUrlLoader(new FSUrlLoader(path.resolve('.')));
