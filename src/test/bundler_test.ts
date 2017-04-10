@@ -196,9 +196,9 @@ suite('Bundler', () => {
     const doc = await bundle('test/html/import-in-body.html');
     const imports = dom5.queryAll(doc, importMatcher);
     assert.equal(imports.length, 0);
-    const bodyContainer = dom5.query(doc, bodyContainerMatcher);
-    const scriptActual = dom5.query(doc, scriptExpected)!.parentNode;
-    const divActual = dom5.query(doc, divExpected)!.parentNode;
+    const bodyContainer = dom5.query(doc, bodyContainerMatcher)!;
+    const scriptActual = dom5.query(doc, scriptExpected)!.parentNode!;
+    const divActual = dom5.query(doc, divExpected)!.parentNode!;
     assert.equal(bodyContainer, scriptActual);
     assert.equal(bodyContainer, divActual);
   });
@@ -510,7 +510,7 @@ suite('Bundler', () => {
       const links = dom5.queryAll(doc, matchers.externalStyle);
       assert.equal(links.length, 1);
       assert.match(
-          dom5.getAttribute(links[0]!, 'href'), /fonts.googleapis.com/);
+          dom5.getAttribute(links[0]!, 'href')!, /fonts.googleapis.com/);
       const styles = dom5.queryAll(doc, matchers.styleMatcher);
       assert.equal(styles.length, 1);
       assert.equal(dom5.getAttribute(styles[0], 'media'), '(min-width: 800px)');
