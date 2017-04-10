@@ -14,7 +14,8 @@
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import {ASTNode, serialize, treeAdapters} from 'parse5';
-import {Analyzer, Document, FSUrlLoader} from 'polymer-analyzer';
+import * as path from 'path';
+import {Analyzer, Document, FSUrlLoader, InMemoryOverlayUrlLoader} from 'polymer-analyzer';
 
 import * as astUtils from './ast-utils';
 import * as bundleManifestLib from './bundle-manifest';
@@ -82,11 +83,31 @@ export class Bundler {
   stripComments: boolean;
   stripExcludes: UrlString[];
 
+  private _overlayUrlLoader: InMemoryOverlayUrlLoader;
+
   constructor(options?: Options) {
     const opts = options ? options : {};
-    this.analyzer = opts.analyzer ?
-        opts.analyzer :
-        new Analyzer({urlLoader: new FSUrlLoader()});
+
+    // In order for the bundler to use a given analyzer, we'll have to fork it
+    // so we can provide our own overlayUrlLoader which falls back to the
+    // analyzer's load method.
+    //
+    // TODO(usergenic): We can't delegate to `canLoad` directly, so we're
+    // proxying via the analyzer's `canResolveUrl` method.  We need to either
+    // expose `urlLoader` publicly on the analyzer or add a `canLoad` method.
+    // https://github.com/Polymer/polymer-analyzer/issues/612
+    if (opts.analyzer) {
+      const analyzer = opts.analyzer;
+      this._overlayUrlLoader = new InMemoryOverlayUrlLoader({
+        canLoad: (url: string) => analyzer.canResolveUrl(url),
+        load: async(url: string) => analyzer.load(url),
+      });
+      this.analyzer = analyzer._fork({urlLoader: this._overlayUrlLoader});
+    } else {
+      this._overlayUrlLoader =
+          new InMemoryOverlayUrlLoader(new FSUrlLoader(path.resolve('.')));
+      this.analyzer = new Analyzer({urlLoader: this._overlayUrlLoader});
+    }
 
     // implicitStrip should be true by default
     this.implicitStrip = !Boolean(opts.noImplicitStrip);
@@ -149,6 +170,17 @@ export class Bundler {
     this._filterExcludesFromBundles(bundles);
     bundles = strategy(bundles);
     return new BundleManifest(bundles, mapper);
+  }
+
+  /**
+   * Analyze a url using the given contents in place of what would otherwise
+   * have been loaded.
+   */
+  private async _analyzeContents(url: string, contents: string):
+      Promise<Document> {
+    this._overlayUrlLoader.urlContentsMap.set(url, contents);
+    this.analyzer.filesChanged([url]);
+    return this.analyzer.analyze(url);
   }
 
   /**
@@ -219,7 +251,7 @@ export class Bundler {
     // Re-analyzing the document using the updated ast to refresh the scanned
     // imports, since we may now have appended some that were not initially
     // present.
-    document = await this.analyzer.analyze(document.url, serialize(ast));
+    document = await this._analyzeContents(document.url, serialize(ast));
 
     // The following set of operations manipulate the ast directly, so
     await this._inlineHtmlImports(document, ast, docBundle, bundleManifest);
@@ -426,12 +458,12 @@ export class Bundler {
   private async _prepareBundleDocument(bundle: AssignedBundle):
       Promise<Document> {
     if (!bundle.bundle.files.has(bundle.url)) {
-      return await this.analyzer.analyze(bundle.url, '');
+      return this._analyzeContents(bundle.url, '');
     }
     const document = await this.analyzer.analyze(bundle.url);
     const ast = clone(document.parsedDocument.ast);
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(ast);
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);
-    return await this.analyzer.analyze(document.url, serialize(ast));
+    return this._analyzeContents(document.url, serialize(ast));
   }
 }

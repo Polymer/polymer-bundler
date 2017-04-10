@@ -488,14 +488,16 @@ suite('Bundler', () => {
     test('All styles are inlined', async() => {
       const doc = await bundle(inputPath, options);
       const links = dom5.queryAll(doc, matchers.stylesheetImport);
-      const styles = dom5.queryAll(doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
+      const styles = dom5.queryAll(
+          doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(links.length, 0);
       assert.equal(styles.length, 2);
     });
 
     test('Inlined styles have proper paths', async() => {
       const doc = await bundle('test/html/inline-styles.html', options);
-      const styles = dom5.queryAll(doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
+      const styles = dom5.queryAll(
+          doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(styles.length, 2);
       const content = dom5.getTextContent(styles[1]);
       assert(content.search('imports/foo.jpg') > -1, 'path adjusted');
@@ -529,7 +531,8 @@ suite('Bundler', () => {
       const template = dom5.query(domModule, matchers.template)!;
       assert(template);
 
-      const styles = dom5.queryAll(template, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
+      const styles = dom5.queryAll(
+          template, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(styles.length, 1);
     });
 
@@ -540,7 +543,8 @@ suite('Bundler', () => {
           assert(domModule);
           const template = dom5.query(domModule, matchers.template)!;
           assert(template);
-        const style = dom5.query(template, matchers.styleMatcher, dom5.childNodesIncludeTemplate);
+          const style = dom5.query(
+              template, matchers.styleMatcher, dom5.childNodesIncludeTemplate);
           assert(style);
         });
   });
