@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - BREAKING: Public API change.  The `bundle()` method now takes a manifest
   instead of entrypoints, strategy and mapper.  To produce a manifest,
   use new public method `generateManifest()`.
+- The polymer-bundler CLI now uses the current working directory as
+  the package root folder for its Analyzer, allowing absolute paths to 
+  resolve properly.
 - Fixed an issue where an immediate `<style>` child of `<dom-module>` was
   not moved into generated `<template>`.
 - BREAKING: Added option `rewriteTemplateUrls` to support old-style rewriting
