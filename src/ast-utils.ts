@@ -13,7 +13,7 @@
  */
 
 import * as dom5 from 'dom5';
-import {ASTNode} from 'parse5';
+import {ASTNode, parse as _parse, ParserOptions} from 'parse5';
 
 import * as matchers from './matchers';
 
@@ -101,6 +101,39 @@ export function removeElementAndNewline(node: ASTNode, replacement?: ASTNode) {
   } else {
     dom5.remove(node);
   }
+}
+
+const injectedTagNames = new Set(['html', 'head', 'body']);
+/**
+ * When parse5 parses an HTML document, it tries to fill in a few html tags
+ * it considers missing if it doesn't see them (see `injectedTagNames` const
+ * above.)  This function removes these elements from the AST so the AST
+ * represents only the html that was parsed.  The primary signal is that the
+ * node has no `__location` information, so this function can only reliably
+ * be used on a fresh parse, since subsequent tree manipulations may inject
+ * nodes without location information.
+ */
+export function removeFakeNodes(ast: dom5.Node) {
+  const children = (ast.childNodes || []).slice();
+  if (ast.parentNode && !ast.__location && injectedTagNames.has(ast.nodeName)) {
+    for (const child of children) {
+      dom5.insertBefore(ast.parentNode, ast, child);
+    }
+    dom5.remove(ast);
+  }
+  for (const child of children) {
+    removeFakeNodes(child);
+  }
+}
+
+/**
+ * A common pattern is to parse html and then remove the fake nodes.
+ * This function dries up that pattern.
+ */
+export function parse(html: string, options: ParserOptions): ASTNode {
+  const ast = _parse(html, options);
+  removeFakeNodes(ast);
+  return ast;
 }
 
 /**
