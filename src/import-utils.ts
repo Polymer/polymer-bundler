@@ -41,7 +41,8 @@ export async function inlineHtmlImport(
     visitedUrls: Set<UrlString>,
     docBundle: AssignedBundle,
     manifest: BundleManifest,
-    enableSourcemaps: boolean) {
+    enableSourcemaps: boolean,
+    rewriteTemplateUrlAttrs: boolean) {
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
   const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
@@ -81,8 +82,8 @@ export async function inlineHtmlImport(
       return;
     }
 
-    const relative =
-        urlUtils.relativeUrl(document.url, importBundle.url) || importBundle.url;
+    const relative = urlUtils.relativeUrl(document.url, importBundle.url) ||
+        importBundle.url;
     dom5.setAttribute(linkTag, 'href', relative);
     visitedUrls.add(importBundle.url);
     return;
@@ -102,8 +103,10 @@ export async function inlineHtmlImport(
   // not get html, head or body wrappers.
   const importAst = parse5.parseFragment(
       htmlImport.document.parsedDocument.contents, {locationInfo: true});
-  rewriteAstToEmulateBaseTag(importAst, resolvedImportUrl);
-  rewriteAstBaseUrl(importAst, resolvedImportUrl, document.url);
+  rewriteAstToEmulateBaseTag(
+      importAst, resolvedImportUrl, rewriteTemplateUrlAttrs);
+  rewriteAstBaseUrl(
+      importAst, resolvedImportUrl, document.url, rewriteTemplateUrlAttrs);
 
   if (enableSourcemaps) {
     const reparsedDoc = new ParsedHtmlDocument({
@@ -131,7 +134,8 @@ export async function inlineHtmlImport(
         visitedUrls,
         docBundle,
         manifest,
-        enableSourcemaps);
+        enableSourcemaps,
+        rewriteTemplateUrlAttrs);
   }
 }
 
@@ -212,7 +216,8 @@ export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
  * Given an import document with a base tag, transform all of its URLs and set
  * link and form target attributes and remove the base tag.
  */
-export function rewriteAstToEmulateBaseTag(ast: ASTNode, docUrl: UrlString) {
+export function rewriteAstToEmulateBaseTag(
+    ast: ASTNode, docUrl: UrlString, rewriteTemplateUrlAttrs: boolean) {
   const baseTag = dom5.query(ast, matchers.base);
   const p = dom5.predicates;
   // If there's no base tag, there's nothing to do.
@@ -224,7 +229,7 @@ export function rewriteAstToEmulateBaseTag(ast: ASTNode, docUrl: UrlString) {
   }
   if (dom5.predicates.hasAttr('href')(baseTag)) {
     const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
-    rewriteAstBaseUrl(ast, baseUrl, docUrl);
+    rewriteAstBaseUrl(ast, baseUrl, docUrl, rewriteTemplateUrlAttrs);
   }
   if (p.hasAttr('target')(baseTag)) {
     const baseTarget = dom5.getAttribute(baseTag, 'target')!;
@@ -245,9 +250,13 @@ export function rewriteAstToEmulateBaseTag(ast: ASTNode, docUrl: UrlString) {
  * imported from the import url.
  */
 export function rewriteAstBaseUrl(
-    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
-  rewriteElementAttrsBaseUrl(ast, oldBaseUrl, newBaseUrl);
-  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl);
+    ast: ASTNode,
+    oldBaseUrl: UrlString,
+    newBaseUrl: UrlString,
+    rewriteTemplateUrlAttrs: boolean) {
+  rewriteElementAttrsBaseUrl(
+      ast, oldBaseUrl, newBaseUrl, rewriteTemplateUrlAttrs);
+  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl, rewriteTemplateUrlAttrs);
   setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
 }
 
@@ -318,9 +327,16 @@ function rewriteCssTextBaseUrl(
  * are based on the relationship of the old base url to the new base url.
  */
 function rewriteElementAttrsBaseUrl(
-    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
+    ast: ASTNode,
+    oldBaseUrl: UrlString,
+    newBaseUrl: UrlString,
+    rewriteTemplateUrlAttrs: boolean) {
   const nodes = dom5.queryAll(
-      ast, matchers.urlAttrs, undefined, dom5.childNodesIncludeTemplate);
+      ast,
+      matchers.urlAttrs,
+      undefined,
+      rewriteTemplateUrlAttrs ? dom5.childNodesIncludeTemplate :
+                                dom5.defaultChildNodes);
   for (const node of nodes) {
     for (const attr of constants.URL_ATTR) {
       const attrValue = dom5.getAttribute(node, attr);
@@ -343,9 +359,16 @@ function rewriteElementAttrsBaseUrl(
  * on the relationship of the old base url to the new base url.
  */
 function rewriteStyleTagsBaseUrl(
-    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
+    ast: ASTNode,
+    oldBaseUrl: UrlString,
+    newBaseUrl: UrlString,
+    rewriteTemplateUrlAttrs: boolean) {
   const styleNodes = dom5.queryAll(
-      ast, matchers.styleMatcher, undefined, dom5.childNodesIncludeTemplate);
+      ast,
+      matchers.styleMatcher,
+      undefined,
+      rewriteTemplateUrlAttrs ? dom5.childNodesIncludeTemplate :
+                                dom5.defaultChildNodes);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
     styleText = rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);

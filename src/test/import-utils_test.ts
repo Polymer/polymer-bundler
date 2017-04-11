@@ -60,7 +60,7 @@ suite('import-utils', () => {
       const rewriteCssTextBaseUrl =
           importUtils.__get__('rewriteCssTextBaseUrl');
       const actual = rewriteCssTextBaseUrl(css, importDocPath, mainDocPath);
-      assert.equal(actual, expected);
+      assert.deepEqual(actual, expected);
     });
 
     test('Resolve Paths', () => {
@@ -89,10 +89,10 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(html);
-      importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
+      importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath, true);
 
       const actual = parse5.serialize(ast);
-      assert.equal(stripSpace(actual), stripSpace(expected), 'relative');
+      assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
     });
 
     test('Leave Templated URLs', () => {
@@ -104,7 +104,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(base);
-      importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
+      importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath, true);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(base), 'templated urls');
@@ -142,7 +142,7 @@ suite('import-utils', () => {
         </body></html>`;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
+      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', true);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -178,7 +178,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
+      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', true);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
