@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   use new public method `generateManifest()`.
 - Fixed an issue where an immediate `<style>` child of `<dom-module>` was
   not moved into generated `<template>`.
+- BREAKING: Added option `rewriteTemplateUrls` to support old-style rewriting
+  of urls in element attributes for elements inside templates in inlined html
+  imports.  No longer does this by default.
 
 ## 2.0.0-pre.11 - 2017-03-20
 - Bump dependency on analyzer
