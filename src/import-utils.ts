@@ -42,7 +42,7 @@ export async function inlineHtmlImport(
     docBundle: AssignedBundle,
     manifest: BundleManifest,
     enableSourcemaps: boolean,
-    rewriteTemplateUrlAttrs: boolean) {
+    rewriteTemplateUrlAttrs?: boolean) {
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
   const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
@@ -217,7 +217,7 @@ export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
  * link and form target attributes and remove the base tag.
  */
 export function rewriteAstToEmulateBaseTag(
-    ast: ASTNode, docUrl: UrlString, rewriteTemplateUrlAttrs: boolean) {
+    ast: ASTNode, docUrl: UrlString, rewriteTemplateUrlAttrs?: boolean) {
   const baseTag = dom5.query(ast, matchers.base);
   const p = dom5.predicates;
   // If there's no base tag, there's nothing to do.
@@ -253,7 +253,7 @@ export function rewriteAstBaseUrl(
     ast: ASTNode,
     oldBaseUrl: UrlString,
     newBaseUrl: UrlString,
-    rewriteTemplateUrlAttrs: boolean) {
+    rewriteTemplateUrlAttrs?: boolean) {
   rewriteElementAttrsBaseUrl(
       ast, oldBaseUrl, newBaseUrl, rewriteTemplateUrlAttrs);
   rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl, rewriteTemplateUrlAttrs);
@@ -330,7 +330,7 @@ function rewriteElementAttrsBaseUrl(
     ast: ASTNode,
     oldBaseUrl: UrlString,
     newBaseUrl: UrlString,
-    rewriteTemplateUrlAttrs: boolean) {
+    rewriteTemplateUrlAttrs?: boolean) {
   const nodes = dom5.queryAll(
       ast,
       matchers.urlAttrs,
@@ -362,7 +362,7 @@ function rewriteStyleTagsBaseUrl(
     ast: ASTNode,
     oldBaseUrl: UrlString,
     newBaseUrl: UrlString,
-    rewriteTemplateUrlAttrs: boolean) {
+    rewriteTemplateUrlAttrs?: boolean) {
   const styleNodes = dom5.queryAll(
       ast,
       matchers.styleMatcher,

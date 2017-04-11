@@ -63,36 +63,73 @@ suite('import-utils', () => {
       assert.deepEqual(actual, expected);
     });
 
-    test('Resolve Paths', () => {
-      const html = `
-        <link rel="import" href="../polymer/polymer.html">
-        <link rel="stylesheet" href="my-element.css">
-        <dom-module id="my-element">
-        <template>
-        <style>:host { background-image: url(background.svg); }</style>
-        <div style="position: absolute;"></div>
-        </template>
-        </dom-module>
-        <script>Polymer({is: "my-element"})</script>
-      `;
+    suite('Resolve Paths', () => {
 
-      const expected = `
-        <html><head><link rel="import" href="polymer/polymer.html">
-        <link rel="stylesheet" href="my-element/my-element.css">
-        </head><body><dom-module id="my-element" assetpath="my-element/">
-        <template>
-        <style>:host { background-image: url("my-element/background.svg"); }</style>
-        <div style="position: absolute;"></div>
-        </template>
-        </dom-module>
-        <script>Polymer({is: "my-element"})</script></body></html>
-      `;
+      test('excluding template elements', () => {
+        const html = `
+          <link rel="import" href="../polymer/polymer.html">
+          <link rel="stylesheet" href="my-element.css">
+          <dom-module id="my-element">
+          <template>
+          <img src="neato.gif">
+          <style>:host { background-image: url(background.svg); }</style>
+          <div style="position: absolute;"></div>
+          </template>
+          </dom-module>
+          <script>Polymer({is: "my-element"})</script>
+        `;
 
-      const ast = parse5.parse(html);
-      importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath, true);
+        const expected = `
+          <html><head><link rel="import" href="polymer/polymer.html">
+          <link rel="stylesheet" href="my-element/my-element.css">
+          </head><body><dom-module id="my-element" assetpath="my-element/">
+          <template>
+          <img src="neato.gif">
+          <style>:host { background-image: url(background.svg); }</style>
+          <div style="position: absolute;"></div>
+          </template>
+          </dom-module>
+          <script>Polymer({is: "my-element"})</script></body></html>
+        `;
 
-      const actual = parse5.serialize(ast);
-      assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
+        const ast = parse5.parse(html);
+        importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
+
+        const actual = parse5.serialize(ast);
+        assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
+      });
+
+      test('including template elements (rewriteTemplateUrlAttrs=true)', () => {
+        const html = `
+          <link rel="import" href="../polymer/polymer.html">
+          <link rel="stylesheet" href="my-element.css">
+          <dom-module id="my-element">
+          <template>
+          <style>:host { background-image: url(background.svg); }</style>
+          <div style="position: absolute;"></div>
+          </template>
+          </dom-module>
+          <script>Polymer({is: "my-element"})</script>
+        `;
+
+        const expected = `
+          <html><head><link rel="import" href="polymer/polymer.html">
+          <link rel="stylesheet" href="my-element/my-element.css">
+          </head><body><dom-module id="my-element" assetpath="my-element/">
+          <template>
+          <style>:host { background-image: url("my-element/background.svg"); }</style>
+          <div style="position: absolute;"></div>
+          </template>
+          </dom-module>
+          <script>Polymer({is: "my-element"})</script></body></html>
+        `;
+
+        const ast = parse5.parse(html);
+        importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath, true);
+
+        const actual = parse5.serialize(ast);
+        assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
+      });
     });
 
     test('Leave Templated URLs', () => {
@@ -104,7 +141,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(base);
-      importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath, true);
+      importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(base), 'templated urls');
