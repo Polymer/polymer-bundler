@@ -3,6 +3,7 @@
   "editor.detectIndentation": false,
   "editor.formatOnSave": true,
   "editor.formatOnType": true,
+  "files.trimTrailingWhitespace": true,
   "editor.tabSize": 2,
   "files.insertFinalNewline": true,
   "search.exclude": {
