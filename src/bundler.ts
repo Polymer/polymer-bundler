@@ -59,7 +59,7 @@ export interface Options {
 
   // Rewrite element attributes inside of templates to adjust urls in inlined
   // html imports.
-  rewriteTemplateUrlAttrs?: boolean;
+  rewriteUrlsInTemplates?: boolean;
 
   // Create identity source maps for inline scripts
   sourcemaps?: boolean;
@@ -83,7 +83,7 @@ export class Bundler {
   enableScriptInlining: boolean;
   excludes: UrlString[];
   implicitStrip: boolean;
-  rewriteTemplateUrlAttrs: boolean;
+  rewriteUrlsInTemplates: boolean;
   sourcemaps: boolean;
   stripComments: boolean;
   stripExcludes: UrlString[];
@@ -120,7 +120,7 @@ export class Bundler {
     this.stripComments = Boolean(opts.stripComments);
     this.enableCssInlining = Boolean(opts.inlineCss);
     this.enableScriptInlining = Boolean(opts.inlineScripts);
-    this.rewriteTemplateUrlAttrs = Boolean(opts.rewriteTemplateUrlAttrs);
+    this.rewriteUrlsInTemplates = Boolean(opts.rewriteUrlsInTemplates);
     this.sourcemaps = Boolean(opts.sourcemaps);
   }
 
@@ -253,7 +253,7 @@ export class Bundler {
     const ast = clone(document.parsedDocument.ast);
     this._appendHtmlImportsForBundle(ast, docBundle);
     importUtils.rewriteAstToEmulateBaseTag(
-        ast, document.url, this.rewriteTemplateUrlAttrs);
+        ast, document.url, this.rewriteUrlsInTemplates);
 
     // Re-analyzing the document using the updated ast to refresh the scanned
     // imports, since we may now have appended some that were not initially
@@ -349,7 +349,7 @@ export class Bundler {
           bundle,
           bundleManifest,
           this.sourcemaps,
-          this.rewriteTemplateUrlAttrs);
+          this.rewriteUrlsInTemplates);
     }
   }
 

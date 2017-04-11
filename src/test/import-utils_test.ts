@@ -99,7 +99,7 @@ suite('import-utils', () => {
         assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
       });
 
-      test('including template elements (rewriteTemplateUrlAttrs=true)', () => {
+      test('including template elements (rewriteUrlsInTemplates=true)', () => {
         const html = `
           <link rel="import" href="../polymer/polymer.html">
           <link rel="stylesheet" href="my-element.css">

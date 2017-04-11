@@ -11,13 +11,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   instead of entrypoints, strategy and mapper.  To produce a manifest,
   use new public method `generateManifest()`.
 - The polymer-bundler CLI now uses the current working directory as
-  the package root folder for its Analyzer, allowing absolute paths to 
+  the package root folder for its Analyzer, allowing absolute paths to
   resolve properly.
 - Fixed an issue where an immediate `<style>` child of `<dom-module>` was
   not moved into generated `<template>`.
-- BREAKING: Added option `rewriteTemplateUrls` to support old-style rewriting
-  of urls in element attributes for elements inside templates in inlined html
-  imports.  No longer does this by default.
+- BREAKING: Added option `rewriteUrlsInTemplates` to support rewriting of urls
+  found in `style` tags and in `src`, `href`, `action`, and `style` attributes
+  found inside `<template>` elements, when inlining html imports.  Previously,
+  this was done by default.  Now requires explicit option.
 
 ## 2.0.0-pre.11 - 2017-03-20
 - Bump dependency on analyzer

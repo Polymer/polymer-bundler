@@ -42,7 +42,7 @@ export async function inlineHtmlImport(
     docBundle: AssignedBundle,
     manifest: BundleManifest,
     enableSourcemaps: boolean,
-    rewriteTemplateUrlAttrs?: boolean) {
+    rewriteUrlsInTemplates?: boolean) {
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
   const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
@@ -104,9 +104,9 @@ export async function inlineHtmlImport(
   const importAst = parse5.parseFragment(
       htmlImport.document.parsedDocument.contents, {locationInfo: true});
   rewriteAstToEmulateBaseTag(
-      importAst, resolvedImportUrl, rewriteTemplateUrlAttrs);
+      importAst, resolvedImportUrl, rewriteUrlsInTemplates);
   rewriteAstBaseUrl(
-      importAst, resolvedImportUrl, document.url, rewriteTemplateUrlAttrs);
+      importAst, resolvedImportUrl, document.url, rewriteUrlsInTemplates);
 
   if (enableSourcemaps) {
     const reparsedDoc = new ParsedHtmlDocument({
@@ -135,7 +135,7 @@ export async function inlineHtmlImport(
         docBundle,
         manifest,
         enableSourcemaps,
-        rewriteTemplateUrlAttrs);
+        rewriteUrlsInTemplates);
   }
 }
 
@@ -217,7 +217,7 @@ export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
  * link and form target attributes and remove the base tag.
  */
 export function rewriteAstToEmulateBaseTag(
-    ast: ASTNode, docUrl: UrlString, rewriteTemplateUrlAttrs?: boolean) {
+    ast: ASTNode, docUrl: UrlString, rewriteUrlsInTemplates?: boolean) {
   const baseTag = dom5.query(ast, matchers.base);
   const p = dom5.predicates;
   // If there's no base tag, there's nothing to do.
@@ -229,7 +229,7 @@ export function rewriteAstToEmulateBaseTag(
   }
   if (dom5.predicates.hasAttr('href')(baseTag)) {
     const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
-    rewriteAstBaseUrl(ast, baseUrl, docUrl, rewriteTemplateUrlAttrs);
+    rewriteAstBaseUrl(ast, baseUrl, docUrl, rewriteUrlsInTemplates);
   }
   if (p.hasAttr('target')(baseTag)) {
     const baseTarget = dom5.getAttribute(baseTag, 'target')!;
@@ -253,10 +253,10 @@ export function rewriteAstBaseUrl(
     ast: ASTNode,
     oldBaseUrl: UrlString,
     newBaseUrl: UrlString,
-    rewriteTemplateUrlAttrs?: boolean) {
+    rewriteUrlsInTemplates?: boolean) {
   rewriteElementAttrsBaseUrl(
-      ast, oldBaseUrl, newBaseUrl, rewriteTemplateUrlAttrs);
-  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl, rewriteTemplateUrlAttrs);
+      ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
+  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
   setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
 }
 
@@ -330,13 +330,13 @@ function rewriteElementAttrsBaseUrl(
     ast: ASTNode,
     oldBaseUrl: UrlString,
     newBaseUrl: UrlString,
-    rewriteTemplateUrlAttrs?: boolean) {
+    rewriteUrlsInTemplates?: boolean) {
   const nodes = dom5.queryAll(
       ast,
       matchers.urlAttrs,
       undefined,
-      rewriteTemplateUrlAttrs ? dom5.childNodesIncludeTemplate :
-                                dom5.defaultChildNodes);
+      rewriteUrlsInTemplates ? dom5.childNodesIncludeTemplate :
+                               dom5.defaultChildNodes);
   for (const node of nodes) {
     for (const attr of constants.URL_ATTR) {
       const attrValue = dom5.getAttribute(node, attr);
@@ -362,13 +362,13 @@ function rewriteStyleTagsBaseUrl(
     ast: ASTNode,
     oldBaseUrl: UrlString,
     newBaseUrl: UrlString,
-    rewriteTemplateUrlAttrs?: boolean) {
+    rewriteUrlsInTemplates?: boolean) {
   const styleNodes = dom5.queryAll(
       ast,
       matchers.styleMatcher,
       undefined,
-      rewriteTemplateUrlAttrs ? dom5.childNodesIncludeTemplate :
-                                dom5.defaultChildNodes);
+      rewriteUrlsInTemplates ? dom5.childNodesIncludeTemplate :
+                               dom5.defaultChildNodes);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
     styleText = rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);
