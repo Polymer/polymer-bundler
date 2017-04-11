@@ -60,39 +60,76 @@ suite('import-utils', () => {
       const rewriteCssTextBaseUrl =
           importUtils.__get__('rewriteCssTextBaseUrl');
       const actual = rewriteCssTextBaseUrl(css, importDocPath, mainDocPath);
-      assert.equal(actual, expected);
+      assert.deepEqual(actual, expected);
     });
 
-    test('Resolve Paths', () => {
-      const html = `
-        <link rel="import" href="../polymer/polymer.html">
-        <link rel="stylesheet" href="my-element.css">
-        <dom-module id="my-element">
-        <template>
-        <style>:host { background-image: url(background.svg); }</style>
-        <div style="position: absolute;"></div>
-        </template>
-        </dom-module>
-        <script>Polymer({is: "my-element"})</script>
-      `;
+    suite('Resolve Paths', () => {
 
-      const expected = `
-        <html><head><link rel="import" href="polymer/polymer.html">
-        <link rel="stylesheet" href="my-element/my-element.css">
-        </head><body><dom-module id="my-element" assetpath="my-element/">
-        <template>
-        <style>:host { background-image: url("my-element/background.svg"); }</style>
-        <div style="position: absolute;"></div>
-        </template>
-        </dom-module>
-        <script>Polymer({is: "my-element"})</script></body></html>
-      `;
+      test('excluding template elements', () => {
+        const html = `
+          <link rel="import" href="../polymer/polymer.html">
+          <link rel="stylesheet" href="my-element.css">
+          <dom-module id="my-element">
+          <template>
+          <img src="neato.gif">
+          <style>:host { background-image: url(background.svg); }</style>
+          <div style="position: absolute;"></div>
+          </template>
+          </dom-module>
+          <script>Polymer({is: "my-element"})</script>
+        `;
 
-      const ast = parse5.parse(html);
-      importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
+        const expected = `
+          <html><head><link rel="import" href="polymer/polymer.html">
+          <link rel="stylesheet" href="my-element/my-element.css">
+          </head><body><dom-module id="my-element" assetpath="my-element/">
+          <template>
+          <img src="neato.gif">
+          <style>:host { background-image: url("my-element/background.svg"); }</style>
+          <div style="position: absolute;"></div>
+          </template>
+          </dom-module>
+          <script>Polymer({is: "my-element"})</script></body></html>
+        `;
 
-      const actual = parse5.serialize(ast);
-      assert.equal(stripSpace(actual), stripSpace(expected), 'relative');
+        const ast = parse5.parse(html);
+        importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
+
+        const actual = parse5.serialize(ast);
+        assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
+      });
+
+      test('including template elements (rewriteUrlsInTemplates=true)', () => {
+        const html = `
+          <link rel="import" href="../polymer/polymer.html">
+          <link rel="stylesheet" href="my-element.css">
+          <dom-module id="my-element">
+          <template>
+          <style>:host { background-image: url(background.svg); }</style>
+          <div style="position: absolute;"></div>
+          </template>
+          </dom-module>
+          <script>Polymer({is: "my-element"})</script>
+        `;
+
+        const expected = `
+          <html><head><link rel="import" href="polymer/polymer.html">
+          <link rel="stylesheet" href="my-element/my-element.css">
+          </head><body><dom-module id="my-element" assetpath="my-element/">
+          <template>
+          <style>:host { background-image: url("my-element/background.svg"); }</style>
+          <div style="position: absolute;"></div>
+          </template>
+          </dom-module>
+          <script>Polymer({is: "my-element"})</script></body></html>
+        `;
+
+        const ast = parse5.parse(html);
+        importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath, true);
+
+        const actual = parse5.serialize(ast);
+        assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
+      });
     });
 
     test('Leave Templated URLs', () => {
@@ -142,7 +179,7 @@ suite('import-utils', () => {
         </body></html>`;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
+      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', true);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -178,7 +215,7 @@ suite('import-utils', () => {
       `;
 
       const ast = parse5.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
+      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', true);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
