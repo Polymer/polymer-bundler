@@ -16,20 +16,11 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 import {execSync} from 'child_process';
-// import * as dom5 from 'dom5';
-// import * as parse5 from 'parse5';
 import * as path from 'path';
-// import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
-
-// import {Bundle} from '../bundle-manifest';
-// import {Bundler} from '../bundler';
-// import {Options as BundlerOptions} from '../bundler';
 
 chai.config.showDiff = true;
 
 const assert = chai.assert;
-// const matchers = require('../matchers');
-// const preds = dom5.predicates;
 
 suite('polymer-bundler CLI', () => {
 
