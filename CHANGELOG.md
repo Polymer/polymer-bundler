@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed an issue where an immediate `<style>` child of `<dom-module>` was
   not moved into generated `<template>`.
 - BREAKING: Added option `rewriteUrlsInTemplates` to support rewriting of urls
-  found in `style` tags and in `src`, `href`, `action`, and `style` attributes
+  found in `src`, `href`, `action`, `assetpath` and `style` attributes
   found inside `<template>` elements, when inlining html imports.  Previously,
   this was done by default.  Now requires explicit option.
 

@@ -256,7 +256,7 @@ export function rewriteAstBaseUrl(
     rewriteUrlsInTemplates?: boolean) {
   rewriteElementAttrsBaseUrl(
       ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
-  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
+  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl);
   setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
 }
 
@@ -359,16 +359,9 @@ function rewriteElementAttrsBaseUrl(
  * on the relationship of the old base url to the new base url.
  */
 function rewriteStyleTagsBaseUrl(
-    ast: ASTNode,
-    oldBaseUrl: UrlString,
-    newBaseUrl: UrlString,
-    rewriteUrlsInTemplates?: boolean) {
+    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
   const styleNodes = dom5.queryAll(
-      ast,
-      matchers.styleMatcher,
-      undefined,
-      rewriteUrlsInTemplates ? dom5.childNodesIncludeTemplate :
-                               dom5.defaultChildNodes);
+      ast, matchers.styleMatcher, undefined, dom5.childNodesIncludeTemplate);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
     styleText = rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);

@@ -85,7 +85,7 @@ suite('import-utils', () => {
           </head><body><dom-module id="my-element" assetpath="my-element/">
           <template>
           <img src="neato.gif">
-          <style>:host { background-image: url(background.svg); }</style>
+          <style>:host { background-image: url("my-element/background.svg"); }</style>
           <div style="position: absolute;"></div>
           </template>
           </dom-module>
