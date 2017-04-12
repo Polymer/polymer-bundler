@@ -18,6 +18,7 @@ import * as chai from 'chai';
 import * as parse5 from 'parse5';
 
 const rewire = require('rewire');
+const astUtils = require('../ast-utils');
 const importUtils = rewire('../import-utils');
 
 chai.config.showDiff = true;
@@ -80,19 +81,19 @@ suite('import-utils', () => {
         `;
 
         const expected = `
-          <html><head><link rel="import" href="polymer/polymer.html">
+          <link rel="import" href="polymer/polymer.html">
           <link rel="stylesheet" href="my-element/my-element.css">
-          </head><body><dom-module id="my-element" assetpath="my-element/">
+          <dom-module id="my-element" assetpath="my-element/">
           <template>
           <img src="neato.gif">
           <style>:host { background-image: url("my-element/background.svg"); }</style>
           <div style="position: absolute;"></div>
           </template>
           </dom-module>
-          <script>Polymer({is: "my-element"})</script></body></html>
+          <script>Polymer({is: "my-element"})</script>
         `;
 
-        const ast = parse5.parse(html);
+        const ast = astUtils.parse(html);
         importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
 
         const actual = parse5.serialize(ast);
@@ -113,18 +114,18 @@ suite('import-utils', () => {
         `;
 
         const expected = `
-          <html><head><link rel="import" href="polymer/polymer.html">
+          <link rel="import" href="polymer/polymer.html">
           <link rel="stylesheet" href="my-element/my-element.css">
-          </head><body><dom-module id="my-element" assetpath="my-element/">
+          <dom-module id="my-element" assetpath="my-element/">
           <template>
           <style>:host { background-image: url("my-element/background.svg"); }</style>
           <div style="position: absolute;"></div>
           </template>
           </dom-module>
-          <script>Polymer({is: "my-element"})</script></body></html>
+          <script>Polymer({is: "my-element"})</script>
         `;
 
-        const ast = parse5.parse(html);
+        const ast = astUtils.parse(html);
         importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath, true);
 
         const actual = parse5.serialize(ast);
@@ -134,13 +135,11 @@ suite('import-utils', () => {
 
     test('Leave Templated URLs', () => {
       const base = `
-        <html><head></head><body>
         <a href="{{foo}}"></a>
         <img src="[[bar]]">
-        </body></html>
       `;
 
-      const ast = parse5.parse(base);
+      const ast = astUtils.parse(base);
       importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
@@ -165,20 +164,17 @@ suite('import-utils', () => {
         <script>Polymer({is: "my-element"})</script>`;
 
       const expectedBase = `
-        <html><head>
         <link rel="import" href="components/polymer/polymer.html">
         <link rel="stylesheet" href="components/my-element/my-element.css">
-        </head><body>
         <dom-module id="my-element" assetpath="components/my-element/">
         <template>
         <style>:host { background-image: url("components/my-element/background.svg"); }</style>
         <img src="components/my-element/bloop.gif">
         </template>
         </dom-module>
-        <script>Polymer({is: "my-element"})</script>
-        </body></html>`;
+        <script>Polymer({is: "my-element"})</script>`;
 
-      const ast = parse5.parse(htmlBase);
+      const ast = astUtils.parse(htmlBase);
       importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', true);
 
       const actual = parse5.serialize(ast);
@@ -202,19 +198,18 @@ suite('import-utils', () => {
       `;
 
       const expectedBase = `
-        <html><head>
         <link rel="import" href="polymer/polymer.html">
         <link rel="stylesheet" href="components/my-element.css">
-        </head><body><dom-module id="my-element" assetpath="components/">
+        <dom-module id="my-element" assetpath="components/">
         <template>
         <style>:host { background-image: url("components/background.svg"); }</style>
         <img src="components/bloop.gif">
         </template>
         </dom-module>
-        <script>Polymer({is: "my-element"})</script></body></html>
+        <script>Polymer({is: "my-element"})</script>
       `;
 
-      const ast = parse5.parse(htmlBase);
+      const ast = astUtils.parse(htmlBase);
       importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', true);
 
       const actual = parse5.serialize(ast);
@@ -232,17 +227,14 @@ suite('import-utils', () => {
       `;
 
       const expectedBase = `
-        <html><head>
-        </head><body>
         <a href="foo.html" target="_blank">LINK</a>
         <a href="bar.html" target="leavemealone">OTHERLINK</a>
         <form action="doit" target="_blank"></form>
         <form action="doitagain" target="leavemealone"></form>
         <div>Just a div.  I don't need a target</div>
-        </body></html>
       `;
 
-      const ast = parse5.parse(htmlBase);
+      const ast = astUtils.parse(htmlBase);
       importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
 
       const actual = parse5.serialize(ast);
