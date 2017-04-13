@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   found in `src`, `href`, `action`, `assetpath` and `style` attributes
   found inside `<template>` elements, when inlining html imports.  Previously,
   this was done by default.  Now requires explicit option.
+- BREAKING: Public `analyzer` property on `Bundler` is now a
+  `Promise<Analyzer>` due to new safety features in `polymer-analyzer`.
 
 ## 2.0.0-pre.11 - 2017-03-20
 - Bump dependency on analyzer
