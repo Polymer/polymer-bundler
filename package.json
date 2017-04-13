@@ -23,7 +23,7 @@
     "nopt": "^3.0.1",
     "parse5": "^2.2.2",
     "path-posix": "^1.0.0",
-    "polymer-analyzer": "2.0.0-alpha.36",
+    "polymer-analyzer": "2.0.0-alpha.37",
     "source-map": "^0.5.6"
   },
   "devDependencies": {
