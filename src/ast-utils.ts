@@ -115,6 +115,7 @@ const injectedTagNames = new Set(['html', 'head', 'body']);
  *
  * TODO(usergenic): Remove this function after porting it to dom5.  Also
  * remove from `polymer-analyzer` since that's where this was duplicated from.
+ * https://github.com/Polymer/dom5/issues/49
  */
 export function removeFakeNodes(ast: dom5.Node) {
   const children = (ast.childNodes || []).slice();
