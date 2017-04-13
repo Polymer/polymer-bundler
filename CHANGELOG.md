@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   this was done by default.  Now requires explicit option.
 - BREAKING: Public `analyzer` property on `Bundler` is now a
   `Promise<Analyzer>` due to new safety features in `polymer-analyzer`.
+- BREAKING: inlinining functions in `import-utils` require an explicit
+ `analyzer` argument.
 
 ## 2.0.0-pre.11 - 2017-03-20
 - Bump dependency on analyzer
