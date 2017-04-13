@@ -19,8 +19,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   found in `src`, `href`, `action`, `assetpath` and `style` attributes
   found inside `<template>` elements, when inlining html imports.  Previously,
   this was done by default.  Now requires explicit option.
-- BREAKING: Public `analyzer` property on `Bundler` is now a
-  `Promise<Analyzer>` due to new safety features in `polymer-analyzer`.
 - BREAKING: inlinining functions in `import-utils` require an explicit
  `analyzer` argument.
 - BREAKING: Dropped support for node 4 in latest `polymer-analyzer`:

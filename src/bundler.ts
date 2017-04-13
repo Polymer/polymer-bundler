@@ -78,7 +78,7 @@ export interface BundleResult {
 }
 
 export class Bundler {
-  analyzer: Promise<Analyzer>;
+  analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
   excludes: UrlString[];
@@ -104,8 +104,7 @@ export class Bundler {
     } else {
       this._overlayUrlLoader =
           new InMemoryOverlayUrlLoader(new FSUrlLoader(path.resolve('.')));
-      this.analyzer =
-          Promise.resolve(new Analyzer({urlLoader: this._overlayUrlLoader}));
+      this.analyzer = new Analyzer({urlLoader: this._overlayUrlLoader});
     }
 
     // implicitStrip should be true by default
@@ -344,7 +343,7 @@ export class Bundler {
     const htmlImports = dom5.queryAll(ast, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
       await importUtils.inlineHtmlImport(
-          (await this.analyzer),
+          this.analyzer,
           document,
           htmlImport,
           visitedUrls,
@@ -363,7 +362,7 @@ export class Bundler {
     const scriptImports = dom5.queryAll(ast, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
       await importUtils.inlineScript(
-          (await this.analyzer), document, externalScript, this.sourcemaps);
+          this.analyzer, document, externalScript, this.sourcemaps);
     }
   }
 
@@ -375,8 +374,8 @@ export class Bundler {
   private async _inlineStylesheetImports(document: Document, ast: ASTNode) {
     const cssImports = dom5.queryAll(ast, matchers.stylesheetImport);
     for (const cssLink of cssImports) {
-      const style = await importUtils.inlineStylesheet(
-          (await this.analyzer), document, cssLink);
+      const style =
+          await importUtils.inlineStylesheet(this.analyzer, document, cssLink);
       if (style) {
         this._moveDomModuleStyleIntoTemplate(style);
       }
@@ -391,8 +390,7 @@ export class Bundler {
   private async _inlineStylesheetLinks(document: Document, ast: ASTNode) {
     const cssLinks = dom5.queryAll(ast, matchers.externalStyle);
     for (const cssLink of cssLinks) {
-      await importUtils.inlineStylesheet(
-          (await this.analyzer), document, cssLink);
+      await importUtils.inlineStylesheet(this.analyzer, document, cssLink);
     }
   }
 
