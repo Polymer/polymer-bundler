@@ -13,7 +13,7 @@
  */
 
 import * as dom5 from 'dom5';
-import {ASTNode} from 'parse5';
+import {ASTNode, parse as _parse, ParserOptions} from 'parse5';
 
 import * as matchers from './matchers';
 
@@ -101,6 +101,47 @@ export function removeElementAndNewline(node: ASTNode, replacement?: ASTNode) {
   } else {
     dom5.remove(node);
   }
+}
+
+/**
+ * When parse5 parses an HTML document, it tries to fill in a few html tags
+ * it considers missing if it doesn't see them (see `injectedTagNames` const
+ * above.)  This function removes these elements from the AST so the AST
+ * represents only the html that was parsed.  The primary signal is that the
+ * node has no `__location` information, so this function can only reliably
+ * be used on a fresh parse, since subsequent tree manipulations may inject
+ * nodes without location information.
+ *
+ * TODO(usergenic): Remove this function after porting it to dom5.  Also
+ * remove the equivalent from `polymer-analyzer` since that's where this was
+ * duplicated from.  https://github.com/Polymer/dom5/issues/49
+ */
+export function removeFakeNodes(ast: dom5.Node) {
+  const injectedNodes = dom5.queryAll(
+      ast,
+      dom5.predicates.AND(
+          (node) => !Boolean(node.__location) && Boolean(node.parentNode),
+          dom5.predicates.OR(
+              dom5.predicates.hasTagName('html'),
+              dom5.predicates.hasTagName('head'),
+              dom5.predicates.hasTagName('body'))));
+  for (const node of injectedNodes.reverse()) {
+    const children = (node.childNodes || []).slice();
+    for (const child of children) {
+      dom5.insertBefore(node.parentNode!, node, child);
+    }
+    dom5.remove(node);
+  }
+}
+
+/**
+ * A common pattern is to parse html and then remove the fake nodes.
+ * This function dries up that pattern.
+ */
+export function parse(html: string, options: ParserOptions): ASTNode {
+  const ast = _parse(html, options);
+  removeFakeNodes(ast);
+  return ast;
 }
 
 /**

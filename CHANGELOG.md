@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
  `analyzer` argument.
 - BREAKING: Dropped support for node 4 in latest `polymer-analyzer`:
   https://www.polymer-project.org/2.0/docs/tools/node-support
+- Fixed an issue where bundler was adding `<html>`, `<head>`, and `<body>` tags
+  to documents that didn't have them.
 
 ## 2.0.0-pre.11 - 2017-03-20
 - Bump dependency on analyzer

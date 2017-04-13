@@ -132,7 +132,22 @@ suite('Bundler', () => {
           assert(linkTag);
           assert.equal(
               dom5.getAttribute(linkTag, 'href'), '../../shared_bundle_1.html');
+
+          const shared = documents.get('shared_bundle_1.html')!;
+          assert(shared);
+          assert.isOk(dom5.query(
+              shared.ast, dom5.predicates.hasAttrValue('id', 'my-element')));
         });
+
+    test('bundle documents should not have tags added to them', async () => {
+      const ast = await bundle('test/html/imports/simple-import.html');
+      assert.isNull(dom5.query(
+          ast,
+          dom5.predicates.OR(
+              dom5.predicates.hasTagName('html'),
+              dom5.predicates.hasTagName('head'),
+              dom5.predicates.hasTagName('body'))));
+    });
   });
 
   suite('external dependencies', () => {
