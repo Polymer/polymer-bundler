@@ -344,27 +344,6 @@ suite('Bundler', () => {
       assert.equal(imports.length, 1);
     });
 
-    const cssFromExclude = preds.AND(
-        preds.hasTagName('link'),
-        preds.hasAttrValue('rel', 'import'),
-        preds.hasAttrValue('type', 'css'));
-
-    test.skip(
-        'Excluded imports are not inlined when behind a redirected URL.',
-        async () => {
-          const options = {
-            // TODO(usergenic): use non-redirected form of URL (?)
-            excludes: ['test/html/imports/simple-import.html'],
-            redirects: ['red://herring/at|test/html/imports']
-          };
-          const doc = await bundle(
-              path.resolve('test/html/custom-protocol-excluded.html'), options);
-          const imports = dom5.queryAll(doc, htmlImport);
-          assert.equal(imports.length, 2);
-          const badCss = dom5.queryAll(doc, cssFromExclude);
-          assert.equal(badCss.length, 0);
-        });
-
     test.skip('Excluded CSS is not inlined', async () => {
       const doc = await bundle(
           inputPath, {inlineCss: true, excludes: ['imports/simple-style.css']});
