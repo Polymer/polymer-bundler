@@ -14,7 +14,7 @@
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import {Document, ParsedHtmlDocument} from 'polymer-analyzer';
+import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';
@@ -36,6 +36,7 @@ import {UrlString} from './url-utils';
  * at the location of the link tag and then remove the link tag.
  */
 export async function inlineHtmlImport(
+    analyzer: Analyzer,
     document: Document,
     linkTag: ASTNode,
     visitedUrls: Set<UrlString>,
@@ -45,7 +46,10 @@ export async function inlineHtmlImport(
     rewriteUrlsInTemplates?: boolean) {
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
-  const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
+  if (!analyzer.canResolveUrl(importUrl)) {
+    return;
+  }
+  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   const importBundle = manifest.getBundleForFile(resolvedImportUrl);
 
   // Don't reprocess the same file again.
@@ -92,8 +96,8 @@ export async function inlineHtmlImport(
   // If the analyzer could not load the import document, we can't inline it, so
   // lets skip it.
   const htmlImport = findInSet(
-      document.getByKind(
-          'html-import', {imported: true, externalPackages: true}),
+      document.getFeatures(
+          {kind: 'html-import', imported: true, externalPackages: true}),
       (i) => i.document && i.document.url === resolvedImportUrl);
   if (!htmlImport) {
     return;
@@ -118,7 +122,7 @@ export async function inlineHtmlImport(
       astNode: null
     });
     await addOrUpdateSourcemapsForInlineScripts(
-        document, reparsedDoc, resolvedImportUrl);
+        analyzer, document, reparsedDoc, resolvedImportUrl);
   }
   const nestedImports = dom5.queryAll(importAst, matchers.htmlImport);
 
@@ -129,6 +133,7 @@ export async function inlineHtmlImport(
   // Recursively process the nested imports.
   for (const nestedImport of nestedImports) {
     await inlineHtmlImport(
+        analyzer,
         document,
         nestedImport,
         visitedUrls,
@@ -144,13 +149,19 @@ export async function inlineHtmlImport(
  * into the script tag content and removes the src attribute.
  */
 export async function inlineScript(
-    document: Document, scriptTag: ASTNode, enableSourcemaps: boolean) {
+    analyzer: Analyzer,
+    document: Document,
+    scriptTag: ASTNode,
+    enableSourcemaps: boolean) {
   const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
-  const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
+  if (!analyzer.canResolveUrl(importUrl)) {
+    return;
+  }
+  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   const scriptImport = findInSet(
-      document.getByKind(
-          'html-script', {imported: true, externalPackages: true}),
+      document.getFeatures(
+          {kind: 'html-script', imported: true, externalPackages: true}),
       (i) => i.document && i.document.url === resolvedImportUrl);
   if (!scriptImport) {
     return;
@@ -163,13 +174,7 @@ export async function inlineScript(
     // it's easier to calculate offsets if the external script contents don't
     // start on the same line as the script tag. Offset the map appropriately.
     scriptContent = await addOrUpdateSourcemapComment(
-        document.analyzer,
-        resolvedImportUrl,
-        '\n' + scriptContent,
-        -1,
-        0,
-        1,
-        0);
+        analyzer, resolvedImportUrl, '\n' + scriptContent, -1, 0, 1, 0);
   }
 
   dom5.removeAttribute(scriptTag, 'src');
@@ -181,18 +186,22 @@ export async function inlineScript(
  * Inlines the contents of the stylesheet returned by the link tag's href url
  * into a style tag and removes the link tag.
  */
-export async function inlineStylesheet(document: Document, cssLink: ASTNode) {
+export async function inlineStylesheet(
+    analyzer: Analyzer, document: Document, cssLink: ASTNode) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
   const importUrl = urlLib.resolve(document.url, stylesheetUrl);
-  const resolvedImportUrl = document.analyzer.resolveUrl(importUrl);
+  if (!analyzer.canResolveUrl(importUrl)) {
+    return;
+  }
+  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   const stylesheetImport =  // HACK(usergenic): clang-format workaround
       findInSet(
-          document.getByKind(
-              'html-style', {imported: true, externalPackages: true}),
+          document.getFeatures(
+              {kind: 'html-style', imported: true, externalPackages: true}),
           (i) => i.document && i.document.url === resolvedImportUrl) ||
       findInSet(
-          document.getByKind(
-              'css-import', {imported: true, externalPackages: true}),
+          document.getFeatures(
+              {kind: 'css-import', imported: true, externalPackages: true}),
           (i) => i.document && i.document.url === resolvedImportUrl);
   if (!stylesheetImport) {
     return;
@@ -269,6 +278,7 @@ export function rewriteAstBaseUrl(
  * line offset within the final bundle.
  */
 export async function addOrUpdateSourcemapsForInlineScripts(
+    analyzer: Analyzer,
     originalDoc: Document,
     reparsedDoc: ParsedHtmlDocument,
     oldBaseUrl: UrlString) {
@@ -278,7 +288,7 @@ export async function addOrUpdateSourcemapsForInlineScripts(
     let content = dom5.getTextContent(scriptAst);
     const sourceRange = reparsedDoc.sourceRangeForStartTag(scriptAst)!;
     return addOrUpdateSourcemapComment(
-               originalDoc.analyzer,
+               analyzer,
                oldBaseUrl,
                content,
                sourceRange.end.line,

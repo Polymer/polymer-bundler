@@ -12,7 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 import {AssertionError} from 'assert';
-import {Analyzer} from 'polymer-analyzer';
+import {Analyzer, Document} from 'polymer-analyzer';
 import {UrlString} from './url-utils';
 
 export interface DepsIndex {
@@ -31,9 +31,14 @@ type DependencyMapEntry = {
 async function _getTransitiveDependencies(
     url: UrlString, entrypoints: UrlString[], analyzer: Analyzer):
     Promise<DependencyMapEntry> {
-      const document = await analyzer.analyze(url);
-      const imports = document.getByKind(
-          'import', {externalPackages: true, imported: true});
+      const analysis = await analyzer.analyze([url]);
+      const document = analysis.getDocument(url);
+      if (!(document instanceof Document)) {
+        const message = document && document.message || 'unknown';
+        throw new Error(`Unable to get document ${url}: ${message}`);
+      }
+      const imports = document.getFeatures(
+          {kind: 'import', externalPackages: true, imported: true});
       const eagerImports = new Set<UrlString>();
       const lazyImports = new Set<UrlString>();
       for (const htmlImport of imports) {

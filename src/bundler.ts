@@ -78,7 +78,7 @@ export interface BundleResult {
 }
 
 export class Bundler {
-  analyzer: Analyzer;
+  analyzer: Promise<Analyzer>;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
   excludes: UrlString[];
@@ -95,23 +95,16 @@ export class Bundler {
 
     // In order for the bundler to use a given analyzer, we'll have to fork it
     // so we can provide our own overlayUrlLoader which falls back to the
-    // analyzer's load method.
-    //
-    // TODO(usergenic): We can't delegate to `canLoad` directly, so we're
-    // proxying via the analyzer's `canResolveUrl` method.  We need to either
-    // expose `urlLoader` publicly on the analyzer or add a `canLoad` method.
-    // https://github.com/Polymer/polymer-analyzer/issues/612
+    // analyzer's load method.  Unfortunately, forking is asynchronous and
     if (opts.analyzer) {
       const analyzer = opts.analyzer;
-      this._overlayUrlLoader = new InMemoryOverlayUrlLoader({
-        canLoad: (url: string) => analyzer.canResolveUrl(url),
-        load: async(url: string) => analyzer.load(url),
-      });
+      this._overlayUrlLoader = new InMemoryOverlayUrlLoader(analyzer);
       this.analyzer = analyzer._fork({urlLoader: this._overlayUrlLoader});
     } else {
       this._overlayUrlLoader =
           new InMemoryOverlayUrlLoader(new FSUrlLoader(path.resolve('.')));
-      this.analyzer = new Analyzer({urlLoader: this._overlayUrlLoader});
+      this.analyzer =
+          Promise.resolve(new Analyzer({urlLoader: this._overlayUrlLoader}));
     }
 
     // implicitStrip should be true by default
@@ -170,7 +163,7 @@ export class Bundler {
       mapper = bundleManifestLib.sharedBundleUrlMapper;
     }
     const dependencyIndex =
-        await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
+        await depsIndexLib.buildDepsIndex(entrypoints, await(this.analyzer));
     let bundles =
         bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
     this._filterExcludesFromBundles(bundles);
@@ -185,8 +178,15 @@ export class Bundler {
   private async _analyzeContents(url: string, contents: string):
       Promise<Document> {
     this._overlayUrlLoader.urlContentsMap.set(url, contents);
-    this.analyzer.filesChanged([url]);
-    return this.analyzer.analyze(url);
+    const analyzer = await this.analyzer;
+    analyzer.filesChanged([url]);
+    const analysis = await analyzer.analyze([url]);
+    const document = analysis.getDocument(url);
+    if (!(document instanceof Document)) {
+      const message = document && document.message || 'unknown';
+      throw new Error(`Unable to get document ${url}: ${message}`);
+    }
+    return document;
   }
 
   /**
@@ -343,6 +343,7 @@ export class Bundler {
     const htmlImports = dom5.queryAll(ast, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
       await importUtils.inlineHtmlImport(
+          (await this.analyzer),
           document,
           htmlImport,
           visitedUrls,
@@ -360,7 +361,8 @@ export class Bundler {
   private async _inlineScripts(document: Document, ast: ASTNode) {
     const scriptImports = dom5.queryAll(ast, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
-      await importUtils.inlineScript(document, externalScript, this.sourcemaps);
+      await importUtils.inlineScript(
+          (await this.analyzer), document, externalScript, this.sourcemaps);
     }
   }
 
@@ -372,7 +374,8 @@ export class Bundler {
   private async _inlineStylesheetImports(document: Document, ast: ASTNode) {
     const cssImports = dom5.queryAll(ast, matchers.stylesheetImport);
     for (const cssLink of cssImports) {
-      const style = await importUtils.inlineStylesheet(document, cssLink);
+      const style = await importUtils.inlineStylesheet(
+          (await this.analyzer), document, cssLink);
       if (style) {
         this._moveDomModuleStyleIntoTemplate(style);
       }
@@ -387,7 +390,8 @@ export class Bundler {
   private async _inlineStylesheetLinks(document: Document, ast: ASTNode) {
     const cssLinks = dom5.queryAll(ast, matchers.externalStyle);
     for (const cssLink of cssLinks) {
-      await importUtils.inlineStylesheet(document, cssLink);
+      await importUtils.inlineStylesheet(
+          (await this.analyzer), document, cssLink);
     }
   }
 
@@ -468,7 +472,13 @@ export class Bundler {
     if (!bundle.bundle.files.has(bundle.url)) {
       return this._analyzeContents(bundle.url, '');
     }
-    const document = await this.analyzer.analyze(bundle.url);
+    const analyzer = await this.analyzer;
+    const analysis = await analyzer.analyze([bundle.url]);
+    const document = analysis.getDocument(bundle.url);
+    if (!(document instanceof Document)) {
+      const message = document && document.message || 'unknown';
+      throw new Error(`Unable to get document ${bundle.url}: ${message}`);
+    }
     const ast = clone(document.parsedDocument.ast);
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(ast);
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);
