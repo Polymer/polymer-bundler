@@ -21,8 +21,7 @@ import * as path from 'path';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
 import {Bundle} from '../bundle-manifest';
-import {Bundler} from '../bundler';
-import {Options as BundlerOptions} from '../bundler';
+import {Bundler, Options as BundlerOptions} from '../bundler';
 
 chai.config.showDiff = true;
 
