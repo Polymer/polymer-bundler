@@ -112,6 +112,9 @@ const injectedTagNames = new Set(['html', 'head', 'body']);
  * node has no `__location` information, so this function can only reliably
  * be used on a fresh parse, since subsequent tree manipulations may inject
  * nodes without location information.
+ *
+ * TODO(usergenic): Remove this function after porting it to dom5.  Also
+ * remove from `polymer-analyzer` since that's where this was duplicated from.
  */
 export function removeFakeNodes(ast: dom5.Node) {
   const children = (ast.childNodes || []).slice();
