@@ -95,7 +95,8 @@ export class Bundler {
 
     // In order for the bundler to use a given analyzer, we'll have to fork it
     // so we can provide our own overlayUrlLoader which falls back to the
-    // analyzer's load method.  Unfortunately, forking is asynchronous and
+    // analyzer's load method.  Because forking is asynchronous, the `analyzer`
+    // property needs to be a promise.
     if (opts.analyzer) {
       const analyzer = opts.analyzer;
       this._overlayUrlLoader = new InMemoryOverlayUrlLoader(analyzer);
