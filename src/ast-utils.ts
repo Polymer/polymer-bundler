@@ -103,7 +103,6 @@ export function removeElementAndNewline(node: ASTNode, replacement?: ASTNode) {
   }
 }
 
-const injectedTagNames = new Set(['html', 'head', 'body']);
 /**
  * When parse5 parses an HTML document, it tries to fill in a few html tags
  * it considers missing if it doesn't see them (see `injectedTagNames` const
@@ -114,19 +113,24 @@ const injectedTagNames = new Set(['html', 'head', 'body']);
  * nodes without location information.
  *
  * TODO(usergenic): Remove this function after porting it to dom5.  Also
- * remove from `polymer-analyzer` since that's where this was duplicated from.
- * https://github.com/Polymer/dom5/issues/49
+ * remove the equivalent from `polymer-analyzer` since that's where this was
+ * duplicated from.  https://github.com/Polymer/dom5/issues/49
  */
 export function removeFakeNodes(ast: dom5.Node) {
-  const children = (ast.childNodes || []).slice();
-  if (ast.parentNode && !ast.__location && injectedTagNames.has(ast.nodeName)) {
+  const injectedNodes = dom5.queryAll(
+      ast,
+      dom5.predicates.AND(
+          (node) => !Boolean(node.__location) && Boolean(node.parentNode),
+          dom5.predicates.OR(
+              dom5.predicates.hasTagName('html'),
+              dom5.predicates.hasTagName('head'),
+              dom5.predicates.hasTagName('body'))));
+  for (const node of injectedNodes.reverse()) {
+    const children = (node.childNodes || []).slice();
     for (const child of children) {
-      dom5.insertBefore(ast.parentNode, ast, child);
+      dom5.insertBefore(node.parentNode!, node, child);
     }
-    dom5.remove(ast);
-  }
-  for (const child of children) {
-    removeFakeNodes(child);
+    dom5.remove(node);
   }
 }
 
