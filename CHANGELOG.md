@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   found in `src`, `href`, `action`, `assetpath` and `style` attributes
   found inside `<template>` elements, when inlining html imports.  Previously,
   this was done by default.  Now requires explicit option.
+- Fixed an issue where bundler was adding `<html>`, `<head>`, and `<body>` tags
+  to documents that didn't have them.
 
 ## 2.0.0-pre.11 - 2017-03-20
 - Bump dependency on analyzer

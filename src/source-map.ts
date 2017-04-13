@@ -19,7 +19,7 @@ import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
 import {AnalysisContext} from 'polymer-analyzer/lib/core/analysis-context';
 import {RawSourceMap, SourceMapConsumer, SourceMapGenerator} from 'source-map';
 import * as urlLib from 'url';
-
+import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 
 const inlineSourcemapPrefix =
@@ -197,7 +197,7 @@ export function updateSourcemapLocations(
     document: Document, ast: parse5.ASTNode) {
   // We need to serialize and reparse the dom for updated location information
   const documentContents = parse5.serialize(ast);
-  ast = parse5.parse(documentContents, {locationInfo: true});
+  ast = astUtils.parse(documentContents, {locationInfo: true});
 
   const reparsedDoc = new ParsedHtmlDocument({
     url: document.url,

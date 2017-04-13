@@ -251,6 +251,7 @@ export class Bundler {
     let document = await this._prepareBundleDocument(docBundle);
 
     const ast = clone(document.parsedDocument.ast);
+    astUtils.removeFakeNodes(ast);
     this._appendHtmlImportsForBundle(ast, docBundle);
     importUtils.rewriteAstToEmulateBaseTag(
         ast, document.url, this.rewriteUrlsInTemplates);
@@ -472,6 +473,7 @@ export class Bundler {
     const ast = clone(document.parsedDocument.ast);
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(ast);
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);
+    astUtils.removeFakeNodes(ast);
     return this._analyzeContents(document.url, serialize(ast));
   }
 }
