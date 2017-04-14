@@ -77,8 +77,7 @@ export class Bundler {
 
     // In order for the bundler to use a given analyzer, we'll have to fork it
     // so we can provide our own overlayUrlLoader which falls back to the
-    // analyzer's load method.  Because forking is asynchronous, the `analyzer`
-    // property needs to be a promise.
+    // analyzer's load method.
     if (opts.analyzer) {
       const analyzer = opts.analyzer;
       this._overlayUrlLoader = new InMemoryOverlayUrlLoader(analyzer);
@@ -143,7 +142,7 @@ export class Bundler {
       mapper = bundleManifestLib.sharedBundleUrlMapper;
     }
     const dependencyIndex =
-        await depsIndexLib.buildDepsIndex(entrypoints, await(this.analyzer));
+        await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
     let bundles =
         bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
     this._filterExcludesFromBundles(bundles);
@@ -158,9 +157,8 @@ export class Bundler {
   private async _analyzeContents(url: string, contents: string):
       Promise<Document> {
     this._overlayUrlLoader.urlContentsMap.set(url, contents);
-    const analyzer = await this.analyzer;
-    analyzer.filesChanged([url]);
-    const analysis = await analyzer.analyze([url]);
+    await this.analyzer.filesChanged([url]);
+    const analysis = await this.analyzer.analyze([url]);
     const document = analysis.getDocument(url);
     if (!(document instanceof Document)) {
       const message = document && document.message || 'unknown';
@@ -231,7 +229,7 @@ export class Bundler {
     let document = await this._prepareBundleDocument(docBundle);
 
     const ast = clone(document.parsedDocument.ast);
-    astUtils.removeFakeNodes(ast);
+    dom5.removeFakeRootElements(ast);
     this._appendHtmlImportsForBundle(ast, docBundle);
     importUtils.rewriteAstToEmulateBaseTag(
         ast, document.url, this.rewriteUrlsInTemplates);
@@ -452,8 +450,7 @@ export class Bundler {
     if (!bundle.bundle.files.has(bundle.url)) {
       return this._analyzeContents(bundle.url, '');
     }
-    const analyzer = await this.analyzer;
-    const analysis = await analyzer.analyze([bundle.url]);
+    const analysis = await this.analyzer.analyze([bundle.url]);
     const document = analysis.getDocument(bundle.url);
     if (!(document instanceof Document)) {
       const message = document && document.message || 'unknown';
@@ -462,7 +459,7 @@ export class Bundler {
     const ast = clone(document.parsedDocument.ast);
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(ast);
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);
-    astUtils.removeFakeNodes(ast);
+    dom5.removeFakeRootElements(ast);
     return this._analyzeContents(document.url, serialize(ast));
   }
 }

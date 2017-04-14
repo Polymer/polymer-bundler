@@ -16,7 +16,7 @@
     "clone": "^2.1.0",
     "command-line-args": "^3.0.1",
     "command-line-usage": "^3.0.3",
-    "dom5": "^2.0.0",
+    "dom5": "^2.2.0",
     "es6-promise": "^2.1.0",
     "espree": "^3.4.0",
     "mkdirp": "^0.5.1",

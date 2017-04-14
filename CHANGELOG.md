@@ -20,8 +20,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   this was done by default.  Now requires explicit option.
 - BREAKING: inlinining functions in `import-utils` require an explicit
  `analyzer` argument.
-- BREAKING: Dropped support for node 4 in latest `polymer-analyzer`:
-  https://www.polymer-project.org/2.0/docs/tools/node-support
+- BREAKING: Dropped support for node v4, added support for node v8. See our
+  [node version support policy]
+  (https://www.polymer-project.org/2.0/docs/tools/node-support) for details.
 - Fixed an issue where bundler was adding `<html>`, `<head>`, and `<body>` tags
   to documents that didn't have them.
 - Removed unused/not-implemented options from the CLI and bundler.
