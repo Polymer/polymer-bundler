@@ -162,7 +162,7 @@ export class Bundler {
       mapper = bundleManifestLib.sharedBundleUrlMapper;
     }
     const dependencyIndex =
-        await depsIndexLib.buildDepsIndex(entrypoints, await(this.analyzer));
+        await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
     let bundles =
         bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
     this._filterExcludesFromBundles(bundles);
