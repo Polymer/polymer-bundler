@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 2.0.0-pre.12 - 2017-04-14
 - BREAKING: Public API change.  The `bundle()` method now takes a manifest
   instead of entrypoints, strategy and mapper.  To produce a manifest,
   use new public method `generateManifest()`.
