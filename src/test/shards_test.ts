@@ -68,7 +68,7 @@ suite('Bundler', () => {
   }
 
   suite('Sharded builds', () => {
-    test('with 3 entrypoints, all deps are in their places', async() => {
+    test('with 3 entrypoints, all deps are in their places', async () => {
       const strategy = generateSharedDepsMergeStrategy(2);
       const docs =
           await bundleMultiple([common, entrypoint1, entrypoint2], strategy);
@@ -97,7 +97,7 @@ suite('Bundler', () => {
           entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
     });
 
-    test('with 2 entrypoints and shell, all deps in their places', async() => {
+    test('with 2 entrypoints and shell, all deps in their places', async () => {
       const strategy = generateShellMergeStrategy(shell, 2);
       const docs =
           await bundleMultiple([shell, entrypoint1, entrypoint2], strategy);

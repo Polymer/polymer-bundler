@@ -21,8 +21,7 @@ import * as path from 'path';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
 import {Bundle} from '../bundle-manifest';
-import {Bundler} from '../bundler';
-import {Options as BundlerOptions} from '../bundler';
+import {Bundler, Options as BundlerOptions} from '../bundler';
 
 chai.config.showDiff = true;
 
@@ -305,20 +304,6 @@ suite('Bundler', () => {
     });
   });
 
-  suite('Redirect', () => {
-
-    test('Redirected paths load properly', async () => {
-      const options = {
-        redirects:
-            ['chrome://imports/|test/html/imports/', 'biz://cool/|test/html']
-      };
-      const doc = await bundle('test/html/custom-protocol.html', options);
-      assert(doc);
-    });
-
-    // TODO(usergenic): Add tests here to demo common use case of alt domains.
-  });
-
   suite('Absolute paths in URLs', () => {
 
     test('will be resolved by the analyzer', async () => {
@@ -331,9 +316,6 @@ suite('Bundler', () => {
   });
 
   suite('Excludes', () => {
-
-    const htmlImport = preds.AND(
-        preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
 
     const excluded = preds.AND(
         preds.hasTagName('link'),
@@ -348,39 +330,10 @@ suite('Bundler', () => {
       assert.equal(imports.length, 1);
     });
 
-    const cssFromExclude = preds.AND(
-        preds.hasTagName('link'),
-        preds.hasAttrValue('rel', 'import'),
-        preds.hasAttrValue('type', 'css'));
-
-    test.skip(
-        'Excluded imports are not inlined when behind a redirected URL.',
-        async () => {
-          const options = {
-            // TODO(usergenic): use non-redirected form of URL (?)
-            excludes: ['test/html/imports/simple-import.html'],
-            redirects: ['red://herring/at|test/html/imports']
-          };
-          const doc = await bundle(
-              path.resolve('test/html/custom-protocol-excluded.html'), options);
-          const imports = dom5.queryAll(doc, htmlImport);
-          assert.equal(imports.length, 2);
-          const badCss = dom5.queryAll(doc, cssFromExclude);
-          assert.equal(badCss.length, 0);
-        });
-
-    test('Excluded imports with "Strip Excludes" are removed', async () => {
-      const options = {stripExcludes: excludes};
-      const doc = await bundle(inputPath, options);
-      const imports = dom5.queryAll(doc, excluded);
-      assert.equal(imports.length, 0);
-    });
-
-    test('Strip Excludes does not have to be exact', async () => {
-      const options = {stripExcludes: ['simple-import']};
-      const doc = await bundle(inputPath, options);
-      const imports = dom5.queryAll(doc, excluded);
-      assert.equal(imports.length, 0);
+    test.skip('Excluded CSS is not inlined', async () => {
+      const doc = await bundle(
+          inputPath, {inlineCss: true, excludes: ['imports/simple-style.css']});
+      assert.include(parse5.serialize(doc), 'href="imports/simple-style.css"');
     });
 
     test('Excluded comments are removed', async () => {
