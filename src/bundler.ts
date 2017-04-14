@@ -95,8 +95,7 @@ export class Bundler {
 
     // In order for the bundler to use a given analyzer, we'll have to fork it
     // so we can provide our own overlayUrlLoader which falls back to the
-    // analyzer's load method.  Because forking is asynchronous, the `analyzer`
-    // property needs to be a promise.
+    // analyzer's load method.
     if (opts.analyzer) {
       const analyzer = opts.analyzer;
       this._overlayUrlLoader = new InMemoryOverlayUrlLoader(analyzer);
@@ -178,9 +177,8 @@ export class Bundler {
   private async _analyzeContents(url: string, contents: string):
       Promise<Document> {
     this._overlayUrlLoader.urlContentsMap.set(url, contents);
-    const analyzer = await this.analyzer;
-    analyzer.filesChanged([url]);
-    const analysis = await analyzer.analyze([url]);
+    await this.analyzer.filesChanged([url]);
+    const analysis = await this.analyzer.analyze([url]);
     const document = analysis.getDocument(url);
     if (!(document instanceof Document)) {
       const message = document && document.message || 'unknown';
@@ -472,8 +470,7 @@ export class Bundler {
     if (!bundle.bundle.files.has(bundle.url)) {
       return this._analyzeContents(bundle.url, '');
     }
-    const analyzer = await this.analyzer;
-    const analysis = await analyzer.analyze([bundle.url]);
+    const analysis = await this.analyzer.analyze([bundle.url]);
     const document = analysis.getDocument(bundle.url);
     if (!(document instanceof Document)) {
       const message = document && document.message || 'unknown';
