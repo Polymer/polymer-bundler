@@ -24,7 +24,7 @@ const assert = chai.assert;
 
 suite('polymer-bundler CLI', () => {
 
-  test('uses the current working folder as loader root', async() => {
+  test('uses the current working folder as loader root', async () => {
     const projectRoot = path.resolve(__dirname, '../../test/html');
     const cli = path.resolve(__dirname, '../bin/polymer-bundler.js');
     const stdout =

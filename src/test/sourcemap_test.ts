@@ -87,7 +87,7 @@ suite('Bundler', () => {
 
   suite('Sourcemaps', () => {
 
-    test('inline', async() => {
+    test('inline', async () => {
       const doc = await bundle(
           'inline.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
@@ -109,7 +109,7 @@ suite('Bundler', () => {
       }
     });
 
-    test('external', async() => {
+    test('external', async () => {
       const doc = await bundle(
           'external.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
@@ -127,7 +127,7 @@ suite('Bundler', () => {
       }
     });
 
-    test('combined', async() => {
+    test('combined', async () => {
       const doc = await bundle(
           'combined.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
@@ -145,7 +145,7 @@ suite('Bundler', () => {
       }
     });
 
-    test('invalid existing', async() => {
+    test('invalid existing', async () => {
       const doc = await bundle(
           'invalid.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});

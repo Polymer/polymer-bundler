@@ -31,8 +31,8 @@ const inlineSourceMapExpr =
 
 
 function base64StringToRawSourceMap(input: string) {
-  return JSON.parse(
-      Buffer.from(input, 'base64').toString('utf8')) as RawSourceMap;
+  return JSON.parse(Buffer.from(input, 'base64').toString('utf8')) as
+      RawSourceMap;
 }
 
 function rawSourceMapToBase64String(sourcemap: RawSourceMap) {

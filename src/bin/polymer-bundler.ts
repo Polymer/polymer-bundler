@@ -177,7 +177,7 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
   return manifest;
 }
 
-(async() => {
+(async () => {
   const bundler = new Bundler(options);
   let bundles: DocumentCollection;
   try {
