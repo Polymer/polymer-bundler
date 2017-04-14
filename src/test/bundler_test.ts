@@ -304,20 +304,6 @@ suite('Bundler', () => {
     });
   });
 
-  suite('Redirect', () => {
-
-    test('Redirected paths load properly', async () => {
-      const options = {
-        redirects:
-            ['chrome://imports/|test/html/imports/', 'biz://cool/|test/html']
-      };
-      const doc = await bundle('test/html/custom-protocol.html', options);
-      assert(doc);
-    });
-
-    // TODO(usergenic): Add tests here to demo common use case of alt domains.
-  });
-
   suite('Absolute paths in URLs', () => {
 
     test('will be resolved by the analyzer', async () => {
@@ -329,7 +315,7 @@ suite('Bundler', () => {
     });
   });
 
-  suite('excludes', () => {
+  suite('Excludes', () => {
 
     const excluded = preds.AND(
         preds.hasTagName('link'),
