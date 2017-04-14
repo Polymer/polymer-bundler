@@ -25,7 +25,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   (https://www.polymer-project.org/2.0/docs/tools/node-support) for details.
 - Fixed an issue where bundler was adding `<html>`, `<head>`, and `<body>` tags
   to documents that didn't have them.
-- Removed unused/not-implemented options from the CLI and bundler.
+- Removed unused/not-implemented options from the polymer-bundler CLI and
+  corresponding `Bundler` options: `strip-exclude`, `no-implicit-strip` and
+  `redirect`.
 - Corrected the CLI usage output.
 - Corrected the README.
 
