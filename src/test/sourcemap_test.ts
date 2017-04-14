@@ -145,7 +145,7 @@ suite('Bundler', () => {
       }
     });
 
-    test('invalid existing', async () => {
+    test('invalid maps are compiled correctly', async () => {
       const doc = await bundle(
           'invalid.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
