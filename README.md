@@ -87,7 +87,7 @@ polymer-bundler as a library has two exported function.
 
 `polymer-bundler` constructor takes an object of options similar to the command line options:
 
-- `excludes`: An array of strings with regular expressions to exclude paths from being inlined.
+- `excludes`: URLs to exclude from inlining. URLs may represent files or folders. HTML tags referencing excluded URLs are preserved.
 - `inlineCss`: Inline external stylesheets.
 - `inlineScripts`: Inline external scripts.
 - `sourcemaps`: Honor (or create) sourcemaps for inline scripts

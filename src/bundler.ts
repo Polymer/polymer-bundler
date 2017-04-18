@@ -34,7 +34,8 @@ export interface Options {
   // The instance of the Polymer Analyzer which has completed analysis
   analyzer?: Analyzer;
 
-  // URLs of files that should not be inlined.
+  // URLs of files and/or folders that should not be inlined. HTML tags
+  // referencing excluded URLs are preserved.'
   excludes?: UrlString[];
 
   // When true, inline external CSS file contents into <style> tags in the
