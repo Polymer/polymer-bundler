@@ -380,7 +380,7 @@ suite('Bundler', () => {
     test('Folder can be excluded', async () => {
       const linkMatcher = preds.AND(
           preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
-      const options = {excludes: ['test/html/imports/']};
+      const options = {excludes: ['imports/']};
       const doc = await bundle('test/html/default.html', options);
       const links = dom5.queryAll(doc, linkMatcher);
       // one duplicate import is removed.  default.html contains this
@@ -388,6 +388,8 @@ suite('Bundler', () => {
       //     <link rel="import" href="imports/simple-import.html">
       //     <link rel="import" href="imports/simple-import.html">
       assert.equal(links.length, 1);
+      assert.equal(
+          dom5.getAttribute(links[0]!, 'href'), 'imports/simple-import.html');
     });
   });
 
