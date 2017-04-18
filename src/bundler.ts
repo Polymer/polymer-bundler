@@ -282,6 +282,12 @@ export class Bundler {
     for (const bundle of bundles) {
       for (const exclude of this.excludes) {
         bundle.files.delete(exclude);
+        const excludeAsFolder = exclude.endsWith('/') ? exclude : exclude + '/';
+        for (const file of bundle.files) {
+          if (file.startsWith(excludeAsFolder)) {
+            bundle.files.delete(file);
+          }
+        }
       }
     }
 
