@@ -159,8 +159,9 @@ suite('Bundler', () => {
   });
 
   test('svg is nested correctly', async () => {
+    const opts = {inlineScripts: false, inlineCss: false};
     const svg =
-        dom5.query(await bundle(inputPath), matchers.template)!['content']
+        dom5.query(await bundle(inputPath, opts), matchers.template)!['content']
             .childNodes[1];
     assert.equal(svg.childNodes!.filter(dom5.isElement).length, 6);
   });
@@ -219,9 +220,10 @@ suite('Bundler', () => {
     assert.equal(bodyContainer, divActual);
   });
 
-  test('Scripts are not inlined by default', async () => {
+  test('Scripts are not inlined if specified', async () => {
     const scripts = dom5.queryAll(
-        await bundle('test/html/external.html'), matchers.externalJavascript);
+        await bundle('test/html/external.html', {inlineScripts: false}),
+        matchers.externalJavascript);
     assert.isAbove(scripts.length, 0, 'scripts were inlined');
     scripts.forEach(function(s) {
       assert.equal(dom5.getTextContent(s), '', 'script src should be empty');
@@ -248,7 +250,8 @@ suite('Bundler', () => {
   suite('Script Ordering', () => {
 
     test('Imports and scripts are ordered correctly', async () => {
-      const doc = await bundle('test/html/order-test.html');
+      const doc =
+          await bundle('test/html/order-test.html', {inlineScripts: false});
 
       const expectedOrder = [
         'first-script',
@@ -380,7 +383,7 @@ suite('Bundler', () => {
     test('Folder can be excluded', async () => {
       const linkMatcher = preds.AND(
           preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
-      const options = {excludes: ['test/html/imports/']};
+      const options = {excludes: ['imports/']};
       const doc = await bundle('test/html/default.html', options);
       const links = dom5.queryAll(doc, linkMatcher);
       // one duplicate import is removed.  default.html contains this
@@ -388,6 +391,8 @@ suite('Bundler', () => {
       //     <link rel="import" href="imports/simple-import.html">
       //     <link rel="import" href="imports/simple-import.html">
       assert.equal(links.length, 1);
+      assert.equal(
+          dom5.getAttribute(links[0]!, 'href'), 'imports/simple-import.html');
     });
   });
 

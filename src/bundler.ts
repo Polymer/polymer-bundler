@@ -34,7 +34,8 @@ export interface Options {
   // The instance of the Polymer Analyzer which has completed analysis
   analyzer?: Analyzer;
 
-  // URLs of files that should not be inlined.
+  // URLs of files and/or folders that should not be inlined. HTML tags
+  // referencing excluded URLs are preserved.'
   excludes?: UrlString[];
 
   // When true, inline external CSS file contents into <style> tags in the
@@ -90,8 +91,10 @@ export class Bundler {
 
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
     this.stripComments = Boolean(opts.stripComments);
-    this.enableCssInlining = Boolean(opts.inlineCss);
-    this.enableScriptInlining = Boolean(opts.inlineScripts);
+    this.enableCssInlining =
+        opts.inlineCss === undefined ? true : opts.inlineCss;
+    this.enableScriptInlining =
+        opts.inlineScripts === undefined ? true : opts.inlineScripts;
     this.rewriteUrlsInTemplates = Boolean(opts.rewriteUrlsInTemplates);
     this.sourcemaps = Boolean(opts.sourcemaps);
   }
@@ -282,6 +285,12 @@ export class Bundler {
     for (const bundle of bundles) {
       for (const exclude of this.excludes) {
         bundle.files.delete(exclude);
+        const excludeAsFolder = exclude.endsWith('/') ? exclude : exclude + '/';
+        for (const file of bundle.files) {
+          if (file.startsWith(excludeAsFolder)) {
+            bundle.files.delete(file);
+          }
+        }
       }
     }
 

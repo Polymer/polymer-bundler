@@ -40,7 +40,7 @@ const optionDefinitions = [
     type: String,
     multiple: true,
     description:
-        'Exclude a subpath from root. Use multiple times to exclude multiple paths. Tags to excluded paths are kept'
+        'URL to exclude from inlining. Use multiple times to exclude multiple files and folders. HTML tags referencing excluded URLs are preserved.'
   },
   {
     name: 'strip-comments',
