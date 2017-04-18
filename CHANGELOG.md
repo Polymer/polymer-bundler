@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+- `BundleManifest` will now look up a `Bundle` by its `files` even after the
+  `files` property has been mutated.  Supports post-processing of manifest
+  which may be much simpler that embedding some kinds of manipulation inside
+  `strategy` functions.  Notably, this enables users to emulate the old
+  `add-import` behavior by updating a target bundle.
+
 ## 2.0.0-pre.12 - 2017-04-14
 - BREAKING: Public API change.  The `bundle()` method now takes a manifest
   instead of entrypoints, strategy and mapper.  To produce a manifest,
