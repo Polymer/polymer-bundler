@@ -90,8 +90,10 @@ export class Bundler {
 
     this.excludes = Array.isArray(opts.excludes) ? opts.excludes : [];
     this.stripComments = Boolean(opts.stripComments);
-    this.enableCssInlining = Boolean(opts.inlineCss);
-    this.enableScriptInlining = Boolean(opts.inlineScripts);
+    this.enableCssInlining =
+        Boolean(typeof opts.inlineCss === 'undefined' || opts.inlineCss);
+    this.enableScriptInlining = Boolean(
+        typeof opts.inlineScripts === 'undefined' || opts.inlineScripts);
     this.rewriteUrlsInTemplates = Boolean(opts.rewriteUrlsInTemplates);
     this.sourcemaps = Boolean(opts.sourcemaps);
   }

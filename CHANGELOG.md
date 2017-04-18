@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+- Bundler now inlines scripts and css by default.  Pass `inlineCss` and
+  `inlineScripts` as `false` explicitly to disable.
+
 ## 2.0.0-pre.12 - 2017-04-14
 - BREAKING: Public API change.  The `bundle()` method now takes a manifest
   instead of entrypoints, strategy and mapper.  To produce a manifest,
