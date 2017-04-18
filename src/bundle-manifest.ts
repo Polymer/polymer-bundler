@@ -64,32 +64,20 @@ export class BundleManifest {
   // Map of bundle url to bundle.
   bundles: Map<UrlString, Bundle>;
 
-  // Map of file url to bundle url.
-  private _bundleUrlForFile: Map<UrlString, UrlString>;
-
   /**
    * Given a collection of bundles and a BundleUrlMapper to generate urls for
-   * them, the constructor populates the `bundles` and `files` index properties.
+   * them, the constructor populates the `bundles` map.
    */
   constructor(bundles: Bundle[], urlMapper: BundleUrlMapper) {
     this.bundles = urlMapper(Array.from(bundles));
-    this._bundleUrlForFile = new Map();
-
-    for (const bundleMapEntry of this.bundles) {
-      const bundleUrl = bundleMapEntry[0];
-      const bundle = bundleMapEntry[1];
-      for (const fileUrl of bundle.files) {
-        console.assert(!this._bundleUrlForFile.has(fileUrl));
-        this._bundleUrlForFile.set(fileUrl, bundleUrl);
-      }
-    }
   }
 
   // Convenience method to return a bundle for a constituent file url.
-  getBundleForFile(url: UrlString): AssignedBundle|undefined {
-    const bundleUrl = this._bundleUrlForFile.get(url);
-    if (bundleUrl) {
-      return {bundle: this.bundles.get(bundleUrl)!, url: bundleUrl};
+  getBundleForFile(fileUrl: UrlString): AssignedBundle|undefined {
+    for (const [bundleUrl, bundle] of this.bundles) {
+      if (this.bundles.get(bundleUrl)!.files.has(fileUrl)) {
+        return {bundle: bundle, url: bundleUrl};
+      }
     }
   }
 }

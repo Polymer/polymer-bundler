@@ -72,6 +72,12 @@ suite('BundleManifest', () => {
           serializeBundle(manifest.getBundleForFile('E')!.bundle),
           '[A,B]->[E]');
     });
+
+    test('bundles are mutable; you could add a file and then find', () => {
+      const bundleA = manifest.bundles.get('A')!;
+      bundleA.files.add('X');
+      assert.equal(manifest.getBundleForFile('X')!.bundle, bundleA);
+    });
   });
 
   suite('generateBundles', () => {
