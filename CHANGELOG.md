@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- BREAKING: Bundler now inlines Scripts and CSS by default.  Pass `inlineCss`
+  and `inlineScripts` as `false` explicitly to disable.
 - Fixed an issue where `exclude` option did not actually support folder names.
 
 ## 2.0.0-pre.12 - 2017-04-14
