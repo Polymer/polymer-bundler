@@ -58,7 +58,10 @@ export class AssignedBundle {
 }
 
 /**
- * A bundle manifest is a mapping of urls to bundles.
+ * A bundle manifest is a mapping of distinct urls to bundles.  A bundle's
+ * `files` property may be modified after the manifest is created, but it
+ * is always expected that no two bundles within the same manifest will
+ * contain the same file url.
  */
 export class BundleManifest {
   // Map of bundle url to bundle.
@@ -72,10 +75,13 @@ export class BundleManifest {
     this.bundles = urlMapper(Array.from(bundles));
   }
 
-  // Convenience method to return a bundle for a constituent file url.
+  /**
+   * Returns the url and bundle when a bundle is found containing the
+   * specified file url.
+   */
   getBundleForFile(fileUrl: UrlString): AssignedBundle|undefined {
     for (const [bundleUrl, bundle] of this.bundles) {
-      if (this.bundles.get(bundleUrl)!.files.has(fileUrl)) {
+      if (bundle.files.has(fileUrl)) {
         return {bundle: bundle, url: bundleUrl};
       }
     }
