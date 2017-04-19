@@ -58,18 +58,21 @@ export class AssignedBundle {
 }
 
 /**
- * A bundle manifest is a mapping of distinct urls to bundles.  A bundle's
- * `files` property may be modified after the manifest is created, but it
- * is always expected that no two bundles within the same manifest will
- * contain the same file url.
+ * A bundle manifest is a mapping of distinct urls to bundles and acts as
+ * a specification for the bundle operation.
  */
 export class BundleManifest {
-  // Map of bundle url to bundle.
+  /**
+   * Map of bundle url to bundle. bundle's `files` property may be modified
+   * after the manifest is created, but it is always expected that no two
+   * bundles within the same manifest will contain the same file url.
+   */
   bundles: Map<UrlString, Bundle>;
 
   /**
-   * Given a collection of bundles and a BundleUrlMapper to generate urls for
-   * them, the constructor populates the `bundles` map.
+   * Given a collection of bundles and a `BundleUrlMapper` to generate urls
+   * for them, the constructor populates the `bundles` map.  Files in a
+   * bundle should be unique to that bundle.
    */
   constructor(bundles: Bundle[], urlMapper: BundleUrlMapper) {
     this.bundles = urlMapper(Array.from(bundles));
