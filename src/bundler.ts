@@ -110,6 +110,10 @@ export class Bundler {
     const bundledDocuments: DocumentCollection =
         new Map<string, BundledDocument>();
 
+    // Clone manifest here, to ensure subsequent out-of-band changes to it
+    // do not impact the plan-of-record for the duration of the operation.
+    manifest = clone(manifest);
+
     for (const bundleEntry of manifest.bundles) {
       const bundleUrl = bundleEntry[0];
       const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
