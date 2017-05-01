@@ -58,38 +58,35 @@ export class AssignedBundle {
 }
 
 /**
- * A bundle manifest is a mapping of urls to bundles.
+ * A bundle manifest is a mapping of distinct urls to bundles and acts as
+ * a specification for the bundle operation.
  */
 export class BundleManifest {
-  // Map of bundle url to bundle.
+  /**
+   * Map of bundle url to bundle. bundle's `files` property may be modified
+   * after the manifest is created, but it is always expected that no two
+   * bundles within the same manifest will contain the same file url.
+   */
   bundles: Map<UrlString, Bundle>;
 
-  // Map of file url to bundle url.
-  private _bundleUrlForFile: Map<UrlString, UrlString>;
-
   /**
-   * Given a collection of bundles and a BundleUrlMapper to generate urls for
-   * them, the constructor populates the `bundles` and `files` index properties.
+   * Given a collection of bundles and a `BundleUrlMapper` to generate urls
+   * for them, the constructor populates the `bundles` map.  Files in a
+   * bundle should be unique to that bundle.
    */
   constructor(bundles: Bundle[], urlMapper: BundleUrlMapper) {
     this.bundles = urlMapper(Array.from(bundles));
-    this._bundleUrlForFile = new Map();
-
-    for (const bundleMapEntry of this.bundles) {
-      const bundleUrl = bundleMapEntry[0];
-      const bundle = bundleMapEntry[1];
-      for (const fileUrl of bundle.files) {
-        console.assert(!this._bundleUrlForFile.has(fileUrl));
-        this._bundleUrlForFile.set(fileUrl, bundleUrl);
-      }
-    }
   }
 
-  // Convenience method to return a bundle for a constituent file url.
-  getBundleForFile(url: UrlString): AssignedBundle|undefined {
-    const bundleUrl = this._bundleUrlForFile.get(url);
-    if (bundleUrl) {
-      return {bundle: this.bundles.get(bundleUrl)!, url: bundleUrl};
+  /**
+   * Returns the url and bundle when a bundle is found containing the
+   * specified file url.
+   */
+  getBundleForFile(fileUrl: UrlString): AssignedBundle|undefined {
+    for (const [bundleUrl, bundle] of this.bundles) {
+      if (bundle.files.has(fileUrl)) {
+        return {bundle: bundle, url: bundleUrl};
+      }
     }
   }
 }

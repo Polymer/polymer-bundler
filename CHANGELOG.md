@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   lazy imports just like regular imports.
 - BREAKING: Bundler now inlines Scripts and CSS by default.  Pass `inlineCss`
   and `inlineScripts` as `false` explicitly to disable.
+- `BundleManifest` will now look up a `Bundle` by its `files` even after the
+  `files` property has been mutated.  Supports post-processing of manifest
+  which may be much simpler that embedding some kinds of manipulation inside
+  `strategy` functions.  Notably, this enables users to emulate the old
+  `add-import` behavior by updating a target bundle.
 - Fixed an issue where `exclude` option did not actually support folder names.
 
 ## 2.0.0-pre.12 - 2017-04-14
