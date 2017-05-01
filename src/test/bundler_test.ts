@@ -184,6 +184,52 @@ suite('Bundler', () => {
     assert.ok(dom5.query(await bundle(inputPath), meta));
   });
 
+  test('lazy imports are treated like entrypoints', async () => {
+    const bundler = new Bundler({
+      analyzer:
+          new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')})
+    });
+    const manifest = await bundler.generateManifest(['lazy-imports.html']);
+    const documents = await bundler.bundle(manifest);
+
+    const lazyImports =
+        parse5.serialize(documents.get('lazy-imports.html')!.ast);
+    assert.include(
+        lazyImports,
+        '<link rel="lazy-import" href="lazy-imports/lazy-import-1.html">',
+        'lazy-imports.html should keep link to lazy-import-1.html');
+    assert.include(
+        lazyImports,
+        '<link rel="lazy-import" href="lazy-imports/lazy-import-2.html">',
+        'lazy-imports.html should keep link to lazy-import-2.html');
+
+    const lazyImport1 =
+        parse5.serialize(documents.get('lazy-imports/lazy-import-1.html')!.ast);
+    assert.include(
+        lazyImport1,
+        '<link rel="import" href="../shared_bundle_1.html">',
+        'lazy-import-1.html should have a link to shared_bundle_1.html');
+    assert.include(
+        lazyImport1,
+        '<link rel="lazy-import" href="shared-eager-and-lazy-import-1.html">',
+        'lazy-import-1.html should keep link to lazy-import shared-eager-and-lazy-import-1.html');
+
+    const lazyImport2 =
+        parse5.serialize(documents.get('lazy-imports/lazy-import-2.html')!.ast);
+    assert.include(
+        lazyImport2,
+        '<link rel="import" href="../shared_bundle_1.html">',
+        'lazy-import-2.html should have a link to shared_bundle_1.html');
+    assert.include(
+        lazyImport2,
+        '<link rel="import" href="shared-eager-and-lazy-import-1.html">',
+        'lazy-import-2.html should keep link to import shared-eager-and-lazy-import-1.html');
+
+    const sharedEagerBundle =
+        parse5.serialize(documents.get('shared_bundle_1.html')!.ast);
+    assert.include(sharedEagerBundle, '<div id="shared-eager-import-2">');
+  });
+
   test('Handle <base> tag', async () => {
     const span = preds.AND(
         preds.hasTagName('span'), preds.hasAttrValue('href', 'imports/hello'));

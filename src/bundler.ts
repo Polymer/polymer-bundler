@@ -113,8 +113,7 @@ export class Bundler {
     for (const bundleEntry of manifest.bundles) {
       const bundleUrl = bundleEntry[0];
       const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-      const bundledAst =
-          await this._bundleDocument(bundle, manifest, bundle.bundle.files);
+      const bundledAst = await this._bundleDocument(bundle, manifest);
       bundledDocuments.set(
           bundleUrl, {ast: bundledAst, files: Array.from(bundle.bundle.files)});
     }
@@ -227,10 +226,8 @@ export class Bundler {
    */
   private async _bundleDocument(
       docBundle: AssignedBundle,
-      bundleManifest: BundleManifest,
-      bundleImports?: Set<string>): Promise<ASTNode> {
+      bundleManifest: BundleManifest): Promise<ASTNode> {
     let document = await this._prepareBundleDocument(docBundle);
-
     const ast = clone(document.parsedDocument.ast);
     dom5.removeFakeRootElements(ast);
     this._appendHtmlImportsForBundle(ast, docBundle);

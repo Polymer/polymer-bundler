@@ -11,7 +11,6 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import {AssertionError} from 'assert';
 import {Analyzer, Document} from 'polymer-analyzer';
 import {UrlString} from './url-utils';
 
@@ -21,79 +20,89 @@ export interface DepsIndex {
 }
 
 type DependencyMapEntry = {
-  url: UrlString,
-  // Eagerly reachable dependencies.
-  eager: Set<UrlString>,
-  // Lazily reachable dependencies - may also include some entries from "eager"
-  lazy: Set<UrlString>
+  // All dependencies of the document
+  deps: Set<UrlString>,
+  // Eagerly loaded dependencies of the document
+  eagerDeps: Set<UrlString>,
+  // All imports defined with `<link rel="lazy-import">`
+  lazyImports: Set<UrlString>,
 };
 
-async function _getTransitiveDependencies(
-    url: UrlString, entrypoints: UrlString[], analyzer: Analyzer):
-    Promise<DependencyMapEntry> {
-      const analysis = await analyzer.analyze([url]);
-      const document = analysis.getDocument(url);
-      if (!(document instanceof Document)) {
-        const message = document && document.message || 'unknown';
-        throw new Error(`Unable to get document ${url}: ${message}`);
-      }
-      const imports = document.getFeatures(
-          {kind: 'import', externalPackages: true, imported: true});
-      const eagerImports = new Set<UrlString>();
-      const lazyImports = new Set<UrlString>();
-      for (const htmlImport of imports) {
-        try {
-          console.assert(
-              htmlImport.url, 'htmlImport: %s has no url', htmlImport);
-        } catch (err) {
-          if (err instanceof AssertionError) {
-            continue;
-          }
-          throw err;
-        }
+/**
+ * For a given document, return a set of transitive dependencies, including
+ * all eagerly-loaded dependencies and lazy html imports encountered.
+ */
+function getHtmlDependencies(document: Document): DependencyMapEntry {
+  const deps = new Set<UrlString>();
+  const eagerDeps = new Set<UrlString>();
+  const lazyImports = new Set<UrlString>();
+  _getHtmlDependencies(document, true, deps, eagerDeps, lazyImports);
+  return {deps, eagerDeps, lazyImports};
+}
 
-        switch (htmlImport.type) {
-          case 'html-import':
-            eagerImports.add(htmlImport.document.url);
-            break;
-          case 'lazy-html-import':
-            lazyImports.add(htmlImport.document.url);
-            break;
-        }
-      }
-      return {url: url, eager: eagerImports, lazy: lazyImports};
+function _getHtmlDependencies(
+    document: Document,
+    viaEager: boolean,
+    visited: Set<UrlString>,
+    visitedEager: Set<UrlString>,
+    lazyImports: Set<UrlString>) {
+  const htmlImports = document.getFeatures(
+      {kind: 'html-import', imported: false, externalPackages: true});
+  for (const htmlImport of htmlImports) {
+    const importUrl = htmlImport.document.url;
+    if (htmlImport.lazy) {
+      lazyImports.add(importUrl);
     }
-
-export async function buildDepsIndex(
-    entrypoints: UrlString[], analyzer: Analyzer): Promise<DepsIndex> {
-  const entrypointToDependencies: Map<UrlString, Set<UrlString>> = new Map();
-  const dependenciesToEntrypoints: Map<UrlString, Set<UrlString>> = new Map();
-  const queue = Array.from(entrypoints);
-  const visitedEntrypoints = new Set<UrlString>();
-  while (queue.length > 0) {
-    const entrypoint = queue.shift()!;
-    if (visitedEntrypoints.has(entrypoint)) {
+    if (visitedEager.has(importUrl)) {
       continue;
     }
-    const dependencyEntry =
-        await _getTransitiveDependencies(entrypoint, entrypoints, analyzer);
-    const dependencies = new Set(dependencyEntry.eager);
-    dependencies.add(entrypoint);
-    entrypointToDependencies.set(entrypoint, dependencies);
-    for (const lazyDependency of dependencyEntry.lazy.values()) {
-      if (!visitedEntrypoints.has(lazyDependency)) {
-        queue.push(lazyDependency);
+    const isEager = viaEager && !htmlImport.lazy;
+    if (isEager) {
+      visitedEager.add(importUrl);
+      // In this case we've visited a node eagerly for the first time,
+      // so recurse
+    } else if (visited.has(importUrl)) {
+      // In this case we're seeing a node lazily again, so don't recurse
+      continue;
+    }
+    visited.add(importUrl);
+    _getHtmlDependencies(
+        htmlImport.document, isEager, visited, visitedEager, lazyImports);
+  }
+}
+
+/**
+ * Analyzes all entrypoints and determines each of their transitive
+ * dependencies.
+ * @param entrypoints Urls of entrypoints to analyze.
+ * @param analyzer
+ * @return a dependency index of every entrypoint, including entrypoints that
+ *     were discovered as lazy entrypoints in the graph.
+ */
+export async function buildDepsIndex(
+    entrypoints: UrlString[], analyzer: Analyzer): Promise<DepsIndex> {
+  const depsIndex = {entrypointToDeps: new Map<UrlString, Set<UrlString>>()};
+  const analysis = await analyzer.analyze(entrypoints);
+  const allEntrypoints = new Set<UrlString>(entrypoints);
+
+  // Note: the following iteration takes place over a Set which may be added
+  // to from within the loop.
+  for (const entrypoint of allEntrypoints) {
+    const documentOrWarning = analysis.getDocument(entrypoint);
+    if (documentOrWarning instanceof Document) {
+      const deps = getHtmlDependencies(documentOrWarning);
+      depsIndex.entrypointToDeps.set(
+          entrypoint, new Set([entrypoint, ...deps.eagerDeps]));
+      // Add lazy imports to the set of all entrypoints, which supports
+      // recursive
+      for (const dep of deps.lazyImports) {
+        allEntrypoints.add(dep);
       }
+    } else {
+      const message = documentOrWarning && documentOrWarning.message || '';
+      console.warn(`Unable to get document ${entrypoint}: ${message}`);
     }
   }
-  entrypointToDependencies.forEach((dependencies, entrypoint, map) => {
-    for (const dependency of dependencies) {
-      if (!dependenciesToEntrypoints.has(dependency)) {
-        dependenciesToEntrypoints.set(dependency, new Set());
-      }
-      const entrypointSet = dependenciesToEntrypoints.get(dependency)!;
-      entrypointSet.add(entrypoint);
-    }
-  });
-  return {entrypointToDeps: entrypointToDependencies};
+
+  return depsIndex;
 }

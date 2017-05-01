@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- BREAKING: Bundler now supports "lazy imports" aka `<link rel="lazy-import">`.
+  URLs which are imported lazily are implicitly treated as entrypoints.  This
+  is a breaking change because, previously, Bundler would incorrectly treat
+  lazy imports just like regular imports.
 - BREAKING: Bundler now inlines Scripts and CSS by default.  Pass `inlineCss`
   and `inlineScripts` as `false` explicitly to disable.
 - Fixed an issue where `exclude` option did not actually support folder names.
