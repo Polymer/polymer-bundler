@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 2.0.0-pre.13 - 2017-05-01
 - BREAKING: Bundler now supports "lazy imports" aka `<link rel="lazy-import">`.
   URLs which are imported lazily are implicitly treated as entrypoints.  This
   is a breaking change because, previously, Bundler would incorrectly treat
