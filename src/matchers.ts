@@ -68,7 +68,9 @@ export const inlineJavascript: Matcher =
     predicates.AND(predicates.NOT(predicates.hasAttr('src')), jsMatcher);
 export const htmlImport: Matcher = predicates.AND(
     predicates.hasTagName('link'),
-    predicates.hasAttrValue('rel', 'import'),
+    predicates.OR(
+        predicates.hasAttrValue('rel', 'import'),
+        predicates.hasAttrValue('rel', 'lazy-import')),
     predicates.hasAttr('href'),
     predicates.OR(
         predicates.hasAttrValue('type', 'text/html'),

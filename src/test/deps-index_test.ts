@@ -23,66 +23,64 @@ import {buildDepsIndex} from '../deps-index';
 chai.config.showDiff = true;
 
 suite('Bundler', () => {
-  const common = 'test/html/shards/polymer_style_project/common.html';
-  const dep1 = 'test/html/shards/polymer_style_project/dep1.html';
-  const dep2 = 'test/html/shards/polymer_style_project/dep2.html';
-  const endpoint1 = 'test/html/shards/polymer_style_project/endpoint1.html';
-  const endpoint2 = 'test/html/shards/polymer_style_project/endpoint2.html';
 
-  let analyzer: Analyzer;
-  beforeEach(() => {
-    analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
-  });
-
-  const expectedEntrypointsToDeps = new Map([
-    [common, new Set([common])],
-    [endpoint1, new Set([common, dep1, endpoint1])],
-    [endpoint2, new Set([common, dep2, endpoint1, endpoint2, dep1])],
-  ]);
-
-  const deepMapSetEqual =
-      (actual: Map<string, Set<string>>,
-       expected: Map<string, Set<string>>) => {
-        // Check keys
-        const actualEntries = Array.from(actual.entries());
-        const expectedEntries = Array.from(expected.entries());
-        // Iterate and check values
-        const sortEntry = (a: any, b: any) => a[0].localeCompare(b[0]);
-        actualEntries.sort(sortEntry);
-        expectedEntries.sort(sortEntry);
-        if (actualEntries.length !== expectedEntries.length) {
-          throw new chai.AssertionError(
-              `Expected ${expectedEntries.length} entries, ` +
-              `got ${actualEntries.length} instead`);
-        }
-
-        for (let i = 0; i < actualEntries.length; i++) {
-          const actualEntry = actualEntries[i];
-          const expectedEntry = expectedEntries[i];
-          if (actualEntry[0] !== expectedEntry[0]) {
-            throw 'keys mismatched';
-          }
-          if (actualEntry[1].size !== expectedEntry[1].size) {
-            throw new chai.AssertionError(
-                `Wrong number of entries for key: ${actualEntry[0]}`);
-          }
-          for (const setEntry of actualEntry[1].values()) {
-            if (!expectedEntry[1].has(setEntry)) {
-              throw new chai.AssertionError(
-                  `Found unexpected key: ${setEntry}`);
-            }
-          }
-        }
-      };
+  function serializeMap(map: Map<string, Set<string>>): string {
+    let s = '';
+    for (const key of Array.from(map.keys()).sort()) {
+      const set = map.get(key)!;
+      s = s + `${key}:\n`;
+      for (const value of Array.from(set).sort()) {
+        s = s + ` - ${value}\n`;
+      }
+    }
+    return s;
+  }
 
   suite('Deps index tests', () => {
-    test(
-        'with 3 endpoints, all deps are properly assigned to the index', () => {
-          return buildDepsIndex([common, endpoint1, endpoint2], analyzer)
-              .then((index) => {
-                deepMapSetEqual(
-                    index.entrypointToDeps, expectedEntrypointsToDeps);
-              });
-        });
+    test('with 3 endpoints', async () => {
+      const common = 'common.html';
+      const dep1 = 'dep1.html';
+      const dep2 = 'dep2.html';
+      const endpoint1 = 'endpoint1.html';
+      const endpoint2 = 'endpoint2.html';
+      const analyzer = new Analyzer({
+        urlLoader: new FSUrlLoader('test/html/shards/polymer_style_project')
+      });
+      const expectedEntrypointsToDeps = new Map([
+        [common, new Set([common])],
+        [endpoint1, new Set([common, dep1, endpoint1])],
+        [endpoint2, new Set([common, dep2, endpoint1, endpoint2, dep1])],
+      ]);
+      const index =
+          await buildDepsIndex([common, endpoint1, endpoint2], analyzer);
+      chai.assert.deepEqual(
+          serializeMap(index.entrypointToDeps),
+          serializeMap(expectedEntrypointsToDeps));
+    });
+
+    // Deps index currently treats lazy imports as eager imports.
+    test('with lazy imports', async () => {
+      const entrypoint = 'lazy-imports.html';
+      const lazyImport1 = 'lazy-imports/lazy-import-1.html';
+      const lazyImport2 = 'lazy-imports/lazy-import-2.html';
+      const shared1 = 'lazy-imports/shared-eager-import-1.html';
+      const shared2 = 'lazy-imports/shared-eager-import-2.html';
+      const shared3 = 'lazy-imports/shared-eager-and-lazy-import-1.html';
+      const deeply1 = 'lazy-imports/deeply-lazy-import-1.html';
+      const deeply2 = 'lazy-imports/deeply-lazy-imports-eager-import-1.html';
+      const analyzer =
+          new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')});
+      const expectedEntrypointsToDeps = new Map([
+        [entrypoint, new Set([entrypoint])],
+        [lazyImport1, new Set([lazyImport1, shared1, shared2])],
+        [lazyImport2, new Set([lazyImport2, shared1, shared2, shared3])],
+        [shared3, new Set([shared3])],
+        [deeply1, new Set([deeply1, deeply2])],
+      ]);
+      const index = await buildDepsIndex([entrypoint], analyzer);
+      chai.assert.deepEqual(
+          serializeMap(index.entrypointToDeps),
+          serializeMap(expectedEntrypointsToDeps));
+    });
   });
 });

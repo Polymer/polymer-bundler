@@ -33,7 +33,8 @@ import {UrlString} from './url-utils';
 
 /**
  * Inline the contents of the html document returned by the link tag's href
- * at the location of the link tag and then remove the link tag.
+ * at the location of the link tag and then remove the link tag.  If the link
+ * is a `lazy-import` link, content will not be inlined.
  */
 export async function inlineHtmlImport(
     analyzer: Analyzer,
@@ -44,6 +45,7 @@ export async function inlineHtmlImport(
     manifest: BundleManifest,
     enableSourcemaps: boolean,
     rewriteUrlsInTemplates?: boolean) {
+  const isLazy = dom5.getAttribute(linkTag, 'rel')!.match(/lazy-import/i);
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
   if (!analyzer.canResolveUrl(importUrl)) {
@@ -74,14 +76,26 @@ export async function inlineHtmlImport(
     return;
   }
 
+  const importIsInAnotherBundle = importBundle.url !== docBundle.url;
+
+  // If we've previously visited a url that is part of another bundle, it
+  // means we've already handled that entire bundle.
+  const alreadyProcessedImportBundle = importIsInAnotherBundle &&
+      visitedUrls.has(importBundle.url) &&
+      // We just added resolvedImportUrl to the visitedUrls, so we'll exclude
+      // the case where resolved import url is not the import bundle.  This
+      // scenario happens when importing a file from a bundle with the same
+      // name as the original import, like an entrypoint or lazy edge.
+      resolvedImportUrl !== importBundle.url;
+
   // If the html import refers to a file which is bundled and has a different
   // url, then lets just rewrite the href to point to the bundle url.
-  if (importBundle.url !== docBundle.url) {
-    // If we've previously visited a url that is part of another bundle, it
-    // means we've handled that entire bundle, so we guard against inlining any
-    // other file from that bundle by checking the visited urls for the bundle
-    // url itself.
-    if (visitedUrls.has(importBundle.url)) {
+  if (importIsInAnotherBundle) {
+    // We guard against inlining any other file from a bundle that has
+    // already been imported.  A special exclusion is for lazy imports, which
+    // are not deduplicated here, since we can not infer developer's intent from
+    // here.
+    if (alreadyProcessedImportBundle && !isLazy) {
       astUtils.removeElementAndNewline(linkTag);
       return;
     }
@@ -93,8 +107,14 @@ export async function inlineHtmlImport(
     return;
   }
 
-  // If the analyzer could not load the import document, we can't inline it, so
-  // lets skip it.
+  // We don't actually inline a `lazy-import` because its loading is intended
+  // to be deferred until the client requests it.
+  if (isLazy) {
+    return;
+  }
+
+  // If the analyzer could not load the import document, we can't inline it,
+  // so lets skip it.
   const htmlImport = findInSet(
       document.getFeatures(
           {kind: 'html-import', imported: true, externalPackages: true}),
