@@ -27,9 +27,9 @@ This will install `polymer-bundler` to `/usr/local/bin/polymer-bundler` (you may
 for this step).
 
 ## Options
-- `-h`|`--help`: print this message
-- `-v`|`--version`: print version number
-- `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
+- `-h`|`--help`: Print this message
+- `-v`|`--version`: Print version number
+- `--exclude <path>`: Exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
@@ -87,13 +87,18 @@ polymer-bundler as a library has two exported function.
 
 `polymer-bundler` constructor takes an object of options similar to the command line options:
 
-- `excludes`: URLs to exclude from inlining. URLs may represent files or folders. HTML tags referencing excluded URLs are preserved.
-- `inlineCss`: Inline external stylesheets.
-- `inlineScripts`: Inline external scripts.
-- `sourcemaps`: Honor (or create) sourcemaps for inline scripts
-- `stripComments`: Remove non-license HTML comments.
+- `analyzer`: An instance of `Analyzer` (from `polymer-analyzer` package) which provides analysis of and access to files to operate on.
+- `excludes`: Array of URLs to exclude from inlining. URLs may represent files or folders. HTML tags referencing excluded URLs are preserved.
+- `inlineCss`: Inlines content of external stylesheets, i.e. `<link rel="stylesheet" href="...">`, into `<style>` tags in the bundled html.  Defaults to `true`.
+- `inlineScripts`: Inline content of external scripts, i.e. `<script src="...">`, into `<script>` tags in the bundled html.  Defaults to `true`.
+- `rewriteUrlsInTemplates`: Fix URLs found inside element attributes `action`, `assetpath`, `href`, `src`, `style` for elements inside `<template>` tags.  Defaults to `false`.
+- `sourcemaps`: Honor (or create) sourcemaps for inline scripts.  Defaults to `false`.
+- `stripComments`: Remove non-license HTML comments.  Defaults to `false`.
 
-`.generateManifest()` takes a collection of entrypoint urls and promises a `BundleManifest` which describes all the bundles it will produce.
+`.generateManifest()` takes a collection of entrypoint urls and promises a `BundleManifest` which describes all the bundles it will produce.  This method also takes two optional arguments:
+  - `strategy` is a function that manipulates the arrangement of imports to bundles.
+  - `urlMapper` is a function that takes bundles and returns a map of urls to bundles.
+  - See [bundle-manifest](https://github.com/Polymer/polymer-bundler/blob/master/src/bundle-manifest.ts) for details.
 
 `.bundle()` takes a `BundleManifest` and returns a promise to a `DocumentCollection` of the generated bundles.
 
@@ -107,6 +112,7 @@ var bundler = new require('polymer-bundler')({
   excludes: [],
   inlineScripts: true,
   inlineCss: true,
+  rewriteUrlsInTemplates: false,
   stripComments: true
 });
 bundler.generateManifest([target]).then((manifest) => {
