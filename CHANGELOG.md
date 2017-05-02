@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+- Added new url mapper functions to make customizing destination of shared
+  bundle files easier: `generateSharedBundleUrlMapper` and
+  `generateCountingSharedBundleUrlMapper` in `src/build-manifest`.
+
 ## 2.0.0-pre.13 - 2017-05-01
 - BREAKING: Bundler now supports "lazy imports" aka `<link rel="lazy-import">`.
   URLs which are imported lazily are implicitly treated as entrypoints.  This

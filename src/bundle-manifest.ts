@@ -151,7 +151,8 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
  * Chains multiple bundle strategy functions together so the output of one
  * becomes the input of the next and so-on.
  */
-export function composeStrategies(strategies: BundleStrategy[]) {
+export function composeStrategies(strategies: BundleStrategy[]):
+    BundleStrategy {
   return strategies.reduce((s1, s2) => (b) => s2(s1(b)));
 }
 
@@ -286,19 +287,47 @@ function getBundleEntrypoint(bundle: Bundle): UrlString|null {
 }
 
 /**
- * A simple function for generating shared bundle names based on a counter.
+ * Creates a bundle url mapper function which maps non-shared bundles to the
+ * urls of their single entrypoint and yields responsibility for naming
+ * remaining shared bundle urls to the `mapper` function argument.  The
+ * mapper function takes a collection of shared bundles and a url map, calling
+ * `.set(url, bundle)` for each.
  */
-export function sharedBundleUrlMapper(bundles: Bundle[]):
-    Map<UrlString, Bundle> {
-  let counter = 0;
-  const urlMap = new Map<UrlString, Bundle>();
-  for (const bundle of bundles) {
-    const bundleEntrypoint = getBundleEntrypoint(bundle);
-    if (bundleEntrypoint) {
-      urlMap.set(bundleEntrypoint, bundle);
-    } else {
-      urlMap.set(`shared_bundle_${++counter}.html`, bundle);
+export function generateSharedBundleUrlMapper(
+    mapper: (sharedBundles: Bundle[]) => UrlString[]): BundleUrlMapper {
+  return (bundles: Bundle[]) => {
+    const urlMap = new Map<UrlString, Bundle>();
+    const sharedBundles: Bundle[] = [];
+    for (const bundle of bundles) {
+      const bundleEntrypoint = getBundleEntrypoint(bundle);
+      if (bundleEntrypoint) {
+        urlMap.set(bundleEntrypoint, bundle);
+      } else {
+        sharedBundles.push(bundle);
+      }
     }
-  }
-  return urlMap;
+    mapper(sharedBundles)
+        .forEach((url, i) => urlMap.set(url, sharedBundles[i]));
+    return urlMap;
+  };
 }
+
+/**
+ * Creates a bundle url mapper function which takes a prefix and appends an
+ * incrementing value, starting with `1` to the filename.
+ */
+export function generateCountingSharedBundleUrlMapper(urlPrefix: UrlString):
+    BundleUrlMapper {
+  return generateSharedBundleUrlMapper(
+      (sharedBundles: Bundle[]): UrlString[] => {
+        let counter = 0;
+        return sharedBundles.map((b) => `${urlPrefix}${++counter}.html`);
+      });
+}
+
+/**
+ * A simple function for generating shared bundle names based on a counter.
+ * Generated filenames: `shared_bundle_1.html`, `shared_bundle_2.html`, etc.
+ */
+export const sharedBundleUrlMapper =
+    generateCountingSharedBundleUrlMapper('shared_bundle_');

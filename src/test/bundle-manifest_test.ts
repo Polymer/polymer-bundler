@@ -16,7 +16,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 
-import {Bundle, BundleManifest, composeStrategies, generateBundles, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, TransitiveDependenciesMap} from '../bundle-manifest';
+import {Bundle, BundleManifest, composeStrategies, generateBundles, generateCountingSharedBundleUrlMapper, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedBundleUrlMapper, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, sharedBundleUrlMapper, TransitiveDependenciesMap} from '../bundle-manifest';
 
 chai.config.showDiff = true;
 
@@ -53,23 +53,34 @@ suite('BundleManifest', () => {
       '[A,B]->[E]'
     ].map(deserializeBundle);
 
-    function mapper(bundles: Bundle[]) {
-      const entries = bundles.map((bundle): [string, Bundle] => {
-        return [Array.from(bundle.entrypoints).join('_'), bundle];
-      });
-      return new Map(entries);
-    }
-
-    const manifest = new BundleManifest(bundles, mapper);
+    const underscoreJoinMapper = generateSharedBundleUrlMapper(
+        (bundles) => bundles.map((b) => Array.from(b.entrypoints).join('_')));
 
     test('maps bundles to urls based on given mapper', () => {
+      const manifest = new BundleManifest(bundles, underscoreJoinMapper);
       assert.equal(serializeBundle(manifest.bundles.get('A_B')!), '[A,B]->[E]');
     });
 
     test('enables bundles to be found by constituent file', () => {
+      const manifest = new BundleManifest(bundles, underscoreJoinMapper);
       assert.equal(manifest.getBundleForFile('E')!.url, 'A_B');
       assert.equal(
           serializeBundle(manifest.getBundleForFile('E')!.bundle),
+          '[A,B]->[E]');
+    });
+
+    test('sharedBundleUrlMapper prefixes urls with "shared_bundle_"', () => {
+      const manifest = new BundleManifest(bundles, sharedBundleUrlMapper);
+      assert.equal(
+          serializeBundle(manifest.bundles.get('shared_bundle_1.html')!),
+          '[A,B]->[E]');
+    });
+
+    test('generateCountingSharedBundleUrlMapper allows a custom prefix', () => {
+      const manifest = new BundleManifest(
+          bundles, generateCountingSharedBundleUrlMapper('path/to/shared'));
+      assert.equal(
+          serializeBundle(manifest.bundles.get('path/to/shared1.html')!),
           '[A,B]->[E]');
     });
   });
