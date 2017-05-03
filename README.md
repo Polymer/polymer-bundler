@@ -27,9 +27,9 @@ This will install `polymer-bundler` to `/usr/local/bin/polymer-bundler` (you may
 for this step).
 
 ## Options
-- `-h`|`--help`: print this message
-- `-v`|`--version`: print version number
-- `--exclude <path>`: exclude a URL. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
+- `-h`|`--help`: Print this message
+- `-v`|`--version`: Print version number
+- `--exclude <path>`: Exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
@@ -87,12 +87,20 @@ polymer-bundler as a library has two exported function.
 
 `polymer-bundler` constructor takes an object of options similar to the command line options:
 
-- `analyzer`: An instance of `polymer-analyzer` that it will fork.  Bundler will create its own instance if this is not given.
+- `analyzer`: An instance of `polymer-analyzer` which provides analysis of and access to files to bundle.  Bundler will create its own instance if this is not given.
 - `excludes`: URLs to exclude from inlining. URLs may represent files or folders. HTML tags referencing excluded URLs are preserved.
 - `inlineCss`: Inline external stylesheets.
 - `inlineScripts`: Inline external scripts.
 - `sourcemaps`: Honor (or create) sourcemaps for inline scripts
 - `stripComments`: Remove non-license HTML comments.
+
+- `inlineCss`: Will inline content of external stylesheets into the bundle html.  Defaults to `true`.
+- `inlineScripts`: Inline content of external scripts into the bundled html.  Defaults to `true`.
+- `rewriteUrlsInTemplates`: Fix URLs found inside certain element attributes (`action`, `assetpath`, `href`, `src`, and `style`) inside `<template>` tags.  Defaults to `false`.
+- `sourcemaps`: Honor (or create) sourcemaps for inline scripts.  Defaults to `false`.
+- `stripComments`: Remove all HTML comments, except those containing `@license`, which are merely de-duplicated.  Defaults to `false`.
+- `strategy`: A function that takes an array of bundles and returns an array of bundles.  There are a strategy factory functions available in [bundle-manifest](https://github.com/Polymer/polymer-bundler/blob/master/src/bundle-manifest.ts).
+- `urlMapper`: A function that takes bundles and returns a Map of urls to bundles.  This determines the location of generated bundles.  There are url mapper factory functions available in [bundle-manifest](https://github.com/Polymer/polymer-bundler/blob/master/src/bundle-manifest.ts)
 
 `.generateManifest()` takes a collection of entrypoint urls and promises a `BundleManifest` which describes all the bundles it will produce.
 
@@ -115,26 +123,28 @@ An example with a customized sharding strategy and output layout:
 var analyzer = new require('polymer-analyzer')({
   urlLoader: new FSUrlLoader(path.resolve('.'))
 });
+const {Bundler,
+       generateSharedDepsMergeStrategy,
+       generateCountingSharedBundleUrlMapper} = require('polymer-bundler');
 
-var bundler = new require('polymer-bundler')({
+var bundler = new Bundler({
   analyzer: analyzer,
   excludes: [],
   inlineScripts: true,
   inlineCss: true,
-  stripComments: true
+  rewriteUrlsInTemplates: false,
+  stripComments: true,
+  // Merge shared dependencies into a single bundle when
+  // they have at least three dependents.
+  strategy: generateSharedDepsMergeStrategy(3),
+  // Shared bundles will be named:
+  // `shared/bundle_1.html`, `shared/bundle_2.html`, etc...
+  urlMapper: generateCountingSharedBundleUrlMapper('shared/bundle_');
 });
 
-// Merge shared dependencies into a single bundle when they have at least three dependents.
-var strategy = new require('polymer-bundler/lib/bundle-manifest')
-  .generateSharedDepsMergeStrategy(3);
-
-// Shared bundles should be named `shared/bundle_1.html`, `shared/bundle_2.html`, etc...
-var urlMapper = new require('polymer-bundler/lib/bundle-manifest')
-  .generateCountingSharedBundleUrlMapper('shared/bundle_');
-
-// Provide the strategy and the url mapper to produce a manifest using custom behavior.
-bundler.generateManifest(['item.html', 'cart.html'], strategy, urlMapper)
-    .then((manifest) => {
+// Provide the strategy and the url mapper to produce a
+// manifest using custom behavior.
+bundler.generateManifest(['item.html', 'cart.html']).then((manifest) => {
   bundler.bundle(manifest).then((bundles) => {
     // do stuff here with your bundles
   });

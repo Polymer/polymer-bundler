@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- BREAKING: Bundler options now include `strategy` and `urlMapper`.  These
+  have been moved from the `generateManifest` method which now only takes
+  the `entrypoints` array.
 - Added new url mapper functions to make customizing destination of shared
   bundle files easier: `generateSharedBundleUrlMapper` and
   `generateCountingSharedBundleUrlMapper` in `src/build-manifest`.

@@ -56,6 +56,12 @@ export interface Options {
 
   // Remove of all comments (except those containing '@license') when true.
   stripComments?: boolean;
+
+  // Bundle strategy used to construct the output bundles.
+  strategy?: BundleStrategy;
+
+  // Bundle url mapper function that produces urls for the generated bundles.
+  urlMapper?: BundleUrlMapper;
 }
 
 export interface BundleResult {
@@ -71,6 +77,8 @@ export class Bundler {
   rewriteUrlsInTemplates: boolean;
   sourcemaps: boolean;
   stripComments: boolean;
+  strategy: BundleStrategy;
+  urlMapper: BundleUrlMapper;
 
   private _overlayUrlLoader: InMemoryOverlayUrlLoader;
 
@@ -98,6 +106,11 @@ export class Bundler {
         opts.inlineScripts === undefined ? true : opts.inlineScripts;
     this.rewriteUrlsInTemplates = Boolean(opts.rewriteUrlsInTemplates);
     this.sourcemaps = Boolean(opts.sourcemaps);
+    this.strategy =
+        opts.strategy || bundleManifestLib.generateSharedDepsMergeStrategy();
+    this.urlMapper = opts.urlMapper ||
+        bundleManifestLib.generateCountingSharedBundleUrlMapper(
+            'shared_bundle_');
   }
 
   /**
@@ -134,24 +147,14 @@ export class Bundler {
    * @param mapper - A function that produces urls for the generated bundles.
    *     See 'polymer-analyzer/src/bundle-manifest'.
    */
-  async generateManifest(
-      entrypoints: UrlString[],
-      strategy?: BundleStrategy,
-      mapper?: BundleUrlMapper): Promise<BundleManifest> {
-    if (!strategy) {
-      strategy = bundleManifestLib.generateSharedDepsMergeStrategy();
-    }
-    if (!mapper) {
-      mapper = bundleManifestLib.generateCountingSharedBundleUrlMapper(
-          'shared_bundle_');
-    }
+  async generateManifest(entrypoints: UrlString[]): Promise<BundleManifest> {
     const dependencyIndex =
         await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
     let bundles =
         bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
     this._filterExcludesFromBundles(bundles);
-    bundles = strategy(bundles);
-    return new BundleManifest(bundles, mapper);
+    bundles = this.strategy(bundles);
+    return new BundleManifest(bundles, this.urlMapper);
   }
 
   /**
