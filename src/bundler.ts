@@ -28,6 +28,7 @@ import {updateSourcemapLocations} from './source-map';
 import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
 
+export * from './bundle-manifest';
 
 // TODO(usergenic): Add plylog
 export interface Options {
@@ -141,7 +142,8 @@ export class Bundler {
       strategy = bundleManifestLib.generateSharedDepsMergeStrategy();
     }
     if (!mapper) {
-      mapper = bundleManifestLib.sharedBundleUrlMapper;
+      mapper = bundleManifestLib.generateCountingSharedBundleUrlMapper(
+          'shared_bundle_');
     }
     const dependencyIndex =
         await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);

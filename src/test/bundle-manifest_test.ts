@@ -16,7 +16,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 
-import {Bundle, BundleManifest, composeStrategies, generateBundles, generateCountingSharedBundleUrlMapper, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedBundleUrlMapper, generateSharedDepsMergeStrategy, generateShellMergeStrategy, invertMultimap, sharedBundleUrlMapper, TransitiveDependenciesMap} from '../bundle-manifest';
+import {Bundle, BundleManifest, composeStrategies, generateBundles, generateCountingSharedBundleUrlMapper, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedBundleUrlMapper, generateSharedDepsMergeStrategy, generateShellMergeStrategy, TransitiveDependenciesMap} from '../bundle-manifest';
 
 chai.config.showDiff = true;
 
@@ -69,13 +69,6 @@ suite('BundleManifest', () => {
           '[A,B]->[E]');
     });
 
-    test('sharedBundleUrlMapper prefixes urls with "shared_bundle_"', () => {
-      const manifest = new BundleManifest(bundles, sharedBundleUrlMapper);
-      assert.equal(
-          serializeBundle(manifest.bundles.get('shared_bundle_1.html')!),
-          '[A,B]->[E]');
-    });
-
     test('generateCountingSharedBundleUrlMapper allows a custom prefix', () => {
       const manifest = new BundleManifest(
           bundles, generateCountingSharedBundleUrlMapper('path/to/shared'));
@@ -103,27 +96,6 @@ suite('BundleManifest', () => {
             '[D]->[D,E]',
             '[F]->[F]'
           ]);
-    });
-  });
-
-  suite('invertMultimap', () => {
-
-    test('produces an index of dependencies and dependent files', () => {
-      const depsIndex = new Map<string, Set<string>>();
-      depsIndex.set('A', new Set(['A', 'B', 'C', 'G']));
-      depsIndex.set('D', new Set(['D', 'B', 'E']));
-      depsIndex.set('F', new Set(['F', 'G']));
-
-      const invertedIndex = invertMultimap(depsIndex);
-      assert.equal(
-          Array.from(invertedIndex.keys()).sort().join(), 'A,B,C,D,E,F,G');
-      assert.equal(Array.from(invertedIndex.get('A')!).join(), 'A');
-      assert.equal(Array.from(invertedIndex.get('B')!).join(), 'A,D');
-      assert.equal(Array.from(invertedIndex.get('C')!).join(), 'A');
-      assert.equal(Array.from(invertedIndex.get('D')!).join(), 'D');
-      assert.equal(Array.from(invertedIndex.get('E')!).join(), 'D');
-      assert.equal(Array.from(invertedIndex.get('F')!).join(), 'F');
-      assert.equal(Array.from(invertedIndex.get('G')!).join(), 'A,F');
     });
   });
 
