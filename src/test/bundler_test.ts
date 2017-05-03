@@ -171,6 +171,17 @@ suite('Bundler', () => {
         dom5.queryAll(await bundle(inputPath), matchers.hiddenDiv).length, 1);
   });
 
+  test('lazy imports are not moved', async () => {
+    assert.equal(
+        dom5.queryAll(
+                await bundle('test/html/imports/lazy-imports.html'),
+                preds.AND(
+                    preds.parentMatches(preds.hasTagName('dom-module')),
+                    matchers.htmlImport))
+            .length,
+        2);
+  });
+
   test('dom-modules have assetpath', async () => {
     const assetpath = preds.AND(
         preds.hasTagName('dom-module'),
@@ -196,11 +207,11 @@ suite('Bundler', () => {
         parse5.serialize(documents.get('lazy-imports.html')!.ast);
     assert.include(
         lazyImports,
-        '<link rel="lazy-import" href="lazy-imports/lazy-import-1.html">',
+        '<link rel="lazy-import" group="one" href="lazy-imports/lazy-import-1.html">',
         'lazy-imports.html should keep link to lazy-import-1.html');
     assert.include(
         lazyImports,
-        '<link rel="lazy-import" href="lazy-imports/lazy-import-2.html">',
+        '<link rel="lazy-import" group="two" href="lazy-imports/lazy-import-2.html">',
         'lazy-imports.html should keep link to lazy-import-2.html');
 
     const lazyImport1 =

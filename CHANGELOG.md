@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added new url mapper functions to make customizing destination of shared
   bundle files easier: `generateSharedBundleUrlMapper` and
   `generateCountingSharedBundleUrlMapper` in `src/build-manifest`.
+- Fixed an issue where `<link rel="lazy-import">` tags were being moved
+  out of their containing `<dom-module>` tags.
 
 ## 2.0.0-pre.13 - 2017-05-01
 - BREAKING: Bundler now supports "lazy imports" aka `<link rel="lazy-import">`.
