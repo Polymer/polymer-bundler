@@ -21,7 +21,7 @@ import * as pathLib from 'path';
 import {Bundler} from '../bundler';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
-import {BundleStrategy, generateShellMergeStrategy} from '../bundle-manifest';
+import {generateShellMergeStrategy} from '../bundle-manifest';
 
 console.warn('polymer-bundler is currently in alpha! Use at your own risk!');
 
@@ -162,6 +162,10 @@ options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = options['inline-scripts'];
 options.inlineCss = options['inline-css'];
 
+if (options.shell) {
+  options.strategy = generateShellMergeStrategy(options.shell, 2);
+}
+
 interface JsonManifest {
   [entrypoint: string]: UrlString[];
 }
@@ -182,14 +186,12 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
   let bundles: DocumentCollection;
   try {
     const shell = options.shell;
-    let strategy: BundleStrategy|undefined;
     if (shell) {
       if (entrypoints.indexOf(shell) === -1) {
         throw new Error('Shell must be provided as `in-html`');
       }
-      strategy = generateShellMergeStrategy(shell, 2);
     }
-    const manifest = await bundler.generateManifest(entrypoints, strategy);
+    const manifest = await bundler.generateManifest(entrypoints);
     bundles = await bundler.bundle(manifest);
   } catch (err) {
     console.log(err);

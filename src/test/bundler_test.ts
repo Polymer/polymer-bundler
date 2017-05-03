@@ -70,17 +70,21 @@ suite('Bundler', () => {
   suite('Applying strategy', () => {
 
     test('inlines css/scripts of html imports added by strategy', async () => {
-      const bundler = new Bundler({inlineCss: true, inlineScripts: true});
-      // This strategy adds a file not in the original document to the bundle.
-      const strategy = (bundles: Bundle[]): Bundle[] => {
-        bundles.forEach((b) => {
-          b.files.add('test/html/imports/external-script.html');
-          b.files.add('test/html/imports/import-linked-style.html');
-        });
-        return bundles;
-      };
+      const bundler = new Bundler({
+        inlineCss: true,
+        inlineScripts: true,
+        // This strategy adds a file not in the original document to the bundle.
+        strategy: (bundles: Bundle[]): Bundle[] => {
+          bundles.forEach((b) => {
+            b.files.add('test/html/imports/external-script.html');
+            b.files.add('test/html/imports/import-linked-style.html');
+          });
+          return bundles;
+        },
+      });
+
       const manifest =
-          await bundler.generateManifest(['test/html/default.html'], strategy);
+          await bundler.generateManifest(['test/html/default.html']);
       const documents = await bundler.bundle(manifest);
       const document = documents.get('test/html/default.html')!;
       assert(document);
@@ -103,20 +107,21 @@ suite('Bundler', () => {
 
     test(
         'changes the href to another bundle if strategy moved it', async () => {
-          const bundler = new Bundler();
-          // This strategy moves a file to a different bundle.
-          const strategy = (bundles: Bundle[]): Bundle[] => {
-            return [
-              new Bundle(
-                  new Set(['test/html/default.html']),
-                  new Set(['test/html/default.html'])),
-              new Bundle(
-                  new Set(),  //
-                  new Set(['test/html/imports/simple-import.html']))
-            ];
-          };
-          const manifest = await bundler.generateManifest(
-              ['test/html/default.html'], strategy);
+          const bundler = new Bundler({
+            // This strategy moves a file to a different bundle.
+            strategy: (bundles: Bundle[]): Bundle[] => {
+              return [
+                new Bundle(
+                    new Set(['test/html/default.html']),
+                    new Set(['test/html/default.html'])),
+                new Bundle(
+                    new Set(),  //
+                    new Set(['test/html/imports/simple-import.html']))
+              ];
+            }
+          });
+          const manifest =
+              await bundler.generateManifest(['test/html/default.html']);
           const documents = await bundler.bundle(manifest);
           const document = documents.get('test/html/default.html')!;
           assert(document);

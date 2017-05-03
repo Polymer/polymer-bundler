@@ -19,7 +19,7 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
-import {BundleStrategy, generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
+import {generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import {DocumentCollection} from '../document-collection';
@@ -41,15 +41,14 @@ suite('Bundler', () => {
   const entrypoint1 = 'test/html/shards/shop_style_project/entrypoint1.html';
   const entrypoint2 = 'test/html/shards/shop_style_project/entrypoint2.html';
 
-  async function bundleMultiple(
-      inputPath: string[], strategy: BundleStrategy, opts?: BundlerOptions):
+  async function bundleMultiple(inputPath: string[], opts?: BundlerOptions):
       Promise<DocumentCollection> {
         const bundlerOpts = opts || {};
         if (!bundlerOpts.analyzer) {
           bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
         }
         bundler = new Bundler(bundlerOpts);
-        const manifest = await bundler.generateManifest(inputPath, strategy);
+        const manifest = await bundler.generateManifest(inputPath);
         return await bundler.bundle(manifest);
       }
 
@@ -69,9 +68,9 @@ suite('Bundler', () => {
 
   suite('Sharded builds', () => {
     test('with 3 entrypoints, all deps are in their places', async () => {
-      const strategy = generateSharedDepsMergeStrategy(2);
-      const docs =
-          await bundleMultiple([common, entrypoint1, entrypoint2], strategy);
+      const docs = await bundleMultiple(
+          [common, entrypoint1, entrypoint2],
+          {strategy: generateSharedDepsMergeStrategy(2)});
       assert.equal(docs.size, 4);
       const commonDoc: parse5.ASTNode = docs.get(common)!.ast;
       assert.isDefined(commonDoc);
@@ -98,9 +97,9 @@ suite('Bundler', () => {
     });
 
     test('with 2 entrypoints and shell, all deps in their places', async () => {
-      const strategy = generateShellMergeStrategy(shell, 2);
-      const docs =
-          await bundleMultiple([shell, entrypoint1, entrypoint2], strategy);
+      const docs = await bundleMultiple(
+          [shell, entrypoint1, entrypoint2],
+          {strategy: generateShellMergeStrategy(shell, 2)});
       assert.equal(docs.size, 3);
       const shellDoc: parse5.ASTNode = docs.get(shell)!.ast;
       assert.isDefined(shellDoc);
