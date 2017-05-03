@@ -29,7 +29,7 @@ for this step).
 ## Options
 - `-h`|`--help`: print this message
 - `-v`|`--version`: print version number
-- `--exclude <path>`: exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
+- `--exclude <path>`: exclude a URL. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
@@ -87,6 +87,7 @@ polymer-bundler as a library has two exported function.
 
 `polymer-bundler` constructor takes an object of options similar to the command line options:
 
+- `analyzer`: An instance of `polymer-analyzer` that it will fork.  Bundler will create its own instance if this is not given.
 - `excludes`: URLs to exclude from inlining. URLs may represent files or folders. HTML tags referencing excluded URLs are preserved.
 - `inlineCss`: Inline external stylesheets.
 - `inlineScripts`: Inline external scripts.
@@ -97,11 +98,24 @@ polymer-bundler as a library has two exported function.
 
 `.bundle()` takes a `BundleManifest` and returns a promise to a `DocumentCollection` of the generated bundles.
 
-Example:
+A simple example:
+```js
+var parse5 = require('parse5');
+var bundler = new require('polymer-bundler')();
+bundler.generateManifest(['my-app.html']).then((manifest) => {
+  bundle(manifest).then((bundles) => {
+    console.log('<!-- BUNDLED VERSION OF my-app.html: -->');
+    console.log(parse5.serialize(bundles.get('my-app.html').ast));
+  });
+});
+```
+
+An example with a customized sharding strategy and output layout:
 ```js
 var analyzer = new require('polymer-analyzer')({
   urlLoader: new FSUrlLoader(path.resolve('.'))
 });
+
 var bundler = new require('polymer-bundler')({
   analyzer: analyzer,
   excludes: [],
@@ -109,11 +123,20 @@ var bundler = new require('polymer-bundler')({
   inlineCss: true,
   stripComments: true
 });
-bundler.generateManifest([target]).then((manifest) => {
+
+// Merge shared dependencies into a single bundle when they have at least three dependents.
+var strategy = new require('polymer-bundler/lib/bundle-manifest')
+  .generateSharedDepsMergeStrategy(3);
+
+// Shared bundles should be named `shared/bundle_1.html`, `shared/bundle_2.html`, etc...
+var urlMapper = new require('polymer-bundler/lib/bundle-manifest')
+  .generateCountingSharedBundleUrlMapper('shared/bundle_');
+
+// Provide the strategy and the url mapper to produce a manifest using custom behavior.
+bundler.generateManifest(['item.html', 'cart.html'], strategy, urlMapper)
+    .then((manifest) => {
   bundler.bundle(manifest).then((bundles) => {
-    /**
-      * do stuff here
-      */
+    // do stuff here with your bundles
   });
 });
 ```
