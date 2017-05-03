@@ -76,6 +76,14 @@ export const htmlImport: Matcher = predicates.AND(
         predicates.hasAttrValue('type', 'text/html'),
         predicates.hasAttrValue('type', 'html'),
         predicates.NOT(predicates.hasAttr('type'))));
+export const eagerHtmlImport: Matcher = predicates.AND(
+    predicates.hasTagName('link'),
+    predicates.hasAttrValue('rel', 'import'),
+    predicates.hasAttr('href'),
+    predicates.OR(
+        predicates.hasAttrValue('type', 'text/html'),
+        predicates.hasAttrValue('type', 'html'),
+        predicates.NOT(predicates.hasAttr('type'))));
 export const stylesheetImport: Matcher = predicates.AND(
     predicates.hasTagName('link'),
     predicates.hasAttrValue('rel', 'import'),

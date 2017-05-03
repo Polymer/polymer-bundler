@@ -417,7 +417,7 @@ export class Bundler {
     if (!head) {
       return;
     }
-    const firstHtmlImport = dom5.query(head, matchers.htmlImport);
+    const firstHtmlImport = dom5.query(head, matchers.eagerHtmlImport);
     if (!firstHtmlImport) {
       return;
     }
