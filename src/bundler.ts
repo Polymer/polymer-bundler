@@ -443,7 +443,8 @@ export class Bundler {
     const unhiddenHtmlImports = dom5.queryAll(
         ast,
         dom5.predicates.AND(
-            matchers.htmlImport, dom5.predicates.NOT(matchers.inHiddenDiv)));
+            matchers.eagerHtmlImport,
+            dom5.predicates.NOT(matchers.inHiddenDiv)));
     for (const htmlImport of unhiddenHtmlImports) {
       astUtils.removeElementAndNewline(htmlImport);
       dom5.append(this._findOrCreateHiddenDiv(ast), htmlImport);

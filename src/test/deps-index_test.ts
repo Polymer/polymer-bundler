@@ -71,7 +71,7 @@ suite('Bundler', () => {
       const analyzer =
           new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')});
       const expectedEntrypointsToDeps = new Map([
-        [entrypoint, new Set([entrypoint])],
+        [entrypoint, new Set([entrypoint, shared3])],
         [lazyImport1, new Set([lazyImport1, shared1, shared2])],
         [lazyImport2, new Set([lazyImport2, shared1, shared2, shared3])],
         [shared3, new Set([shared3])],
