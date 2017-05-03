@@ -5,10 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## 2.0.0-pre.14 - 2017-05-03
 - BREAKING: Bundler options now include `strategy` and `urlMapper`.  These
-  have been moved from the `generateManifest` method which now only takes
-  the `entrypoints` array.
+  have been moved out from the `generateManifest` method which now only
+  takes the `entrypoints` array.  If you had code that used this method,
+  you'll need to move those parameters to your `new Bundler({...})` call.
 - Added new url mapper functions to make customizing destination of shared
   bundle files easier: `generateSharedBundleUrlMapper` and
   `generateCountingSharedBundleUrlMapper` in `src/build-manifest`.
