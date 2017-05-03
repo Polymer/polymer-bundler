@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   `generateCountingSharedBundleUrlMapper` in `src/build-manifest`.
 - Fixed an issue where `<link rel="lazy-import">` tags were being moved
   out of their containing `<dom-module>` tags.
+- Export all of the bundle manifest types and functions on the default
+  namespace of `polymer-bundler`.
 
 ## 2.0.0-pre.13 - 2017-05-01
 - BREAKING: Bundler now supports "lazy imports" aka `<link rel="lazy-import">`.

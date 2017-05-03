@@ -95,19 +95,12 @@ export class BundleManifest {
 }
 
 /**
- * Returns true if both sets contain exactly the same items.  This check is
- * order-independent.
+ * Chains multiple bundle strategy functions together so the output of one
+ * becomes the input of the next and so-on.
  */
-function setEquals(set1: Set<any>, set2: Set<any>): boolean {
-  if (set1.size !== set2.size) {
-    return false;
-  }
-  for (const item of set1) {
-    if (!set2.has(item)) {
-      return false;
-    }
-  }
-  return true;
+export function composeStrategies(strategies: BundleStrategy[]):
+    BundleStrategy {
+  return strategies.reduce((s1, s2) => (b) => s2(s1(b)));
 }
 
 /**
@@ -148,12 +141,16 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
 }
 
 /**
- * Chains multiple bundle strategy functions together so the output of one
- * becomes the input of the next and so-on.
+ * Creates a bundle url mapper function which takes a prefix and appends an
+ * incrementing value, starting with `1` to the filename.
  */
-export function composeStrategies(strategies: BundleStrategy[]):
-    BundleStrategy {
-  return strategies.reduce((s1, s2) => (b) => s2(s1(b)));
+export function generateCountingSharedBundleUrlMapper(urlPrefix: UrlString):
+    BundleUrlMapper {
+  return generateSharedBundleUrlMapper(
+      (sharedBundles: Bundle[]): UrlString[] => {
+        let counter = 0;
+        return sharedBundles.map((b) => `${urlPrefix}${++counter}.html`);
+      });
 }
 
 /**
@@ -175,6 +172,32 @@ export function generateEagerMergeStrategy(entrypoint: UrlString):
 export function generateMatchMergeStrategy(predicate: (b: Bundle) => boolean):
     BundleStrategy {
   return (bundles: Bundle[]) => mergeMatchingBundles(bundles, predicate);
+}
+
+/**
+ * Creates a bundle url mapper function which maps non-shared bundles to the
+ * urls of their single entrypoint and yields responsibility for naming
+ * remaining shared bundle urls to the `mapper` function argument.  The
+ * mapper function takes a collection of shared bundles and a url map, calling
+ * `.set(url, bundle)` for each.
+ */
+export function generateSharedBundleUrlMapper(
+    mapper: (sharedBundles: Bundle[]) => UrlString[]): BundleUrlMapper {
+  return (bundles: Bundle[]) => {
+    const urlMap = new Map<UrlString, Bundle>();
+    const sharedBundles: Bundle[] = [];
+    for (const bundle of bundles) {
+      const bundleEntrypoint = getBundleEntrypoint(bundle);
+      if (bundleEntrypoint) {
+        urlMap.set(bundleEntrypoint, bundle);
+      } else {
+        sharedBundles.push(bundle);
+      }
+    }
+    mapper(sharedBundles)
+        .forEach((url, i) => urlMap.set(url, sharedBundles[i]));
+    return urlMap;
+  };
 }
 
 /**
@@ -220,26 +243,6 @@ export function generateShellMergeStrategy(
 }
 
 /**
- * Inverts a map of collections such that  `{a:[c,d], b:[c,e]}` would become
- * `{c:[a,b], d:[a], e:[b]}`.
- */
-export function invertMultimap(multimap: Map<any, Set<any>>):
-    Map<any, Set<any>> {
-  const inverted = new Map<any, Set<any>>();
-
-  for (const entry of multimap.entries()) {
-    const value = entry[0], keys = entry[1];
-    for (const key of keys) {
-      const set = inverted.get(key) || new Set();
-      set.add(value);
-      inverted.set(key, set);
-    }
-  }
-
-  return inverted;
-}
-
-/**
  * Given an Array of bundles, produce a single bundle with the entrypoints and
  * files of all bundles represented.
  */
@@ -273,6 +276,7 @@ export function mergeMatchingBundles(
   return newBundles;
 }
 
+
 /**
  * Return the entrypoint that represents the given bundle, or null if no
  * entrypoint represents the bundle.
@@ -287,47 +291,36 @@ function getBundleEntrypoint(bundle: Bundle): UrlString|null {
 }
 
 /**
- * Creates a bundle url mapper function which maps non-shared bundles to the
- * urls of their single entrypoint and yields responsibility for naming
- * remaining shared bundle urls to the `mapper` function argument.  The
- * mapper function takes a collection of shared bundles and a url map, calling
- * `.set(url, bundle)` for each.
+ * Inverts a map of collections such that  `{a:[c,d], b:[c,e]}` would become
+ * `{c:[a,b], d:[a], e:[b]}`.
  */
-export function generateSharedBundleUrlMapper(
-    mapper: (sharedBundles: Bundle[]) => UrlString[]): BundleUrlMapper {
-  return (bundles: Bundle[]) => {
-    const urlMap = new Map<UrlString, Bundle>();
-    const sharedBundles: Bundle[] = [];
-    for (const bundle of bundles) {
-      const bundleEntrypoint = getBundleEntrypoint(bundle);
-      if (bundleEntrypoint) {
-        urlMap.set(bundleEntrypoint, bundle);
-      } else {
-        sharedBundles.push(bundle);
-      }
+function invertMultimap(multimap: Map<any, Set<any>>): Map<any, Set<any>> {
+  const inverted = new Map<any, Set<any>>();
+
+  for (const entry of multimap.entries()) {
+    const value = entry[0], keys = entry[1];
+    for (const key of keys) {
+      const set = inverted.get(key) || new Set();
+      set.add(value);
+      inverted.set(key, set);
     }
-    mapper(sharedBundles)
-        .forEach((url, i) => urlMap.set(url, sharedBundles[i]));
-    return urlMap;
-  };
+  }
+
+  return inverted;
 }
 
 /**
- * Creates a bundle url mapper function which takes a prefix and appends an
- * incrementing value, starting with `1` to the filename.
+ * Returns true if both sets contain exactly the same items.  This check is
+ * order-independent.
  */
-export function generateCountingSharedBundleUrlMapper(urlPrefix: UrlString):
-    BundleUrlMapper {
-  return generateSharedBundleUrlMapper(
-      (sharedBundles: Bundle[]): UrlString[] => {
-        let counter = 0;
-        return sharedBundles.map((b) => `${urlPrefix}${++counter}.html`);
-      });
+function setEquals(set1: Set<any>, set2: Set<any>): boolean {
+  if (set1.size !== set2.size) {
+    return false;
+  }
+  for (const item of set1) {
+    if (!set2.has(item)) {
+      return false;
+    }
+  }
+  return true;
 }
-
-/**
- * A simple function for generating shared bundle names based on a counter.
- * Generated filenames: `shared_bundle_1.html`, `shared_bundle_2.html`, etc.
- */
-export const sharedBundleUrlMapper =
-    generateCountingSharedBundleUrlMapper('shared_bundle_');
