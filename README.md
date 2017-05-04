@@ -108,10 +108,10 @@ polymer-bundler as a library has two exported function.
 
 A simple example:
 ```js
-var parse5 = require('parse5');
-var bundler = new require('polymer-bundler')();
+const parse5 = require('parse5');
+const bundler = new require('polymer-bundler').Bundler();
 bundler.generateManifest(['my-app.html']).then((manifest) => {
-  bundle(manifest).then((bundles) => {
+  bundler.bundle(manifest).then((bundles) => {
     console.log('<!-- BUNDLED VERSION OF my-app.html: -->');
     console.log(parse5.serialize(bundles.get('my-app.html').ast));
   });
@@ -120,14 +120,15 @@ bundler.generateManifest(['my-app.html']).then((manifest) => {
 
 An example with a customized sharding strategy and output layout:
 ```js
-var analyzer = new require('polymer-analyzer')({
+const {Analyzer, FSUrlLoader} = require('polymer-analyzer');
+const analyzer = new Analyzer({
   urlLoader: new FSUrlLoader(path.resolve('.'))
 });
+
 const {Bundler,
        generateSharedDepsMergeStrategy,
        generateCountingSharedBundleUrlMapper} = require('polymer-bundler');
-
-var bundler = new Bundler({
+const bundler = new Bundler({
   analyzer: analyzer,
   excludes: [],
   inlineScripts: true,
@@ -139,7 +140,7 @@ var bundler = new Bundler({
   strategy: generateSharedDepsMergeStrategy(3),
   // Shared bundles will be named:
   // `shared/bundle_1.html`, `shared/bundle_2.html`, etc...
-  urlMapper: generateCountingSharedBundleUrlMapper('shared/bundle_');
+  urlMapper: generateCountingSharedBundleUrlMapper('shared/bundle_')
 });
 
 // Provide the strategy and the url mapper to produce a
