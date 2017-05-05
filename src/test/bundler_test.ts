@@ -177,14 +177,39 @@ suite('Bundler', () => {
   });
 
   test('lazy imports are not moved', async () => {
-    assert.equal(
-        dom5.queryAll(
-                await bundle('test/html/imports/lazy-imports.html'),
-                preds.AND(
-                    preds.parentMatches(preds.hasTagName('dom-module')),
-                    matchers.htmlImport))
-            .length,
-        2);
+    const bundler = new Bundler({
+      analyzer:
+          new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')})
+    });
+    const manifest = await bundler.generateManifest(['lazy-imports.html']);
+    const documents = await bundler.bundle(manifest);
+
+    // The `lazy-imports.html` file has 3 imports in the head of the
+    // document.  The first is eager and should be moved.  The remaining
+    // two are lazy imports and should not be moved.
+    const entrypointBundle = documents.get('lazy-imports.html')!.ast;
+    console.log(parse5.serialize(entrypointBundle));
+    const entrypointLazyImports = dom5.queryAll(
+        entrypointBundle,
+        // Query for all HTML imports so we can prove only the 2 lazy ones
+        // remain.
+        preds.AND(preds.parentMatches(matchers.head), matchers.htmlImport));
+    assert.equal(entrypointLazyImports.length, 2);
+    assert.equal(dom5.getAttribute(entrypointLazyImports[0]!, 'group'), 'one');
+    assert.equal(dom5.getAttribute(entrypointLazyImports[1]!, 'group'), 'two');
+
+    // The shared bundle has an inlined dom-module with an embedded
+    // lazy-import via `shared-eager-import-2.html` that we are verifying
+    // is preserved.
+    const sharedBundle = documents.get('shared_bundle_1.html')!.ast;
+    const sharedLazyImports = dom5.queryAll(
+        sharedBundle,
+        preds.AND(
+            preds.parentMatches(preds.hasTagName('dom-module')),
+            preds.hasTagName('link'),
+            preds.hasAttrValue('rel', 'lazy-import')));
+    assert.equal(sharedLazyImports.length, 1);
+    assert.equal(dom5.getAttribute(sharedLazyImports[0]!, 'group'), 'deeply');
   });
 
   test('dom-modules have assetpath', async () => {

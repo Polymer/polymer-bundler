@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+- Fixed case where an inlined import's `<link rel="lazy-import">` tags
+  were being moved.
+
 ## 2.0.0-pre.14 - 2017-05-03
 - BREAKING: Bundler options now include `strategy` and `urlMapper`.  These
   have been moved out from the `generateManifest` method which now only
