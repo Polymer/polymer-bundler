@@ -90,8 +90,6 @@ polymer-bundler as a library has two exported function.
 - `analyzer`: An instance of `polymer-analyzer` which provides analysis of and access to files to bundle.  Bundler will create its own instance if this is not given.
 - `excludes`: URLs to exclude from inlining. URLs may represent files or folders. HTML tags referencing excluded URLs are preserved.
 - `sourcemaps`: Honor (or create) sourcemaps for inline scripts
-- `stripComments`: Remove non-license HTML comments.
-
 - `inlineCss`: Will inline content of external stylesheets into the bundle html.  Defaults to `true`.
 - `inlineScripts`: Inline content of external scripts into the bundled html.  Defaults to `true`.
 - `rewriteUrlsInTemplates`: Fix URLs found inside certain element attributes (`action`, `assetpath`, `href`, `src`, and `style`) inside `<template>` tags.  Defaults to `false`.
