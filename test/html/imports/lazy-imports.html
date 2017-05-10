@@ -1,12 +1,17 @@
 <html>
 
 <head>
-    <link rel="import" href="lazy-imports/shared-eager-and-lazy-import-1.html">
-    <link rel="lazy-import" group="one" href="lazy-imports/lazy-import-1.html">
-    <link rel="lazy-import" group="two" href="lazy-imports/lazy-import-2.html">
+  <link rel="import" href="lazy-imports/shared-eager-and-lazy-import-1.html">
+  <link rel="lazy-import" group="one" href="lazy-imports/lazy-import-1.html">
 </head>
 
 <body>
+  <dom-module id="element-1">
+    <link rel="lazy-import" group="two" href="lazy-imports/lazy-import-2.html">
+    <script>
+      console.log('element-1');
+    </script>
+  </dom-module>
 </body>
 
 </html>

@@ -5,9 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!-- ## Unreleased -->
-
+## Unreleased
+- Fixed issue where an inlined import's `<link rel="lazy-import">` href
+  was being adjusted, but should not be adjusted when governed by the
+  containing dom-module's assetpath.
 <!-- Add new, unreleased changes here. -->
+
 
 ## 2.0.0-pre.15 - 2017-05-08
 - Fixed case where an inlined import's `<link rel="lazy-import">` tags

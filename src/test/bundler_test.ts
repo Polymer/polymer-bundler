@@ -184,19 +184,18 @@ suite('Bundler', () => {
     const manifest = await bundler.generateManifest(['lazy-imports.html']);
     const documents = await bundler.bundle(manifest);
 
-    // The `lazy-imports.html` file has 3 imports in the head of the
+    // The `lazy-imports.html` file has 2 imports in the head of the
     // document.  The first is eager and should be moved.  The remaining
-    // two are lazy imports and should not be moved.
+    // one is lazy and should not be moved.
     const entrypointBundle = documents.get('lazy-imports.html')!.ast;
-    console.log(parse5.serialize(entrypointBundle));
     const entrypointLazyImports = dom5.queryAll(
         entrypointBundle,
         // Query for all HTML imports so we can prove only the 2 lazy ones
         // remain.
         preds.AND(preds.parentMatches(matchers.head), matchers.htmlImport));
-    assert.equal(entrypointLazyImports.length, 2);
+    assert.equal(entrypointLazyImports.length, 1);
     assert.equal(dom5.getAttribute(entrypointLazyImports[0]!, 'group'), 'one');
-    assert.equal(dom5.getAttribute(entrypointLazyImports[1]!, 'group'), 'two');
+
 
     // The shared bundle has an inlined dom-module with an embedded
     // lazy-import via `shared-eager-import-2.html` that we are verifying
@@ -269,6 +268,32 @@ suite('Bundler', () => {
     const sharedEagerBundle =
         parse5.serialize(documents.get('shared_bundle_1.html')!.ast);
     assert.include(sharedEagerBundle, '<div id="shared-eager-import-2">');
+  });
+
+  test('lazy imports governed by dom-module assetpath', async () => {
+    const bundler = new Bundler({
+      analyzer: new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')}),
+      // We exclude this import so we can examine how the eager import URL
+      // is modified in the bundled lazy-import-2.html document.
+      excludes: ['lazy-imports/subfolder/eager-import-2.html'],
+    });
+    const manifest = await bundler.generateManifest(['lazy-imports.html']);
+    const documents = await bundler.bundle(manifest);
+    const lazyImport2 =
+        parse5.serialize(documents.get('lazy-imports/lazy-import-2.html')!.ast);
+    assert.include(
+        lazyImport2,
+        '<dom-module id="eager-import-1" assetpath="subfolder/">',
+        'lazy-import-2.html should have inlined subfolder/eager-import-1.html');
+    assert.include(
+        lazyImport2,
+        '<link rel="lazy-import" href="lazy-import-3.html">',
+        'The href of the lazy import link in the inlined dom-module should not be modified');
+    assert.include(
+        lazyImport2,
+        '<link rel="import" href="subfolder/eager-import-2.html">',
+        'The href of an eager import link inside a dom-module should still be modified');
+
   });
 
   test('Handle <base> tag', async () => {
