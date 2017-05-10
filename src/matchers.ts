@@ -90,8 +90,8 @@ export const hiddenDiv: Matcher = predicates.AND(
 export const inHiddenDiv: Matcher = predicates.parentMatches(hiddenDiv);
 
 export const elementsWithUrlAttrsToRewrite: Matcher = predicates.AND(
-    predicates.OR.apply(
-        null, constants.URL_ATTR.map((attr) => predicates.hasAttr(attr))),
+    predicates.OR(
+        ...constants.URL_ATTR.map((attr) => predicates.hasAttr(attr))),
     predicates.NOT(predicates.AND(
         predicates.parentMatches(predicates.hasTagName('dom-module')),
         lazyHtmlImport)));
