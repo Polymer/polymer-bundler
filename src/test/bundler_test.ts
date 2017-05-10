@@ -190,8 +190,6 @@ suite('Bundler', () => {
     const entrypointBundle = documents.get('lazy-imports.html')!.ast;
     const entrypointLazyImports = dom5.queryAll(
         entrypointBundle,
-        // Query for all HTML imports so we can prove only the 2 lazy ones
-        // remain.
         preds.AND(preds.parentMatches(matchers.head), matchers.htmlImport));
     assert.equal(entrypointLazyImports.length, 1);
     assert.equal(dom5.getAttribute(entrypointLazyImports[0]!, 'group'), 'one');
