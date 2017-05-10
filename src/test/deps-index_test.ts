@@ -63,9 +63,12 @@ suite('Bundler', () => {
       const entrypoint = 'lazy-imports.html';
       const lazyImport1 = 'lazy-imports/lazy-import-1.html';
       const lazyImport2 = 'lazy-imports/lazy-import-2.html';
+      const lazyImport3 = 'lazy-imports/subfolder/lazy-import-3.html';
       const shared1 = 'lazy-imports/shared-eager-import-1.html';
       const shared2 = 'lazy-imports/shared-eager-import-2.html';
       const shared3 = 'lazy-imports/shared-eager-and-lazy-import-1.html';
+      const eager1 = 'lazy-imports/subfolder/eager-import-1.html';
+      const eager2 = 'lazy-imports/subfolder/eager-import-2.html';
       const deeply1 = 'lazy-imports/deeply-lazy-import-1.html';
       const deeply2 = 'lazy-imports/deeply-lazy-imports-eager-import-1.html';
       const analyzer =
@@ -73,7 +76,11 @@ suite('Bundler', () => {
       const expectedEntrypointsToDeps = new Map([
         [entrypoint, new Set([entrypoint, shared3])],
         [lazyImport1, new Set([lazyImport1, shared1, shared2])],
-        [lazyImport2, new Set([lazyImport2, shared1, shared2, shared3])],
+        [
+          lazyImport2,
+          new Set([lazyImport2, shared1, shared2, shared3, eager1, eager2])
+        ],
+        [lazyImport3, new Set([lazyImport3])],
         [shared3, new Set([shared3])],
         [deeply1, new Set([deeply1, deeply2])],
       ]);

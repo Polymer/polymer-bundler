@@ -363,7 +363,7 @@ function rewriteElementAttrsBaseUrl(
     rewriteUrlsInTemplates?: boolean) {
   const nodes = dom5.queryAll(
       ast,
-      matchers.urlAttrs,
+      matchers.elementsWithUrlAttrsToRewrite,
       undefined,
       rewriteUrlsInTemplates ? dom5.childNodesIncludeTemplate :
                                dom5.defaultChildNodes);

@@ -20,12 +20,6 @@ import {predicates} from 'dom5';
 import * as parse5 from 'parse5';
 
 export interface Matcher { (node: parse5.ASTNode): boolean; }
-;
-
-export const urlAttrMatchers: (Matcher)[] =
-    constants.URL_ATTR.map((attr) => predicates.hasAttr(attr));
-
-export const urlAttrs: Matcher = predicates.OR.apply(null, urlAttrMatchers);
 
 export const jsMatcher: Matcher = predicates.AND(
     predicates.hasTagName('script'),
@@ -66,16 +60,6 @@ export const externalJavascript: Matcher =
     predicates.AND(predicates.hasAttr('src'), jsMatcher);
 export const inlineJavascript: Matcher =
     predicates.AND(predicates.NOT(predicates.hasAttr('src')), jsMatcher);
-export const htmlImport: Matcher = predicates.AND(
-    predicates.hasTagName('link'),
-    predicates.OR(
-        predicates.hasAttrValue('rel', 'import'),
-        predicates.hasAttrValue('rel', 'lazy-import')),
-    predicates.hasAttr('href'),
-    predicates.OR(
-        predicates.hasAttrValue('type', 'text/html'),
-        predicates.hasAttrValue('type', 'html'),
-        predicates.NOT(predicates.hasAttr('type'))));
 export const eagerHtmlImport: Matcher = predicates.AND(
     predicates.hasTagName('link'),
     predicates.hasAttrValue('rel', 'import'),
@@ -84,6 +68,16 @@ export const eagerHtmlImport: Matcher = predicates.AND(
         predicates.hasAttrValue('type', 'text/html'),
         predicates.hasAttrValue('type', 'html'),
         predicates.NOT(predicates.hasAttr('type'))));
+export const lazyHtmlImport: Matcher = predicates.AND(
+    predicates.hasTagName('link'),
+    predicates.hasAttrValue('rel', 'lazy-import'),
+    predicates.hasAttr('href'),
+    predicates.OR(
+        predicates.hasAttrValue('type', 'text/html'),
+        predicates.hasAttrValue('type', 'html'),
+        predicates.NOT(predicates.hasAttr('type'))));
+export const htmlImport: Matcher =
+    predicates.OR(eagerHtmlImport, lazyHtmlImport);
 export const stylesheetImport: Matcher = predicates.AND(
     predicates.hasTagName('link'),
     predicates.hasAttrValue('rel', 'import'),
@@ -94,6 +88,13 @@ export const hiddenDiv: Matcher = predicates.AND(
     predicates.hasAttr('hidden'),
     predicates.hasAttr('by-polymer-bundler'));
 export const inHiddenDiv: Matcher = predicates.parentMatches(hiddenDiv);
+
+export const elementsWithUrlAttrsToRewrite: Matcher = predicates.AND(
+    predicates.OR(
+        ...constants.URL_ATTR.map((attr) => predicates.hasAttr(attr))),
+    predicates.NOT(predicates.AND(
+        predicates.parentMatches(predicates.hasTagName('dom-module')),
+        lazyHtmlImport)));
 
 /**
  * TODO(usergenic): From garlicnation's PR comment - "This matcher needs to deal
