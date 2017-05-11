@@ -122,7 +122,7 @@ export class Bundler {
    */
   async bundle(manifest: BundleManifest): Promise<BundleResult> {
     const documents: DocumentCollection = new Map<string, BundledDocument>();
-    manifest = manifest.clone();
+    manifest = manifest.fork();
 
     for (const bundleEntry of manifest.bundles) {
       const bundleUrl = bundleEntry[0];

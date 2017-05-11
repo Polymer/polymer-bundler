@@ -93,7 +93,7 @@ export class BundleManifest {
   }
 
   // Returns a clone of the manifest.
-  clone(): BundleManifest {
+  fork(): BundleManifest {
     return clone(this);
   }
 
