@@ -29,8 +29,13 @@ const assert = chai.assert;
 const matchers = require('../matchers');
 const preds = dom5.predicates;
 
+// TODO(usergenic): This suite is getting very big.  Please break up the file
+// and/or reorganize the suites and tests to be easier to find and reason about.
 suite('Bundler', () => {
+
+  let documentBundle: Bundle;
   let bundler: Bundler;
+
   const inputPath = 'test/html/default.html';
 
   async function bundle(inputPath: string, opts?: BundlerOptions):
@@ -44,11 +49,22 @@ suite('Bundler', () => {
         }
         bundler = new Bundler(bundlerOpts);
         const manifest = await bundler.generateManifest([inputPath]);
-        const documents = await bundler.bundle(manifest);
+        const bundleResult = await bundler.bundle(manifest);
+        documentBundle =
+            bundleResult.manifest.getBundleForFile(inputPath)!.bundle;
+        const {documents} = bundleResult;
         return documents.get(inputPath)!.ast;
       }
 
   suite('Default Options', () => {
+
+    test('URLs for inlined HTML imports are recorded in Bundle', async () => {
+      await bundle(inputPath);
+      assert.sameMembers(
+          [...documentBundle.inlinedHtmlImports],
+          ['imports/simple-import.html'],
+          [...documentBundle.inlinedHtmlImports].join(', '));
+    });
 
     test('imports removed', async () => {
       const imports = preds.AND(
@@ -85,7 +101,7 @@ suite('Bundler', () => {
 
       const manifest =
           await bundler.generateManifest(['test/html/default.html']);
-      const documents = await bundler.bundle(manifest);
+      const {documents} = await bundler.bundle(manifest);
       const document = documents.get('test/html/default.html')!;
       assert(document);
 
@@ -122,7 +138,7 @@ suite('Bundler', () => {
           });
           const manifest =
               await bundler.generateManifest(['test/html/default.html']);
-          const documents = await bundler.bundle(manifest);
+          const {documents} = await bundler.bundle(manifest);
           const document = documents.get('test/html/default.html')!;
           assert(document);
 
@@ -182,7 +198,7 @@ suite('Bundler', () => {
           new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')})
     });
     const manifest = await bundler.generateManifest(['lazy-imports.html']);
-    const documents = await bundler.bundle(manifest);
+    const {documents} = await bundler.bundle(manifest);
 
     // The `lazy-imports.html` file has 2 imports in the head of the
     // document.  The first is eager and should be moved.  The remaining
@@ -193,7 +209,6 @@ suite('Bundler', () => {
         preds.AND(preds.parentMatches(matchers.head), matchers.htmlImport));
     assert.equal(entrypointLazyImports.length, 1);
     assert.equal(dom5.getAttribute(entrypointLazyImports[0]!, 'group'), 'one');
-
 
     // The shared bundle has an inlined dom-module with an embedded
     // lazy-import via `shared-eager-import-2.html` that we are verifying
@@ -228,7 +243,7 @@ suite('Bundler', () => {
           new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')})
     });
     const manifest = await bundler.generateManifest(['lazy-imports.html']);
-    const documents = await bundler.bundle(manifest);
+    const {documents} = await bundler.bundle(manifest);
 
     const lazyImports =
         parse5.serialize(documents.get('lazy-imports.html')!.ast);
@@ -276,7 +291,7 @@ suite('Bundler', () => {
       excludes: ['lazy-imports/subfolder/eager-import-2.html'],
     });
     const manifest = await bundler.generateManifest(['lazy-imports.html']);
-    const documents = await bundler.bundle(manifest);
+    const {documents} = await bundler.bundle(manifest);
     const lazyImport2 =
         parse5.serialize(documents.get('lazy-imports/lazy-import-2.html')!.ast);
     assert.include(
@@ -509,10 +524,20 @@ suite('Bundler', () => {
   suite('Inline Scripts', () => {
     const options = {inlineScripts: true};
 
-    test('All scripts are inlined', async () => {
+    test('URLs for inlined scripts are recorded in Bundle', async () => {
+      await bundle('test/html/external.html');
+      assert.sameMembers(
+          [...documentBundle.inlinedScripts],
+          ['external/external.js'],
+          [...documentBundle.inlinedScripts].join(', '));
+    });
+
+    test('External script tags are replaced with inline scripts', async () => {
       const doc = await bundle('test/html/external.html', options);
-      const scripts = dom5.queryAll(doc, matchers.externalJavascript);
-      assert.equal(scripts.length, 0);
+      const externalScripts = dom5.queryAll(doc, matchers.externalJavascript);
+      assert.equal(externalScripts.length, 0);
+      const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
+      assert.equal(inlineScripts.length, 1);
     });
 
     test('Remote scripts are kept', async () => {
@@ -522,6 +547,10 @@ suite('Bundler', () => {
       assert.equal(
           dom5.getAttribute(scripts[0], 'src'),
           'https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js');
+      assert.sameMembers(
+          [...documentBundle.inlinedScripts],
+          ['external/external.js', 'imports/external.js'],
+          [...documentBundle.inlinedScripts].join(', '));
     });
 
     test.skip('Absolute paths are correct for excluded links', async () => {
@@ -570,7 +599,15 @@ suite('Bundler', () => {
 
     const options = {inlineCss: true};
 
-    test('All styles are inlined', async () => {
+    test('URLs for inlined styles are recorded in Bundle', async () => {
+      await bundle(inputPath);
+      assert.sameMembers(
+          [...documentBundle.inlinedStyles],
+          ['imports/regular-style.css', 'imports/simple-style.css'],
+          [...documentBundle.inlinedStyles].join(', '));
+    });
+
+    test('External links are replaced with inlined styles', async () => {
       const doc = await bundle(inputPath, options);
       const links = dom5.queryAll(doc, matchers.stylesheetImport);
       const styles = dom5.queryAll(
@@ -647,9 +684,9 @@ suite('Bundler', () => {
   });
 
   // TODO(usergenic): These tests only prove that the `inputUrl` has precedence
-  // over the filename presented to `bundle(path)`.  Do we want to continue to
-  // support inputUrl?  Tese don't prove anything about the doc production
-  // itself or how it is effected.  Needs resolution.
+  // over the filename presented to `bundle(path)`.  Do we want to
+  // continue to support inputUrl?  Tese don't prove anything about the doc
+  // production itself or how it is effected.  Needs resolution.
   suite('Input URL', () => {
 
     const options = {inputUrl: 'test/html/default.html'};

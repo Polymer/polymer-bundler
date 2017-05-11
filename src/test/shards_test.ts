@@ -20,9 +20,8 @@ import * as parse5 from 'parse5';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
 import {generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
-import {Bundler} from '../bundler';
+import {Bundler, BundleResult} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
-import {DocumentCollection} from '../document-collection';
 
 chai.config.showDiff = true;
 
@@ -42,7 +41,7 @@ suite('Bundler', () => {
   const entrypoint2 = 'test/html/shards/shop_style_project/entrypoint2.html';
 
   async function bundleMultiple(inputPath: string[], opts?: BundlerOptions):
-      Promise<DocumentCollection> {
+      Promise<BundleResult> {
         const bundlerOpts = opts || {};
         if (!bundlerOpts.analyzer) {
           bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
@@ -68,17 +67,17 @@ suite('Bundler', () => {
 
   suite('Sharded builds', () => {
     test('with 3 entrypoints, all deps are in their places', async () => {
-      const docs = await bundleMultiple(
+      const {documents} = await bundleMultiple(
           [common, entrypoint1, entrypoint2],
           {strategy: generateSharedDepsMergeStrategy(2)});
-      assert.equal(docs.size, 4);
-      const commonDoc: parse5.ASTNode = docs.get(common)!.ast;
+      assert.equal(documents.size, 4);
+      const commonDoc: parse5.ASTNode = documents.get(common)!.ast;
       assert.isDefined(commonDoc);
-      const entrypoint1Doc = docs.get(entrypoint1)!.ast;
+      const entrypoint1Doc = documents.get(entrypoint1)!.ast;
       assert.isDefined(entrypoint1Doc);
-      const entrypoint2Doc = docs.get(entrypoint2)!.ast;
+      const entrypoint2Doc = documents.get(entrypoint2)!.ast;
       assert.isDefined(entrypoint2Doc);
-      const sharedDoc = docs.get('shared_bundle_1.html')!.ast;
+      const sharedDoc = documents.get('shared_bundle_1.html')!.ast;
       assert.isDefined(sharedDoc);
       const commonModule = domModulePredicate('common-module');
       const elOne = domModulePredicate('el-one');
@@ -97,15 +96,15 @@ suite('Bundler', () => {
     });
 
     test('with 2 entrypoints and shell, all deps in their places', async () => {
-      const docs = await bundleMultiple(
+      const {documents} = await bundleMultiple(
           [shell, entrypoint1, entrypoint2],
           {strategy: generateShellMergeStrategy(shell, 2)});
-      assert.equal(docs.size, 3);
-      const shellDoc: parse5.ASTNode = docs.get(shell)!.ast;
+      assert.equal(documents.size, 3);
+      const shellDoc: parse5.ASTNode = documents.get(shell)!.ast;
       assert.isDefined(shellDoc);
-      const entrypoint1Doc = docs.get(entrypoint1)!.ast;
+      const entrypoint1Doc = documents.get(entrypoint1)!.ast;
       assert.isDefined(entrypoint1Doc);
-      const entrypoint2Doc = docs.get(entrypoint2)!.ast;
+      const entrypoint2Doc = documents.get(entrypoint2)!.ast;
       assert.isDefined(entrypoint2Doc);
       const shellDiv = dom5.predicates.hasAttrValue('id', 'shell');
       const commonModule = domModulePredicate('common-module');
