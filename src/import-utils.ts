@@ -150,6 +150,9 @@ export async function inlineHtmlImport(
   astUtils.insertAllBefore(linkTag.parentNode!, linkTag, importAst.childNodes!);
   astUtils.removeElementAndNewline(linkTag);
 
+  // Record that the inlining took place.
+  docBundle.bundle.inlinedHtmlImports.add(resolvedImportUrl);
+
   // Recursively process the nested imports.
   for (const nestedImport of nestedImports) {
     await inlineHtmlImport(
@@ -172,6 +175,7 @@ export async function inlineScript(
     analyzer: Analyzer,
     document: Document,
     scriptTag: ASTNode,
+    docBundle: AssignedBundle,
     enableSourcemaps: boolean) {
   const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
@@ -199,6 +203,10 @@ export async function inlineScript(
 
   dom5.removeAttribute(scriptTag, 'src');
   dom5.setTextContent(scriptTag, encodeString(scriptContent, true));
+
+  // Record that the inlining took place.
+  docBundle.bundle.inlinedScripts.add(resolvedImportUrl);
+
   return scriptContent;
 }
 
@@ -207,7 +215,10 @@ export async function inlineScript(
  * into a style tag and removes the link tag.
  */
 export async function inlineStylesheet(
-    analyzer: Analyzer, document: Document, cssLink: ASTNode) {
+    analyzer: Analyzer,
+    document: Document,
+    cssLink: ASTNode,
+    docBundle: AssignedBundle) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
   const importUrl = urlLib.resolve(document.url, stylesheetUrl);
   if (!analyzer.canResolveUrl(importUrl)) {
@@ -238,6 +249,10 @@ export async function inlineStylesheet(
 
   dom5.replace(cssLink, styleNode);
   dom5.setTextContent(styleNode, resolvedStylesheetContent);
+
+  // Record that the inlining took place.
+  docBundle.bundle.inlinedStyles.add(resolvedImportUrl);
+
   return styleNode;
 }
 

@@ -120,19 +120,19 @@ export class Bundler {
    *
    * @param manifest - The manifest that describes the bundles to be produced.
    */
-  async bundle(manifest: BundleManifest): Promise<DocumentCollection> {
-    const bundledDocuments: DocumentCollection =
-        new Map<string, BundledDocument>();
+  async bundle(manifest: BundleManifest): Promise<BundleResult> {
+    const documents: DocumentCollection = new Map<string, BundledDocument>();
+    manifest = manifest.fork();
 
     for (const bundleEntry of manifest.bundles) {
       const bundleUrl = bundleEntry[0];
       const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
       const bundledAst = await this._bundleDocument(bundle, manifest);
-      bundledDocuments.set(
+      documents.set(
           bundleUrl, {ast: bundledAst, files: Array.from(bundle.bundle.files)});
     }
 
-    return bundledDocuments;
+    return {manifest, documents};
   }
 
   /**
@@ -248,11 +248,11 @@ export class Bundler {
     await this._inlineHtmlImports(document, ast, docBundle, bundleManifest);
 
     if (this.enableScriptInlining) {
-      await this._inlineScripts(document, ast);
+      await this._inlineScripts(document, ast, docBundle);
     }
     if (this.enableCssInlining) {
-      await this._inlineStylesheetLinks(document, ast);
-      await this._inlineStylesheetImports(document, ast);
+      await this._inlineStylesheetLinks(document, ast, docBundle);
+      await this._inlineStylesheetImports(document, ast, docBundle);
     }
 
     if (this.stripComments) {
@@ -348,11 +348,14 @@ export class Bundler {
    * Replace all external javascript tags (`<script src="...">`)
    * with `<script>` tags containing the file contents inlined.
    */
-  private async _inlineScripts(document: Document, ast: ASTNode) {
+  private async _inlineScripts(
+      document: Document,
+      ast: ASTNode,
+      bundle: AssignedBundle): Promise<void> {
     const scriptImports = dom5.queryAll(ast, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
       await importUtils.inlineScript(
-          this.analyzer, document, externalScript, this.sourcemaps);
+          this.analyzer, document, externalScript, bundle, this.sourcemaps);
     }
   }
 
@@ -361,11 +364,14 @@ export class Bundler {
    * with `<style>` tags containing the file contents, with internal URLs
    * relatively transposed as necessary.
    */
-  private async _inlineStylesheetImports(document: Document, ast: ASTNode) {
+  private async _inlineStylesheetImports(
+      document: Document,
+      ast: ASTNode,
+      bundle: AssignedBundle) {
     const cssImports = dom5.queryAll(ast, matchers.stylesheetImport);
     for (const cssLink of cssImports) {
-      const style =
-          await importUtils.inlineStylesheet(this.analyzer, document, cssLink);
+      const style = await importUtils.inlineStylesheet(
+          this.analyzer, document, cssLink, bundle);
       if (style) {
         this._moveDomModuleStyleIntoTemplate(style);
       }
@@ -377,10 +383,14 @@ export class Bundler {
    * tags with `<style>` tags containing file contents, with internal URLs
    * relatively transposed as necessary.
    */
-  private async _inlineStylesheetLinks(document: Document, ast: ASTNode) {
+  private async _inlineStylesheetLinks(
+      document: Document,
+      ast: ASTNode,
+      bundle: AssignedBundle) {
     const cssLinks = dom5.queryAll(ast, matchers.externalStyle);
     for (const cssLink of cssLinks) {
-      await importUtils.inlineStylesheet(this.analyzer, document, cssLink);
+      await importUtils.inlineStylesheet(
+          this.analyzer, document, cssLink, bundle);
     }
   }
 

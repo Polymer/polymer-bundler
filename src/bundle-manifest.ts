@@ -12,6 +12,8 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
+import * as clone from 'clone';
+
 import {UrlString} from './url-utils';
 
 /**
@@ -42,6 +44,11 @@ export class Bundle {
 
   // Set of all files included in the bundle.
   files: Set<UrlString>;
+
+  // These sets are updated as bundling occurs.
+  inlinedHtmlImports = new Set<UrlString>();
+  inlinedScripts = new Set<UrlString>();
+  inlinedStyles = new Set<UrlString>();
 
   constructor(entrypoints?: Set<UrlString>, files?: Set<UrlString>) {
     this.entrypoints = entrypoints || new Set<UrlString>();
@@ -83,6 +90,11 @@ export class BundleManifest {
         this._bundleUrlForFile.set(fileUrl, bundleUrl);
       }
     }
+  }
+
+  // Returns a clone of the manifest.
+  fork(): BundleManifest {
+    return clone(this);
   }
 
   // Convenience method to return a bundle for a constituent file url.
@@ -248,13 +260,22 @@ export function generateShellMergeStrategy(
  */
 export function mergeBundles(bundles: Bundle[]): Bundle {
   const newBundle = new Bundle();
-  for (const bundle of bundles) {
-    for (const url of bundle.entrypoints) {
-      newBundle.entrypoints.add(url);
-    }
-    for (const url of bundle.files) {
-      newBundle.files.add(url);
-    }
+  for (const {
+         entrypoints,
+         files,
+         inlinedHtmlImports,
+         inlinedScripts,
+         inlinedStyles,
+       } of bundles) {
+    newBundle.entrypoints =
+        new Set<UrlString>([...newBundle.entrypoints, ...entrypoints]);
+    newBundle.files = new Set<UrlString>([...newBundle.files, ...files]);
+    newBundle.inlinedHtmlImports = new Set<UrlString>(
+        [...newBundle.inlinedHtmlImports, ...inlinedHtmlImports]);
+    newBundle.inlinedScripts =
+        new Set<UrlString>([...newBundle.inlinedScripts, ...inlinedScripts]);
+    newBundle.inlinedStyles =
+        new Set<UrlString>([...newBundle.inlinedStyles, ...inlinedStyles]);
   }
   return newBundle;
 }

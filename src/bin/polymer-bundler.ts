@@ -192,7 +192,8 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
       }
     }
     const manifest = await bundler.generateManifest(entrypoints);
-    bundles = await bundler.bundle(manifest);
+    const result = await bundler.bundle(manifest);
+    bundles = result.documents;
   } catch (err) {
     console.log(err);
     return;
