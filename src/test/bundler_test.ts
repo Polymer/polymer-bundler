@@ -60,10 +60,9 @@ suite('Bundler', () => {
 
     test('URLs for inlined HTML imports are recorded in Bundle', async () => {
       await bundle(inputPath);
-      assert.sameMembers(
+      assert.deepEqual(
           [...documentBundle.inlinedHtmlImports],
-          ['imports/simple-import.html'],
-          [...documentBundle.inlinedHtmlImports].join(', '));
+          ['imports/simple-import.html']);
     });
 
     test('imports removed', async () => {
@@ -526,10 +525,8 @@ suite('Bundler', () => {
 
     test('URLs for inlined scripts are recorded in Bundle', async () => {
       await bundle('test/html/external.html');
-      assert.sameMembers(
-          [...documentBundle.inlinedScripts],
-          ['external/external.js'],
-          [...documentBundle.inlinedScripts].join(', '));
+      assert.deepEqual(
+          [...documentBundle.inlinedScripts], ['external/external.js']);
     });
 
     test('External script tags are replaced with inline scripts', async () => {
@@ -547,10 +544,9 @@ suite('Bundler', () => {
       assert.equal(
           dom5.getAttribute(scripts[0], 'src'),
           'https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js');
-      assert.sameMembers(
-          [...documentBundle.inlinedScripts],
-          ['external/external.js', 'imports/external.js'],
-          [...documentBundle.inlinedScripts].join(', '));
+      assert.deepEqual(
+          [...documentBundle.inlinedScripts].sort(),
+          ['external/external.js', 'imports/external.js']);
     });
 
     test.skip('Absolute paths are correct for excluded links', async () => {
@@ -601,10 +597,9 @@ suite('Bundler', () => {
 
     test('URLs for inlined styles are recorded in Bundle', async () => {
       await bundle(inputPath);
-      assert.sameMembers(
-          [...documentBundle.inlinedStyles],
-          ['imports/regular-style.css', 'imports/simple-style.css'],
-          [...documentBundle.inlinedStyles].join(', '));
+      assert.deepEqual(
+          [...documentBundle.inlinedStyles].sort(),
+          ['imports/regular-style.css', 'imports/simple-style.css']);
     });
 
     test('External links are replaced with inlined styles', async () => {
