@@ -100,16 +100,16 @@ polymer-bundler as a library has two exported function.
 
 `.generateManifest()` takes a collection of entrypoint urls and promises a `BundleManifest` which describes all the bundles it will produce.
 
-`.bundle()` takes a `BundleManifest` and returns a promise to a `DocumentCollection` of the generated bundles.
+`.bundle()` takes a `BundleManifest` and returns a `Promise` for a `BundleResult`, which contains a map of the generated bundle html files and an updated manifest containing information on what imports were inlined for each `Bundle`.
 
 A simple example:
 ```js
 const parse5 = require('parse5');
 const bundler = new require('polymer-bundler').Bundler();
 bundler.generateManifest(['my-app.html']).then((manifest) => {
-  bundler.bundle(manifest).then((bundles) => {
+  bundler.bundle(manifest).then((result) => {
     console.log('<!-- BUNDLED VERSION OF my-app.html: -->');
-    console.log(parse5.serialize(bundles.get('my-app.html').ast));
+    console.log(parse5.serialize(result.documents.get('my-app.html').ast));
   });
 });
 ```
@@ -142,8 +142,8 @@ const bundler = new Bundler({
 // Provide the strategy and the url mapper to produce a
 // manifest using custom behavior.
 bundler.generateManifest(['item.html', 'cart.html']).then((manifest) => {
-  bundler.bundle(manifest).then((bundles) => {
-    // do stuff here with your bundles
+  bundler.bundle(manifest).then((result) => {
+    // do stuff here with your BundleResult
   });
 });
 ```
