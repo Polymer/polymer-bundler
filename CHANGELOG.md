@@ -5,12 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+<!-- ## Unreleased -->
+<!-- Add new, unreleased changes here. -->
+
+## 2.0.0-pre.17 - 2017-05-11
 - BREAKING: Bundler's `bundle()` method now returns a `BundleResult`
   instead of just a document collection. It does this to include a
   copy of the provided manifest, where each bundle includes a record
   of the sets of imports which were inlined during bundling.
-<!-- Add new, unreleased changes here. -->
 
 ## 2.0.0-pre.16 - 2017-05-10
 - Fixed issue where an inlined import's `<link rel="lazy-import">` href
