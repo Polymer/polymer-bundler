@@ -17,7 +17,7 @@
 
 import * as path from 'path';
 import * as url from 'url';
-import {parseUrl} from 'polymer-analyzer/lib/utils';
+import {parseUrl} from 'polymer-analyzer/lib/core/utils';
 import constants from './constants';
 
 const sharedRelativeUrlProperties =
