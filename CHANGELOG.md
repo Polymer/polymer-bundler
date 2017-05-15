@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 <!-- ## Unreleased -->
 <!-- Add new, unreleased changes here. -->
 
+## 2.0.0-pre.18 - 2017-05-15
+- Updated dependency on `polymer-analyzer` to ^2.0.0 now that it is
+  out of alpha.
+
 ## 2.0.0-pre.17 - 2017-05-11
 - BREAKING: Bundler's `bundle()` method now returns a `BundleResult`
   instead of just a document collection. It does this to include a
