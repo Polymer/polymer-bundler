@@ -58,25 +58,47 @@ suite('URL Utils', () => {
 
   suite('Rewrite imported relative paths', () => {
 
-    const importDocPath = '/foo/bar/my-element/index.html';
-    const mainDocPath = '/foo/bar/index.html';
-
-    function testRewrite(val: string, expected: string, msg?: string) {
-      const actual =
-          urlUtils.rewriteHrefBaseUrl(val, importDocPath, mainDocPath);
+    function testRewrite(
+        href: string,
+        oldBaseUrl: string,
+        newBaseUrl: string,
+        expected: string,
+        msg?: string) {
+      const actual = urlUtils.rewriteHrefBaseUrl(href, oldBaseUrl, newBaseUrl);
       assert.equal(actual, expected, msg);
     }
 
-    test('Rewrite Paths', () => {
-      testRewrite('biz.jpg', 'my-element/biz.jpg', 'local');
-      testRewrite('http://foo/biz.jpg', 'http://foo/biz.jpg', 'remote');
-      testRewrite('#foo', '#foo', 'hash');
+    test('Some URL forms are not rewritten', () => {
+      const importBase = '/could/be/anything/local/import.html';
+      const mainBase = '/foo/bar/index.html';
+      testRewrite('#foo', importBase, mainBase, '#foo', 'just a hash');
+      testRewrite(
+          'http://foo/biz.jpg',
+          importBase,
+          mainBase,
+          'http://foo/biz.jpg',
+          'remote urls');
+      testRewrite(
+          '/a/b/c/', importBase, mainBase, '/a/b/c/', 'local absolute href');
     });
 
-    test('Rewrite Paths with absolute paths', () => {
-      testRewrite('biz.jpg', 'my-element/biz.jpg', 'local');
-      testRewrite('http://foo/biz.jpg', 'http://foo/biz.jpg', 'local');
-      testRewrite('#foo', '#foo', 'hash');
+    test('Rewrite Paths when base url pathnames are absolute paths', () => {
+      const importBase = '/foo/bar/my-element/index.html';
+      const mainBase = '/foo/bar/index.html';
+      testRewrite(
+          'biz.jpg', importBase, mainBase, 'my-element/biz.jpg', 'relative');
+      testRewrite('/biz.jpg', importBase, mainBase, '/biz.jpg', 'absolute');
+    });
+
+    test('Rewrite paths when base url pathnames have no leading slash', () => {
+      testRewrite(
+          '/foo.html', 'bar.html', 'index.html', '/foo.html', 'href has ^/');
+      testRewrite(
+          'foo.html', '/bar.html', 'index.html', 'foo.html', 'only new has ^/');
+      testRewrite(
+          'foo.html', 'bar.html', '/index.html', 'foo.html', 'only old has ^/');
+      testRewrite(
+          'foo.html', 'bar.html', 'index.html', 'foo.html', 'neither has ^/');
     });
   });
 
