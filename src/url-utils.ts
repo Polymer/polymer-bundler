@@ -104,9 +104,14 @@ export function rewriteHrefBaseUrl(
   if (parsedFrom.protocol === parsedTo.protocol &&
       parsedFrom.host === parsedTo.host) {
     const pathname = path.posix.relative(
-        path.posix.dirname(parsedFrom.pathname || ''), parsedTo.pathname || '');
+        makeAbsolutePath(path.posix.dirname(parsedFrom.pathname || '')),
+        makeAbsolutePath(parsedTo.pathname || ''));
     return url.format(
         {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
   }
   return absUrl;
+}
+
+function makeAbsolutePath(path: string): string {
+  return path.startsWith('/') ? path : '/' + path;
 }
