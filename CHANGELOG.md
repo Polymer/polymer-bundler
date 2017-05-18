@@ -5,10 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+<!-- ## Unreleased -->
+<!-- Add new, unreleased changes here. -->
+
+## 2.0.0 - 2017-05-18
 - Fixed a bug with url-rewriting in cases where base urls provided
   has mix of relative and absolute pathnames.
-<!-- Add new, unreleased changes here. -->
 
 ## 2.0.0-pre.18 - 2017-05-15
 - Updated dependency on `polymer-analyzer` to ^2.0.0 now that it is
