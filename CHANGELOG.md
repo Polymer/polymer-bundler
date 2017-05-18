@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.0 - 2017-05-18
+- Official 2.0.0 release of polymer-bundler! 🎉
 - Fixed a bug with url-rewriting in cases where base urls provided
   has mix of relative and absolute pathnames.
 
