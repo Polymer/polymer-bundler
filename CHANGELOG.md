@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!-- ## Unreleased -->
+## Unreleased
+- Don't include the `by-polymer-bundler` hidden div in bundled files
+  if it is empty.
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.0 - 2017-05-18
