@@ -489,7 +489,7 @@ export class Bundler {
   }
 
   /**
-   * Removed all empty hidden container divs from the AST.
+   * Removes all empty hidden container divs from the AST.
    */
   private _removeEmptyHiddenDivs(ast: ASTNode) {
     for (const div of dom5.queryAll(ast, matchers.hiddenDiv)) {
