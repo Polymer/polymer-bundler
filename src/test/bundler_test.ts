@@ -760,6 +760,12 @@ suite('Bundler', () => {
       ]);
     });
 
+    test('Bundler should not emit empty hidden divs', async () => {
+      const doc = await bundle('test/html/import-empty.html');
+      assert(doc);
+      assert.isNull(dom5.query(doc, matchers.hiddenDiv));
+    });
+
     test('Entrypoint body content should not be wrapped', async () => {
       const doc = await bundle('test/html/default.html');
       assert(doc);

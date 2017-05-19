@@ -13,6 +13,7 @@
  */
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
+import * as parse5 from 'parse5';
 import {ASTNode, serialize, treeAdapters} from 'parse5';
 import * as path from 'path';
 import {Analyzer, Document, FSUrlLoader, InMemoryOverlayUrlLoader} from 'polymer-analyzer';
@@ -259,6 +260,8 @@ export class Bundler {
       astUtils.stripComments(ast);
     }
 
+    this._removeEmptyHiddenDivs(ast);
+
     if (this.sourcemaps) {
       return updateSourcemapLocations(document, ast);
     } else {
@@ -483,5 +486,16 @@ export class Bundler {
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);
     dom5.removeFakeRootElements(ast);
     return this._analyzeContents(document.url, serialize(ast));
+  }
+
+  /**
+   * Removes all empty hidden container divs from the AST.
+   */
+  private _removeEmptyHiddenDivs(ast: ASTNode) {
+    for (const div of dom5.queryAll(ast, matchers.hiddenDiv)) {
+      if (parse5.serialize(div).trim() === '') {
+        dom5.remove(div);
+      }
+    }
   }
 }
