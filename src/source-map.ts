@@ -72,6 +72,7 @@ function createJsIdentitySourcemap(
     generator.addMapping(mapping);
   });
 
+  generator.setSourceContent(sourceUrl, sourceContent);
   return generator.toJSON();
 }
 
@@ -96,6 +97,10 @@ function offsetSourceMap(
     }
 
     generator.addMapping(newMapping);
+  });
+
+  sourcemap.sources.forEach(source => {
+    generator.setSourceContent(source, consumer.sourceContentFor(source));
   });
 
   return generator.toJSON();
