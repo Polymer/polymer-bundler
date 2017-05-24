@@ -23,7 +23,10 @@ import {MappingItem, RawSourceMap, SourceMapConsumer} from 'source-map';
 
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
-import {getExistingSourcemap} from '../source-map';
+import {
+  getExistingSourcemap,
+  createJsIdentitySourcemap,
+  offsetSourceMap} from '../source-map';
 
 chai.config.showDiff = true;
 
@@ -161,6 +164,26 @@ suite('Bundler', () => {
         assert(sourcemap, 'scripts found');
         await testMapping(sourcemap!, compiledHtml, 'console');
       }
+    });
+
+    test('sourcesContent is generated for new sourcemaps', () => {
+      const sourcemap = createJsIdentitySourcemap(
+          'foo', 'console.log(\'Hello world\');', 0, 0);
+      assert(sourcemap.sourcesContent, 'sourcesContent found');
+      assert.lengthOf(sourcemap.sourcesContent!, 1, 'sourcesContent length');
+      assert.equal(sourcemap.sourcesContent![0], 'console.log(\'Hello world\');',
+        'sourcesContent value');
+    });
+
+    test('sourcesContent is preserved for existing sourcemaps', () => {
+      const sourcemap = createJsIdentitySourcemap(
+        'foo', 'console.log(\'Hello world\');', 0, 0);
+      const offsetSourcemap = offsetSourceMap(
+        sourcemap, 1, 0);
+      assert(offsetSourcemap.sourcesContent, 'sourcesContent found');
+      assert.lengthOf(offsetSourcemap.sourcesContent!, 1, 'sourcesContent length');
+      assert.equal(offsetSourcemap.sourcesContent![0], 'console.log(\'Hello world\');',
+        'sourcesContent value');
     });
   });
 });

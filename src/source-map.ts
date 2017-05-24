@@ -43,7 +43,7 @@ function rawSourceMapToBase64String(sourcemap: RawSourceMap) {
  * Creates an identity source map from JS script content. Can offset original
  * line/column data for inline script elements.
  */
-function createJsIdentitySourcemap(
+export function createJsIdentitySourcemap(
     sourceUrl: string,
     sourceContent: string,
     lineOffset: number,
@@ -76,7 +76,7 @@ function createJsIdentitySourcemap(
   return generator.toJSON();
 }
 
-function offsetSourceMap(
+export function offsetSourceMap(
     sourcemap: RawSourceMap, lineOffset: number, firstLineCharOffset: number) {
   const consumer = new SourceMapConsumer(sourcemap);
   const generator = new SourceMapGenerator();
