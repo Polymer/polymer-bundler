@@ -30,11 +30,11 @@ export const jsMatcher: Matcher = predicates.AND(
 
 export const externalStyle: Matcher = predicates.AND(
     predicates.hasTagName('link'),
-    predicates.hasAttrValue('rel', 'stylesheet'));
+    predicates.hasSpaceSeparatedAttrValue('rel', 'stylesheet'));
 // polymer specific external stylesheet
 export const polymerExternalStyle: Matcher = predicates.AND(
     predicates.hasTagName('link'),
-    predicates.hasAttrValue('rel', 'import'),
+    predicates.hasSpaceSeparatedAttrValue('rel', 'import'),
     predicates.hasAttrValue('type', 'css'));
 
 export const styleMatcher: Matcher = predicates.AND(
@@ -62,7 +62,7 @@ export const inlineJavascript: Matcher =
     predicates.AND(predicates.NOT(predicates.hasAttr('src')), jsMatcher);
 export const eagerHtmlImport: Matcher = predicates.AND(
     predicates.hasTagName('link'),
-    predicates.hasAttrValue('rel', 'import'),
+    predicates.hasSpaceSeparatedAttrValue('rel', 'import'),
     predicates.hasAttr('href'),
     predicates.OR(
         predicates.hasAttrValue('type', 'text/html'),
@@ -70,7 +70,7 @@ export const eagerHtmlImport: Matcher = predicates.AND(
         predicates.NOT(predicates.hasAttr('type'))));
 export const lazyHtmlImport: Matcher = predicates.AND(
     predicates.hasTagName('link'),
-    predicates.hasAttrValue('rel', 'lazy-import'),
+    predicates.hasSpaceSeparatedAttrValue('rel', 'lazy-import'),
     predicates.hasAttr('href'),
     predicates.OR(
         predicates.hasAttrValue('type', 'text/html'),
@@ -80,7 +80,7 @@ export const htmlImport: Matcher =
     predicates.OR(eagerHtmlImport, lazyHtmlImport);
 export const stylesheetImport: Matcher = predicates.AND(
     predicates.hasTagName('link'),
-    predicates.hasAttrValue('rel', 'import'),
+    predicates.hasSpaceSeparatedAttrValue('rel', 'import'),
     predicates.hasAttr('href'),
     predicates.hasAttrValue('type', 'css'));
 export const hiddenDiv: Matcher = predicates.AND(
