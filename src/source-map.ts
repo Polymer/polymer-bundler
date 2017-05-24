@@ -83,13 +83,16 @@ function offsetSourceMap(
   consumer.eachMapping(mapping => {
     const newMapping: any = {
       source: mapping.source,
-      original: {line: mapping.originalLine, column: mapping.originalColumn},
       generated: {
         line: mapping.generatedLine + lineOffset,
         column: mapping.generatedColumn +
             (mapping.generatedLine === 1 ? firstLineCharOffset : 0)
       }
     };
+
+    if (typeof mapping.originalLine === 'number' && typeof mapping.originalColumn === 'number') {
+      newMapping.original = { line: mapping.originalLine, column: mapping.originalColumn };
+    }
 
     if (mapping.name) {
       newMapping.name = mapping.name;

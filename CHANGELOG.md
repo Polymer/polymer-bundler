@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!-- ## Unreleased -->
+## Unreleased
+- Fixed an error when generating source maps
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.1 - 2017-05-19
