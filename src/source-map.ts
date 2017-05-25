@@ -46,6 +46,7 @@ function rawSourceMapToBase64String(sourcemap: RawSourceMap) {
 export function createJsIdentitySourcemap(
     sourceUrl: string,
     sourceContent: string,
+    originalFileContent: string,
     lineOffset: number,
     firstLineCharOffset: number) {
   const generator = new SourceMapGenerator();
@@ -72,7 +73,7 @@ export function createJsIdentitySourcemap(
     generator.addMapping(mapping);
   });
 
-  generator.setSourceContent(sourceUrl, sourceContent);
+  generator.setSourceContent(sourceUrl, originalFileContent);
   return generator.toJSON();
 }
 
@@ -161,12 +162,14 @@ export async function addOrUpdateSourcemapComment(
     sourceContent = sourceContent.replace(sourceMappingUrlExpr, '');
   }
 
+  const originalFileContent = await analyzer.load(sourceUrl);
   let hasExisting = true;
   if (sourcemap === null) {
     hasExisting = false;
     sourcemap = createJsIdentitySourcemap(
         sourceUrl,
         sourceContent,
+        originalFileContent,
         originalLineOffset,
         originalFirstLineCharOffset);
   } else {
