@@ -19,9 +19,7 @@
     "dom5": "^2.2.0",
     "espree": "^3.4.0",
     "mkdirp": "^0.5.1",
-    "nopt": "^3.0.1",
     "parse5": "^2.2.2",
-    "path-posix": "^1.0.0",
     "polymer-analyzer": "^2.0.0",
     "source-map": "^0.5.6"
   },
