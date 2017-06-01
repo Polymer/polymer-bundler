@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 1.15.5 - 2017-06-01
+- Add --out-request-list to bin/vulcanize help message
+
 ## 1.15.4 - 2017-03-21
 - `excludes` option now honors JavaScript asset references:
   - Won't attempt to load the JS (which caused errors when local file not present.)

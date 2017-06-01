@@ -35,6 +35,8 @@ var help = [
   '  --redirect <uri>|<path>: Takes an argument in the form of URI|PATH where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.',
   '  --no-implicit-strip: DANGEROUS! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.',
   '  --out-html <path>: If specified, output will be written to <path> instead of stdout.',
+  '  --out-request-list <path>`: Writes a list of request URLs required to vulcanize <html file> to <path> on success.',
+  '',
   'Examples:',
   '  The command',
   '',
