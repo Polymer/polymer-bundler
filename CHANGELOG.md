@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!-- ## Unreleased -->
+## Unreleased
+- In cases such as the shell merge strategy, imports which are not originally
+  part of the shell are now inserted before other imports which are dependent
+  on them.  Fixes https://github.com/Polymer/polymer-bundler/issues/517.
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.1 - 2017-05-19
