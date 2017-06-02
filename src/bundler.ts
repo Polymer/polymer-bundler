@@ -176,33 +176,6 @@ export class Bundler {
   }
 
   /**
-   * Add HTML Import elements for each file in the bundle.  We append all the
-   * imports in the case any were moved into the bundle by the strategy.
-   * While this will almost always yield duplicate imports, they will be
-   * cleaned up through deduplication during the import phase.
-   */
-  private _appendHtmlImportsForBundle(ast: ASTNode, bundle: AssignedBundle) {
-    for (const importUrl of bundle.bundle.files) {
-      const newUrl = urlUtils.relativeUrl(bundle.url, importUrl);
-      if (!newUrl) {
-        continue;
-      }
-      this._appendHtmlImport(this._findOrCreateHiddenDiv(ast), newUrl);
-    }
-  }
-
-  /**
-   * Append a <link rel="import" node to `node` with a value of `url` for
-   * the "href" attribute.
-   */
-  private _appendHtmlImport(ast: ASTNode, url: UrlString) {
-    const link = dom5.constructors.element('link');
-    dom5.setAttribute(link, 'rel', 'import');
-    dom5.setAttribute(link, 'href', url);
-    dom5.append(ast, link);
-  }
-
-  /**
    * Set the hidden div at the appropriate location within the document.  The
    * goal is to place the hidden div at the same place as the first html
    * import.  However, the div can't be placed in the `<head>` of the document
@@ -236,7 +209,7 @@ export class Bundler {
     let document = await this._prepareBundleDocument(docBundle);
     const ast = clone(document.parsedDocument.ast);
     dom5.removeFakeRootElements(ast);
-    this._appendHtmlImportsForBundle(ast, docBundle);
+    this._injectHtmlImportsForBundle(document, ast, docBundle, bundleManifest);
     importUtils.rewriteAstToEmulateBaseTag(
         ast, document.url, this.rewriteUrlsInTemplates);
 
@@ -281,6 +254,17 @@ export class Bundler {
   }
 
   /**
+   * Append a <link rel="import" node to `node` with a value of `url` for
+   * the "href" attribute.
+   */
+  private _createHtmlImport(url: UrlString): ASTNode {
+    const link = dom5.constructors.element('link');
+    dom5.setAttribute(link, 'rel', 'import');
+    dom5.setAttribute(link, 'href', url);
+    return link;
+  }
+
+  /**
    * Given an array of Bundles, remove all files from bundles which are in the
    * "excludes" set.  Remove any bundles which are left empty after excluded
    * files are removed.
@@ -321,6 +305,74 @@ export class Bundler {
       this._attachHiddenDiv(ast, hiddenDiv);
     }
     return hiddenDiv;
+  }
+
+  /**
+   * Add HTML Import elements for each file in the bundle.  Efforts are made to
+   * ensure that imports are injected prior to any eager imports of other
+   * bundles which are known to depend on them, to preserve expectations of
+   * evaluation order.
+   *
+   * We inject all imports in the case any were moved into the bundle by the
+   * strategy. While this will almost always yield duplicate imports, they
+   * will be cleaned up through deduplication during the import phase.
+   */
+  private _injectHtmlImportsForBundle(
+      document: Document,
+      ast: ASTNode,
+      bundle: AssignedBundle,
+      bundleManifest: BundleManifest) {
+    const existingImports = [...document.getFeatures(
+        {kind: 'html-import', noLazyImports: true, imported: false})];
+    const existingImportDependencies =
+        new Map(<[string, string[]][]>existingImports.map(
+            (existingImport) => [existingImport.document.url, [
+              ...existingImport.document.getFeatures(
+                  {kind: 'html-import', imported: true, noLazyImports: true})
+            ].map((feature) => feature.document.url)]));
+
+    for (const importUrl of bundle.bundle.files) {
+      const relativeImportUrl = urlUtils.relativeUrl(bundle.url, importUrl);
+
+      // If relative import url is empty, it is because the urls are the same,
+      // meaning we'd be importing the same document as ourself.  Skip.
+      if (!relativeImportUrl) {
+        continue;
+      }
+
+      // No need to inject an import that's already there.
+      if (existingImports.find((e) => e.document.url === importUrl)) {
+        continue;
+      }
+
+      let prependTarget = undefined;
+
+      for (const existingImport of existingImports.filter(
+               (e) => !bundle.bundle.files.has(e.document.url))) {
+        // If the existing import has a dependency on the import we are about
+        // to inject and that import is not a part of this bundle, lets inject
+        // the dependency before it.
+        if (existingImportDependencies.get(existingImport.document.url)!
+                .indexOf(importUrl) !== -1) {
+          const newPrependTarget = dom5.query(
+              ast, (node) => astUtils.sameNode(node, existingImport.astNode));
+          if (newPrependTarget &&
+              (!prependTarget ||
+               astUtils.inOrder(newPrependTarget, prependTarget))) {
+            prependTarget = newPrependTarget;
+          }
+        }
+      }
+
+      const newHtmlImport = this._createHtmlImport(relativeImportUrl);
+      if (prependTarget) {
+        dom5.insertBefore(
+            prependTarget.parentNode!, prependTarget, newHtmlImport);
+      } else {
+        const hiddenDiv = this._findOrCreateHiddenDiv(ast);
+        dom5.append(hiddenDiv.parentNode!, newHtmlImport);
+      }
+    }
   }
 
   /**
