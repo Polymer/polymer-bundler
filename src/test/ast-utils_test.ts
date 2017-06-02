@@ -17,6 +17,8 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 
 import * as chai from 'chai';
+import * as clone from 'clone';
+import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 
 import * as ast from '../ast-utils';
@@ -25,6 +27,20 @@ import * as ast from '../ast-utils';
 const assert = chai.assert;
 
 suite('AST Utils', function() {
+
+  test('inOrder', () => {
+    const html = parse5.parseFragment(`
+          <span>oh</span><span>hi</span>
+          <span>good</span>
+        <span>bye</span>
+      `, {locationInfo: true});
+    const spans = dom5.queryAll(html, dom5.predicates.hasTagName('span'));
+    assert.isTrue(ast.inOrder(spans[0], spans[1]), 'oh -> hi');
+    assert.isTrue(ast.inOrder(spans[0], spans[3]), 'oh -> bye');
+    assert.isTrue(ast.inOrder(spans[2], spans[3]), 'good -> bye');
+    assert.isFalse(ast.inOrder(spans[3], spans[1]), 'bye <- hi');
+    assert.isFalse(ast.inOrder(spans[1], spans[0]), 'hi <- oh');
+  });
 
   test('prepend', () => {
     const orderedList =
@@ -36,6 +52,18 @@ suite('AST Utils', function() {
         parse5.serialize(ol.parentNode!),
         parse5.serialize(
             parse5.parseFragment(`<ol><li>3<li>1<li>2<li>4<li>5</ol>`)));
+  });
+
+  test('sameNode', () => {
+    const html = parse5.parseFragment(
+        `<div><h1>hi</h1><h1>h1</h1></div>`, {locationInfo: true});
+    const h1_1 = html.childNodes![0]!.childNodes![0]!;
+    const h1_2 = html.childNodes![0]!.childNodes![1]!;
+    const h1_1_clone = clone(h1_1);
+    assert.isFalse(h1_1 === h1_2);
+    assert.isFalse(h1_1 === h1_1_clone);
+    assert.isFalse(ast.sameNode(h1_1, h1_2));
+    assert.isTrue(ast.sameNode(h1_1, h1_1_clone));
   });
 
   test('siblingsAfter', () => {
