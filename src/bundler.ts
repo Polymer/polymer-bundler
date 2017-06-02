@@ -366,7 +366,7 @@ export class Bundler {
           // one.
           if (newPrependTarget &&
               (!prependTarget ||
-               astUtils.inOrder(newPrependTarget, prependTarget))) {
+               astUtils.inSourceOrder(newPrependTarget, prependTarget))) {
             prependTarget = newPrependTarget;
           }
         }

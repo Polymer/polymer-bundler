@@ -119,7 +119,7 @@ export function parse(html: string, options: ParserOptions): ASTNode {
  * TODO(usergenic): Port this to `dom5` and do it with typings for location info
  * instead of all of these string-based lookups.
  */
-export function inOrder(left: ASTNode, right: ASTNode): boolean {
+export function inSourceOrder(left: ASTNode, right: ASTNode): boolean {
   const l = left.__location, r = right.__location;
   return l && r && l['line'] && r['line'] &&
       (l['line'] < r['line'] ||

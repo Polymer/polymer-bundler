@@ -28,18 +28,18 @@ const assert = chai.assert;
 
 suite('AST Utils', function() {
 
-  test('inOrder', () => {
+  test('inSourceOrder', () => {
     const html = parse5.parseFragment(`
           <span>oh</span><span>hi</span>
           <span>good</span>
         <span>bye</span>
       `, {locationInfo: true});
     const spans = dom5.queryAll(html, dom5.predicates.hasTagName('span'));
-    assert.isTrue(ast.inOrder(spans[0], spans[1]), 'oh -> hi');
-    assert.isTrue(ast.inOrder(spans[0], spans[3]), 'oh -> bye');
-    assert.isTrue(ast.inOrder(spans[2], spans[3]), 'good -> bye');
-    assert.isFalse(ast.inOrder(spans[3], spans[1]), 'bye <- hi');
-    assert.isFalse(ast.inOrder(spans[1], spans[0]), 'hi <- oh');
+    assert.isTrue(ast.inSourceOrder(spans[0], spans[1]), 'oh -> hi');
+    assert.isTrue(ast.inSourceOrder(spans[0], spans[3]), 'oh -> bye');
+    assert.isTrue(ast.inSourceOrder(spans[2], spans[3]), 'good -> bye');
+    assert.isFalse(ast.inSourceOrder(spans[3], spans[1]), 'bye <- hi');
+    assert.isFalse(ast.inSourceOrder(spans[1], spans[0]), 'hi <- oh');
   });
 
   test('prepend', () => {
