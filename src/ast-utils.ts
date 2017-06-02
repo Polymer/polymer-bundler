@@ -116,6 +116,8 @@ export function parse(html: string, options: ParserOptions): ASTNode {
 /**
  * Returns true if the nodes are given in order as they appear in the source
  * code.
+ * TODO(usergenic): Port this to `dom5` and do it with typings for location info
+ * instead of all of these string-based lookups.
  */
 export function inOrder(left: ASTNode, right: ASTNode): boolean {
   const l = left.__location, r = right.__location;
@@ -127,6 +129,8 @@ export function inOrder(left: ASTNode, right: ASTNode): boolean {
 /**
  * Returns true if both nodes have the same line and column according to their
  * location info.
+ * TODO(usergenic): Port this to `dom5` and do it with typings for location info
+ * instead of all of these string-based lookups.
  */
 export function sameNode(node1: ASTNode, node2: ASTNode): boolean {
   const l1 = node1.__location, l2 = node2.__location;
