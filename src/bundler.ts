@@ -312,16 +312,15 @@ export class Bundler {
    * ensure that imports are injected prior to any eager imports of other
    * bundles which are known to depend on them, to preserve expectations of
    * evaluation order.
-   *
-   * We inject all imports in the case any were moved into the bundle by the
-   * strategy. While this will almost always yield duplicate imports, they
-   * will be cleaned up through deduplication during the import phase.
    */
   private _injectHtmlImportsForBundle(
       document: Document,
       ast: ASTNode,
       bundle: AssignedBundle,
       bundleManifest: BundleManifest) {
+    // Gather all the document's direct html imports.  We want the direct (not
+    // transitive) imports only here, because we'll be using their AST nodes as
+    // targets to prepended injected imports to.
     const existingImports = [...document.getFeatures(
         {kind: 'html-import', noLazyImports: true, imported: false})];
     const existingImportDependencies =
@@ -331,31 +330,40 @@ export class Bundler {
                   {kind: 'html-import', imported: true, noLazyImports: true})
             ].map((feature) => feature.document.url)]));
 
+    // Every file in the bundle is a candidate for injection into the document.
     for (const importUrl of bundle.bundle.files) {
       const relativeImportUrl = urlUtils.relativeUrl(bundle.url, importUrl);
 
-      // If relative import url is empty, it is because the urls are the same,
-      // meaning we'd be importing the same document as ourself.  Skip.
+      // If relative URL is empty, it is because the import URL and the document
+      // URL are the same, so there is no need to inject.
       if (!relativeImportUrl) {
         continue;
       }
 
-      // No need to inject an import that's already there.
+      // If there is an existing import in the document that matches the import
+      // URL already, we don't need to inject one.
       if (existingImports.find((e) => e.document.url === importUrl)) {
         continue;
       }
 
+      // We are looking for the earliest eager import of an html document which
+      // has a dependency on the html import we want to inject.
       let prependTarget = undefined;
 
+      // We are only concerned with imports that are not of files in this
+      // bundle.
       for (const existingImport of existingImports.filter(
                (e) => !bundle.bundle.files.has(e.document.url))) {
         // If the existing import has a dependency on the import we are about
-        // to inject and that import is not a part of this bundle, lets inject
-        // the dependency before it.
+        // to inject, it may be our new target.
         if (existingImportDependencies.get(existingImport.document.url)!
                 .indexOf(importUrl) !== -1) {
           const newPrependTarget = dom5.query(
               ast, (node) => astUtils.sameNode(node, existingImport.astNode));
+
+          // IF we don't have a target already or if the old target comes after
+          // the new one in the source code, the new one will replace the old
+          // one.
           if (newPrependTarget &&
               (!prependTarget ||
                astUtils.inOrder(newPrependTarget, prependTarget))) {
@@ -364,6 +372,7 @@ export class Bundler {
         }
       }
 
+      // Inject the new html import into the document.
       const newHtmlImport = this._createHtmlImport(relativeImportUrl);
       if (prependTarget) {
         dom5.insertBefore(
