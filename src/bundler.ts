@@ -254,8 +254,8 @@ export class Bundler {
   }
 
   /**
-   * Append a <link rel="import" node to `node` with a value of `url` for
-   * the "href" attribute.
+   * Append a `<link rel="import" ...>` node to `node` with a value of `url`
+   * for the "href" attribute.
    */
   private _createHtmlImport(url: UrlString): ASTNode {
     const link = dom5.constructors.element('link');
