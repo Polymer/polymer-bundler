@@ -6,10 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
-- When injecting html imports into documents for inlining, bundler now tries
-  to put them ahead of imports which will depend on them instead of just
-  appending to end of document. This is especially important in shell strategy
-  apps with other shared bundles or when shell eagerly imports fragments.
+- In cases such as the shell merge strategy, imports which are not originally
+  part of the shell are now inserted before other imports which are dependent
+  on them.  Fixes https://github.com/Polymer/polymer-bundler/issues/517.
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.1 - 2017-05-19
