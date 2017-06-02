@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!-- ## Unreleased -->
+## Unreleased
+- When injecting html imports into documents for inlining, bundler now tries
+  to put them ahead of imports which will depend on them instead of just
+  appending to end of document. This is especially important in shell strategy
+  apps with other shared bundles or when shell eagerly imports fragments.
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.1 - 2017-05-19
