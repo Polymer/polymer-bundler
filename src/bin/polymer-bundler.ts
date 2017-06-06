@@ -19,6 +19,7 @@ import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
+import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
 import {generateShellMergeStrategy} from '../bundle-manifest';
@@ -26,6 +27,7 @@ import {generateShellMergeStrategy} from '../bundle-manifest';
 console.warn('polymer-bundler is currently in alpha! Use at your own risk!');
 
 const pathArgument = '[underline]{path}';
+const projectRoot = pathLib.resolve('.');
 
 const optionDefinitions = [
   {name: 'help', type: Boolean, alias: 'h', description: 'Print this message'},
@@ -95,9 +97,18 @@ const optionDefinitions = [
         'Input HTML. If not specified, will be the last command line argument.'
   },
   {
+    name: 'redirect',
+    type: String,
+    multiple: true,
+    description: 'Takes an argument in the form of `<prefix>|<path>` where ' +
+        '`<prefix>` is an arbitrary url prefix, possibly including a ' +
+        'protocol, hostname, and/or path prefix and `<path>` is a local ' +
+        'filesystem path to route requests to.  Multiple redirects may ' +
+        'be specified; the earliest ones have the highest priority.'
+  },
+  {
     name: 'sourcemaps',
     type: Boolean,
-    defaultOption: false,
     description: 'Create and process sourcemaps for scripts.'
   }
 ];
@@ -161,6 +172,35 @@ options.stripComments = options['strip-comments'];
 options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = options['inline-scripts'];
 options.inlineCss = options['inline-css'];
+
+if (options.redirect) {
+  const redirections = options.redirect.map((redirect: string) => {
+    const [prefix, path] = redirect.split('|');
+    if (!prefix || !path) {
+      return null;
+    }
+    return {prefix: prefix, path: path};
+  });
+  const prefixedLoaders =
+      redirections.map((pp: {path: string, prefix: string}) => {
+        return new PrefixedUrlLoader(pp.prefix, new FSUrlLoader(pp.path));
+      });
+  const prefixedResolvers =
+      redirections.map((pp: {path: string, prefix: string}) => {
+        return {
+          canResolve: (url: string) => url.startsWith(pp.prefix),
+          resolve: (url: string) => url,
+        };
+      });
+  if (prefixedLoaders.length > 0) {
+    options.analyzer = new Analyzer({
+      urlResolver: new MultiUrlResolver(
+          prefixedResolvers.concat([new PackageUrlResolver()])),
+      urlLoader: new MultiUrlLoader(
+          prefixedLoaders.concat([new FSUrlLoader(projectRoot)]))
+    });
+  }
+}
 
 if (options.shell) {
   options.strategy = generateShellMergeStrategy(options.shell, 2);

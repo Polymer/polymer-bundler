@@ -32,6 +32,7 @@ for this step).
 - `--exclude <path>`: Exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
+- `--redirect <prefix>|<path>`: Takes an argument in the form of `<prefix>|<path>` where `<prefix>` is an arbitrary url prefix, possibly including a protocol, hostname, and/or path prefix and `<path>` is a local filesystem path to route requests to.  Multiple redirects may be specified; the earliest ones have the highest priority.
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
 - `--strip-comments`: Strips all HTML comments not containing an @license from the document.
 - `--sourcemaps`: Honor (or create) sourcemaps for inline script tags.
