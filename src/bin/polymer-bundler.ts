@@ -174,15 +174,18 @@ options.inlineScripts = options['inline-scripts'];
 options.inlineCss = options['inline-css'];
 
 if (options.redirect) {
-  const redirections = options.redirect.map((redirect: string) => {
-    const [prefix, path] = redirect.split('|');
-    if (!prefix || !path) {
-      return null;
-    }
-    return {prefix: prefix, path: path};
-  });
+  const redirections: {prefix: string, path: string}[] =
+      options.redirect
+          .map((redirect: string) => {
+            const [prefix, path] = redirect.split('|');
+            if (!prefix || !path) {
+              return null;
+            }
+            return {prefix, path};
+          })
+          .filter((r: any) => !!r);
   const prefixedLoaders =
-      redirections.map((pp: {path: string, prefix: string}) => {
+      redirections.map((pp: {prefix: string, path: string}) => {
         return new PrefixedUrlLoader(pp.prefix, new FSUrlLoader(pp.path));
       });
   const prefixedResolvers =
