@@ -48,8 +48,8 @@ suite('polymer-bundler CLI', () => {
           execSync([
             `cd ${projectRoot}`,
             `node ${cliPath} index.html ` +
-                `--redirect='myapp://app/|${projectRoot}' ` +
-                `--redirect='vendor://|${projectRoot}/../bower_components'`,
+                `--redirect="myapp://app/|${projectRoot}" ` +
+                `--redirect="vendor://|${projectRoot}/../bower_components"`,
           ].join(' && '))
               .toString();
       assert.include(stdout, 'This is an external dependency');
