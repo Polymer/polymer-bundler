@@ -41,7 +41,9 @@ suite('polymer-bundler CLI', () => {
 
     test('handles urls with arbitrary protocols and hosts', async () => {
       const projectRoot =
-          path.resolve(__dirname, '../../test/html/url-redirection');
+          path.resolve(__dirname, '../../test/html/url-redirection')
+              // Force forward-slashes so quoting works with Windows paths.
+              .replace(/\\/g, '/');
       const stdout =
           execSync([
             `cd ${projectRoot}`,
