@@ -19,7 +19,7 @@ import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
-import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
 import {generateShellMergeStrategy} from '../bundle-manifest';
@@ -184,11 +184,11 @@ if (options.redirect) {
             return {prefix, path};
           })
           .filter((r: any) => !!r);
-  const prefixedLoaders =
+  const prefixedLoaders: UrlLoader[] =
       redirections.map((pp: {prefix: string, path: string}) => {
         return new PrefixedUrlLoader(pp.prefix, new FSUrlLoader(pp.path));
       });
-  const prefixedResolvers =
+  const prefixedResolvers: UrlResolver[] =
       redirections.map((pp: {path: string, prefix: string}) => {
         return {
           canResolve: (url: string) => url.startsWith(pp.prefix),
