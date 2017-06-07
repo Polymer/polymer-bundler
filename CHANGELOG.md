@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- Fixed issue with lazy-imports impacting bundle inlining logic. https://github.com/Polymer/polymer-bundler/issues/536
+- Fixed issue with hidden div being created inside dom-modules. https://github.com/Polymer/polymer-bundler/issues/535
+- Fixed issue with injected dependencies inside dom-modules in shell when using lazy-imports. https://github.com/Polymer/polymer-bundler/issues/534
+
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.2 - 2017-06-02

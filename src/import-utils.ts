@@ -54,15 +54,19 @@ export async function inlineHtmlImport(
   const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   const importBundle = manifest.getBundleForFile(resolvedImportUrl);
 
-  // Don't reprocess the same file again.
-  if (visitedUrls.has(resolvedImportUrl)) {
-    astUtils.removeElementAndNewline(linkTag);
-    return;
-  }
+  // We don't want to process the same eager import again, but we want to
+  // process every lazy import we see.
+  if (!isLazy) {
+    // Don't reprocess the same file again.
+    if (visitedUrls.has(resolvedImportUrl)) {
+      astUtils.removeElementAndNewline(linkTag);
+      return;
+    }
 
-  // We've never seen this import before, so we'll add it to the set to guard
-  // against processing it again in the future.
-  visitedUrls.add(resolvedImportUrl);
+    // We've never seen this import before, so we'll add it to the set to guard
+    // against inlining it again in the future.
+    visitedUrls.add(resolvedImportUrl);
+  }
 
   // If we can't find a bundle for the referenced import, record that we've
   // processed it, but don't remove the import link.  Browser will handle it.
