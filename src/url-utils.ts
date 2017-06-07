@@ -103,9 +103,13 @@ export function rewriteHrefBaseUrl(
   const parsedTo = url.parse(absUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&
       parsedFrom.host === parsedTo.host) {
-    const pathname = path.posix.relative(
-        makeAbsolutePath(path.posix.dirname(parsedFrom.pathname || '')),
-        makeAbsolutePath(parsedTo.pathname || ''));
+    let dirFrom = path.posix.dirname(parsedFrom.pathname || '');
+    let pathTo = parsedTo.pathname || '';
+    if (isAbsolutePath(oldBaseUrl) || isAbsolutePath(newBaseUrl)) {
+      dirFrom = makeAbsolutePath(dirFrom);
+      pathTo = makeAbsolutePath(pathTo);
+    }
+    const pathname = path.posix.relative(dirFrom, pathTo);
     return url.format(
         {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
   }

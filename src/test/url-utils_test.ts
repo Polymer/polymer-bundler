@@ -100,6 +100,15 @@ suite('URL Utils', () => {
       testRewrite(
           'foo.html', 'bar.html', 'index.html', 'foo.html', 'neither has ^/');
     });
+
+    test('Rewrite URLs pointing outside of the build root', () => {
+      testRewrite(
+          '../../images/icon.svg',
+          'css/foo.css',
+          'foo.html',
+          '../images/icon.svg',
+          'neither has ^/');
+    });
   });
 
   suite('Relative URL calculations', () => {
