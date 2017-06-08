@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- Fixed issue with incorrect URL rewrites in inlined CSS (when URL points outside of the package root). https://github.com/Polymer/polymer-bundler/issues/531
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.3 - 2017-06-07
