@@ -184,7 +184,7 @@ export class Bundler {
    * the end.
    */
   private _attachHiddenDiv(ast: ASTNode, hiddenDiv: ASTNode) {
-    const firstHtmlImport = dom5.query(ast, matchers.htmlImport);
+    const firstHtmlImport = dom5.query(ast, matchers.eagerHtmlImport);
     const body = dom5.query(ast, matchers.body);
     if (body) {
       if (firstHtmlImport &&
@@ -321,14 +321,16 @@ export class Bundler {
     // Gather all the document's direct html imports.  We want the direct (not
     // transitive) imports only here, because we'll be using their AST nodes as
     // targets to prepended injected imports to.
-    const existingImports = [...document.getFeatures(
-        {kind: 'html-import', noLazyImports: true, imported: false})];
+    const existingImports = [
+      ...document.getFeatures(
+          {kind: 'html-import', noLazyImports: true, imported: false})
+    ].filter((i) => !i.lazy);
     const existingImportDependencies =
         new Map(<[string, string[]][]>existingImports.map(
             (existingImport) => [existingImport.document.url, [
               ...existingImport.document.getFeatures(
                   {kind: 'html-import', imported: true, noLazyImports: true})
-            ].map((feature) => feature.document.url)]));
+            ].filter((i) => !i.lazy).map((feature) => feature.document.url)]));
 
     // Every file in the bundle is a candidate for injection into the document.
     for (const importUrl of bundle.bundle.files) {

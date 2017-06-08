@@ -792,7 +792,7 @@ suite('Bundler', () => {
       assert.equal(result.manifest.bundles.size, 4);
       const shell = parse5.serialize(
           result.documents.get('importing-fragments/shell.html')!.ast);
-      const fragmentAAt = shell.indexOf('href="fragment-a.html"');
+      const fragmentAAt = shell.indexOf('rel="import" href="fragment-a.html"');
       const shellAt = shell.indexOf(`console.log('shell.html')`);
       const sharedUtilAt = shell.indexOf(`console.log('shared-util.html')`);
       assert.isTrue(
