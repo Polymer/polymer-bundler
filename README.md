@@ -82,6 +82,12 @@ The command
 
 will remove HTML comments, except for those that begin with `@license`.  License comments will be deduplicated.
 
+The command
+
+    polymer-bundler --redirect "myapp://|src" target.html
+
+will route all URLs with prefix `myapp://` to the `src` folder.  So a url like `myapp://main/index.html` would actually resolve to a file in `./src/main/index.html` relative to the package root.
+
 ## Using polymer-bundler programmatically
 
 polymer-bundler as a library has two exported function.
