@@ -24,6 +24,7 @@ import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
 import {generateShellMergeStrategy} from '../bundle-manifest';
 
+const prefixArgument = '[underline]{prefix}';
 const pathArgument = '[underline]{path}';
 const projectRoot = pathLib.resolve('.');
 
@@ -89,20 +90,24 @@ const optionDefinitions = [
   {
     name: 'in-html',
     type: String,
+    typeLabel: '[underline]{path}',
     defaultOption: true,
     multiple: true,
     description:
-        'Input HTML. If not specified, will be the last command line argument.'
+        'Input HTML. If not specified, will be the last command line ' +
+        'argument.Multiple in -html arguments may be specified.'
   },
   {
     name: 'redirect',
     type: String,
     multiple: true,
-    description: 'Takes an argument in the form of `<prefix>|<path>` where ' +
-        '`<prefix>` is an arbitrary url prefix, possibly including a ' +
-        'protocol, hostname, and/or path prefix and `<path>` is a local ' +
-        'filesystem path to route requests to.  Multiple redirects may ' +
-        'be specified; the earliest ones have the highest priority.'
+    typeLabel: `${prefixArgument}|${pathArgument}`,
+    description: `Routes URLs with arbitrary ${prefixArgument}, possibly ` +
+        `including a protocol, hostname, and/or path prefix to a ` +
+        `${pathArgument} on local filesystem.For example ` +
+        `--redirect "myapp://|src" would route "myapp://main/home.html" to ` +
+        `"./src/main/home.html".  Multiple redirects may be specified; the ` +
+        `earliest ones have the highest priority.`
   },
   {
     name: 'sourcemaps',
