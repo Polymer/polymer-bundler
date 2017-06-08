@@ -62,35 +62,35 @@ const optionDefinitions = [
   {
     name: 'out-html',
     type: String,
+    typeLabel: pathArgument,
     description: `If specified, output will be written to ${pathArgument}` +
-        ' instead of stdout.',
-    typeLabel: `${pathArgument}`
+        ' instead of stdout.'
   },
   {
     name: 'manifest-out',
     type: String,
+    typeLabel: pathArgument,
     description: 'If specified, the bundle manifest will be written to ' +
-        `${pathArgument}.`,
-    typeLabel: `${pathArgument}`
+        `${pathArgument}.`
   },
   {
     name: 'shell',
     type: String,
+    typeLabel: pathArgument,
     description: 'If specified, shared dependencies will be inlined into ' +
-        `${pathArgument}.`,
-    typeLabel: `${pathArgument}`,
+        `${pathArgument}.`
   },
   {
     name: 'out-dir',
     type: String,
+    typeLabel: pathArgument,
     description: 'If specified, all output files will be written to ' +
-        `${pathArgument}.`,
-    typeLabel: `${pathArgument}`
+        `${pathArgument}.`
   },
   {
     name: 'in-html',
     type: String,
-    typeLabel: '[underline]{path}',
+    typeLabel: pathArgument,
     defaultOption: true,
     multiple: true,
     description:
@@ -100,8 +100,8 @@ const optionDefinitions = [
   {
     name: 'redirect',
     type: String,
-    multiple: true,
     typeLabel: `${prefixArgument}|${pathArgument}`,
+    multiple: true,
     description: `Routes URLs with arbitrary ${prefixArgument}, possibly ` +
         `including a protocol, hostname, and/or path prefix to a ` +
         `${pathArgument} on local filesystem.For example ` +
