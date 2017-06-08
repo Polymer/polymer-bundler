@@ -116,6 +116,6 @@ export function rewriteHrefBaseUrl(
   return absUrl;
 }
 
-function makeAbsolutePath(pathStr: string): string {
-  return pathStr.startsWith(path.sep) ? pathStr : path.sep + pathStr;
+function makeAbsolutePath(path: string): string {
+  return path.startsWith('/') ? path : '/' + path;
 }
