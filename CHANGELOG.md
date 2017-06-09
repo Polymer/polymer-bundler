@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 - Added a `--redirect` option to `bin/polymer-bundler`.
+- Added a `--root` option to `bin/polymer-bundler`.
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.3 - 2017-06-07

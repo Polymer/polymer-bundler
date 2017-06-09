@@ -37,6 +37,15 @@ suite('polymer-bundler CLI', () => {
     assert.include(stdout, 'hello from /absolute-paths/script.js');
   });
 
+  test('uses the --root value option as loader root', async () => {
+    const stdout = execSync([
+                     `node ${cliPath} --root test/html absolute-paths.html`,
+                   ].join(' && '))
+                       .toString();
+    assert.include(stdout, '.absolute-paths-style');
+    assert.include(stdout, 'hello from /absolute-paths/script.js');
+  });
+
   suite('--redirect', () => {
 
     test('handles urls with arbitrary protocols and hosts', async () => {
