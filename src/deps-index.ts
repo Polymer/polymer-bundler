@@ -103,6 +103,5 @@ export async function buildDepsIndex(
       console.warn(`Unable to get document ${entrypoint}: ${message}`);
     }
   }
-
   return depsIndex;
 }

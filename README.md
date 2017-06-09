@@ -32,6 +32,7 @@ for this step).
 - `--exclude <path>`: Exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
+- `--redirect <prefix>|<path>`: Routes URLs with arbitrary `<prefix>`, possibly including a protocol, hostname, and/or path prefix to a `<path>` on local filesystem.  For example `--redirect "myapp://|src"` would route `myapp://main/home.html` to `./src/main/home.html`.  Multiple redirects may be specified; the earliest ones have the highest priority.
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
 - `--strip-comments`: Strips all HTML comments not containing an @license from the document.
 - `--sourcemaps`: Honor (or create) sourcemaps for inline script tags.
@@ -80,6 +81,12 @@ The command
     polymer-bundler --strip-comments target.html
 
 will remove HTML comments, except for those that begin with `@license`.  License comments will be deduplicated.
+
+The command
+
+    polymer-bundler --redirect "myapp://|src" target.html
+
+will route all URLs with prefix `myapp://` to the `src` folder.  So a url like `myapp://main/index.html` would actually resolve to a file in `./src/main/index.html` relative to the package root.
 
 ## Using polymer-bundler programmatically
 
