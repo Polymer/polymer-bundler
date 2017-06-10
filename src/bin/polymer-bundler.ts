@@ -26,7 +26,6 @@ import {generateShellMergeStrategy} from '../bundle-manifest';
 
 const prefixArgument = '[underline]{prefix}';
 const pathArgument = '[underline]{path}';
-const projectRoot = pathLib.resolve('.');
 
 const optionDefinitions = [
   {name: 'help', type: Boolean, alias: 'h', description: 'Print this message'},
@@ -113,7 +112,16 @@ const optionDefinitions = [
     name: 'sourcemaps',
     type: Boolean,
     description: 'Create and process sourcemaps for scripts.'
-  }
+  },
+  {
+    name: 'root',
+    alias: 'r',
+    type: String,
+    typeLabel: pathArgument,
+    description:
+        'The root of the package/project being bundled.  Defaults to the ' +
+        'current working folder.'
+  },
 ];
 
 const usage = [
@@ -152,6 +160,8 @@ const usage = [
 ];
 
 const options = commandLineArgs(optionDefinitions);
+const projectRoot =
+    options.root ? pathLib.resolve(options.root) : pathLib.resolve('.');
 
 const entrypoints: UrlString[] = options['in-html'];
 
@@ -205,6 +215,10 @@ if (options.redirect) {
           new MultiUrlLoader([...loaders, new FSUrlLoader(projectRoot)])
     });
   }
+}
+
+if (!options.analyzer) {
+  options.analyzer = new Analyzer({urlLoader: new FSUrlLoader(projectRoot)});
 }
 
 if (options.shell) {

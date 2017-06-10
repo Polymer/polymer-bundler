@@ -29,6 +29,7 @@ for this step).
 ## Options
 - `-h`|`--help`: Print this message
 - `-v`|`--version`: Print version number
+- `-r`|`--root`: The root of the package/project being bundled.  Defaults to the current working folder.
 - `--exclude <path>`: Exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
