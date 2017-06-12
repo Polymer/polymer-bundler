@@ -155,7 +155,11 @@ export function siblingsAfter(node: ASTNode): ASTNode[] {
 export function stripComments(document: ASTNode) {
   const uniqueLicenseTexts = new Set<string>();
   const licenseComments: ASTNode[] = [];
-  for (const comment of dom5.nodeWalkAll(document, dom5.isCommentNode)) {
+  for (const comment of dom5.nodeWalkAll(
+           document,
+           dom5.isCommentNode,
+           undefined,
+           dom5.childNodesIncludeTemplate)) {
     if (isServerSideIncludeComment(comment)) {
       continue;
     }
