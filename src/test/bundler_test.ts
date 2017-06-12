@@ -467,7 +467,8 @@ suite('Bundler', () => {
     test('Excluded comments are removed', async () => {
       const options = {stripComments: true};
       const doc = await bundle('test/html/comments.html', options);
-      const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
+      const comments = dom5.nodeWalkAll(
+          doc, dom5.isCommentNode, undefined, dom5.childNodesIncludeTemplate);
       const commentsExpected = [
         '#important server-side include business',
         '# this could be a server-side include too',
