@@ -35,7 +35,7 @@ for this step).
 - `--inline-css`: Inline external stylesheets.
 - `--redirect <prefix>|<path>`: Routes URLs with arbitrary `<prefix>`, possibly including a protocol, hostname, and/or path prefix to a `<path>` on local filesystem.  For example `--redirect "myapp://|src"` would route `myapp://main/home.html` to `./src/main/home.html`.  Multiple redirects may be specified; the earliest ones have the highest priority.
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
-- `--strip-comments`: Strips all HTML comments not containing an @license from the document.
+- `--strip-comments`: Strips all HTML comments from the document which do not contain an `@license`, or start with `<!--#` or `<!--!`.
 - `--sourcemaps`: Honor (or create) sourcemaps for inline script tags.
 - `--out-html <path>`: If specified, output will be written to <path> instead of stdout.
 - `--out-dir <path>`: If specified, output will be written to <path>. Necessary if bundling multiple files.
@@ -81,7 +81,7 @@ The command
 
     polymer-bundler --strip-comments target.html
 
-will remove HTML comments, except for those that begin with `@license`.  License comments will be deduplicated.
+will remove HTML comments, except for those containing `@license` or starting with `<!--#` or `<!--!`.  License comments will be deduplicated.
 
 The command
 
@@ -102,7 +102,7 @@ polymer-bundler as a library has two exported function.
 - `inlineScripts`: Inline content of external scripts into the bundled html.  Defaults to `true`.
 - `rewriteUrlsInTemplates`: Fix URLs found inside certain element attributes (`action`, `assetpath`, `href`, `src`, and `style`) inside `<template>` tags.  Defaults to `false`.
 - `sourcemaps`: Honor (or create) sourcemaps for inline scripts.  Defaults to `false`.
-- `stripComments`: Remove all HTML comments, except those containing `@license`, which are merely de-duplicated.  Defaults to `false`.
+- `stripComments`: Remove all HTML comments, except for `@license`, which are merely de-duplicated, server-side include directives like `<!--# ... -->`, and other important comments of the form `<!--! ... -->`.  Defaults to `false`.
 - `strategy`: A function that takes an array of bundles and returns an array of bundles.  There are a strategy factory functions available in [bundle-manifest](https://github.com/Polymer/polymer-bundler/blob/master/src/bundle-manifest.ts).
 - `urlMapper`: A function that takes bundles and returns a Map of urls to bundles.  This determines the location of generated bundles.  There are url mapper factory functions available in [bundle-manifest](https://github.com/Polymer/polymer-bundler/blob/master/src/bundle-manifest.ts)
 
