@@ -37,6 +37,7 @@ suite('Bundler', () => {
   }
 
   suite('Deps index tests', () => {
+
     test('with 3 endpoints', async () => {
       const common = 'common.html';
       const dep1 = 'dep1.html';
@@ -85,6 +86,27 @@ suite('Bundler', () => {
         [deeply1, new Set([deeply1, deeply2])],
       ]);
       const index = await buildDepsIndex([entrypoint], analyzer);
+      chai.assert.deepEqual(
+          serializeMap(index.entrypointToDeps),
+          serializeMap(expectedEntrypointsToDeps));
+    });
+
+    test('when an entrypoint imports an entrypoint', async () => {
+      const entrypoint = 'eagerly-importing-a-fragment.html';
+      const fragmentA = 'importing-fragments/fragment-a.html';
+      const fragmentB = 'importing-fragments/fragment-a.html';
+      const util = 'importing-fragments/shared-util.html';
+      const shell = 'importing-fragments/shell.html';
+      const analyzer =
+          new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')});
+      const expectedEntrypointsToDeps = new Map([
+        [entrypoint, new Set([entrypoint, fragmentA, shell, util])],
+        [fragmentA, new Set([fragmentA, util])],
+        [fragmentB, new Set([fragmentB, util])],
+        [shell, new Set([shell, fragmentA, util])],
+      ]);
+      const index = await buildDepsIndex(
+          [entrypoint, fragmentA, fragmentB, shell], analyzer);
       chai.assert.deepEqual(
           serializeMap(index.entrypointToDeps),
           serializeMap(expectedEntrypointsToDeps));

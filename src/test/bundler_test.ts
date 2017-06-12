@@ -20,7 +20,7 @@ import * as parse5 from 'parse5';
 import * as path from 'path';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
-import {Bundle} from '../bundle-manifest';
+import {Bundle, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, Options as BundlerOptions} from '../bundler';
 
 chai.config.showDiff = true;
@@ -88,7 +88,8 @@ suite('Bundler', () => {
       const bundler = new Bundler({
         inlineCss: true,
         inlineScripts: true,
-        // This strategy adds a file not in the original document to the bundle.
+        // This strategy adds a file not in the original document to the
+        // bundle.
         strategy: (bundles: Bundle[]): Bundle[] => {
           bundles.forEach((b) => {
             b.files.add('test/html/imports/external-script.html');
@@ -466,7 +467,8 @@ suite('Bundler', () => {
     test('Excluded comments are removed', async () => {
       const options = {stripComments: true};
       const doc = await bundle('test/html/comments.html', options);
-      const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
+      const comments = dom5.nodeWalkAll(
+          doc, dom5.isCommentNode, undefined, dom5.childNodesIncludeTemplate);
       const commentsExpected = [
         '#important server-side include business',
         '# this could be a server-side include too',
@@ -773,6 +775,33 @@ suite('Bundler', () => {
       assert(myElement);
       assert(preds.NOT(preds.parentMatches(
           preds.hasAttr('by-polymer-bundler')))(<parse5.ASTNode>myElement));
+    });
+
+    test('eagerly importing a fragment', async () => {
+      const bundler = new Bundler({
+        analyzer:
+            new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')}),
+        strategy: generateShellMergeStrategy('importing-fragments/shell.html'),
+      });
+      const manifest = await bundler.generateManifest([
+        'eagerly-importing-a-fragment.html',
+        'importing-fragments/fragment-a.html',
+        'importing-fragments/fragment-b.html',
+        'importing-fragments/shell.html',
+      ]);
+      const result = await bundler.bundle(manifest);
+      assert.equal(result.manifest.bundles.size, 4);
+      const shell = parse5.serialize(
+          result.documents.get('importing-fragments/shell.html')!.ast);
+      const fragmentAAt = shell.indexOf('rel="import" href="fragment-a.html"');
+      const shellAt = shell.indexOf(`console.log('shell.html')`);
+      const sharedUtilAt = shell.indexOf(`console.log('shared-util.html')`);
+      assert.isTrue(
+          sharedUtilAt < fragmentAAt,
+          'Inlined shared-util.html should come before fragment-a.html import');
+      assert.isTrue(
+          fragmentAAt < shellAt,
+          'fragment-a.html import should come before script in shell.html');
     });
 
     test.skip('Imports in templates should not inline', async () => {

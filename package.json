@@ -1,6 +1,6 @@
 {
   "name": "polymer-bundler",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "Process Web Components into one output file",
   "main": "lib/bundler.js",
   "typings": "lib/bundler.d.ts",
@@ -17,12 +17,9 @@
     "command-line-args": "^3.0.1",
     "command-line-usage": "^3.0.3",
     "dom5": "^2.2.0",
-    "es6-promise": "^2.1.0",
     "espree": "^3.4.0",
     "mkdirp": "^0.5.1",
-    "nopt": "^3.0.1",
     "parse5": "^2.2.2",
-    "path-posix": "^1.0.0",
     "polymer-analyzer": "^2.0.0",
     "source-map": "^0.5.6"
   },

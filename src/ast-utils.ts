@@ -114,6 +114,32 @@ export function parse(html: string, options: ParserOptions): ASTNode {
 }
 
 /**
+ * Returns true if the nodes are given in order as they appear in the source
+ * code.
+ * TODO(usergenic): Port this to `dom5` and do it with typings for location info
+ * instead of all of these string-based lookups.
+ */
+export function inSourceOrder(left: ASTNode, right: ASTNode): boolean {
+  const l = left.__location, r = right.__location;
+  return l && r && l['line'] && r['line'] &&
+      (l['line'] < r['line'] ||
+       (l['line'] === r['line'] && l['col'] < r['col']));
+}
+
+/**
+ * Returns true if both nodes have the same line and column according to their
+ * location info.
+ * TODO(usergenic): Port this to `dom5` and do it with typings for location info
+ * instead of all of these string-based lookups.
+ */
+export function sameNode(node1: ASTNode, node2: ASTNode): boolean {
+  const l1 = node1.__location, l2 = node2.__location;
+  return !!(
+      l1 && l2 && l1['line'] && l1['col'] && l1['line'] === l2['line'] &&
+      l1['col'] === l2['col']);
+}
+
+/**
  * Return all sibling nodes following node.
  */
 export function siblingsAfter(node: ASTNode): ASTNode[] {
@@ -129,7 +155,11 @@ export function siblingsAfter(node: ASTNode): ASTNode[] {
 export function stripComments(document: ASTNode) {
   const uniqueLicenseTexts = new Set<string>();
   const licenseComments: ASTNode[] = [];
-  for (const comment of dom5.nodeWalkAll(document, dom5.isCommentNode)) {
+  for (const comment of dom5.nodeWalkAll(
+           document,
+           dom5.isCommentNode,
+           undefined,
+           dom5.childNodesIncludeTemplate)) {
     if (isServerSideIncludeComment(comment)) {
       continue;
     }
