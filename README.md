@@ -81,7 +81,7 @@ The command
 
     polymer-bundler --strip-comments target.html
 
-will remove HTML comments, except for those that begin with `@license`.  License comments will be deduplicated.
+will remove HTML comments, except for those containing `@license` or starting with `<!--#` or `<!--!`.  License comments will be deduplicated.
 
 The command
 
