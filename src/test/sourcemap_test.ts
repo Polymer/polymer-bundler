@@ -18,6 +18,7 @@ import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import * as path from 'path';
+import * as fs from 'fs';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 import {MappingItem, RawSourceMap, SourceMapConsumer} from 'source-map';
 
@@ -97,14 +98,16 @@ suite('Bundler', () => {
       assert.equal(inlineScripts.length, 3);
 
       for (let i = 0; i < inlineScripts.length; i++) {
-        if (i === 5) {
-          continue;
-        }
-
         const sourcemap = await getExistingSourcemap(
             analyzer, 'inline.html', dom5.getTextContent(inlineScripts[i]));
 
         assert(sourcemap, 'scripts found');
+        sourcemap!.sources.forEach((source, index) => {
+          if (sourcemap && sourcemap.sourcesContent && sourcemap.sourcesContent[index]) {
+            const originalFileContent = fs.readFileSync(path.join(basePath, source), 'utf-8');
+            assert.equal(sourcemap!.sourcesContent![index], originalFileContent, 'contents match');
+          }
+        });
         await testMapping(sourcemap!, compiledHtml, 'console');
       }
     });
@@ -123,6 +126,12 @@ suite('Bundler', () => {
             analyzer, 'external.html', dom5.getTextContent(inlineScripts[i]));
 
         assert(sourcemap, 'scripts found');
+        sourcemap!.sources.forEach((source, index) => {
+          if (sourcemap && sourcemap.sourcesContent && sourcemap.sourcesContent[index]) {
+            const originalFileContent = fs.readFileSync(path.join(basePath, source), 'utf-8');
+            assert.equal(sourcemap!.sourcesContent![index], originalFileContent, 'contents match');
+          }
+        });
         await testMapping(sourcemap!, compiledHtml, 'console');
       }
     });
@@ -141,6 +150,12 @@ suite('Bundler', () => {
             analyzer, 'combined.html', dom5.getTextContent(inlineScripts[i]));
 
         assert(sourcemap, 'scripts found');
+        sourcemap!.sources.forEach((source, index) => {
+          if (sourcemap && sourcemap.sourcesContent && sourcemap.sourcesContent[index]) {
+            const originalFileContent = fs.readFileSync(path.join(basePath, source), 'utf-8');
+            assert.equal(sourcemap!.sourcesContent![index], originalFileContent, 'contents match');
+          }
+        });
         await testMapping(sourcemap!, compiledHtml, 'console');
       }
     });
@@ -159,6 +174,12 @@ suite('Bundler', () => {
             analyzer, 'invalid.html', dom5.getTextContent(inlineScripts[i]));
 
         assert(sourcemap, 'scripts found');
+        sourcemap!.sources.forEach((source, index) => {
+          if (sourcemap && sourcemap.sourcesContent && sourcemap.sourcesContent[index]) {
+            const originalFileContent = fs.readFileSync(path.join(basePath, source), 'utf-8');
+            assert.equal(sourcemap!.sourcesContent![index], originalFileContent, 'contents match');
+          }
+        });
         await testMapping(sourcemap!, compiledHtml, 'console');
       }
     });
