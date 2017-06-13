@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## Unreleased
 - Fixed issue with incorrect URL rewrites in inlined CSS (when URL points outside of the package root). https://github.com/Polymer/polymer-bundler/issues/531
 - Fixed error when generating source maps due to original line or column not being available. https://github.com/Polymer/polymer-bundler/issues/516
+- Fixed `--manifest-out` option to include inlined scripts and styles and emit during single bundle cases. https://github.com/Polymer/polymer-bundler/issues/549 and https://github.com/Polymer/polymer-bundler/issues/550
 - Added a `--redirect` option to `bin/polymer-bundler`.
 - Added a `--root` option to `bin/polymer-bundler`.
 - Added support for preserving important comments of the form `<!--! ... -->` when using `stripComments`.
