@@ -17,8 +17,8 @@
 import * as chai from 'chai';
 import {execSync} from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
-import * as tempy from 'tempy';
 
 chai.config.showDiff = true;
 
@@ -51,7 +51,7 @@ suite('polymer-bundler CLI', () => {
 
     test('writes out the bundle manifest to given path', async () => {
       const projectRoot = path.resolve(__dirname, '../../test/html');
-      const tempdir = tempy.directory();
+      const tempdir = fs.mkdtempSync(os.tmpdir());
       const manifestPath = path.join(tempdir, 'bundle-manifest.json');
       execSync(
           `cd ${projectRoot} && ` +
