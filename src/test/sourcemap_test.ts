@@ -116,7 +116,7 @@ suite('Bundler', () => {
       assert(doc);
       const compiledHtml = parse5.serialize(doc);
       const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
-      assert.equal(inlineScripts.length, 2);
+      assert.equal(inlineScripts.length, 3);
 
       for (let i = 0; i < inlineScripts.length; i++) {
         const sourcemap = await getExistingSourcemap(
@@ -134,7 +134,7 @@ suite('Bundler', () => {
       assert(doc);
       const compiledHtml = parse5.serialize(doc);
       const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
-      assert.equal(inlineScripts.length, 6);
+      assert.equal(inlineScripts.length, 7);
 
       for (let i = 0; i < inlineScripts.length; i++) {
         const sourcemap = await getExistingSourcemap(
