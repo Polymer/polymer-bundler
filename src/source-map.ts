@@ -108,7 +108,8 @@ function offsetSourceMap(
 }
 
 export async function getExistingSourcemap(
-    analyzer: Analyzer, sourceUrl: string, sourceContent: string) {
+    analyzer: Analyzer, sourceUrl: string, sourceContent: string):
+    Promise<RawSourceMap|null> {
   const sourceMappingUrlParts = sourceContent.match(sourceMappingUrlExpr);
   if (sourceMappingUrlParts === null) {
     return null;
