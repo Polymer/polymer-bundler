@@ -22,7 +22,7 @@ import {Bundler} from '../bundler';
 import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
-import {generateShellMergeStrategy} from '../bundle-manifest';
+import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
 
 const prefixArgument = '[underline]{prefix}';
 const pathArgument = '[underline]{path}';
@@ -229,20 +229,37 @@ interface JsonManifest {
   [entrypoint: string]: UrlString[];
 }
 
-function documentCollectionToManifestJson(documents: DocumentCollection):
-    JsonManifest {
-  const manifest: JsonManifest = {};
-  for (const document of documents) {
-    const url = document[0];
-    const files = document[1].files;
-    manifest[url] = Array.from(files);
+function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
+  const json: JsonManifest = {};
+  for (const [url, bundle] of manifest.bundles) {
+    json[url] = [
+      ...bundle.inlinedHtmlImports,
+      ...bundle.inlinedScripts,
+      ...bundle.inlinedStyles
+    ];
+
+    if (bundle.entrypoints.size > 1) {
+      continue;
+    }
+
+    // Include the entrypoint in the manifest where bundle has just one
+    // entrypoint, since we know this is the document that was the basis for the
+    // bundle.
+    // TODO(usergenic): Extend Bundle with a basis document property to provide
+    // a more conventional means to get at this.
+    for (const entrypoint of bundle.entrypoints) {
+      if (!bundle.inlinedHtmlImports.has(entrypoint)) {
+        json[url].unshift(entrypoint);
+      }
+    }
   }
-  return manifest;
+  return json;
 }
 
 (async () => {
   const bundler = new Bundler(options);
-  let bundles: DocumentCollection;
+  let documents: DocumentCollection;
+  let manifest: BundleManifest;
   try {
     const shell = options.shell;
     if (shell) {
@@ -250,22 +267,26 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
         throw new Error('Shell must be provided as `in-html`');
       }
     }
-    const manifest = await bundler.generateManifest(entrypoints);
-    const result = await bundler.bundle(manifest);
-    bundles = result.documents;
+    ({documents, manifest} =
+         await bundler.bundle(await bundler.generateManifest(entrypoints)));
   } catch (err) {
     console.log(err);
     return;
   }
-  if (bundles.size > 1) {
+  if (options['manifest-out']) {
+    const manifestJson = bundleManifestToJson(manifest);
+    const fd = fs.openSync(options['manifest-out'], 'w');
+    fs.writeSync(fd, JSON.stringify(manifestJson));
+    fs.closeSync(fd);
+  }
+  if (documents.size > 1) {
     const outDir = options['out-dir'];
     if (!outDir) {
       throw new Error(
           'Must specify out-dir when bundling multiple entrypoints');
     }
-    for (const bundle of bundles) {
-      const url = bundle[0];
-      const ast = bundle[1].ast;
+    for (const [url, document] of documents) {
+      const ast = document.ast;
       const out = pathLib.join(process.cwd(), outDir, url);
       const finalDir = pathLib.dirname(out);
       mkdirp.sync(finalDir);
@@ -274,15 +295,9 @@ function documentCollectionToManifestJson(documents: DocumentCollection):
       fs.writeSync(fd, serialized + '\n');
       fs.closeSync(fd);
     }
-    if (options['manifest-out']) {
-      const manifestJson = documentCollectionToManifestJson(bundles);
-      const fd = fs.openSync(options['manifest-out'], 'w');
-      fs.writeSync(fd, JSON.stringify(manifestJson));
-      fs.closeSync(fd);
-    }
     return;
   }
-  const doc = bundles.get(entrypoints[0]);
+  const doc = documents.get(entrypoints[0]);
   if (!doc) {
     return;
   }
