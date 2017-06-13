@@ -16,7 +16,9 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 import {execSync} from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
+import * as tempy from 'tempy';
 
 chai.config.showDiff = true;
 
@@ -28,10 +30,9 @@ suite('polymer-bundler CLI', () => {
 
   test('uses the current working folder as loader root', async () => {
     const projectRoot = path.resolve(__dirname, '../../test/html');
-    const stdout = execSync([
-                     `cd ${projectRoot}`,
-                     `node ${cliPath} absolute-paths.html`,
-                   ].join(' && '))
+    const stdout = execSync(
+                       `cd ${projectRoot} && ` +
+                       `node ${cliPath} absolute-paths.html`)
                        .toString();
     assert.include(stdout, '.absolute-paths-style');
     assert.include(stdout, 'hello from /absolute-paths/script.js');
@@ -44,6 +45,30 @@ suite('polymer-bundler CLI', () => {
                        .toString();
     assert.include(stdout, '.absolute-paths-style');
     assert.include(stdout, 'hello from /absolute-paths/script.js');
+  });
+
+  suite('--manifest-out', () => {
+
+    test('writes out the bundle manifest to given path', async () => {
+      const projectRoot = path.resolve(__dirname, '../../test/html');
+      const tempdir = tempy.directory();
+      const manifestPath = path.join(tempdir, 'bundle-manifest.json');
+      execSync(
+          `cd ${projectRoot} && ` +
+          `node ${cliPath} absolute-paths.html ` +
+          `--manifest-out ${manifestPath}`)
+          .toString();
+      const manifestJson = fs.readFileSync(manifestPath).toString();
+      const manifest = JSON.parse(manifestJson);
+      assert.deepEqual(manifest, {
+        'absolute-paths.html': [
+          'absolute-paths.html',
+          'absolute-paths/import.html',
+          'absolute-paths/script.js',
+          'absolute-paths/style.css',
+        ],
+      });
+    });
   });
 
   suite('--redirect', () => {
