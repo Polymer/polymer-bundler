@@ -51,7 +51,7 @@ suite('polymer-bundler CLI', () => {
 
     test('writes out the bundle manifest to given path', async () => {
       const projectRoot = path.resolve(__dirname, '../../test/html');
-      const tempdir = fs.mkdtempSync(os.tmpdir());
+      const tempdir = fs.mkdtempSync(path.join(os.tmpdir(), ' ').trim());
       const manifestPath = path.join(tempdir, 'bundle-manifest.json');
       execSync(
           `cd ${projectRoot} && ` +
