@@ -101,12 +101,12 @@ suite('URL Utils', () => {
           'foo.html', 'bar.html', 'index.html', 'foo.html', 'neither has ^/');
     });
 
-    test('Rewrite URLs pointing outside of the build root', () => {
+    test('Rewrite paths even when they are outside package root', () => {
       testRewrite(
-          '../../images/icon.svg',
-          'css/foo.css',
-          'foo.html',
-          '../images/icon.svg',
+          '../../foo.html',
+          'bar.html',
+          'index.html',
+          '../../foo.html',
           'neither has ^/');
     });
   });
