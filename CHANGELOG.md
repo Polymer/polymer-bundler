@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added a `--root` option to `bin/polymer-bundler`.
 - The `stripComments` behavior now removes comments inside templates.
 - Added support for preserving important comments of the form `<!--! ... -->` when using `stripComments`.
+- Fixed `--manifest-out` option to include inlined scripts and styles and emit during single bundle cases.
 <!-- Add new, unreleased changes here. -->
 
 ## 2.0.3 - 2017-06-07
