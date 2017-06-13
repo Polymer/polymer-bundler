@@ -19,12 +19,12 @@ import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
+import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
 import {generateShellMergeStrategy} from '../bundle-manifest';
 
-console.warn('polymer-bundler is currently in alpha! Use at your own risk!');
-
+const prefixArgument = '[underline]{prefix}';
 const pathArgument = '[underline]{path}';
 
 const optionDefinitions = [
@@ -61,45 +61,67 @@ const optionDefinitions = [
   {
     name: 'out-html',
     type: String,
+    typeLabel: pathArgument,
     description: `If specified, output will be written to ${pathArgument}` +
-        ' instead of stdout.',
-    typeLabel: `${pathArgument}`
+        ' instead of stdout.'
   },
   {
     name: 'manifest-out',
     type: String,
-    description: `If specified, the bundle manifest will be written to` +
-        `${pathArgument}`,
-    typeLabel: `${pathArgument}`
+    typeLabel: pathArgument,
+    description: 'If specified, the bundle manifest will be written to ' +
+        `${pathArgument}.`
   },
   {
     name: 'shell',
     type: String,
-    description: `If specified, shared dependencies will be inlined into` +
-        `${pathArgument}`,
-    typeLabel: `${pathArgument}`,
+    typeLabel: pathArgument,
+    description: 'If specified, shared dependencies will be inlined into ' +
+        `${pathArgument}.`
   },
   {
     name: 'out-dir',
     type: String,
+    typeLabel: pathArgument,
     description: 'If specified, all output files will be written to ' +
-        `${pathArgument}.`,
-    typeLabel: `${pathArgument}`
+        `${pathArgument}.`
   },
   {
     name: 'in-html',
     type: String,
+    typeLabel: pathArgument,
     defaultOption: true,
     multiple: true,
     description:
-        'Input HTML. If not specified, will be the last command line argument.'
+        'Input HTML. If not specified, will be the last command line ' +
+        'argument.Multiple in -html arguments may be specified.'
+  },
+  {
+    name: 'redirect',
+    type: String,
+    typeLabel: `${prefixArgument}|${pathArgument}`,
+    multiple: true,
+    description: `Routes URLs with arbitrary ${prefixArgument}, possibly ` +
+        `including a protocol, hostname, and/or path prefix to a ` +
+        `${pathArgument} on local filesystem.For example ` +
+        `--redirect "myapp://|src" would route "myapp://main/home.html" to ` +
+        `"./src/main/home.html".  Multiple redirects may be specified; the ` +
+        `earliest ones have the highest priority.`
   },
   {
     name: 'sourcemaps',
     type: Boolean,
-    defaultOption: false,
     description: 'Create and process sourcemaps for scripts.'
-  }
+  },
+  {
+    name: 'root',
+    alias: 'r',
+    type: String,
+    typeLabel: pathArgument,
+    description:
+        'The root of the package/project being bundled.  Defaults to the ' +
+        'current working folder.'
+  },
 ];
 
 const usage = [
@@ -129,11 +151,17 @@ const usage = [
             'Inline scripts in \`target.html\` as well as HTML Imports. Exclude flags will apply to both Imports and Scripts.',
         example: 'polymer-bundler --inline-scripts target.html'
       },
+      {
+        desc: 'Route URLs starting with "myapp://" to folder "src/myapp".',
+        example: 'polymer-bundler --redirect="myapp://|src/myapp" target.html'
+      }
     ]
   },
 ];
 
 const options = commandLineArgs(optionDefinitions);
+const projectRoot =
+    options.root ? pathLib.resolve(options.root) : pathLib.resolve('.');
 
 const entrypoints: UrlString[] = options['in-html'];
 
@@ -161,6 +189,37 @@ options.stripComments = options['strip-comments'];
 options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = options['inline-scripts'];
 options.inlineCss = options['inline-css'];
+
+if (options.redirect) {
+  type redirection = {prefix: string, path: string};
+  const redirections: redirection[] =
+      options.redirect
+          .map((redirect: string) => {
+            const [prefix, path] = redirect.split('|');
+            return {prefix, path};
+          })
+          .filter((r: redirection) => r.prefix && r.path);
+  const resolvers: UrlResolver[] =
+      redirections.map((r: redirection) => ({
+                         canResolve: (url: string) => url.startsWith(r.prefix),
+                         resolve: (url: string) => url,
+                       }));
+  const loaders: UrlLoader[] = redirections.map(
+      (r: redirection) =>
+          new PrefixedUrlLoader(r.prefix, new FSUrlLoader(r.path)));
+  if (loaders.length > 0) {
+    options.analyzer = new Analyzer({
+      urlResolver:
+          new MultiUrlResolver([...resolvers, new PackageUrlResolver()]),
+      urlLoader:
+          new MultiUrlLoader([...loaders, new FSUrlLoader(projectRoot)])
+    });
+  }
+}
+
+if (!options.analyzer) {
+  options.analyzer = new Analyzer({urlLoader: new FSUrlLoader(projectRoot)});
+}
 
 if (options.shell) {
   options.strategy = generateShellMergeStrategy(options.shell, 2);

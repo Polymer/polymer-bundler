@@ -75,4 +75,23 @@ suite('AST Utils', function() {
     assert.equal(parse5.serialize(after3[0]), '4');
     assert.equal(parse5.serialize(after3[1]), '5');
   });
+
+  test('stripComments', () => {
+    const dom = parse5.parseFragment(`
+      <!-- @license I'm a license. Keep me. -->
+      <!--! I'm "important". Keep me. -->
+      <!--#SSI-style directive. Keep me. -->
+      <!--# SSI-style directive. Keep me. -->
+      <!-- Just a comment. Remove me. -->
+      <!--@Still just a comment. Remove me. -->
+    `);
+    ast.stripComments(dom);
+    const html = parse5.serialize(dom);
+    assert.include(html, `<!-- @license I'm a license. Keep me. -->`);
+    assert.include(html, `<!--! I'm "important". Keep me. -->`);
+    assert.include(html, `<!--#SSI-style directive. Keep me. -->`);
+    assert.include(html, `<!--# SSI-style directive. Keep me. -->`);
+    assert.notInclude(html, `<!-- Just a comment. Remove me. -->`);
+    assert.notInclude(html, `<!--@Still just a comment. Remove me. -->`);
+  });
 });

@@ -54,6 +54,14 @@ export function isBlankTextNode(node: ASTNode): boolean {
 }
 
 /**
+ * Return true if comment starts with a `!` character indicating it is an
+ * "important" comment, needing preservation.
+ */
+export function isImportantComment(node: ASTNode): boolean {
+  return !!node.data && !!node.data.match(/^!/);
+}
+
+/**
  * Return true if node is a comment node consisting of a license (annotated by
  * the `@license` string.)
  */
@@ -155,8 +163,12 @@ export function siblingsAfter(node: ASTNode): ASTNode[] {
 export function stripComments(document: ASTNode) {
   const uniqueLicenseTexts = new Set<string>();
   const licenseComments: ASTNode[] = [];
-  for (const comment of dom5.nodeWalkAll(document, dom5.isCommentNode)) {
-    if (isServerSideIncludeComment(comment)) {
+  for (const comment of dom5.nodeWalkAll(
+           document,
+           dom5.isCommentNode,
+           undefined,
+           dom5.childNodesIncludeTemplate)) {
+    if (isImportantComment(comment) || isServerSideIncludeComment(comment)) {
       continue;
     }
 
