@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- Fixed error when generating source maps due to original line or column not being available.
 - Added a `--redirect` option to `bin/polymer-bundler`.
 - Added a `--root` option to `bin/polymer-bundler`.
 - The `stripComments` behavior now removes comments inside templates.
