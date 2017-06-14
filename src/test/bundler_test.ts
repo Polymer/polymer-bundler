@@ -68,7 +68,7 @@ suite('Bundler', () => {
     test('imports removed', async () => {
       const imports = preds.AND(
           preds.hasTagName('link'),
-          preds.hasAttrValue('rel', 'import'),
+          preds.hasSpaceSeparatedAttrValue('rel', 'import'),
           preds.hasAttr('href'),
           preds.NOT(preds.hasAttrValue('type', 'css')));
       assert.equal(dom5.queryAll(await bundle(inputPath), imports).length, 0);
@@ -148,7 +148,7 @@ suite('Bundler', () => {
               document.ast!,
               preds.AND(
                   preds.hasTagName('link'),
-                  preds.hasAttrValue('rel', 'import')))!;
+                  preds.hasSpaceSeparatedAttrValue('rel', 'import')))!;
           assert(linkTag);
           assert.equal(
               dom5.getAttribute(linkTag, 'href'), '../../shared_bundle_1.html');
@@ -219,7 +219,7 @@ suite('Bundler', () => {
         preds.AND(
             preds.parentMatches(preds.hasTagName('dom-module')),
             preds.hasTagName('link'),
-            preds.hasAttrValue('rel', 'lazy-import')));
+            preds.hasSpaceSeparatedAttrValue('rel', 'lazy-import')));
     assert.equal(sharedLazyImports.length, 1);
     assert.equal(dom5.getAttribute(sharedLazyImports[0]!, 'group'), 'deeply');
   });
@@ -324,7 +324,8 @@ suite('Bundler', () => {
 
   test('Imports in <body> are handled correctly', async () => {
     const importMatcher = preds.AND(
-        preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
+        preds.hasTagName('link'),
+        preds.hasSpaceSeparatedAttrValue('rel', 'import'));
 
     const bodyContainerMatcher = preds.AND(
         preds.hasTagName('div'),
@@ -447,7 +448,7 @@ suite('Bundler', () => {
 
     const excluded = preds.AND(
         preds.hasTagName('link'),
-        preds.hasAttrValue('rel', 'import'),
+        preds.hasSpaceSeparatedAttrValue('rel', 'import'),
         preds.hasAttrValue('href', 'imports/simple-import.html'));
 
     const excludes = ['imports/simple-import.html'];
@@ -508,7 +509,8 @@ suite('Bundler', () => {
 
     test('Folder can be excluded', async () => {
       const linkMatcher = preds.AND(
-          preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
+          preds.hasTagName('link'),
+          preds.hasSpaceSeparatedAttrValue('rel', 'import'));
       const options = {excludes: ['imports/']};
       const doc = await bundle('test/html/default.html', options);
       const links = dom5.queryAll(doc, linkMatcher);
@@ -808,7 +810,7 @@ suite('Bundler', () => {
       const doc = await bundle('test/html/inside-template.html');
       const importMatcher = preds.AND(
           preds.hasTagName('link'),
-          preds.hasAttrValue('rel', 'import'),
+          preds.hasSpaceSeparatedAttrValue('rel', 'import'),
           preds.hasAttr('href'));
       const externalScriptMatcher = preds.AND(
           preds.hasTagName('script'),
