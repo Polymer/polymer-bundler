@@ -6,16 +6,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
-- Fixed issue with incorrect URL rewrites in inlined CSS (when URL points outside of the package root). https://github.com/Polymer/polymer-bundler/issues/531
-- Fixed error when generating source maps due to original line or column not being available. https://github.com/Polymer/polymer-bundler/issues/516
-- Fixed `--manifest-out` option to include inlined scripts and styles and emit during single bundle cases. https://github.com/Polymer/polymer-bundler/issues/549 and https://github.com/Polymer/polymer-bundler/issues/550
+<!-- Add new, unreleased changes here. -->
+
+## 2.1.0 - 2017-06-14
 - Added a `--redirect` option to `bin/polymer-bundler`.
 - Added a `--root` option to `bin/polymer-bundler`.
 - Added support for preserving important comments of the form `<!--! ... -->` when using `stripComments`.
-- The `stripComments` behavior now removes comments inside templates.
-- Fixed `--manifest-out` option to include inlined scripts and styles and emit during single bundle cases.
 - The `excludes` option now supports excluding specific script and css file and containing folder urls.
-<!-- Add new, unreleased changes here. -->
+- The `stripComments` behavior now removes comments inside templates.
+- Fixed issue with incorrect URL rewrites in inlined CSS (when URL points outside of the package root). https://github.com/Polymer/polymer-bundler/issues/531
+- Fixed error when generating source maps due to original line or column not being available. https://github.com/Polymer/polymer-bundler/issues/516
+- Fixed `--manifest-out` option to include inlined scripts and styles and emit during single bundle cases. https://github.com/Polymer/polymer-bundler/issues/549 and https://github.com/Polymer/polymer-bundler/issues/550
 
 ## 2.0.3 - 2017-06-07
 - Fixed issue with lazy-imports impacting bundle inlining logic. https://github.com/Polymer/polymer-bundler/issues/536
