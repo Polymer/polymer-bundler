@@ -100,6 +100,15 @@ suite('URL Utils', () => {
       testRewrite(
           'foo.html', 'bar.html', 'index.html', 'foo.html', 'neither has ^/');
     });
+
+    test('Rewrite paths even when they are outside package root', () => {
+      testRewrite(
+          '../../foo.html',
+          'bar.html',
+          'index.html',
+          '../../foo.html',
+          'neither has ^/');
+    });
   });
 
   suite('Relative URL calculations', () => {

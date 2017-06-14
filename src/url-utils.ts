@@ -63,6 +63,16 @@ export function isTemplatedUrl(href: UrlString): boolean {
 }
 
 /**
+ * TODO(usergenic): Remove this hack if nodejs bug is fixed:
+ * https://github.com/nodejs/node/issues/13683
+ */
+function pathPosixRelative(from: string, to: string): string {
+  const relative = path.posix.relative(from, to);
+  return path === path.win32 ? relative.replace(/\.\.\.\./g, '../..') :
+                               relative;
+}
+
+/**
  * Computes the most succinct form of a relative URL representing the path from
  * the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
  * `/a/` is correctly treated as a folder path where `/a` is not.
@@ -82,7 +92,7 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   const toDir = toUrl.pathname !== undefined ? toUrl.pathname : '';
   // Note, below, the _ character is appended so that paths with trailing
   // slash retain the trailing slash in the path.relative result.
-  const relPath = path.posix.relative(fromDir, toDir + '_').replace(/_$/, '');
+  const relPath = pathPosixRelative(fromDir, toDir + '_').replace(/_$/, '');
   sharedRelativeUrlProperties.forEach((p) => toUrl[p] = null);
   toUrl.path = undefined;
   toUrl.pathname = relPath;
@@ -103,9 +113,13 @@ export function rewriteHrefBaseUrl(
   const parsedTo = url.parse(absUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&
       parsedFrom.host === parsedTo.host) {
-    const pathname = path.posix.relative(
-        makeAbsolutePath(path.posix.dirname(parsedFrom.pathname || '')),
-        makeAbsolutePath(parsedTo.pathname || ''));
+    let dirFrom = path.posix.dirname(parsedFrom.pathname || '');
+    let pathTo = parsedTo.pathname || '';
+    if (isAbsolutePath(oldBaseUrl) || isAbsolutePath(newBaseUrl)) {
+      dirFrom = makeAbsolutePath(dirFrom);
+      pathTo = makeAbsolutePath(pathTo);
+    }
+    const pathname = pathPosixRelative(dirFrom, pathTo);
     return url.format(
         {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
   }
