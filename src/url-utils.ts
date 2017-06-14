@@ -67,7 +67,9 @@ export function isTemplatedUrl(href: UrlString): boolean {
  * https://github.com/nodejs/node/issues/13683
  */
 function pathPosixRelative(from: string, to: string): string {
-  return path.posix.relative(from, to).replace(/\.\.\.\./g, '../..');
+  const relative = path.posix.relative(from, to);
+  return path === path.win32 ? relative.replace(/\.\.\.\./g, '../..') :
+                               relative;
 }
 
 /**
