@@ -222,11 +222,13 @@ export class Bundler {
     await this._inlineHtmlImports(document, ast, docBundle, bundleManifest);
 
     if (this.enableScriptInlining) {
-      await this._inlineScripts(document, ast, docBundle);
+      await this._inlineScripts(document, ast, docBundle, this.excludes);
     }
     if (this.enableCssInlining) {
-      await this._inlineStylesheetLinks(document, ast, docBundle);
-      await this._inlineStylesheetImports(document, ast, docBundle);
+      await this._inlineStylesheetLinks(
+          document, ast, docBundle, this.excludes);
+      await this._inlineStylesheetImports(
+          document, ast, docBundle, this.excludes);
     }
 
     if (this.stripComments) {
@@ -417,11 +419,17 @@ export class Bundler {
   private async _inlineScripts(
       document: Document,
       ast: ASTNode,
-      bundle: AssignedBundle): Promise<void> {
+      bundle: AssignedBundle,
+      excludes: string[]): Promise<void> {
     const scriptImports = dom5.queryAll(ast, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
       await importUtils.inlineScript(
-          this.analyzer, document, externalScript, bundle, this.sourcemaps);
+          this.analyzer,
+          document,
+          externalScript,
+          bundle,
+          this.sourcemaps,
+          excludes);
     }
   }
 
@@ -433,11 +441,12 @@ export class Bundler {
   private async _inlineStylesheetImports(
       document: Document,
       ast: ASTNode,
-      bundle: AssignedBundle) {
+      bundle: AssignedBundle,
+      excludes: string[]) {
     const cssImports = dom5.queryAll(ast, matchers.stylesheetImport);
     for (const cssLink of cssImports) {
       const style = await importUtils.inlineStylesheet(
-          this.analyzer, document, cssLink, bundle);
+          this.analyzer, document, cssLink, bundle, excludes);
       if (style) {
         this._moveDomModuleStyleIntoTemplate(style);
       }
@@ -452,11 +461,12 @@ export class Bundler {
   private async _inlineStylesheetLinks(
       document: Document,
       ast: ASTNode,
-      bundle: AssignedBundle) {
+      bundle: AssignedBundle,
+      excludes?: string[]) {
     const cssLinks = dom5.queryAll(ast, matchers.externalStyle);
     for (const cssLink of cssLinks) {
       await importUtils.inlineStylesheet(
-          this.analyzer, document, cssLink, bundle);
+          this.analyzer, document, cssLink, bundle, excludes);
     }
   }
 

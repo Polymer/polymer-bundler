@@ -445,23 +445,40 @@ suite('Bundler', () => {
 
   suite('Excludes', () => {
 
-    const excluded = preds.AND(
-        preds.hasTagName('link'),
-        preds.hasAttrValue('rel', 'import'),
-        preds.hasAttrValue('href', 'imports/simple-import.html'));
-
-    const excludes = ['imports/simple-import.html'];
-
     test('Excluded imports are not inlined', async () => {
-      const doc = await bundle(inputPath, {excludes: excludes});
-      const imports = dom5.queryAll(doc, excluded);
+      const doc =
+          await bundle(inputPath, {excludes: ['imports/simple-import.html']});
+      const imports = dom5.queryAll(
+          doc,
+          preds.AND(
+              preds.hasTagName('link'),
+              preds.hasAttrValue('rel', 'import'),
+              preds.hasAttrValue('href', 'imports/simple-import.html')));
       assert.equal(imports.length, 1);
     });
 
-    test.skip('Excluded CSS is not inlined', async () => {
+    test('Excluded CSS file urls is not inlined', async () => {
       const doc = await bundle(
-          inputPath, {inlineCss: true, excludes: ['imports/simple-style.css']});
-      assert.include(parse5.serialize(doc), 'href="imports/simple-style.css"');
+          'test/html/external.html', {excludes: ['external/external.css']});
+      assert.include(parse5.serialize(doc), 'href="external/external.css"');
+    });
+
+    test('Excluded CSS folder urls are not inlined', async () => {
+      const doc =
+          await bundle('test/html/external.html', {excludes: ['external']});
+      assert.include(parse5.serialize(doc), 'href="external/external.css"');
+    });
+
+    test('Excluded Script file urls are not inlined', async () => {
+      const doc = await bundle(
+          'test/html/external.html', {excludes: ['external/external.js']});
+      assert.include(parse5.serialize(doc), 'src="external/external.js"');
+    });
+
+    test('Excluded Script folder urls are not inlined', async () => {
+      const doc =
+          await bundle('test/html/external.html', {excludes: ['external']});
+      assert.include(parse5.serialize(doc), 'src="external/external.js"');
     });
 
     test('Excluded comments are removed', async () => {
@@ -551,18 +568,14 @@ suite('Bundler', () => {
           ['external/external.js', 'imports/external.js']);
     });
 
-    test.skip('Absolute paths are correct for excluded links', async () => {
-      const target = 'test/html/external.html';
-      const options = {
-        absPathPrefix: '/myapp/',
-        inlineScripts: true,
-        excludes: ['external/external.js']
-      };
+    test('Absolute paths are correct for excluded links', async () => {
+      const target = 'test/html/absolute-paths/import.html';
+      const options = {excludes: ['absolute-paths/script.js']};
       const doc = await bundle(target, options);
       const scripts = dom5.queryAll(doc, matchers.externalJavascript);
       assert.equal(scripts.length, 1);
-      // TODO(usergenic): assert the src attribute is now
-      // /myapp/external/external.js
+      assert.deepEqual(
+          dom5.getAttribute(scripts[0]!, 'src'), '/absolute-paths/script.js');
     });
 
     test('Escape inline <script>', async () => {
