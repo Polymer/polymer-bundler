@@ -180,13 +180,20 @@ export async function inlineScript(
     document: Document,
     scriptTag: ASTNode,
     docBundle: AssignedBundle,
-    enableSourcemaps: boolean) {
+    enableSourcemaps: boolean,
+    excludes?: string[]) {
   const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
   if (!analyzer.canResolveUrl(importUrl)) {
     return;
   }
   const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  if (excludes &&
+      excludes.some(
+          (e) => resolvedImportUrl === e ||
+              resolvedImportUrl.startsWith(urlUtils.ensureTrailingSlash(e)))) {
+    return;
+  }
   const scriptImport = findInSet(
       document.getFeatures(
           {kind: 'html-script', imported: true, externalPackages: true}),
@@ -222,13 +229,20 @@ export async function inlineStylesheet(
     analyzer: Analyzer,
     document: Document,
     cssLink: ASTNode,
-    docBundle: AssignedBundle) {
+    docBundle: AssignedBundle,
+    excludes?: string[]) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
   const importUrl = urlLib.resolve(document.url, stylesheetUrl);
   if (!analyzer.canResolveUrl(importUrl)) {
     return;
   }
   const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  if (excludes &&
+      excludes.some(
+          (e) => resolvedImportUrl === e ||
+              resolvedImportUrl.startsWith(urlUtils.ensureTrailingSlash(e)))) {
+    return;
+  }
   const stylesheetImport =  // HACK(usergenic): clang-format workaround
       findInSet(
           document.getFeatures(

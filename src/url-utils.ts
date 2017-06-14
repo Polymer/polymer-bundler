@@ -28,6 +28,10 @@ const sharedRelativeUrlProperties =
  */
 export type UrlString = string;
 
+export function ensureTrailingSlash(href: UrlString): UrlString {
+  return href.endsWith('/') ? href : href + '/';
+}
+
 /**
  * Returns a URL with the basename removed from the pathname.  Strips the
  * search off of the URL as well, since it will not apply.
