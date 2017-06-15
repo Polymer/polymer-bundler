@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 <!-- Add new, unreleased changes here. -->
+- Fixed the `--inline-scripts` and `--inline-css` options, previously inlining happened regardless of whether the options were actually set
 
 ## 2.1.0 - 2017-06-14
 - Added a `--redirect` option to `bin/polymer-bundler`.

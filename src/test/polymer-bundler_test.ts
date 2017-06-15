@@ -32,7 +32,7 @@ suite('polymer-bundler CLI', () => {
     const projectRoot = path.resolve(__dirname, '../../test/html');
     const stdout = execSync(
                        `cd ${projectRoot} && ` +
-                       `node ${cliPath} absolute-paths.html`)
+                       `node ${cliPath} --inline-scripts --inline-css absolute-paths.html`)
                        .toString();
     assert.include(stdout, '.absolute-paths-style');
     assert.include(stdout, 'hello from /absolute-paths/script.js');
@@ -40,11 +40,20 @@ suite('polymer-bundler CLI', () => {
 
   test('uses the --root value option as loader root', async () => {
     const stdout = execSync([
-                     `node ${cliPath} --root test/html absolute-paths.html`,
+                     `node ${cliPath} --root test/html --inline-scripts --inline-css absolute-paths.html`,
                    ].join(' && '))
                        .toString();
     assert.include(stdout, '.absolute-paths-style');
     assert.include(stdout, 'hello from /absolute-paths/script.js');
+  });
+
+  test('Does not inline if --inline-scripts or --inline-css are not set', async () => {
+    const stdout = execSync([
+                     `node ${cliPath} test/html/external.html`,
+                   ].join(' && '))
+                       .toString();
+    assert.include(stdout, 'href="external/external.css"');
+    assert.include(stdout, 'src="external/external.js"');
   });
 
   suite('--manifest-out', () => {
@@ -55,7 +64,7 @@ suite('polymer-bundler CLI', () => {
       const manifestPath = path.join(tempdir, 'bundle-manifest.json');
       execSync(
           `cd ${projectRoot} && ` +
-          `node ${cliPath} absolute-paths.html ` +
+          `node ${cliPath} --inline-scripts --inline-css absolute-paths.html ` +
           `--manifest-out ${manifestPath}`)
           .toString();
       const manifestJson = fs.readFileSync(manifestPath).toString();

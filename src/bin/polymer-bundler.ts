@@ -187,8 +187,8 @@ if (options.help || !entrypoints) {
 options.excludes = options.exclude || [];
 options.stripComments = options['strip-comments'];
 options.implicitStrip = !options['no-implicit-strip'];
-options.inlineScripts = options['inline-scripts'];
-options.inlineCss = options['inline-css'];
+options.inlineScripts = Boolean(options['inline-scripts']);
+options.inlineCss = Boolean(options['inline-css']);
 
 if (options.redirect) {
   type redirection = {prefix: string, path: string};
