@@ -1,7 +1,7 @@
-[![NPM version](http://img.shields.io/npm/v/polymer-bundler.svg)](https://npmjs.org/package/polymer-bundler)
-[![Build Status](http://img.shields.io/travis/Polymer/polymer-bundler.svg)](https://travis-ci.org/Polymer/polymer-bundler)
+[![Build Status](https://travis-ci.org/Polymer/polymer-bundler.svg?branch=master)](https://travis-ci.org/Polymer/polymer-bundler)
+[![NPM version](http://img.shields.io/npm/v/polymer-bundler.svg)](https://www.npmjs.com/package/polymer-bundler)
 
-# polymer-bundler
+# Polymer Bundler
 
 polymer-bundler is a library for packaging project assets for production to minimize network round-trips.
 
