@@ -94,7 +94,7 @@ const optionDefinitions = [
     multiple: true,
     description:
         'Input HTML. If not specified, will be the last command line ' +
-        'argument.Multiple in -html arguments may be specified.'
+        'argument.  Multiple in -html arguments may be specified.'
   },
   {
     name: 'redirect',
