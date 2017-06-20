@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- Fixed issue producing assetpath in application root. https://github.com/Polymer/polymer-bundler/issues/562
 <!-- Add new, unreleased changes here. -->
 
 ## 2.1.0 - 2017-06-14
