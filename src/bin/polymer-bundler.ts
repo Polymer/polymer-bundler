@@ -279,15 +279,15 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
     fs.writeSync(fd, JSON.stringify(manifestJson));
     fs.closeSync(fd);
   }
-  if (documents.size > 1) {
-    const outDir = options['out-dir'];
+  const outDir = options['out-dir'];
+  if (documents.size > 1 || outDir) {
     if (!outDir) {
       throw new Error(
           'Must specify out-dir when bundling multiple entrypoints');
     }
     for (const [url, document] of documents) {
       const ast = document.ast;
-      const out = pathLib.join(process.cwd(), outDir, url);
+      const out = pathLib.resolve(pathLib.join(outDir, url));
       const finalDir = pathLib.dirname(out);
       mkdirp.sync(finalDir);
       const serialized = parse5.serialize(ast);
