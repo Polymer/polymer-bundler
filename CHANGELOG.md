@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- Fixed issue where absolute paths were not handled properly. https://github.com/Polymer/polymer-bundler/issues/559
+- Fixed issue where out-dir was essentially ignored for a single bundle case. https://github.com/Polymer/polymer-bundler/issues/560
 <!-- Add new, unreleased changes here. -->
 
 ## 2.1.0 - 2017-06-14
