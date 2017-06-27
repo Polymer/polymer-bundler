@@ -12,6 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 import {Analyzer, Document} from 'polymer-analyzer';
+import {getAnalysisDocument} from './analyzer-utils';
 import {UrlString} from './url-utils';
 
 export interface DepsIndex {
@@ -88,9 +89,9 @@ export async function buildDepsIndex(
   // Note: the following iteration takes place over a Set which may be added
   // to from within the loop.
   for (const entrypoint of allEntrypoints) {
-    const documentOrWarning = analysis.getDocument(entrypoint);
-    if (documentOrWarning instanceof Document) {
-      const deps = getHtmlDependencies(documentOrWarning);
+    try {
+      const document = getAnalysisDocument(analysis, entrypoint);
+      const deps = getHtmlDependencies(document);
       depsIndex.entrypointToDeps.set(
           entrypoint, new Set([entrypoint, ...deps.eagerDeps]));
       // Add lazy imports to the set of all entrypoints, which supports
@@ -98,9 +99,8 @@ export async function buildDepsIndex(
       for (const dep of deps.lazyImports) {
         allEntrypoints.add(dep);
       }
-    } else {
-      const message = documentOrWarning && documentOrWarning.message || '';
-      console.warn(`Unable to get document ${entrypoint}: ${message}`);
+    } catch (e) {
+      console.warn(e.message);
     }
   }
   return depsIndex;
