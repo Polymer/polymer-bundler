@@ -56,6 +56,22 @@ suite('polymer-bundler CLI', () => {
     assert.include(stdout, 'src="external/external.js"');
   });
 
+  suite('--out-dir', () => {
+
+    test('writes to the dir even for single bundle', async () => {
+      const projectRoot = path.resolve(__dirname, '../../test/html');
+      const tempdir = fs.mkdtempSync(path.join(os.tmpdir(), ' ').trim());
+      execSync(
+          `cd ${projectRoot} && ` +
+          `node ${cliPath} absolute-paths.html ` +
+          `--out-dir ${tempdir}`)
+          .toString();
+      const html =
+          fs.readFileSync(path.join(tempdir, 'absolute-paths.html')).toString();
+      assert.notEqual(html, '');
+    });
+  });
+
   suite('--manifest-out', () => {
 
     test('writes out the bundle manifest to given path', async () => {

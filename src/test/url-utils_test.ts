@@ -28,6 +28,12 @@ suite('URL Utils', () => {
 
   suite('stripUrlFileSearchAndHash', () => {
 
+    test('Strips "man.html" basename off url', () => {
+      assert.equal(
+          urlUtils.stripUrlFileSearchAndHash('shark://alligator/man.html'),
+          'shark://alligator/');
+    });
+
     test('Strips "file.html" basename off url', () => {
       assert.equal(
           urlUtils.stripUrlFileSearchAndHash(

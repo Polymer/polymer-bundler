@@ -17,6 +17,7 @@ import * as parse5 from 'parse5';
 import {ASTNode, serialize, treeAdapters} from 'parse5';
 import * as path from 'path';
 import {Analyzer, Document, FSUrlLoader, InMemoryOverlayUrlLoader} from 'polymer-analyzer';
+import {getAnalysisDocument} from './analyzer-utils';
 
 import * as astUtils from './ast-utils';
 import * as bundleManifestLib from './bundle-manifest';
@@ -167,12 +168,7 @@ export class Bundler {
     this._overlayUrlLoader.urlContentsMap.set(url, contents);
     await this.analyzer.filesChanged([url]);
     const analysis = await this.analyzer.analyze([url]);
-    const document = analysis.getDocument(url);
-    if (!(document instanceof Document)) {
-      const message = document && document.message || 'unknown';
-      throw new Error(`Unable to get document ${url}: ${message}`);
-    }
-    return document;
+    return getAnalysisDocument(analysis, url);
   }
 
   /**
@@ -549,11 +545,7 @@ export class Bundler {
       return this._analyzeContents(bundle.url, '');
     }
     const analysis = await this.analyzer.analyze([bundle.url]);
-    const document = analysis.getDocument(bundle.url);
-    if (!(document instanceof Document)) {
-      const message = document && document.message || 'unknown';
-      throw new Error(`Unable to get document ${bundle.url}: ${message}`);
-    }
+    const document = getAnalysisDocument(analysis, bundle.url);
     const ast = clone(document.parsedDocument.ast);
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(ast);
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);

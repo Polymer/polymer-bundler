@@ -43,7 +43,7 @@ export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
     // Suffix path with `_` so that `/a/b/` is treated as `/a/b/_` and that
     // `path.posix.dirname()` returns `/a/b` because it would otherwise
     // return `/a` incorrectly.
-    u.pathname = path.posix.dirname(u.pathname + '_') + '/';
+    u.pathname = ensureTrailingSlash(path.posix.dirname(u.pathname + '_'));
   }
   // Assigning to undefined because TSC says type of these is
   // `string | undefined` as opposed to `string | null`

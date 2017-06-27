@@ -1,7 +1,7 @@
-[![NPM version](http://img.shields.io/npm/v/polymer-bundler.svg)](https://npmjs.org/package/polymer-bundler)
-[![Build Status](http://img.shields.io/travis/Polymer/polymer-bundler.svg)](https://travis-ci.org/Polymer/polymer-bundler)
+[![Build Status](https://travis-ci.org/Polymer/polymer-bundler.svg?branch=master)](https://travis-ci.org/Polymer/polymer-bundler)
+[![NPM version](http://img.shields.io/npm/v/polymer-bundler.svg)](https://www.npmjs.com/package/polymer-bundler)
 
-# polymer-bundler
+# Polymer Bundler
 
 polymer-bundler is a library for packaging project assets for production to minimize network round-trips.
 
@@ -33,6 +33,7 @@ for this step).
 - `--exclude <path>`: Exclude a subpath from root. Use multiple times to exclude multiple paths. Tags (imports/scripts/etc) that reference an excluded path are left in-place, meaning the resources are not inlined. ex: `--exclude=elements/x-foo.html --exclude=elements/x-bar.html`
 - `--inline-scripts`: Inline external scripts.
 - `--inline-css`: Inline external stylesheets.
+- `--manifest-out <path>`: If specified, the bundle manifest will be written out to `<path>`.
 - `--redirect <prefix>|<path>`: Routes URLs with arbitrary `<prefix>`, possibly including a protocol, hostname, and/or path prefix to a `<path>` on local filesystem.  For example `--redirect "myapp://|src"` would route `myapp://main/home.html` to `./src/main/home.html`.  Multiple redirects may be specified; the earliest ones have the highest priority.
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
 - `--strip-comments`: Strips all HTML comments from the document which do not contain an `@license`, or start with `<!--#` or `<!--!`.

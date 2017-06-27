@@ -648,14 +648,6 @@ suite('Bundler', () => {
       assert.equal(dom5.getAttribute(styles[0], 'media'), '(min-width: 800px)');
     });
 
-    test.skip('Absolute paths are correct', async () => {
-      const root = path.resolve(inputPath, '../..');
-      const options = {absPathPrefix: root, inlineCss: true};
-      const doc = await bundle('/test/html/default.html', options);
-      const links = dom5.queryAll(doc, matchers.ALL_CSS_LINK);
-      assert.equal(links.length, 0);
-    });
-
     test('Inlined Polymer styles are moved into the <template>', async () => {
       const doc = await bundle('test/html/default.html', options);
       const domModule = dom5.query(doc, preds.hasTagName('dom-module'))!;
@@ -680,43 +672,6 @@ suite('Bundler', () => {
               template, matchers.styleMatcher, dom5.childNodesIncludeTemplate);
           assert(style);
         });
-  });
-
-  suite.skip('Add import', () => {
-    const options = {addedImports: ['imports/comment-in-import.html']};
-    test('added import is added to bundled doc', async () => {
-      const doc = await bundle('test/html/default.html', options);
-      assert(doc);
-      const hasAddedImport =
-          preds.hasAttrValue('href', 'imports/comment-in-import.html');
-      assert.equal(dom5.queryAll(doc, hasAddedImport).length, 1);
-    });
-  });
-
-  // TODO(usergenic): These tests only prove that the `inputUrl` has precedence
-  // over the filename presented to `bundle(path)`.  Do we want to
-  // continue to support inputUrl?  Tese don't prove anything about the doc
-  // production itself or how it is effected.  Needs resolution.
-  suite('Input URL', () => {
-
-    const options = {inputUrl: 'test/html/default.html'};
-
-    test.skip('inputURL is used instead of argument to process', async () => {
-      const doc = await bundle('flibflabfloom!', options);
-      assert(doc);
-    });
-
-    test.skip('gulp-vulcanize invocation with absPathPrefix', async () => {
-      const options = {
-        abspath: path.resolve('test/html'),
-        inputUrl: '/default.html'
-      };
-
-      const doc = await bundle(
-          'C:\\Users\\PolymerBundlerTester\\polymer-bundler\\test\\html\\default.html',
-          options);
-      assert(doc);
-    });
   });
 
   suite('Regression Testing', () => {
@@ -817,7 +772,7 @@ suite('Bundler', () => {
           'fragment-a.html import should come before script in shell.html');
     });
 
-    test.skip('Imports in templates should not inline', async () => {
+    test('Imports in templates should not inline', async () => {
       const doc = await bundle('test/html/inside-template.html');
       const importMatcher = preds.AND(
           preds.hasTagName('link'),
@@ -827,7 +782,8 @@ suite('Bundler', () => {
           preds.hasTagName('script'),
           preds.hasAttrValue('src', 'external/external.js'));
       assert(doc);
-      const imports = dom5.queryAll(doc, importMatcher);
+      const imports = dom5.queryAll(
+          doc, importMatcher, undefined, dom5.childNodesIncludeTemplate);
       assert.equal(imports.length, 1, 'import in template was inlined');
       const unexpectedScript = dom5.query(doc, externalScriptMatcher);
       assert.equal(
