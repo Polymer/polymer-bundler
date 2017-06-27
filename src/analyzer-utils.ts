@@ -18,7 +18,9 @@ export function getAnalysisDocument(analysis: Analysis, url: string): Document {
   if (document instanceof Document) {
     return document;
   }
-  if (document instanceof Warning || !document) {
+  if (document instanceof Warning || !document ||
+      (typeof document === 'object' && document['code'] &&
+       document['message'])) {
     const reason = document && document.message || 'unknown';
     const message = `Unable to get document ${url}: ${reason}`;
     throw new Error(message);
