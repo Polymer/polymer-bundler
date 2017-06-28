@@ -6,12 +6,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- Fixes issue where bundles produced by shell strategy incorrectly included eager html imports of the shell. https://github.com/Polymer/polymer-bundler/issues/471
+- Fixed the `--inline-scripts` and `--inline-css` options, previously inlining happened regardless of whether the options were actually set.  Important, if you use the `bin/polymer-bundler` CLI you must provide these options to inline scripts and css now.
 - Fixed issue producing assetpath in application root. https://github.com/Polymer/polymer-bundler/issues/562
 - Fixed issue where absolute paths were not handled properly. https://github.com/Polymer/polymer-bundler/issues/559
 - Fixed issue where out-dir was essentially ignored for a single bundle case. https://github.com/Polymer/polymer-bundler/issues/560
 - Fixed issue where, if a different version of polymer-analyzer was given to Bundler's constructor, it caused instanceof check failures and resulting in documents not being identified as documents; added more definitive error messaging for this scenario as stop-gap until we switch to a no instanceof version of polymer-analyzer interface.
 <!-- Add new, unreleased changes here. -->
-- Fixed the `--inline-scripts` and `--inline-css` options, previously inlining happened regardless of whether the options were actually set
 
 ## 2.1.0 - 2017-06-14
 - Added a `--redirect` option to `bin/polymer-bundler`.
