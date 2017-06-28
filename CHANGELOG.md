@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## Unreleased
 <!-- Add new, unreleased changes here. -->
 
-## 2.2.0 - 2017-06-28
+## 2.1.1 - 2017-06-28
 - Fixed the `--inline-scripts` and `--inline-css` options, previously inlining happened regardless of whether the options were actually set.  Important, if you use the `bin/polymer-bundler` CLI you must provide these options to inline scripts and css now.
 - Fixed issue producing assetpath in application root. https://github.com/Polymer/polymer-bundler/issues/562
 - Fixed issue where absolute paths were not handled properly. https://github.com/Polymer/polymer-bundler/issues/559
