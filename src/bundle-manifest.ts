@@ -255,7 +255,7 @@ export function generateShellMergeStrategy(
         (b) => b.files.has(shell) ||
             b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b)),
     // Don't link to the shell from other bundles.
-    generateNoBackLinksStrategy([shell]),
+    generateNoBackLinkStrategy([shell]),
   ]);
 }
 
@@ -263,7 +263,7 @@ export function generateShellMergeStrategy(
  * Generates a strategy function that ensures bundles do not link to given urls.
  * Bundles which contain matching files will still have them inlined.
  */
-export function generateNoBackLinksStrategy(urls: UrlString[]): BundleStrategy {
+export function generateNoBackLinkStrategy(urls: UrlString[]): BundleStrategy {
   return (bundles) => {
     for (const bundle of bundles) {
       for (const url of urls) {
