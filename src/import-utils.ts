@@ -40,7 +40,7 @@ export async function inlineHtmlImport(
     analyzer: Analyzer,
     document: Document,
     linkTag: ASTNode,
-    visitedUrls: Set<UrlString>,
+    stripImports: Set<UrlString>,
     docBundle: AssignedBundle,
     manifest: BundleManifest,
     enableSourcemaps: boolean,
@@ -57,15 +57,15 @@ export async function inlineHtmlImport(
   // We don't want to process the same eager import again, but we want to
   // process every lazy import we see.
   if (!isLazy) {
-    // Don't reprocess the same file again.
-    if (visitedUrls.has(resolvedImportUrl)) {
+    // Just remove the import from the DOM if it is in the stripImports Set.
+    if (stripImports.has(resolvedImportUrl)) {
       astUtils.removeElementAndNewline(linkTag);
       return;
     }
 
-    // We've never seen this import before, so we'll add it to the set to guard
-    // against inlining it again in the future.
-    visitedUrls.add(resolvedImportUrl);
+    // We've never seen this import before, so we'll add it to the stripImports
+    // Set to guard against inlining it again in the future.
+    stripImports.add(resolvedImportUrl);
   }
 
   // If we can't find a bundle for the referenced import, record that we've
@@ -82,11 +82,11 @@ export async function inlineHtmlImport(
 
   const importIsInAnotherBundle = importBundle.url !== docBundle.url;
 
-  // If we've previously visited a url that is part of another bundle, it
-  // means we've already handled that entire bundle.
-  const alreadyProcessedImportBundle = importIsInAnotherBundle &&
-      visitedUrls.has(importBundle.url) &&
-      // We just added resolvedImportUrl to the visitedUrls, so we'll exclude
+  // If the import is in another bundle and that bundle is in the stripImports
+  // Set, we should not link to that bundle.
+  const stripLinkToImportBundle = importIsInAnotherBundle &&
+      stripImports.has(importBundle.url) &&
+      // We just added resolvedImportUrl to stripImports, so we'll exclude
       // the case where resolved import url is not the import bundle.  This
       // scenario happens when importing a file from a bundle with the same
       // name as the original import, like an entrypoint or lazy edge.
@@ -99,7 +99,7 @@ export async function inlineHtmlImport(
     // already been imported.  A special exclusion is for lazy imports, which
     // are not deduplicated here, since we can not infer developer's intent from
     // here.
-    if (alreadyProcessedImportBundle && !isLazy) {
+    if (stripLinkToImportBundle && !isLazy) {
       astUtils.removeElementAndNewline(linkTag);
       return;
     }
@@ -107,7 +107,7 @@ export async function inlineHtmlImport(
     const relative = urlUtils.relativeUrl(document.url, importBundle.url) ||
         importBundle.url;
     dom5.setAttribute(linkTag, 'href', relative);
-    visitedUrls.add(importBundle.url);
+    stripImports.add(importBundle.url);
     return;
   }
 
@@ -163,7 +163,7 @@ export async function inlineHtmlImport(
         analyzer,
         document,
         nestedImport,
-        visitedUrls,
+        stripImports,
         docBundle,
         manifest,
         enableSourcemaps,
