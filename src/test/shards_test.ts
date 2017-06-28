@@ -107,6 +107,10 @@ suite('Bundler', () => {
       const entrypoint2Doc = documents.get(entrypoint2)!.ast;
       assert.isDefined(entrypoint2Doc);
       const shellDiv = dom5.predicates.hasAttrValue('id', 'shell');
+      const shellImport = dom5.predicates.AND(
+          dom5.predicates.hasTagName('link'),
+          dom5.predicates.hasSpaceSeparatedAttrValue('rel', 'import'),
+          dom5.predicates.hasAttrValue('href', 'shell.html'));
       const commonModule = domModulePredicate('common-module');
       const elOne = domModulePredicate('el-one');
       const elTwo = domModulePredicate('el-two');
@@ -117,9 +121,13 @@ suite('Bundler', () => {
       assertContainsAndExcludes(
           shellDoc, [shellDiv, commonModule, depOne], [elOne, elTwo, depTwo]);
       assertContainsAndExcludes(
-          entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
+          entrypoint1Doc,
+          [elOne],
+          [commonModule, elTwo, depOne, depTwo, shellImport]);
       assertContainsAndExcludes(
-          entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
+          entrypoint2Doc,
+          [elTwo, depTwo],
+          [commonModule, elOne, depOne, shellImport]);
     });
   });
 });

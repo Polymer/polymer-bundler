@@ -45,6 +45,9 @@ export class Bundle {
   // Set of all files included in the bundle.
   files: Set<UrlString>;
 
+  // Set of imports which should be removed when encountered.
+  stripImports = new Set<UrlString>();
+
   // These sets are updated as bundling occurs.
   inlinedHtmlImports = new Set<UrlString>();
   inlinedScripts = new Set<UrlString>();
@@ -247,11 +250,39 @@ export function generateShellMergeStrategy(
     throw new Error(`Minimum entrypoints argument must be non-negative`);
   }
   return composeStrategies([
+    // Merge all bundles that are direct dependencies of the shell into the
+    // shell.
     generateEagerMergeStrategy(shell),
-    generateMatchMergeStrategy(
-        (b) => b.files.has(shell) ||
-            b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b))
+    // Create a new bundle which contains the contents of all bundles which
+    // either...
+    generateMatchMergeStrategy((bundle) => {
+      // ...contain the shell file
+      return bundle.files.has(shell) ||
+          // or are dependencies of at least the minimum number of entrypoints
+          // and are not entrypoints themselves.
+          bundle.entrypoints.size >= minEntrypoints &&
+          !getBundleEntrypoint(bundle);
+    }),
+    // Don't link to the shell from other bundles.
+    generateNoBackLinkStrategy([shell]),
   ]);
+}
+
+/**
+ * Generates a strategy function that ensures bundles do not link to given urls.
+ * Bundles which contain matching files will still have them inlined.
+ */
+export function generateNoBackLinkStrategy(urls: UrlString[]): BundleStrategy {
+  return (bundles) => {
+    for (const bundle of bundles) {
+      for (const url of urls) {
+        if (!bundle.files.has(url)) {
+          bundle.stripImports.add(url);
+        }
+      }
+    }
+    return bundles;
+  };
 }
 
 /**
