@@ -250,10 +250,19 @@ export function generateShellMergeStrategy(
     throw new Error(`Minimum entrypoints argument must be non-negative`);
   }
   return composeStrategies([
+    // Merge all bundles that are direct dependencies of the shell into the
+    // shell.
     generateEagerMergeStrategy(shell),
-    generateMatchMergeStrategy(
-        (b) => b.files.has(shell) ||
-            b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b)),
+    // Create a new bundle which contains the contents of all bundles which
+    // either...
+    generateMatchMergeStrategy((bundle) => {
+      // ...contain the shell file
+      return bundle.files.has(shell) ||
+          // or are dependencies of at least the minimum number of entrypoints
+          // and are not entrypoints themselves.
+          bundle.entrypoints.size >= minEntrypoints &&
+          !getBundleEntrypoint(bundle);
+    }),
     // Don't link to the shell from other bundles.
     generateNoBackLinkStrategy([shell]),
   ]);
