@@ -393,7 +393,7 @@ export class Bundler {
       ast: ASTNode,
       bundle: AssignedBundle,
       bundleManifest: BundleManifest) {
-    const visitedUrls = new Set<UrlString>();
+    const visitedUrls = new Set<UrlString>(bundle.bundle.stripImports);
     const htmlImports = dom5.queryAll(ast, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
       await importUtils.inlineHtmlImport(

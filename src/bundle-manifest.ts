@@ -45,6 +45,9 @@ export class Bundle {
   // Set of all files included in the bundle.
   files: Set<UrlString>;
 
+  // Set of imports which should be removed when encountered.
+  stripImports = new Set<UrlString>();
+
   // These sets are updated as bundling occurs.
   inlinedHtmlImports = new Set<UrlString>();
   inlinedScripts = new Set<UrlString>();
@@ -250,7 +253,10 @@ export function generateShellMergeStrategy(
     generateEagerMergeStrategy(shell),
     generateMatchMergeStrategy(
         (b) => b.files.has(shell) ||
-            b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b))
+            b.entrypoints.size >= minEntrypoints && !getBundleEntrypoint(b)),
+    // Don't link to the shell from other bundles.
+    (bundles) => bundles.map(
+        (b) => b.files.has(shell) ? b : b.stripImports.add(shell) && b),
   ]);
 }
 
