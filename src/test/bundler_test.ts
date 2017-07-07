@@ -626,10 +626,14 @@ suite('Bundler', () => {
           doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(links.length, 0);
       assert.equal(styles.length, 3);
-      assert.match(dom5.getTextContent(styles[0]), /body/, 'regular-style.css');
-      assert.match(dom5.getTextContent(styles[1]), /:host/, 'simple-style.css');
       assert.match(
-          dom5.getTextContent(styles[2]), /import/, 'import-linked-style.css');
+          dom5.getTextContent(styles[0]), /regular-style/, 'regular-style.css');
+      assert.match(
+          dom5.getTextContent(styles[1]), /simple-style/, 'simple-style.css');
+      assert.match(
+          dom5.getTextContent(styles[2]),
+          /import-linked-style/,
+          'import-linked-style.css');
     });
 
     test('Inlined styles have proper paths', async () => {
@@ -664,9 +668,12 @@ suite('Bundler', () => {
       const styles = dom5.queryAll(
           template, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(styles.length, 2);
-      assert.match(dom5.getTextContent(styles[0]), /:host/, 'simple-style.css');
       assert.match(
-          dom5.getTextContent(styles[1]), /import/, 'import-linked-style.css');
+          dom5.getTextContent(styles[0]), /simple-style/, 'simple-style.css');
+      assert.match(
+          dom5.getTextContent(styles[1]),
+          /import-linked-style/,
+          'import-linked-style.css');
     });
 
     test(
