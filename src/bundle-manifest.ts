@@ -48,6 +48,9 @@ export class Bundle {
   // Set of imports which should be removed when encountered.
   stripImports = new Set<UrlString>();
 
+  // Set of imports which could not be loaded.
+  missingImports = new Set<UrlString>();
+
   // These sets are updated as bundling occurs.
   inlinedHtmlImports = new Set<UrlString>();
   inlinedScripts = new Set<UrlString>();

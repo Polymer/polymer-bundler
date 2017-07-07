@@ -30,31 +30,37 @@ suite('polymer-bundler CLI', () => {
 
   test('uses the current working folder as loader root', async () => {
     const projectRoot = path.resolve(__dirname, '../../test/html');
-    const stdout = execSync(
-                       `cd ${projectRoot} && ` +
-                       `node ${cliPath} --inline-scripts --inline-css absolute-paths.html`)
-                       .toString();
+    const stdout =
+        execSync(
+            `cd ${projectRoot} && ` +
+            `node ${cliPath} --inline-scripts --inline-css absolute-paths.html`)
+            .toString();
     assert.include(stdout, '.absolute-paths-style');
     assert.include(stdout, 'hello from /absolute-paths/script.js');
   });
 
   test('uses the --root value option as loader root', async () => {
-    const stdout = execSync([
-                     `node ${cliPath} --root test/html --inline-scripts --inline-css absolute-paths.html`,
-                   ].join(' && '))
-                       .toString();
+    const stdout =
+        execSync([
+          `node ${
+                  cliPath
+                } --root test/html --inline-scripts --inline-css absolute-paths.html`,
+        ].join(' && '))
+            .toString();
     assert.include(stdout, '.absolute-paths-style');
     assert.include(stdout, 'hello from /absolute-paths/script.js');
   });
 
-  test('Does not inline if --inline-scripts or --inline-css are not set', async () => {
-    const stdout = execSync([
-                     `node ${cliPath} test/html/external.html`,
-                   ].join(' && '))
-                       .toString();
-    assert.include(stdout, 'href="external/external.css"');
-    assert.include(stdout, 'src="external/external.js"');
-  });
+  test(
+      'Does not inline if --inline-scripts or --inline-css are not set',
+      async () => {
+        const stdout = execSync([
+                         `node ${cliPath} test/html/external.html`,
+                       ].join(' && '))
+                           .toString();
+        assert.include(stdout, 'href="external/external.css"');
+        assert.include(stdout, 'src="external/external.js"');
+      });
 
   suite('--out-dir', () => {
 
@@ -92,6 +98,9 @@ suite('polymer-bundler CLI', () => {
           'absolute-paths/script.js',
           'absolute-paths/style.css',
         ],
+        '_missing': [
+          'this/does/not/exist.html',
+        ]
       });
     });
   });
