@@ -440,11 +440,14 @@ export class Bundler {
       bundle: AssignedBundle,
       excludes: string[]) {
     const cssImports = dom5.queryAll(ast, matchers.stylesheetImport);
+    let lastInlined: (ASTNode|undefined);
+
     for (const cssLink of cssImports) {
       const style = await importUtils.inlineStylesheet(
           this.analyzer, document, cssLink, bundle, excludes);
       if (style) {
-        this._moveDomModuleStyleIntoTemplate(style);
+        this._moveDomModuleStyleIntoTemplate(style, lastInlined);
+        lastInlined = style;
       }
     }
   }
@@ -476,7 +479,7 @@ export class Bundler {
    * TODO(usergenic): Why is this in bundler... shouldn't this be some kind of
    * polyup or pre-bundle operation?
    */
-  private _moveDomModuleStyleIntoTemplate(style: ASTNode) {
+  private _moveDomModuleStyleIntoTemplate(style: ASTNode, refStyle?: ASTNode) {
     const domModule =
         dom5.nodeWalkAncestors(style, dom5.predicates.hasTagName('dom-module'));
     if (!domModule) {
@@ -490,7 +493,13 @@ export class Bundler {
       astUtils.prepend(domModule, template);
     }
     astUtils.removeElementAndNewline(style);
-    astUtils.prepend(treeAdapters.default.getTemplateContent(template), style);
+    // keep ordering if previding with a reference style
+    if (!refStyle) {
+      astUtils.prepend(
+          treeAdapters.default.getTemplateContent(template), style);
+    } else {
+      astUtils.insertAfter(refStyle, style);
+    }
   }
 
   /**
