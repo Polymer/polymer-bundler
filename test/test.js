@@ -748,7 +748,7 @@ suite('Vulcan', function() {
         if (err) {
           return done(err);
         }
-        var script = dom5.query(doc, 
+        var script = dom5.query(doc,
           preds.AND(
             preds.hasTagName('script'),
             preds.hasAttrValue('src', 'external/external.js')));
@@ -783,7 +783,7 @@ suite('Vulcan', function() {
         if (err) {
           return done(err);
         }
-        var script = dom5.query(doc, 
+        var script = dom5.query(doc,
           preds.AND(
             preds.hasTagName('script'),
             preds.hasAttrValue('src', 'external/external.js')));
@@ -1091,13 +1091,16 @@ suite('Vulcan', function() {
         var styles = dom5.queryAll(doc, dom5.predicates.hasTagName('style'));
         var rules = styles.map(function(s) {
           return dom5.serialize(s).trim();
-        }).join('\n').match(/\.[a-z-]+/g);
+        }).join('\n').match(/[:.][a-z-]+ \{/g);
         assert.deepEqual(rules, [
-          '.from-doc-linked-style',
-          '.from-import-linked-style',
-          '.from-import-inline-style',
-          '.from-style-in-doc-head',
-          '.from-style-in-doc-body'
+          '.from-doc-linked-style {',
+          '.from-import-linked-style {',
+          '.from-import-inline-style {',
+          '.from-style-in-doc-head {',
+          '.from-style-in-doc-body {',
+          ':host {',
+          '.rows {',
+          ':root {'
         ]);
         done();
       };
