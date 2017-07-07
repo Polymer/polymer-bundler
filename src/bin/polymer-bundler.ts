@@ -231,12 +231,17 @@ interface JsonManifest {
 
 function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
   const json: JsonManifest = {};
+  const missingImports: Set<string> = new Set();
   for (const [url, bundle] of manifest.bundles) {
     json[url] = [
       ...bundle.inlinedHtmlImports,
       ...bundle.inlinedScripts,
       ...bundle.inlinedStyles
     ];
+
+    for (const missingImport of bundle.missingImports) {
+      missingImports.add(missingImport);
+    }
 
     if (bundle.entrypoints.size > 1) {
       continue;
@@ -252,6 +257,9 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
         json[url].unshift(entrypoint);
       }
     }
+  }
+  if (missingImports.size > 0) {
+    json['_missing'] = [...missingImports];
   }
   return json;
 }
