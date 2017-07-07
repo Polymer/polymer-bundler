@@ -612,9 +612,11 @@ suite('Bundler', () => {
 
     test('URLs for inlined styles are recorded in Bundle', async () => {
       await bundle(inputPath);
-      assert.deepEqual(
-          [...documentBundle.inlinedStyles].sort(),
-          ['imports/regular-style.css', 'imports/simple-style.css']);
+      assert.deepEqual([...documentBundle.inlinedStyles].sort(), [
+        'imports/import-linked-style.css',
+        'imports/regular-style.css',
+        'imports/simple-style.css',
+      ]);
     });
 
     test('External links are replaced with inlined styles', async () => {
@@ -623,7 +625,11 @@ suite('Bundler', () => {
       const styles = dom5.queryAll(
           doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(links.length, 0);
-      assert.equal(styles.length, 2);
+      assert.equal(styles.length, 3);
+      assert.match(dom5.getTextContent(styles[0]), /body/, 'regular-style.css');
+      assert.match(dom5.getTextContent(styles[1]), /:host/, 'simple-style.css');
+      assert.match(
+          dom5.getTextContent(styles[2]), /import/, 'import-linked-style.css');
     });
 
     test('Inlined styles have proper paths', async () => {
@@ -657,7 +663,10 @@ suite('Bundler', () => {
 
       const styles = dom5.queryAll(
           template, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
-      assert.equal(styles.length, 1);
+      assert.equal(styles.length, 2);
+      assert.match(dom5.getTextContent(styles[0]), /:host/, 'simple-style.css');
+      assert.match(
+          dom5.getTextContent(styles[1]), /import/, 'import-linked-style.css');
     });
 
     test(
