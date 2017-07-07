@@ -71,6 +71,7 @@ export async function inlineHtmlImport(
   // If we can't find a bundle for the referenced import, record that we've
   // processed it, but don't remove the import link.  Browser will handle it.
   if (!importBundle) {
+    docBundle.bundle.missingImports.add(resolvedImportUrl);
     return;
   }
 
@@ -199,6 +200,7 @@ export async function inlineScript(
           {kind: 'html-script', imported: true, externalPackages: true}),
       (i) => i.document && i.document.url === resolvedImportUrl);
   if (!scriptImport) {
+    docBundle.bundle.missingImports.add(resolvedImportUrl);
     return;
   }
 
@@ -253,6 +255,7 @@ export async function inlineStylesheet(
               {kind: 'css-import', imported: true, externalPackages: true}),
           (i) => i.document && i.document.url === resolvedImportUrl);
   if (!stylesheetImport) {
+    docBundle.bundle.missingImports.add(resolvedImportUrl);
     return;
   }
   const stylesheetContent = stylesheetImport.document.parsedDocument.contents;
