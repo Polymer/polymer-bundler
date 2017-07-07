@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- Fixed issue where inlined `<link rel="import" type="css" ...>` "stylesheet imports" (deprecated but still supported) were inlined in reverse order.  Fixes [issue #575](https://github.com/Polymer/polymer-bundler/issues/575).
 <!-- Add new, unreleased changes here. -->
 
 ## 2.2.0 - 2017-06-28
