@@ -74,7 +74,7 @@ suite('import-utils', () => {
           <template>
           <img src="neato.gif">
           <style>:host { background-image: url(background.svg); }</style>
-          <div style="position: absolute;"></div>
+          <div style="background-image: url(background.svg)"></div>
           </template>
           </dom-module>
           <script>Polymer({is: "my-element"})</script>
@@ -86,8 +86,8 @@ suite('import-utils', () => {
           <dom-module id="my-element" assetpath="my-element/">
           <template>
           <img src="neato.gif">
-          <style>:host { background-image: url("my-element/background.svg"); }</style>
-          <div style="position: absolute;"></div>
+          <style>:host { background-image: url(background.svg); }</style>
+          <div style="background-image: url(background.svg)"></div>
           </template>
           </dom-module>
           <script>Polymer({is: "my-element"})</script>
@@ -107,7 +107,7 @@ suite('import-utils', () => {
           <dom-module id="my-element">
           <template>
           <style>:host { background-image: url(background.svg); }</style>
-          <div style="position: absolute;"></div>
+          <div style="background-image: url(background.svg)"></div>
           </template>
           </dom-module>
           <script>Polymer({is: "my-element"})</script>
@@ -118,8 +118,8 @@ suite('import-utils', () => {
           <link rel="stylesheet" href="my-element/my-element.css">
           <dom-module id="my-element" assetpath="my-element/">
           <template>
-          <style>:host { background-image: url("my-element/background.svg"); }</style>
-          <div style="position: absolute;"></div>
+          <style>:host { background-image: url(background.svg); }</style>
+          <div style="background-image: url(&quot;my-element/background.svg&quot;)"></div>
           </template>
           </dom-module>
           <script>Polymer({is: "my-element"})</script>
@@ -168,14 +168,14 @@ suite('import-utils', () => {
         <link rel="stylesheet" href="components/my-element/my-element.css">
         <dom-module id="my-element" assetpath="components/my-element/">
         <template>
-        <style>:host { background-image: url("components/my-element/background.svg"); }</style>
-        <img src="components/my-element/bloop.gif">
+        <style>:host { background-image: url(background.svg); }</style>
+        <img src="bloop.gif">
         </template>
         </dom-module>
         <script>Polymer({is: "my-element"})</script>`;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', true);
+      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', false);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -202,15 +202,15 @@ suite('import-utils', () => {
         <link rel="stylesheet" href="components/my-element.css">
         <dom-module id="my-element" assetpath="components/">
         <template>
-        <style>:host { background-image: url("components/background.svg"); }</style>
-        <img src="components/bloop.gif">
+        <style>:host { background-image: url(background.svg); }</style>
+        <img src="bloop.gif">
         </template>
         </dom-module>
         <script>Polymer({is: "my-element"})</script>
       `;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', true);
+      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', false);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');

@@ -427,7 +427,7 @@ function rewriteElementAttrsBaseUrl(
 function rewriteStyleTagsBaseUrl(
     ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
   const styleNodes = dom5.queryAll(
-      ast, matchers.styleMatcher, undefined, dom5.childNodesIncludeTemplate);
+      ast, matchers.styleMatcher, undefined, dom5.defaultChildNodes);
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
     styleText = rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);

@@ -626,14 +626,14 @@ suite('Bundler', () => {
           doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(links.length, 0);
       assert.equal(styles.length, 3);
+      assert.match(dom5.getTextContent(styles[0]), /regular-style/);
+      assert.match(dom5.getTextContent(styles[1]), /simple-style/);
+      assert.match(dom5.getTextContent(styles[2]), /import-linked-style/);
+
+      // Verify the the inlined url() values in the stylesheet are updated to
+      // include "imports" prefix.
       assert.match(
-          dom5.getTextContent(styles[0]), /regular-style/, 'regular-style.css');
-      assert.match(
-          dom5.getTextContent(styles[1]), /simple-style/, 'simple-style.css');
-      assert.match(
-          dom5.getTextContent(styles[2]),
-          /import-linked-style/,
-          'import-linked-style.css');
+          dom5.getTextContent(styles[1]), /imports\/assets\/platform\.png/);
     });
 
     test('Inlined styles have proper paths', async () => {
