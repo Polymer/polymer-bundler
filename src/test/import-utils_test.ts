@@ -175,7 +175,7 @@ suite('import-utils', () => {
         <script>Polymer({is: "my-element"})</script>`;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', false);
+      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -210,7 +210,7 @@ suite('import-utils', () => {
       `;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url', false);
+      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
