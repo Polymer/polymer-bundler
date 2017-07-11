@@ -630,11 +630,11 @@ suite('Bundler', () => {
       assert.match(dom5.getTextContent(styles[1]), /simple-style/);
       assert.match(dom5.getTextContent(styles[2]), /import-linked-style/);
 
-      // Verify the inlined url() values in the stylesheet were rewritten
-      // to use the "imports/" prefix, since the stylesheet was inlined
-      // into a bundle in the parent folder.
+      // Verify the inlined url() values in the stylesheet are not rewritten
+      // to use the "imports/" prefix, since the stylesheet is inside a
+      // dom-module.
       assert.match(
-          dom5.getTextContent(styles[1]), /imports\/assets\/platform\.png/);
+          dom5.getTextContent(styles[1]), /url\("assets\/platform\.png"\)/);
     });
 
     test('Inlined styles observe containing dom-module assetpath', async () => {
