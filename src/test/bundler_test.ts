@@ -630,8 +630,9 @@ suite('Bundler', () => {
       assert.match(dom5.getTextContent(styles[1]), /simple-style/);
       assert.match(dom5.getTextContent(styles[2]), /import-linked-style/);
 
-      // Verify the the inlined url() values in the stylesheet are updated to
-      // include "imports" prefix.
+      // Verify the inlined url() values in the stylesheet were rewritten
+      // to use the "imports/" prefix, since the stylesheet was inlined
+      // into a bundle in the parent folder.
       assert.match(
           dom5.getTextContent(styles[1]), /imports\/assets\/platform\.png/);
     });
