@@ -261,10 +261,14 @@ export async function inlineStylesheet(
   const stylesheetContent = stylesheetImport.document.parsedDocument.contents;
   const media = dom5.getAttribute(cssLink, 'media');
 
+  let newBaseUrl = document.url;
+
+  // If the css link we are about to inline is inside of a dom-module, the new
+  // base url must be calculated using the assetpath of the dom-module if
+  // present, since Polymer will honor assetpath when resolving urls in
+  // `<style>` tags, even inside of `<template>` tags.
   const parentDomModule =
       findAncestor(cssLink, dom5.predicates.hasTagName('dom-module'));
-
-  let newBaseUrl = document.url;
   if (parentDomModule && dom5.hasAttribute(parentDomModule, 'assetpath')) {
     const assetPath = dom5.getAttribute(parentDomModule, 'assetpath') || '';
     if (assetPath) {

@@ -632,7 +632,8 @@ suite('Bundler', () => {
 
       // Verify the inlined url() values in the stylesheet are not rewritten
       // to use the "imports/" prefix, since the stylesheet is inside a
-      // dom-module.
+      // `<dom-module>` with an assetpath that defines the base url as
+      // "imports/".
       assert.match(
           dom5.getTextContent(styles[1]), /url\("assets\/platform\.png"\)/);
     });
