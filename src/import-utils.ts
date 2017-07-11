@@ -374,15 +374,14 @@ export async function addOrUpdateSourcemapsForInlineScripts(
  */
 function findAncestor(ast: ASTNode, predicate: dom5.Predicate): ASTNode|
     undefined {
-  let parentNode = ast.parentNode;
   // The visited set protects us against circular references.
   const visited = new Set();
-  while (parentNode && !visited.has(parentNode)) {
-    visited.add(parentNode);
-    if (predicate(parentNode)) {
-      return parentNode;
+  while (ast.parentNode && !visited.has(ast.parentNode)) {
+    if (predicate(ast.parentNode)) {
+      return ast.parentNode;
     }
-    parentNode = ast.parentNode;
+    visited.add(ast.parentNode);
+    ast = ast.parentNode;
   }
   return undefined;
 }
