@@ -321,7 +321,7 @@ export function rewriteAstBaseUrl(
     rewriteUrlsInTemplates?: boolean) {
   rewriteElementAttrsBaseUrl(
       ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
-  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl);
+  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
   setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
 }
 
@@ -425,10 +425,32 @@ function rewriteElementAttrsBaseUrl(
  * on the relationship of the old base url to the new base url.
  */
 function rewriteStyleTagsBaseUrl(
-    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
-  // Only rewrite urls in `<style>` tags if they are outside `<template>` tags.
-  const styleNodes = dom5.queryAll(
-      ast, matchers.styleMatcher, undefined, dom5.defaultChildNodes);
+    ast: ASTNode,
+    oldBaseUrl: UrlString,
+    newBaseUrl: UrlString,
+    rewriteUrlsInTemplates: boolean = false) {
+  const childNodesOption = rewriteUrlsInTemplates ?
+      dom5.childNodesIncludeTemplate :
+      dom5.defaultChildNodes;
+
+  // If `rewriteUrlsInTemplates` is `true`, include `<style>` tags that are
+  // inside `<template>`.
+  const styleNodes =
+      dom5.queryAll(ast, matchers.styleMatcher, undefined, childNodesOption);
+
+  // However, if a `<style>` tag is anywhere inside a `<dom-module>` tag, then
+  // it should not have its urls rewritten.
+  for (const domModule of dom5.queryAll(
+           ast, dom5.predicates.hasTagName('dom-module'))) {
+    for (const styleNode of dom5.queryAll(
+             domModule, matchers.styleMatcher, undefined, childNodesOption)) {
+      const styleNodeIndex = styleNodes.indexOf(styleNode);
+      if (styleNodeIndex > -1) {
+        styleNodes.splice(styleNodeIndex, 1);
+      }
+    }
+  }
+
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
     styleText = rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);

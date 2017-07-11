@@ -76,8 +76,12 @@ suite('import-utils', () => {
           <style>:host { background-image: url(background.svg); }</style>
           <div style="background-image: url(background.svg)"></div>
           </template>
-          </dom-module>
           <script>Polymer({is: "my-element"})</script>
+          </dom-module>
+          <template is="dom-bind">
+          <style>.outside-dom-module { background-image: url(outside-dom-module.png); }</style>
+          </template>
+          <style>.outside-template { background-image: url(outside-template.png); }</style>
         `;
 
         const expected = `
@@ -89,8 +93,12 @@ suite('import-utils', () => {
           <style>:host { background-image: url(background.svg); }</style>
           <div style="background-image: url(background.svg)"></div>
           </template>
-          </dom-module>
           <script>Polymer({is: "my-element"})</script>
+          </dom-module>
+          <template is="dom-bind">
+          <style>.outside-dom-module { background-image: url(outside-dom-module.png); }</style>
+          </template>
+          <style>.outside-template { background-image: url("my-element/outside-template.png"); }</style>
         `;
 
         const ast = astUtils.parse(html);
@@ -109,8 +117,12 @@ suite('import-utils', () => {
           <style>:host { background-image: url(background.svg); }</style>
           <div style="background-image: url(background.svg)"></div>
           </template>
-          </dom-module>
           <script>Polymer({is: "my-element"})</script>
+          </dom-module>
+          <template is="dom-bind">
+          <style>.something { background-image: url(something.png); }</style>
+          </template>
+          <style>.outside-template { background-image: url(outside-template.png); }</style>
         `;
 
         const expected = `
@@ -121,8 +133,12 @@ suite('import-utils', () => {
           <style>:host { background-image: url(background.svg); }</style>
           <div style="background-image: url(&quot;my-element/background.svg&quot;)"></div>
           </template>
-          </dom-module>
           <script>Polymer({is: "my-element"})</script>
+          </dom-module>
+          <template is="dom-bind">
+          <style>.something { background-image: url("my-element/something.png"); }</style>
+          </template>
+          <style>.outside-template { background-image: url("my-element/outside-template.png"); }</style>
         `;
 
         const ast = astUtils.parse(html);
