@@ -260,10 +260,20 @@ export async function inlineStylesheet(
   }
   const stylesheetContent = stylesheetImport.document.parsedDocument.contents;
   const media = dom5.getAttribute(cssLink, 'media');
-  const resolvedStylesheetContent =
-      rewriteCssTextBaseUrl(stylesheetContent, resolvedImportUrl, document.url);
-  const styleNode = dom5.constructors.element('style');
 
+  const parentDomModule =
+      findAncestor(cssLink, dom5.predicates.hasTagName('dom-module'));
+
+  let newBaseUrl = document.url;
+  if (parentDomModule && dom5.hasAttribute(parentDomModule, 'assetpath')) {
+    const assetPath = dom5.getAttribute(parentDomModule, 'assetpath') || '';
+    if (assetPath) {
+      newBaseUrl = urlLib.resolve(newBaseUrl, assetPath);
+    }
+  }
+  const resolvedStylesheetContent =
+      rewriteCssTextBaseUrl(stylesheetContent, resolvedImportUrl, newBaseUrl);
+  const styleNode = dom5.constructors.element('style');
   if (media) {
     dom5.setAttribute(styleNode, 'media', media);
   }
@@ -273,7 +283,6 @@ export async function inlineStylesheet(
 
   // Record that the inlining took place.
   docBundle.bundle.inlinedStyles.add(resolvedImportUrl);
-
   return styleNode;
 }
 
@@ -358,6 +367,23 @@ export async function addOrUpdateSourcemapsForInlineScripts(
 
   return Promise.all(promises);
 }
+
+/**
+ * Walk the ancestor nodes from parentNode up to document root, returning the
+ * first one matching the predicate function.
+ */
+function findAncestor(ast: ASTNode, predicate: dom5.Predicate): ASTNode|
+    undefined {
+  let parentNode = ast.parentNode;
+  while (parentNode) {
+    if (predicate(parentNode)) {
+      return parentNode;
+    }
+    parentNode = ast.parentNode;
+  }
+  return undefined;
+}
+
 
 /**
  * Simple utility function used to find an item in a set with a predicate
