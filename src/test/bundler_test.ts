@@ -637,16 +637,14 @@ suite('Bundler', () => {
           dom5.getTextContent(styles[1]), /imports\/assets\/platform\.png/);
     });
 
-    test.only(
-        'Inlined styles observe containing dom-module assetpath', async () => {
-          const doc =
-              await bundle('test/html/style-rewriting.html', {inlineCss: true});
-          const style = dom5.query(
-              doc, matchers.styleMatcher, dom5.childNodesIncludeTemplate)!;
-          assert.isNotNull(style);
-          assert.match(
-              dom5.getTextContent(style), /url\("styles\/unicorn.png"\)/);
-        });
+    test('Inlined styles observe containing dom-module assetpath', async () => {
+      const doc =
+          await bundle('test/html/style-rewriting.html', {inlineCss: true});
+      const style = dom5.query(
+          doc, matchers.styleMatcher, dom5.childNodesIncludeTemplate)!;
+      assert.isNotNull(style);
+      assert.match(dom5.getTextContent(style), /url\("styles\/unicorn.png"\)/);
+    });
 
     test('Inlined styles have proper paths', async () => {
       const doc = await bundle('test/html/inline-styles.html', options);
