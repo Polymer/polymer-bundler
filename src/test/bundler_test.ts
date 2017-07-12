@@ -573,9 +573,14 @@ suite('Bundler', () => {
       const options = {excludes: ['absolute-paths/script.js']};
       const doc = await bundle(target, options);
       const scripts = dom5.queryAll(doc, matchers.externalJavascript);
-      assert.equal(scripts.length, 1);
+      assert.equal(scripts.length, 2);
       assert.deepEqual(
           dom5.getAttribute(scripts[0]!, 'src'), '/absolute-paths/script.js');
+
+      // A missing script will not be inlined and the script tag will not
+      // be removed.
+      assert.deepEqual(
+          dom5.getAttribute(scripts[1]!, 'src'), '/this/does/not/exist.js');
     });
 
     test('Escape inline <script>', async () => {
