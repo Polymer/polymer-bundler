@@ -117,7 +117,10 @@ export function rewriteHrefBaseUrl(
   const parsedTo = url.parse(absUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&
       parsedFrom.host === parsedTo.host) {
-    let dirFrom = path.posix.dirname(parsedFrom.pathname || '');
+    let dirFrom = path.posix.dirname(
+        // Have to append a '_' to the path because path.posix.dirname('foo/')
+        // returns '.' instead of 'foo'.
+        parsedFrom.pathname ? parsedFrom.pathname + '_' : '');
     let pathTo = parsedTo.pathname || '';
     if (isAbsolutePath(oldBaseUrl) || isAbsolutePath(newBaseUrl)) {
       dirFrom = makeAbsolutePath(dirFrom);
