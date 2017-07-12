@@ -44,7 +44,8 @@ export async function inlineHtmlImport(
     docBundle: AssignedBundle,
     manifest: BundleManifest,
     enableSourcemaps: boolean,
-    rewriteUrlsInTemplates?: boolean) {
+    rewriteUrlsInTemplates?: boolean,
+    excludes?: string[]) {
   const isLazy = dom5.getAttribute(linkTag, 'rel')!.match(/lazy-import/i);
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
@@ -63,15 +64,22 @@ export async function inlineHtmlImport(
       return;
     }
 
-    // We've never seen this import before, so we'll add it to the stripImports
-    // Set to guard against inlining it again in the future.
+    // We've never seen this import before, so we'll add it to the
+    // stripImports Set to guard against inlining it again in the future.
     stripImports.add(resolvedImportUrl);
   }
 
-  // If we can't find a bundle for the referenced import, record that we've
-  // processed it, but don't remove the import link.  Browser will handle it.
+  // If we can't find a bundle for the referenced import, we will just leave the
+  // import link alone.  Unless the file was specifically excluded, we need to
+  // record it as a "missing import".
   if (!importBundle) {
-    docBundle.bundle.missingImports.add(resolvedImportUrl);
+    if (!excludes ||
+        !excludes.some(
+            (u) => u === resolvedImportUrl ||
+                resolvedImportUrl.startsWith(
+                    urlUtils.ensureTrailingSlash(u)))) {
+      docBundle.bundle.missingImports.add(resolvedImportUrl);
+    }
     return;
   }
 
@@ -98,8 +106,8 @@ export async function inlineHtmlImport(
   if (importIsInAnotherBundle) {
     // We guard against inlining any other file from a bundle that has
     // already been imported.  A special exclusion is for lazy imports, which
-    // are not deduplicated here, since we can not infer developer's intent from
-    // here.
+    // are not deduplicated here, since we can not infer developer's intent
+    // from here.
     if (stripLinkToImportBundle && !isLazy) {
       astUtils.removeElementAndNewline(linkTag);
       return;
@@ -168,7 +176,8 @@ export async function inlineHtmlImport(
         docBundle,
         manifest,
         enableSourcemaps,
-        rewriteUrlsInTemplates);
+        rewriteUrlsInTemplates,
+        excludes);
   }
 }
 

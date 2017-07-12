@@ -404,7 +404,8 @@ export class Bundler {
           bundle,
           bundleManifest,
           this.sourcemaps,
-          this.rewriteUrlsInTemplates);
+          this.rewriteUrlsInTemplates,
+          this.excludes);
     }
   }
 

@@ -457,6 +457,25 @@ suite('Bundler', () => {
       assert.equal(imports.length, 1);
     });
 
+    test('Excluded imports are not listed as missing', async () => {
+      const bundler = new Bundler({
+        analyzer: new Analyzer({urlLoader: new FSUrlLoader('test/html')}),
+        excludes: [
+          'this/does/not/exist.html',
+          'this/does/not/exist.js',
+          'this/does/not/exist.css'
+        ],
+      });
+      const manifest = await bundler.generateManifest([
+        'absolute-paths.html',
+      ]);
+      const result = await bundler.bundle(manifest);
+      assert.deepEqual(
+          [...result.manifest.bundles.get('absolute-paths.html')!
+               .missingImports],
+          []);
+    });
+
     test('Excluded CSS file urls is not inlined', async () => {
       const doc = await bundle(
           'test/html/external.html', {excludes: ['external/external.css']});
@@ -573,9 +592,14 @@ suite('Bundler', () => {
       const options = {excludes: ['absolute-paths/script.js']};
       const doc = await bundle(target, options);
       const scripts = dom5.queryAll(doc, matchers.externalJavascript);
-      assert.equal(scripts.length, 1);
+      assert.equal(scripts.length, 2);
       assert.deepEqual(
           dom5.getAttribute(scripts[0]!, 'src'), '/absolute-paths/script.js');
+
+      // A missing script will not be inlined and the script tag will not
+      // be removed.
+      assert.deepEqual(
+          dom5.getAttribute(scripts[1]!, 'src'), '/this/does/not/exist.js');
     });
 
     test('Escape inline <script>', async () => {
