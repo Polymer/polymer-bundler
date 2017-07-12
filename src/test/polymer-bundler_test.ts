@@ -76,6 +76,19 @@ suite('polymer-bundler CLI', () => {
           fs.readFileSync(path.join(tempdir, 'absolute-paths.html')).toString();
       assert.notEqual(html, '');
     });
+
+    test('a single in-html file with deep path stays deep', async () => {
+      const projectRoot = path.resolve(__dirname, '../../test');
+      const tempdir = fs.mkdtempSync(path.join(os.tmpdir(), ' ').trim());
+      execSync(
+          `cd ${projectRoot} && ` +
+          `node ${cliPath} html/default.html ` +
+          `--out-dir ${tempdir}`)
+          .toString();
+      const html =
+          fs.readFileSync(path.join(tempdir, 'html/default.html')).toString();
+      assert.notEqual(html, '');
+    });
   });
 
   suite('--manifest-out', () => {

@@ -35,6 +35,7 @@ for this step).
 - `--inline-css`: External stylesheets will only be inlined if this flag is provided.
 - `--manifest-out <path>`: If specified, the bundle manifest will be written out to `<path>`.
 - `--redirect <prefix>|<path>`: Routes URLs with arbitrary `<prefix>`, possibly including a protocol, hostname, and/or path prefix to a `<path>` on local filesystem.  For example `--redirect "myapp://|src"` would route `myapp://main/home.html` to `./src/main/home.html`.  Multiple redirects may be specified; the earliest ones have the highest priority.
+- `--rewrite-urls-in-templates`: Fix URLs found inside certain element attributes (`action`, `assetpath`, `href`, `src`, and `style`) inside `<template>` tags.
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
 - `--strip-comments`: Strips all HTML comments from the document which do not contain an `@license`, or start with `<!--#` or `<!--!`.
 - `--sourcemaps`: Honor (or create) sourcemaps for inline script tags.
