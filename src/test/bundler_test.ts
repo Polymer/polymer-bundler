@@ -457,6 +457,25 @@ suite('Bundler', () => {
       assert.equal(imports.length, 1);
     });
 
+    test('Excluded imports are not listed as missing', async () => {
+      const bundler = new Bundler({
+        analyzer: new Analyzer({urlLoader: new FSUrlLoader('test/html')}),
+        excludes: [
+          'this/does/not/exist.html',
+          'this/does/not/exist.js',
+          'this/does/not/exist.css'
+        ],
+      });
+      const manifest = await bundler.generateManifest([
+        'absolute-paths.html',
+      ]);
+      const result = await bundler.bundle(manifest);
+      assert.deepEqual(
+          [...result.manifest.bundles.get('absolute-paths.html')!
+               .missingImports],
+          []);
+    });
+
     test('Excluded CSS file urls is not inlined', async () => {
       const doc = await bundle(
           'test/html/external.html', {excludes: ['external/external.css']});
