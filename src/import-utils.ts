@@ -166,7 +166,7 @@ export async function inlineHtmlImport(
   // Record that the inlining took place.
   docBundle.bundle.inlinedHtmlImports.add(resolvedImportUrl);
 
-  // Recursively process the  imports.
+  // Recursively process the nested imports.
   for (const nestedImport of nestedImports) {
     await inlineHtmlImport(
         analyzer,
