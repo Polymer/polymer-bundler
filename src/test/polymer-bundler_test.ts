@@ -113,6 +113,8 @@ suite('polymer-bundler CLI', () => {
         ],
         '_missing': [
           'this/does/not/exist.html',
+          'this/does/not/exist.js',
+          'this/does/not/exist.css',
         ]
       });
     });
