@@ -44,8 +44,8 @@ export async function inlineHtmlImport(
     docBundle: AssignedBundle,
     manifest: BundleManifest,
     enableSourcemaps: boolean,
-    rewriteUrlsInTemplates: boolean = false,
-    excludes: string[] = []) {
+    rewriteUrlsInTemplates?: boolean,
+    excludes?: string[]) {
   const isLazy = dom5.getAttribute(linkTag, 'rel')!.match(/lazy-import/i);
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
