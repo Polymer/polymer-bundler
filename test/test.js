@@ -151,7 +151,7 @@ suite('Path Resolver', function() {
       '<link rel="stylesheet" href="my-element/my-element.css">',
       '</head><body><dom-module id="my-element" assetpath="my-element/">',
       '<template>',
-      '<style>:host { background-image: url("my-element/background.svg"); }</style>',
+      '<style>:host { background-image: url(background.svg); }</style>',
       '<div style="position: absolute;"></div>',
       '</template>',
       '</dom-module>',
@@ -184,7 +184,7 @@ suite('Path Resolver', function() {
       '<link rel="stylesheet" href="my-element/zork/my-element.css">',
       '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
       '<template>',
-      '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
+      '<style>:host { background-image: url(background.svg); }</style>',
       '</template>',
       '</dom-module>',
       '<script>Polymer({is: "my-element"})</script></body></html>'
@@ -217,7 +217,7 @@ suite('Path Resolver', function() {
       '<link rel="stylesheet" href="my-element/zork/my-element.css">',
       '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
       '<template>',
-      '<style>:host { background-image: url("my-element/zork/background.svg"); }</style>',
+      '<style>:host { background-image: url(background.svg); }</style>',
       '</template>',
       '</dom-module>',
       '<script>Polymer({is: "my-element"})</script></body></html>'
