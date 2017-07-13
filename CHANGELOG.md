@@ -6,10 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+<!-- Add new, unreleased changes here. -->
+
+## 2.3.1 - 2017-07-13
 - Rolling back these changes from 2.3.0 release which break polymer 1.x bundling case and going to release them in polymer-bundler 3.x because they are breaking changes:
   - Fixed [issue #579](https://github.com/Polymer/polymer-bundler/issues/579) where `url()` values inside `<style>` tags inside of `<dom-module>` tags of inlined html imports were rewritten without consideration of the module's `assetpath` property.
   - Fixed issue when stylesheet imports are inlined inside of a `<dom-module>` the url resolution now takes into consideration the `assetpath`.
-<!-- Add new, unreleased changes here. -->
 
 ## 2.3.0 - 2017-07-12
 - Fixed issue where inlined `<link rel="import" type="css" ...>` "stylesheet imports" (deprecated but still supported) were inlined in reverse order.  Fixes [issue #575](https://github.com/Polymer/polymer-bundler/issues/575).
