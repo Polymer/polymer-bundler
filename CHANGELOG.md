@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 - Fix erroneously reverse-order inlining of style imports `<link rel="import" type="css">`.
-- Added `--polymer2` flag that changes some of the rewriting behaviors to support the fact that Polymer 2.x honors the `assetpath` of `<dom-module>` when interpreting style urls.
-- Disables rewriting urls in inlined html imports containing `<style>` tags inside `<dom-module>` containers.
-- Include consideration of container `<dom-module>` `assetpath` property when rewriting urls inside inlined style imports.
+- Added `--polymer2` flag that changes some of the rewriting behaviors to support the fact that Polymer 2.x honors the `assetpath` of `<dom-module>` when interpreting style urls:
+  - Disables rewriting urls in inlined html imports containing `<style>` tags inside `<dom-module>` containers.
+  - Include consideration of container `<dom-module>` `assetpath` property when rewriting urls inside inlined style imports.
 
 ## 1.15.5 - 2017-06-01
 - Add --out-request-list to bin/vulcanize help message
