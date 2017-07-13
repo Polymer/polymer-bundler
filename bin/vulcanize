@@ -35,7 +35,8 @@ var help = [
   '  --redirect <uri>|<path>: Takes an argument in the form of URI|PATH where url is a URI composed of a protocol, hostname, and path and PATH is a local filesystem path to replace the matched URI part with. Multiple redirects may be specified; the earliest ones have the highest priority.',
   '  --no-implicit-strip: DANGEROUS! Avoid stripping imports of the transitive dependencies of imports specified with `--exclude`. May result in duplicate javascript inlining.',
   '  --out-html <path>: If specified, output will be written to <path> instead of stdout.',
-  '  --out-request-list <path>`: Writes a list of request URLs required to vulcanize <html file> to <path> on success.',
+  '  --out-request-list <path>: Writes a list of request URLs required to vulcanize <html file> to <path> on success.',
+  '  --polymer2: Rewrites urls in accordance with Polymer 2.x expectations, which applies the assetpath property of <dom-module> tags to the url() values in their style elements at runtime. ',
   '',
   'Examples:',
   '  The command',
@@ -77,6 +78,7 @@ var args = nopt(
     version: Boolean,
     abspath: String,
     exclude: [String, Array],
+    polymer2: Boolean,
     redirect: [String, Array],
     'add-import': [String, Array],
     'strip-exclude': [String, Array],
@@ -128,6 +130,7 @@ args.stripComments = args['strip-comments'];
 args.implicitStrip = !args['no-implicit-strip'];
 args.inlineScripts = args['inline-scripts'];
 args.inlineCss = args['inline-css'];
+args.polymer2 = args['polymer2'];
 
 var vulcanize = new vulcan(args);
 vulcanize.process(target, function(err, content) {
