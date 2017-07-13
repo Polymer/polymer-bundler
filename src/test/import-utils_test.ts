@@ -130,7 +130,7 @@ suite('import-utils', () => {
           <link rel="stylesheet" href="my-element/my-element.css">
           <dom-module id="my-element" assetpath="my-element/">
           <template>
-          <style>:host { background-image: url(background.svg); }</style>
+          <style>:host { background-image: url("my-element/background.svg"); }</style>
           <div style="background-image: url(&quot;my-element/background.svg&quot;)"></div>
           </template>
           <script>Polymer({is: "my-element"})</script>
