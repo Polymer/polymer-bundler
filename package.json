@@ -1,6 +1,6 @@
 {
   "name": "polymer-bundler",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Process Web Components into one output file",
   "main": "lib/bundler.js",
   "typings": "lib/bundler.d.ts",
