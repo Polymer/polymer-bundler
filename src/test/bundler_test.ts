@@ -671,6 +671,18 @@ suite('Bundler', () => {
       assert.match(dom5.getTextContent(style), /url\("styles\/unicorn.png"\)/);
     });
 
+    test('Inlining ignores assetpath if rewriteUrlsInTemplates', async () => {
+      const doc = await bundle(
+          'test/html/style-rewriting.html',
+          {inlineCss: true, rewriteUrlsInTemplates: true});
+      const style = dom5.query(
+          doc, matchers.styleMatcher, dom5.childNodesIncludeTemplate)!;
+      assert.isNotNull(style);
+      assert.match(
+          dom5.getTextContent(style),
+          /url\("style-rewriting\/styles\/unicorn.png"\)/);
+    });
+
     test('Inlined styles have proper paths', async () => {
       const doc = await bundle('test/html/inline-styles.html', options);
       const styles = dom5.queryAll(

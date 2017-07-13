@@ -241,7 +241,8 @@ export async function inlineStylesheet(
     document: Document,
     cssLink: ASTNode,
     docBundle: AssignedBundle,
-    excludes?: string[]) {
+    excludes?: string[],
+    rewriteUrlsInTemplates?: boolean) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
   const importUrl = urlLib.resolve(document.url, stylesheetUrl);
   if (!analyzer.canResolveUrl(importUrl)) {
@@ -278,7 +279,8 @@ export async function inlineStylesheet(
   // `<style>` tags, even inside of `<template>` tags.
   const parentDomModule =
       findAncestor(cssLink, dom5.predicates.hasTagName('dom-module'));
-  if (parentDomModule && dom5.hasAttribute(parentDomModule, 'assetpath')) {
+  if (!rewriteUrlsInTemplates && parentDomModule &&
+      dom5.hasAttribute(parentDomModule, 'assetpath')) {
     const assetPath = dom5.getAttribute(parentDomModule, 'assetpath') || '';
     if (assetPath) {
       newBaseUrl = urlLib.resolve(newBaseUrl, assetPath);
@@ -479,15 +481,17 @@ function rewriteStyleTagsBaseUrl(
   const styleNodes =
       dom5.queryAll(ast, matchers.styleMatcher, undefined, childNodesOption);
 
-  // However, if a `<style>` tag is anywhere inside a `<dom-module>` tag, then
-  // it should not have its urls rewritten.
-  for (const domModule of dom5.queryAll(
-           ast, dom5.predicates.hasTagName('dom-module'))) {
-    for (const styleNode of dom5.queryAll(
-             domModule, matchers.styleMatcher, undefined, childNodesOption)) {
-      const styleNodeIndex = styleNodes.indexOf(styleNode);
-      if (styleNodeIndex > -1) {
-        styleNodes.splice(styleNodeIndex, 1);
+  // Unless rewriteUrlsInTemplates is on, if a `<style>` tag is anywhere
+  // inside a `<dom-module>` tag, then it should not have its urls rewritten.
+  if (!rewriteUrlsInTemplates) {
+    for (const domModule of dom5.queryAll(
+             ast, dom5.predicates.hasTagName('dom-module'))) {
+      for (const styleNode of dom5.queryAll(
+               domModule, matchers.styleMatcher, undefined, childNodesOption)) {
+        const styleNodeIndex = styleNodes.indexOf(styleNode);
+        if (styleNodeIndex > -1) {
+          styleNodes.splice(styleNodeIndex, 1);
+        }
       }
     }
   }
