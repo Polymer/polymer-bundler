@@ -115,10 +115,6 @@ suite('URL Utils', () => {
           '../../foo.html',
           'neither has ^/');
     });
-
-    test('Rewrite paths when new base url has trailing slash', () => {
-      testRewrite('pic.png', 'foo/bar/baz.html', 'foo/', 'bar/pic.png');
-    });
   });
 
   suite('Relative URL calculations', () => {
