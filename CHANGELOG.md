@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+- Fix erroneously reverse-order inlining of style imports `<link rel="import" type="css">`.
+- Fix erroneously rewritten urls in inlined html imports containing `<style>` tags inside `<dom-module>` containers.
+- Fix invalid urls inside inlined style imports, which did not take into consideration container `<dom-module>` assetpath property.
+
 ## 1.15.5 - 2017-06-01
 - Add --out-request-list to bin/vulcanize help message
 
