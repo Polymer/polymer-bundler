@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## 1.2.0 - 2017-07-14
+## 1.16.0 - 2017-07-14
 - Fix erroneously reverse-order inlining of style imports `<link rel="import" type="css">`.
 - Added `--polymer2` flag that changes some of the rewriting behaviors to support the fact that Polymer 2.x honors the `assetpath` of `<dom-module>` when interpreting style urls:
   - Disables rewriting urls in inlined html imports containing `<style>` tags inside `<dom-module>` containers.
