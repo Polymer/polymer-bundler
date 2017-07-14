@@ -222,9 +222,9 @@ export class Bundler {
     }
     if (this.enableCssInlining) {
       await this._inlineStylesheetLinks(
-          document, ast, docBundle, this.excludes);
+          document, ast, docBundle, this.excludes, this.rewriteUrlsInTemplates);
       await this._inlineStylesheetImports(
-          document, ast, docBundle, this.excludes);
+          document, ast, docBundle, this.excludes, this.rewriteUrlsInTemplates);
     }
 
     if (this.stripComments) {
@@ -439,13 +439,19 @@ export class Bundler {
       document: Document,
       ast: ASTNode,
       bundle: AssignedBundle,
-      excludes: string[]) {
+      excludes: string[],
+      rewriteUrlsInTemplates: boolean) {
     const cssImports = dom5.queryAll(ast, matchers.stylesheetImport);
     let lastInlined: (ASTNode|undefined);
 
     for (const cssLink of cssImports) {
       const style = await importUtils.inlineStylesheet(
-          this.analyzer, document, cssLink, bundle, excludes);
+          this.analyzer,
+          document,
+          cssLink,
+          bundle,
+          excludes,
+          rewriteUrlsInTemplates);
       if (style) {
         this._moveDomModuleStyleIntoTemplate(style, lastInlined);
         lastInlined = style;
@@ -462,11 +468,17 @@ export class Bundler {
       document: Document,
       ast: ASTNode,
       bundle: AssignedBundle,
-      excludes?: string[]) {
+      excludes?: string[],
+      rewriteUrlsInTemplates?: boolean) {
     const cssLinks = dom5.queryAll(ast, matchers.externalStyle);
     for (const cssLink of cssLinks) {
       await importUtils.inlineStylesheet(
-          this.analyzer, document, cssLink, bundle, excludes);
+          this.analyzer,
+          document,
+          cssLink,
+          bundle,
+          excludes,
+          rewriteUrlsInTemplates);
     }
   }
 

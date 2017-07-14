@@ -241,7 +241,8 @@ export async function inlineStylesheet(
     document: Document,
     cssLink: ASTNode,
     docBundle: AssignedBundle,
-    excludes?: string[]) {
+    excludes?: string[],
+    rewriteUrlsInTemplates?: boolean) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
   const importUrl = urlLib.resolve(document.url, stylesheetUrl);
   if (!analyzer.canResolveUrl(importUrl)) {
@@ -269,10 +270,25 @@ export async function inlineStylesheet(
   }
   const stylesheetContent = stylesheetImport.document.parsedDocument.contents;
   const media = dom5.getAttribute(cssLink, 'media');
-  const resolvedStylesheetContent =
-      rewriteCssTextBaseUrl(stylesheetContent, resolvedImportUrl, document.url);
-  const styleNode = dom5.constructors.element('style');
 
+  let newBaseUrl = document.url;
+
+  // If the css link we are about to inline is inside of a dom-module, the new
+  // base url must be calculated using the assetpath of the dom-module if
+  // present, since Polymer will honor assetpath when resolving urls in
+  // `<style>` tags, even inside of `<template>` tags.
+  const parentDomModule =
+      findAncestor(cssLink, dom5.predicates.hasTagName('dom-module'));
+  if (!rewriteUrlsInTemplates && parentDomModule &&
+      dom5.hasAttribute(parentDomModule, 'assetpath')) {
+    const assetPath = dom5.getAttribute(parentDomModule, 'assetpath') || '';
+    if (assetPath) {
+      newBaseUrl = urlLib.resolve(newBaseUrl, assetPath);
+    }
+  }
+  const resolvedStylesheetContent =
+      rewriteCssTextBaseUrl(stylesheetContent, resolvedImportUrl, newBaseUrl);
+  const styleNode = dom5.constructors.element('style');
   if (media) {
     dom5.setAttribute(styleNode, 'media', media);
   }
@@ -282,7 +298,6 @@ export async function inlineStylesheet(
 
   // Record that the inlining took place.
   docBundle.bundle.inlinedStyles.add(resolvedImportUrl);
-
   return styleNode;
 }
 
@@ -330,7 +345,7 @@ export function rewriteAstBaseUrl(
     rewriteUrlsInTemplates?: boolean) {
   rewriteElementAttrsBaseUrl(
       ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
-  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl);
+  rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
   setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
 }
 
@@ -367,6 +382,25 @@ export async function addOrUpdateSourcemapsForInlineScripts(
 
   return Promise.all(promises);
 }
+
+/**
+ * Walk the ancestor nodes from parentNode up to document root, returning the
+ * first one matching the predicate function.
+ */
+function findAncestor(ast: ASTNode, predicate: dom5.Predicate): ASTNode|
+    undefined {
+  // The visited set protects us against circular references.
+  const visited = new Set();
+  while (ast.parentNode && !visited.has(ast.parentNode)) {
+    if (predicate(ast.parentNode)) {
+      return ast.parentNode;
+    }
+    visited.add(ast.parentNode);
+    ast = ast.parentNode;
+  }
+  return undefined;
+}
+
 
 /**
  * Simple utility function used to find an item in a set with a predicate
@@ -434,9 +468,34 @@ function rewriteElementAttrsBaseUrl(
  * on the relationship of the old base url to the new base url.
  */
 function rewriteStyleTagsBaseUrl(
-    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
-  const styleNodes = dom5.queryAll(
-      ast, matchers.styleMatcher, undefined, dom5.childNodesIncludeTemplate);
+    ast: ASTNode,
+    oldBaseUrl: UrlString,
+    newBaseUrl: UrlString,
+    rewriteUrlsInTemplates: boolean = false) {
+  const childNodesOption = rewriteUrlsInTemplates ?
+      dom5.childNodesIncludeTemplate :
+      dom5.defaultChildNodes;
+
+  // If `rewriteUrlsInTemplates` is `true`, include `<style>` tags that are
+  // inside `<template>`.
+  const styleNodes =
+      dom5.queryAll(ast, matchers.styleMatcher, undefined, childNodesOption);
+
+  // Unless rewriteUrlsInTemplates is on, if a `<style>` tag is anywhere
+  // inside a `<dom-module>` tag, then it should not have its urls rewritten.
+  if (!rewriteUrlsInTemplates) {
+    for (const domModule of dom5.queryAll(
+             ast, dom5.predicates.hasTagName('dom-module'))) {
+      for (const styleNode of dom5.queryAll(
+               domModule, matchers.styleMatcher, undefined, childNodesOption)) {
+        const styleNodeIndex = styleNodes.indexOf(styleNode);
+        if (styleNodeIndex > -1) {
+          styleNodes.splice(styleNodeIndex, 1);
+        }
+      }
+    }
+  }
+
   for (const node of styleNodes) {
     let styleText = dom5.getTextContent(node);
     styleText = rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);
