@@ -146,7 +146,7 @@ suite('Path Resolver', function() {
       '<script>Polymer({is: "my-element"})</script>'
     ].join('\n');
 
-    var expected = [
+    var expectedPolymer1 = [
       '<html><head><link rel="import" href="polymer/polymer.html">',
       '<link rel="stylesheet" href="my-element/my-element.css">',
       '</head><body><dom-module id="my-element" assetpath="my-element/">',
@@ -158,11 +158,25 @@ suite('Path Resolver', function() {
       '<script>Polymer({is: "my-element"})</script></body></html>'
     ].join('\n');
 
-    var ast = parse(html);
-    pathresolver.resolvePaths(ast, inputPath, outputPath);
+    var ast1 = parse(html);
+    pathresolver.resolvePaths(ast1, inputPath, outputPath);
+    assert.equal(serialize(ast1), expectedPolymer1, 'relative polymer 1 paths');
 
-    var actual = serialize(ast);
-    assert.equal(actual, expected, 'relative');
+    var expectedPolymer2 = [
+      '<html><head><link rel="import" href="polymer/polymer.html">',
+      '<link rel="stylesheet" href="my-element/my-element.css">',
+      '</head><body><dom-module id="my-element" assetpath="my-element/">',
+      '<template>',
+      '<style>:host { background-image: url(background.svg); }</style>',
+      '<div style="position: absolute;"></div>',
+      '</template>',
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script></body></html>'
+    ].join('\n');
+
+    var ast2 = parse(html);
+    pathresolver.resolvePaths(ast2, inputPath, outputPath, true);
+    assert.equal(serialize(ast2), expectedPolymer2, 'relative polymer 2 paths');
   });
 
   test('Resolve Paths with <base>', function() {
@@ -178,7 +192,7 @@ suite('Path Resolver', function() {
       '<script>Polymer({is: "my-element"})</script>'
     ].join('\n');
 
-    var expectedBase = [
+    var expectedBasePolymer1 = [
       '<html><head>',
       '<link rel="import" href="my-element/polymer/polymer.html">',
       '<link rel="stylesheet" href="my-element/zork/my-element.css">',
@@ -190,12 +204,27 @@ suite('Path Resolver', function() {
       '<script>Polymer({is: "my-element"})</script></body></html>'
     ].join('\n');
 
-    var ast = parse(htmlBase);
-    pathresolver.acid(ast, inputPath);
-    pathresolver.resolvePaths(ast, inputPath, outputPath);
+    var ast1 = parse(htmlBase);
+    pathresolver.acid(ast1, inputPath);
+    pathresolver.resolvePaths(ast1, inputPath, outputPath);
+    assert.equal(serialize(ast1), expectedBasePolymer1, 'base polymer 1');
 
-    var actual = serialize(ast);
-    assert.equal(actual, expectedBase, 'base');
+    var expectedBasePolymer2 = [
+      '<html><head>',
+      '<link rel="import" href="my-element/polymer/polymer.html">',
+      '<link rel="stylesheet" href="my-element/zork/my-element.css">',
+      '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
+      '<template>',
+      '<style>:host { background-image: url(background.svg); }</style>',
+      '</template>',
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script></body></html>'
+    ].join('\n');
+
+    var ast2 = parse(htmlBase);
+    pathresolver.acid(ast2, inputPath, true);
+    pathresolver.resolvePaths(ast2, inputPath, outputPath, true);
+    assert.equal(serialize(ast2), expectedBasePolymer2, 'base polymer 2');
   });
 
   test('Resolve Paths with <base> having a trailing /', function() {
@@ -211,7 +240,7 @@ suite('Path Resolver', function() {
       '<script>Polymer({is: "my-element"})</script>'
     ].join('\n');
 
-    var expectedBase = [
+    var expectedBasePolymer1 = [
       '<html><head>',
       '<link rel="import" href="my-element/polymer/polymer.html">',
       '<link rel="stylesheet" href="my-element/zork/my-element.css">',
@@ -223,12 +252,27 @@ suite('Path Resolver', function() {
       '<script>Polymer({is: "my-element"})</script></body></html>'
     ].join('\n');
 
-    var ast = parse(htmlBase);
-    pathresolver.acid(ast, inputPath);
-    pathresolver.resolvePaths(ast, inputPath, outputPath);
+    var ast1 = parse(htmlBase);
+    pathresolver.acid(ast1, inputPath);
+    pathresolver.resolvePaths(ast1, inputPath, outputPath);
+    assert.equal(serialize(ast1), expectedBasePolymer1, 'base polymer 1');
 
-    var actual = serialize(ast);
-    assert.equal(actual, expectedBase, 'base');
+    var expectedBasePolymer2 = [
+      '<html><head>',
+      '<link rel="import" href="my-element/polymer/polymer.html">',
+      '<link rel="stylesheet" href="my-element/zork/my-element.css">',
+      '</head><body><dom-module id="my-element" assetpath="my-element/zork/">',
+      '<template>',
+      '<style>:host { background-image: url(background.svg); }</style>',
+      '</template>',
+      '</dom-module>',
+      '<script>Polymer({is: "my-element"})</script></body></html>'
+    ].join('\n');
+
+    var ast2 = parse(htmlBase);
+    pathresolver.acid(ast2, inputPath, true);
+    pathresolver.resolvePaths(ast2, inputPath, outputPath, true);
+    assert.equal(serialize(ast2), expectedBasePolymer2, 'base polymer 2');
   });
 
   test('Resolve <base target>', function() {
