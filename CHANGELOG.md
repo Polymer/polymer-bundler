@@ -6,8 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
-- Fixed [issue #592](https://github.com/Polymer/polymer-bundler/issues/592) where the `--manifest-out` option of `bin/polymer-bundler` did not correctly include the basis document of shell files in inlined content list.
 <!-- Add new, unreleased changes here. -->
+
+## 3.0.1 - 2017-07-17
+- Fixed [issue #592](https://github.com/Polymer/polymer-bundler/issues/592) where the `--manifest-out` option of `bin/polymer-bundler` did not correctly include the basis document of shell files in inlined content list.
 
 ## 3.0.0 - 2017-07-14
 - BREAKING: The following changes support polymer 2.x, but will break some Polymer 1.x projects which may rely on the rewriting of relative urls within style tags.  For those projects, set the `rewriteUrlsInTemplates` option to `true` or use `--rewriteUrlsInTemplates` at command-line.
