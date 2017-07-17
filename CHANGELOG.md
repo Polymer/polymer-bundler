@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+- Fixed [issue #592](https://github.com/Polymer/polymer-bundler/issues/592) where the `--manifest-out` option of `bin/polymer-bundler` did not correctly include the basis document of shell files in inlined content list.
 <!-- Add new, unreleased changes here. -->
 
 ## 3.0.0 - 2017-07-14

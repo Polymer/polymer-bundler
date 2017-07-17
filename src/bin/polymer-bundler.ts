@@ -241,29 +241,18 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
   const json: JsonManifest = {};
   const missingImports: Set<string> = new Set();
   for (const [url, bundle] of manifest.bundles) {
-    json[url] = [
+    json[url] = [...new Set([
+      // `files` and `inlinedHtmlImports` will be partially duplicative, but use
+      // of both ensures the basis document for a file is included since there
+      // is no other specific property that currently expresses it.
+      ...bundle.files,
       ...bundle.inlinedHtmlImports,
       ...bundle.inlinedScripts,
       ...bundle.inlinedStyles
-    ];
+    ])];
 
     for (const missingImport of bundle.missingImports) {
       missingImports.add(missingImport);
-    }
-
-    if (bundle.entrypoints.size > 1) {
-      continue;
-    }
-
-    // Include the entrypoint in the manifest where bundle has just one
-    // entrypoint, since we know this is the document that was the basis for the
-    // bundle.
-    // TODO(usergenic): Extend Bundle with a basis document property to provide
-    // a more conventional means to get at this.
-    for (const entrypoint of bundle.entrypoints) {
-      if (!bundle.inlinedHtmlImports.has(entrypoint)) {
-        json[url].unshift(entrypoint);
-      }
     }
   }
   if (missingImports.size > 0) {
