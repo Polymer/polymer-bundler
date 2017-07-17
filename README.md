@@ -35,7 +35,7 @@ for this step).
 - `--inline-css`: External stylesheets will only be inlined if this flag is provided.
 - `--manifest-out <path>`: If specified, the bundle manifest will be written out to `<path>`.
 - `--redirect <prefix>|<path>`: Routes URLs with arbitrary `<prefix>`, possibly including a protocol, hostname, and/or path prefix to a `<path>` on local filesystem.  For example `--redirect "myapp://|src"` would route `myapp://main/home.html` to `./src/main/home.html`.  Multiple redirects may be specified; the earliest ones have the highest priority.
-- `--rewrite-urls-in-templates`: Fix URLs found inside certain element attributes (`action`, `assetpath`, `href`, `src`, and `style`) inside `<template>` tags.
+- `--rewrite-urls-in-templates`: Fix URLs found inside `<style>` tags and certain element attributes (`action`, `assetpath`, `href`, `src`, and `style`) when inside `<template>` tags.  This may be necessary to bundle some Polymer 1.x projects with components that ues relative image urls in their styles, as Polymer 1.x did not use the `assetpath` of `<dom-module>` to resolve urls in styles like Polymer 2.x does.
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
 - `--strip-comments`: Strips all HTML comments from the document which do not contain an `@license`, or start with `<!--#` or `<!--!`.
 - `--sourcemaps`: Honor (or create) sourcemaps for inline script tags.
@@ -48,6 +48,12 @@ The command
     polymer-bundler target.html
 
 will inline the HTML Imports of `target.html` and print the resulting HTML to standard output.
+
+The command
+
+    polymer-bundler target.html --rewrite-urls-in-templates
+
+will inline the HTML Imports of `target.html` and rewrite relative urls encountered in style tags and element attributes to support Polymer 1.x projects which may rely on it.
 
 The command
 
@@ -102,7 +108,7 @@ polymer-bundler as a library has two exported function.
 - `sourcemaps`: Honor (or create) sourcemaps for inline scripts
 - `inlineCss`: Will inline content of external stylesheets into the bundle html.  Defaults to `true`.
 - `inlineScripts`: Inline content of external scripts into the bundled html.  Defaults to `true`.
-- `rewriteUrlsInTemplates`: Fix URLs found inside certain element attributes (`action`, `assetpath`, `href`, `src`, and `style`) inside `<template>` tags.  Defaults to `false`.
+- `rewriteUrlsInTemplates`: Fix URLs found inside `<style>` tags and certain element attributes (`action`, `assetpath`, `href`, `src`, and `style`) when inside `<template>` tags.  This may be necessary to bundle some Polymer 1.x projects with components that ues relative image urls in their styles, as Polymer 1.x did not use the `assetpath` of `<dom-module>` to resolve urls in styles like Polymer 2.x does.  Defaults to `false`.
 - `sourcemaps`: Honor (or create) sourcemaps for inline scripts.  Defaults to `false`.
 - `stripComments`: Remove all HTML comments, except for `@license`, which are merely de-duplicated, server-side include directives like `<!--# ... -->`, and other important comments of the form `<!--! ... -->`.  Defaults to `false`.
 - `strategy`: A function that takes an array of bundles and returns an array of bundles.  There are a strategy factory functions available in [bundle-manifest](https://github.com/Polymer/polymer-bundler/blob/master/src/bundle-manifest.ts).
