@@ -118,6 +118,41 @@ suite('polymer-bundler CLI', () => {
         ]
       });
     });
+
+    test('manifest includes all files including basis', async () => {
+      const projectRoot = path.resolve(__dirname, '../../test/html/imports');
+      const tempdir = fs.mkdtempSync(path.join(os.tmpdir(), ' ').trim());
+      const manifestPath = path.join(tempdir, 'bundle-manifest.json');
+      execSync(
+          `cd ${projectRoot} && ` +
+          `node ${cliPath} --inline-scripts --inline-css ` +
+          `--in-html eagerly-importing-a-fragment.html ` +
+          `--in-html importing-fragments/fragment-a.html ` +
+          `--in-html importing-fragments/fragment-b.html ` +
+          `--in-html importing-fragments/shell.html ` +
+          `--shell importing-fragments/shell.html ` +
+          `--out-dir ${tempdir}/bundled/ ` +
+          `--manifest-out ${manifestPath}`)
+          .toString();
+      const manifestJson = fs.readFileSync(manifestPath).toString();
+      const manifest = JSON.parse(manifestJson);
+      assert.deepEqual(manifest, {
+        'eagerly-importing-a-fragment.html': [
+          'eagerly-importing-a-fragment.html',
+        ],
+        'importing-fragments/fragment-a.html': [
+          'importing-fragments/fragment-a.html',
+        ],
+        'importing-fragments/fragment-b.html': [
+          'importing-fragments/fragment-b.html',
+        ],
+        'importing-fragments/shell.html': [
+          'importing-fragments/shell.html',
+          'importing-fragments/shared-util.html',
+        ],
+      });
+
+    });
   });
 
   suite('--redirect', () => {
