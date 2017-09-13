@@ -110,7 +110,36 @@ export class BundleManifest {
       return {bundle: this.bundles.get(bundleUrl)!, url: bundleUrl};
     }
   }
+
+  toJson(): JsonManifest {
+    const json: JsonManifest = {};
+    const missingImports: Set<string> = new Set();
+    for (const [url, bundle] of this.bundles) {
+      json[url] = [...new Set([
+        // `files` and `inlinedHtmlImports` will be partially duplicative, but use
+        // of both ensures the basis document for a file is included since there
+        // is no other specific property that currently expresses it.
+        ...bundle.files,
+        ...bundle.inlinedHtmlImports,
+        ...bundle.inlinedScripts,
+        ...bundle.inlinedStyles
+      ])];
+
+      for (const missingImport of bundle.missingImports) {
+        missingImports.add(missingImport);
+      }
+    }
+    if (missingImports.size > 0) {
+      json['_missing'] = [...missingImports];
+    }
+    return json;
+  }
 }
+
+export interface JsonManifest {
+  [entrypoint: string]: UrlString[];
+}
+
 
 /**
  * Chains multiple bundle strategy functions together so the output of one

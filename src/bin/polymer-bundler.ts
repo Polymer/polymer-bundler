@@ -233,34 +233,6 @@ if (options.shell) {
   options.strategy = generateShellMergeStrategy(options.shell, 2);
 }
 
-interface JsonManifest {
-  [entrypoint: string]: UrlString[];
-}
-
-function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
-  const json: JsonManifest = {};
-  const missingImports: Set<string> = new Set();
-  for (const [url, bundle] of manifest.bundles) {
-    json[url] = [...new Set([
-      // `files` and `inlinedHtmlImports` will be partially duplicative, but use
-      // of both ensures the basis document for a file is included since there
-      // is no other specific property that currently expresses it.
-      ...bundle.files,
-      ...bundle.inlinedHtmlImports,
-      ...bundle.inlinedScripts,
-      ...bundle.inlinedStyles
-    ])];
-
-    for (const missingImport of bundle.missingImports) {
-      missingImports.add(missingImport);
-    }
-  }
-  if (missingImports.size > 0) {
-    json['_missing'] = [...missingImports];
-  }
-  return json;
-}
-
 (async () => {
   const bundler = new Bundler(options);
   let documents: DocumentCollection;
@@ -279,9 +251,8 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
     return;
   }
   if (options['manifest-out']) {
-    const manifestJson = bundleManifestToJson(manifest);
     const fd = fs.openSync(options['manifest-out'], 'w');
-    fs.writeSync(fd, JSON.stringify(manifestJson));
+    fs.writeSync(fd, JSON.stringify(manifest.toJson()));
     fs.closeSync(fd);
   }
   const outDir = options['out-dir'];

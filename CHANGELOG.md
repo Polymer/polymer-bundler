@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 <!-- Add new, unreleased changes here. -->
+- Added `toJson` to the manifest bundle as an easy way to output the bundle in JSON format
 
 ## 3.1.0 - 2017-10-02
 - Fixed [issue #596](https://github.com/Polymer/polymer-bundler/issues/596) where html import to bundle file itself was being injected due to bad path check condition in the inject step.
