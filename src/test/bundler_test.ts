@@ -747,8 +747,6 @@ suite('Bundler', () => {
         analyzer: new Analyzer({urlLoader: new FSUrlLoader('.')}),
       });
 
-      // We're making sure that <link rel="import"
-      // href="external-in-template.html"> is not present.
       const link = dom5.query(
           doc,
           preds.AND(
