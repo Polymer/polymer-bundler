@@ -741,7 +741,7 @@ suite('Bundler', () => {
 
     // Ensure this https://github.com/Polymer/polymer-bundler/issues/596 doesn't
     // happen again.
-    test.only('Bundled file should not import itself', async () => {
+    test('Bundled file should not import itself', async () => {
       const doc = await bundle('/test/html/default.html', {
         inlineCss: true,
         analyzer: new Analyzer({urlLoader: new FSUrlLoader('.')}),
