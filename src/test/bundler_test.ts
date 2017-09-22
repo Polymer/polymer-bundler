@@ -739,21 +739,38 @@ suite('Bundler', () => {
 
   suite('Regression Testing', () => {
 
+    // Ensure this https://github.com/Polymer/polymer-bundler/issues/596 doesn't
+    // happen again.
+    test.only('Bundled file should not import itself', async () => {
+      const doc = await bundle('/test/html/default.html', {
+        inlineCss: true,
+        analyzer: new Analyzer({urlLoader: new FSUrlLoader('.')}),
+      });
+
+      // We're making sure that <link rel="import"
+      // href="external-in-template.html"> is not present.
+      const link = dom5.query(
+          doc,
+          preds.AND(
+              matchers.htmlImport, preds.hasAttrValue('href', 'default.html')));
+      assert.isNull(link, `Found unexpected link to default.html (self)`);
+    });
+
     test('Base tag emulation should not leak to other imports', async () => {
       const doc = await bundle('test/html/base.html');
       const clickMe = dom5.query(doc, preds.hasTextValue('CLICK ME'));
       assert.ok(clickMe);
 
-      // The base target from `test/html/imports/base.html` should apply to the
-      // anchor tag in it.
+      // The base target from `test/html/imports/base.html` should apply to
+      // the anchor tag in it.
       assert.equal(dom5.getAttribute(clickMe!, 'target'), 'foo-frame');
 
       const doNotClickMe =
           dom5.query(doc, preds.hasTextValue('DO NOT CLICK ME'));
       assert.ok(doNotClickMe);
 
-      // The base target from `test/html/imports/base.html` should NOT apply to
-      // the anchor tag in `test/html/imports/base-foo/sub-base.html`
+      // The base target from `test/html/imports/base.html` should NOT apply
+      // to the anchor tag in `test/html/imports/base-foo/sub-base.html`
       assert.isFalse(dom5.hasAttribute(doNotClickMe!, 'target'));
     });
 
