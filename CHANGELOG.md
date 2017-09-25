@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 <!-- Add new, unreleased changes here. -->
+- Fixed [issue #600](https://github.com/Polymer/polymer-bundler/issues/600) where `<link rel=stylesheet>` inside a `<template>` was not inlined.  If you want to exclude a specific stylesheet from inlining, you can add its path the the `excludes` option (or `--exclude` on command line).
 
 ## 3.0.1 - 2017-07-17
 - Fixed [issue #592](https://github.com/Polymer/polymer-bundler/issues/592) where the `--manifest-out` option of `bin/polymer-bundler` did not correctly include the basis document of shell files in inlined content list.
