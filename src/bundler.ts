@@ -470,7 +470,8 @@ export class Bundler {
       bundle: AssignedBundle,
       excludes?: string[],
       rewriteUrlsInTemplates?: boolean) {
-    const cssLinks = dom5.queryAll(ast, matchers.externalStyle);
+    const cssLinks = dom5.queryAll(
+        ast, matchers.externalStyle, undefined, dom5.childNodesIncludeTemplate);
     for (const cssLink of cssLinks) {
       await importUtils.inlineStylesheet(
           this.analyzer,

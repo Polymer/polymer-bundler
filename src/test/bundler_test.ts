@@ -662,6 +662,24 @@ suite('Bundler', () => {
           dom5.getTextContent(styles[1]), /url\("assets\/platform\.png"\)/);
     });
 
+    test('External style links in templates are inlined', async () => {
+      const doc = await bundle(
+          'test/html/external-in-template.html', {inlineCss: true});
+      const externalStyles = dom5.queryAll(
+          doc,
+          matchers.externalStyle,
+          undefined,
+          dom5.childNodesIncludeTemplate);
+      assert.equal(externalStyles.length, 0);
+      const inlineStyles = dom5.queryAll(
+          doc,
+          matchers.styleMatcher,
+          undefined,
+          dom5.childNodesIncludeTemplate);
+      assert.equal(inlineStyles.length, 1);
+      assert.match(dom5.getTextContent(inlineStyles[0]), /content: 'external'/);
+    });
+
     test('Inlined styles observe containing dom-module assetpath', async () => {
       const doc =
           await bundle('test/html/style-rewriting.html', {inlineCss: true});
