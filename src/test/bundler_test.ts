@@ -662,6 +662,30 @@ suite('Bundler', () => {
           dom5.getTextContent(styles[1]), /url\("assets\/platform\.png"\)/);
     });
 
+    test('External style links in templates are inlined', async () => {
+      const doc = await bundle(
+          'test/html/external-in-template.html', {inlineCss: true});
+      const externalStyles = dom5.queryAll(
+          doc,
+          matchers.externalStyle,
+          undefined,
+          dom5.childNodesIncludeTemplate);
+      assert.equal(externalStyles.length, 0);
+
+      // There were two links to external styles in the file, now there
+      // should be two occurrences of inlined styles.  Note they are the
+      // same external styles, so inlining should be happening for each
+      // occurrence of the external style.
+      const inlineStyles = dom5.queryAll(
+          doc,
+          matchers.styleMatcher,
+          undefined,
+          dom5.childNodesIncludeTemplate);
+      assert.equal(inlineStyles.length, 2);
+      assert.match(dom5.getTextContent(inlineStyles[0]), /content: 'external'/);
+      assert.match(dom5.getTextContent(inlineStyles[1]), /content: 'external'/);
+    });
+
     test('Inlined styles observe containing dom-module assetpath', async () => {
       const doc =
           await bundle('test/html/style-rewriting.html', {inlineCss: true});
