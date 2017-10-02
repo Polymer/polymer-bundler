@@ -6,8 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
-- Fixed [issue #596](https://github.com/Polymer/polymer-bundler/issues/596) where html import to bundle file itself was being injected due to bad path check condition in the inject step.
 <!-- Add new, unreleased changes here. -->
+
+## 3.1.0 - 2017-10-02
+- Fixed [issue #596](https://github.com/Polymer/polymer-bundler/issues/596) where html import to bundle file itself was being injected due to bad path check condition in the inject step.
 - Fixed [issue #600](https://github.com/Polymer/polymer-bundler/issues/600) where `<link rel=stylesheet>` inside a `<template>` was not inlined.  If you want to exclude a specific stylesheet from inlining, you can add its path the the `excludes` option (or `--exclude` on command line).
 
 ## 3.0.1 - 2017-07-17
