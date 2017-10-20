@@ -16,6 +16,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
+import * as fs from 'fs';
 import * as parse5 from 'parse5';
 import * as path from 'path';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
@@ -892,6 +893,27 @@ suite('Bundler', () => {
           unexpectedScript,
           null,
           'script in external.html should not be present');
+    });
+
+    test('Deprecated CSS imports should inline correctly', async () => {
+      const doc = await bundle('test/html/css-imports.html', {inlineCss: true});
+
+      const styleA =
+          fs.readFileSync('test/html/css-import/import-a.css', 'utf-8');
+      const styleB =
+          fs.readFileSync('test/html/css-import/import-b.css', 'utf-8');
+
+      const elementA =
+          dom5.query(doc, dom5.predicates.hasAttrValue('id', 'element-a'))!;
+      assert(elementA, 'element-a not found.');
+      assert.include(parse5.serialize(elementA), styleA);
+      assert.notInclude(parse5.serialize(elementA), styleB);
+
+      const elementB =
+          dom5.query(doc, dom5.predicates.hasAttrValue('id', 'element-b'))!;
+      assert(elementB, 'element-b not found.');
+      assert.notInclude(parse5.serialize(elementB), styleA);
+      assert.include(parse5.serialize(elementB), styleB);
     });
   });
 });
