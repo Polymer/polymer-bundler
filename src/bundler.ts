@@ -505,6 +505,15 @@ export class Bundler {
       astUtils.prepend(domModule, template);
     }
     astUtils.removeElementAndNewline(style);
+
+    // Ignore the refStyle object if it is contained within a different
+    // dom-module.
+    if (refStyle &&
+        !dom5.query(
+            domModule, (n) => n === refStyle, dom5.childNodesIncludeTemplate)) {
+      refStyle = undefined;
+    }
+
     // keep ordering if previding with a reference style
     if (!refStyle) {
       astUtils.prepend(
