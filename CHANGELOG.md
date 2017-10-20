@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 <!-- Add new, unreleased changes here. -->
+* Fixed an issue with moving deprecated CSS import links into templates reported in [Polymer CLI Issue #917](https://github.com/polymer/polymer-cli/issues/917).
 
 ## 3.1.0 - 2017-10-02
 - Fixed [issue #596](https://github.com/Polymer/polymer-bundler/issues/596) where html import to bundle file itself was being injected due to bad path check condition in the inject step.
