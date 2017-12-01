@@ -14,7 +14,11 @@
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
+import {Analyzer, ParsedHtmlDocument} from 'polymer-analyzer';
+// TODO(usergenic): Fix polymer-analyzer top-level export of Document.
+import {Document} from 'polymer-analyzer/lib/model/document';
+// TODO(usergenic): Fix polymer-analyzer top-level export of ResolvedUrl.
+import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';
@@ -283,7 +287,7 @@ export async function inlineStylesheet(
       dom5.hasAttribute(parentDomModule, 'assetpath')) {
     const assetPath = dom5.getAttribute(parentDomModule, 'assetpath') || '';
     if (assetPath) {
-      newBaseUrl = urlLib.resolve(newBaseUrl, assetPath);
+      newBaseUrl = urlLib.resolve(newBaseUrl, assetPath) as ResolvedUrl;
     }
   }
   const resolvedStylesheetContent =

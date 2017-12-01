@@ -16,7 +16,11 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode, serialize, treeAdapters} from 'parse5';
 import * as path from 'path';
-import {Analyzer, Document, FSUrlLoader, InMemoryOverlayUrlLoader} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader, InMemoryOverlayUrlLoader} from 'polymer-analyzer';
+// TODO(usergenic): Fix polymer-analyzer top-level export of Document.
+import {Document} from 'polymer-analyzer/lib/model/document';
+// TODO(usergenic): Fix polymer-analyzer top-level export of ResolvedUrl.
+import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
 import {getAnalysisDocument} from './analyzer-utils';
 
 import * as astUtils from './ast-utils';
@@ -324,7 +328,7 @@ export class Bundler {
           {kind: 'html-import', noLazyImports: true, imported: false})
     ].filter((i) => !i.lazy);
     const existingImportDependencies =
-        new Map(<[string, string[]][]>existingImports.map(
+        new Map(<[ResolvedUrl, ResolvedUrl[]][]>existingImports.map(
             (existingImport) => [existingImport.document.url, [
               ...existingImport.document.getFeatures(
                   {kind: 'html-import', imported: true, noLazyImports: true})
@@ -354,7 +358,7 @@ export class Bundler {
         // If the existing import has a dependency on the import we are about
         // to inject, it may be our new target.
         if (existingImportDependencies.get(existingImport.document.url)!
-                .indexOf(importUrl) !== -1) {
+                .indexOf(importUrl as ResolvedUrl) !== -1) {
           const newPrependTarget = dom5.query(
               ast, (node) => astUtils.sameNode(node, existingImport.astNode));
 

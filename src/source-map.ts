@@ -15,10 +15,15 @@
 import * as dom5 from 'dom5';
 import * as espree from 'espree';
 import * as parse5 from 'parse5';
-import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
+import {Analyzer, ParsedHtmlDocument} from 'polymer-analyzer';
 import {AnalysisContext} from 'polymer-analyzer/lib/core/analysis-context';
+// TODO(usergenic): Fix polymer-analyzer top-level export of Document.
+import {Document} from 'polymer-analyzer/lib/model/document';
+// TODO(usergenic): Fix polymer-analyzer top-level export of ResolvedUrl.
+import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
 import {RawSourceMap, SourceMapConsumer, SourceMapGenerator} from 'source-map';
 import * as urlLib from 'url';
+
 import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
 
@@ -90,8 +95,12 @@ function offsetSourceMap(
       }
     };
 
-    if (typeof mapping.originalLine === 'number' && typeof mapping.originalColumn === 'number') {
-      newMapping.original = { line: mapping.originalLine, column: mapping.originalColumn };
+    if (typeof mapping.originalLine === 'number' &&
+        typeof mapping.originalColumn === 'number') {
+      newMapping.original = {
+        line: mapping.originalLine,
+        column: mapping.originalColumn
+      };
     }
 
     if (mapping.name) {
@@ -119,7 +128,8 @@ export async function getExistingSourcemap(
     sourcemap = base64StringToRawSourceMap(inlineSourcemapParts[2]);
   } else {
     mapUrl = urlLib.resolve(sourceUrl, sourceMappingUrlParts[1].trim());
-    sourcemap = JSON.parse(await analyzer.load(mapUrl)) as RawSourceMap;
+    sourcemap =
+        JSON.parse(await analyzer.load(mapUrl as ResolvedUrl)) as RawSourceMap;
   }
 
   // Rewrite the sources array to be relative to the current URL
