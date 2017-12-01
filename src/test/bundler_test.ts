@@ -631,6 +631,12 @@ suite('Bundler', () => {
     });
   });
 
+  suite(
+      'Script Import Bundling',
+      () => {
+
+      });
+
   suite('Inline CSS', () => {
 
     const options = {inlineCss: true};

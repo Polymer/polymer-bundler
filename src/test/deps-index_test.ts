@@ -111,5 +111,34 @@ suite('Bundler', () => {
           serializeMap(index.entrypointToDeps),
           serializeMap(expectedEntrypointsToDeps));
     });
+
+    suite('JavaScript modules', () => {
+
+      test('single entrypoint, 2 modules with a shared module', async () => {
+        const entrypoint = 'scripts-type-module.html';
+        const moduleA = 'imports/module-a.js';
+        const moduleB = 'imports/module-b.js';
+        const sharedModule = 'imports/shared-module.js';
+        const analyzer =
+            new Analyzer({urlLoader: new FSUrlLoader('test/html')});
+        const expectedEntrypointsToDeps = new Map([
+          [entrypoint, new Set([entrypoint, moduleA, moduleB, sharedModule])],
+          [moduleA, new Set([moduleA, sharedModule])],
+          [moduleB, new Set([moduleB, sharedModule])],
+          [sharedModule, new Set([sharedModule])],
+        ]);
+        const index = await buildDepsIndex(
+            [entrypoint, moduleA, moduleB, sharedModule], analyzer);
+        chai.assert.deepEqual(
+            serializeMap(index.entrypointToDeps),
+            serializeMap(expectedEntrypointsToDeps));
+      });
+
+      test(
+          'only module type scripts are treated as bundle files',
+          async () => {
+
+          });
+    });
   });
 });

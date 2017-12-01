@@ -33,31 +33,54 @@ type DependencyMapEntry = {
  * For a given document, return a set of transitive dependencies, including
  * all eagerly-loaded dependencies and lazy html imports encountered.
  */
-function getHtmlDependencies(document: Document): DependencyMapEntry {
+function getDependencies(document: Document): DependencyMapEntry {
   const deps = new Set<UrlString>();
   const eagerDeps = new Set<UrlString>();
   const lazyImports = new Set<UrlString>();
-  _getHtmlDependencies(document, true, deps, eagerDeps, lazyImports);
+  _getDependencies(document, true, deps, eagerDeps, lazyImports);
   return {deps, eagerDeps, lazyImports};
 }
 
-function _getHtmlDependencies(
+function _getDependencies(
     document: Document,
     viaEager: boolean,
     visited: Set<UrlString>,
     visitedEager: Set<UrlString>,
     lazyImports: Set<UrlString>) {
+  const jsImports = document.getFeatures(
+      {kind: 'js-import', imported: false, externalPackages: true});
   const htmlImports = document.getFeatures(
       {kind: 'html-import', imported: false, externalPackages: true});
-  for (const htmlImport of htmlImports) {
-    const importUrl = htmlImport.document.url;
-    if (htmlImport.lazy) {
+  const htmlScripts = document.getFeatures(
+      {kind: 'html-script', imported: false, externalPackages: true});
+
+  for (const htmlScript of htmlScripts) {
+    const importUrl = htmlScript.document.url;
+    if (visitedEager.has(importUrl)) {
+      continue;
+    }
+    visitedEager.add(importUrl);
+    visited.add(importUrl);
+    _getDependencies(
+        htmlScript.document, true, visited, visitedEager, lazyImports);
+  }
+
+  for (const jsDocument of [...jsImports].map((j) => j.document)) {
+    for (const jsImport of jsDocument.getFeatures(
+             {kind: 'js-import', imported: false, externalPackages: true})) {
+      jsImports.add(jsImport);
+    }
+  }
+
+  for (const importFeature of [...htmlImports, ...jsImports]) {
+    const importUrl = importFeature.document.url;
+    if (importFeature.lazy) {
       lazyImports.add(importUrl);
     }
     if (visitedEager.has(importUrl)) {
       continue;
     }
-    const isEager = viaEager && !htmlImport.lazy;
+    const isEager = viaEager && !importFeature.lazy;
     if (isEager) {
       visitedEager.add(importUrl);
       // In this case we've visited a node eagerly for the first time,
@@ -67,8 +90,8 @@ function _getHtmlDependencies(
       continue;
     }
     visited.add(importUrl);
-    _getHtmlDependencies(
-        htmlImport.document, isEager, visited, visitedEager, lazyImports);
+    _getDependencies(
+        importFeature.document, isEager, visited, visitedEager, lazyImports);
   }
 }
 
@@ -91,7 +114,7 @@ export async function buildDepsIndex(
   for (const entrypoint of allEntrypoints) {
     try {
       const document = getAnalysisDocument(analysis, entrypoint);
-      const deps = getHtmlDependencies(document);
+      const deps = getDependencies(document);
       depsIndex.entrypointToDeps.set(
           entrypoint, new Set([entrypoint, ...deps.eagerDeps]));
       // Add lazy imports to the set of all entrypoints, which supports
