@@ -14,10 +14,9 @@
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import {Analyzer, ParsedHtmlDocument} from 'polymer-analyzer';
-// TODO(usergenic): Fix polymer-analyzer top-level export of Document.
-import {Document} from 'polymer-analyzer/lib/model/document';
-// TODO(usergenic): Fix polymer-analyzer top-level export of ResolvedUrl.
+import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
+// TODO(usergenic): Move import below to statement above, when polymer-analyzer
+// 3.0.0-pre.3 is released.
 import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
 import * as urlLib from 'url';
 

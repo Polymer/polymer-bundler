@@ -20,7 +20,8 @@ import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
 import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, UrlLoader, UrlResolver} from 'polymer-analyzer';
-// TODO(usergenic): Fix polymer-analyzer top-level export of ResolvedUrl.
+// TODO(usergenic): Move import below to statement above, when polymer-analyzer
+// 3.0.0-pre.3 is released.
 import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
