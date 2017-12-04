@@ -15,6 +15,9 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
 import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
+// TODO(usergenic): Move import below to statement above, when polymer-analyzer
+// 3.0.0-pre.3 is released.
+import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';
@@ -283,7 +286,7 @@ export async function inlineStylesheet(
       dom5.hasAttribute(parentDomModule, 'assetpath')) {
     const assetPath = dom5.getAttribute(parentDomModule, 'assetpath') || '';
     if (assetPath) {
-      newBaseUrl = urlLib.resolve(newBaseUrl, assetPath);
+      newBaseUrl = urlLib.resolve(newBaseUrl, assetPath) as ResolvedUrl;
     }
   }
   const resolvedStylesheetContent =
