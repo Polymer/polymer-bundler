@@ -20,6 +20,9 @@ import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
 import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, UrlLoader, UrlResolver} from 'polymer-analyzer';
+// TODO(usergenic): Move import below to statement above, when polymer-analyzer
+// 3.0.0-pre.3 is released.
+import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
 import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
@@ -198,6 +201,20 @@ options.inlineScripts = Boolean(options['inline-scripts']);
 options.inlineCss = Boolean(options['inline-css']);
 options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
 
+class RedirectionResolver extends UrlResolver {
+  private _prefix: string;
+  constructor(prefix: string) {
+    super();
+    this._prefix = prefix;
+  }
+  canResolve(url: string) {
+    return url.startsWith(this._prefix);
+  }
+  resolve(url: string) {
+    return url as ResolvedUrl;
+  }
+}
+
 if (options.redirect) {
   type redirection = {prefix: string, path: string};
   const redirections: redirection[] =
@@ -208,10 +225,7 @@ if (options.redirect) {
           })
           .filter((r: redirection) => r.prefix && r.path);
   const resolvers: UrlResolver[] =
-      redirections.map((r: redirection) => ({
-                         canResolve: (url: string) => url.startsWith(r.prefix),
-                         resolve: (url: string) => url,
-                       }));
+      redirections.map((r: redirection) => new RedirectionResolver(r.prefix));
   const loaders: UrlLoader[] = redirections.map(
       (r: redirection) =>
           new PrefixedUrlLoader(r.prefix, new FSUrlLoader(r.path)));
