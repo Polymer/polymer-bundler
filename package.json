@@ -17,6 +17,7 @@
     "command-line-args": "^3.0.1",
     "command-line-usage": "^3.0.3",
     "dom5": "^2.2.0",
+    "espree": "^3.5.2",
     "mkdirp": "^0.5.1",
     "parse5": "^2.2.2",
     "polymer-analyzer": "^3.0.0-pre.2",
