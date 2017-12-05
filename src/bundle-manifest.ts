@@ -60,6 +60,14 @@ export class Bundle {
     this.entrypoints = entrypoints || new Set<UrlString>();
     this.files = files || new Set<UrlString>();
   }
+
+  // TODO(usergenic): This rule is a little hacky at the moment.  The notion is
+  // that a bundle which is pure javascript is a module bundle, whereas if there
+  // is any html, it is considered an html bundle with inlined javascript
+  // modules.
+  get fileExtension() {
+    return [...this.files].every((f) => f.endsWith('.js')) ? 'js' : 'html';
+  }
 }
 
 /**
@@ -167,7 +175,8 @@ export function generateCountingSharedBundleUrlMapper(urlPrefix: UrlString):
   return generateSharedBundleUrlMapper(
       (sharedBundles: Bundle[]): UrlString[] => {
         let counter = 0;
-        return sharedBundles.map((b) => `${urlPrefix}${++counter}.html`);
+        return sharedBundles.map(
+            (b) => `${urlPrefix}${++counter}.${b.fileExtension}`);
       });
 }
 
@@ -322,12 +331,19 @@ export function mergeMatchingBundles(
     bundles: Bundle[], predicate: (bundle: Bundle) => boolean): Bundle[] {
   const newBundles = Array.from(bundles);
   const bundlesToMerge = newBundles.filter(predicate);
-  if (bundlesToMerge.length > 1) {
-    for (const bundle of bundlesToMerge) {
-      newBundles.splice(newBundles.indexOf(bundle), 1);
+  const fileExtensions =
+      [...new Set(bundlesToMerge.map((b) => b.fileExtension))].sort();
+  fileExtensions.forEach((fileExtension) => {
+    const bundlesToMergeForFileExtension =
+        bundlesToMerge.filter((b) => b.fileExtension === fileExtension);
+    if (bundlesToMergeForFileExtension.length > 1) {
+      for (const bundle of bundlesToMergeForFileExtension) {
+        newBundles.splice(newBundles.indexOf(bundle), 1);
+      }
+      newBundles.push(mergeBundles(bundlesToMergeForFileExtension));
     }
-    newBundles.push(mergeBundles(bundlesToMerge));
-  }
+
+  });
   return newBundles;
 }
 

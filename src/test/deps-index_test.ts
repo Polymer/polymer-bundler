@@ -134,11 +134,54 @@ suite('Bundler', () => {
             serializeMap(expectedEntrypointsToDeps));
       });
 
-      test(
-          'only module type scripts are treated as bundle files',
-          async () => {
+      test('only module type scripts are bundle files', async () => {
+        const entrypoint = 'modules/animal-index.html';
+        const coolKitties = 'modules/cool-kitties.html';
+        const sharkTime = 'modules/shark-time.html';
 
-          });
+        const cat = 'modules/cat.js';
+        const dog = 'modules/dog.js';
+        const fish = 'modules/fish.js';
+        const invertebrate = 'modules/invertebrate.js';
+        const lazyDog = 'modules/lazy-dog.js';
+        const mammal = 'modules/mammal.js';
+        const sharedImport = 'modules/shared-import.html';
+        const shark = 'modules/shark.js';
+        const snail = 'modules/snail.js';
+        const vertebrate = 'modules/vertebrate.js';
+
+        const externalScript = 'imports/external-script.html';
+
+        const analyzer =
+            new Analyzer({urlLoader: new FSUrlLoader('test/html')});
+        const expectedEntrypointsToDeps = new Map([
+          [
+            entrypoint,
+            new Set([
+              entrypoint,
+              externalScript,
+              invertebrate,
+              lazyDog,
+              mammal,
+              snail,
+              vertebrate
+            ])
+          ],
+          [
+            coolKitties,
+            new Set([coolKitties, cat, mammal, sharedImport, vertebrate])
+          ],
+          [dog, new Set([dog, mammal, vertebrate])],
+          [
+            sharkTime,
+            new Set([sharkTime, fish, sharedImport, shark, vertebrate])
+          ],
+        ]);
+        const index = await buildDepsIndex([entrypoint], analyzer);
+        chai.assert.deepEqual(
+            serializeMap(index.entrypointToDeps),
+            serializeMap(expectedEntrypointsToDeps));
+      });
     });
   });
 });

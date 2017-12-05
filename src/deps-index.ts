@@ -11,7 +11,9 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
+import * as dom5 from 'dom5';
 import {Analyzer, Document} from 'polymer-analyzer';
+
 import {getAnalysisDocument} from './analyzer-utils';
 import {UrlString} from './url-utils';
 
@@ -25,7 +27,8 @@ type DependencyMapEntry = {
   deps: Set<UrlString>,
   // Eagerly loaded dependencies of the document
   eagerDeps: Set<UrlString>,
-  // All imports defined with `<link rel="lazy-import">`
+  // All imports defined with `<link rel="lazy-import">` or with dynamic ES
+  // module import syntax like `import().then()`
   lazyImports: Set<UrlString>,
 };
 
@@ -54,7 +57,16 @@ function _getDependencies(
   const htmlScripts = document.getFeatures(
       {kind: 'html-script', imported: false, externalPackages: true});
 
+  // We have to wind through the html scripts, but we don't treat html scripts
+  // AS imports.
   for (const htmlScript of htmlScripts) {
+    // TODO(usergenic): Update polymer-analyzer to discriminate between
+    // `<script>` and `<script type=module>` instead of using dom5 here to
+    // inspect AST.
+    const isModule = dom5.getAttribute(htmlScript.astNode, 'type') === 'module';
+    if (!isModule) {
+      continue;
+    }
     const importUrl = htmlScript.document.url;
     if (visitedEager.has(importUrl)) {
       continue;

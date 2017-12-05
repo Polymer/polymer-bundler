@@ -129,5 +129,15 @@ suite('Bundler', () => {
           [elTwo, depTwo],
           [commonModule, elOne, depOne, shellImport]);
     });
+
+    test('with JavaScript modules, all deps in their places', async () => {
+      const entrypoint = 'test/html/modules/animal-index.html';
+      const coolKitties = 'test/html/modules/cool-kitties.html';
+      const sharkTime = 'test/html/modules/shark-time.html';
+
+      const {documents} =
+          await bundleMultiple([entrypoint, coolKitties, sharkTime]);
+      console.log(documents);
+    });
   });
 });
