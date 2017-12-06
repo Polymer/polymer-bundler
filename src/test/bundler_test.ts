@@ -54,7 +54,7 @@ suite('Bundler', () => {
         documentBundle =
             bundleResult.manifest.getBundleForFile(inputPath)!.bundle;
         const {documents} = bundleResult;
-        return documents.get(inputPath)!.ast;
+        return documents.get(inputPath)!.ast as parse5.ASTNode;
       }
 
   suite('Default Options', () => {
@@ -107,16 +107,16 @@ suite('Bundler', () => {
       assert(document);
 
       // Look for the script referenced in the external-script.html source.
-      const scriptTags =
-          dom5.queryAll(document.ast!, preds.hasTagName('script'))!;
+      const scriptTags = dom5.queryAll(
+          document.ast! as parse5.ASTNode, preds.hasTagName('script'))!;
       assert.isAtLeast(scriptTags.length, 1);
       assert.include(
           dom5.getTextContent(scriptTags.pop()!),
           `console.log('imports/external.js');`);
 
       // Look for the css referenced in the import-linked-style.html source.
-      const styleTags =
-          dom5.queryAll(document.ast!, preds.hasTagName('style'))!;
+      const styleTags = dom5.queryAll(
+          document.ast! as parse5.ASTNode, preds.hasTagName('style'))!;
       assert.isAtLeast(styleTags.length, 1);
       assert.include(
           dom5.getTextContent(styleTags.pop()!), `.from-import-linked-style {`);
@@ -146,7 +146,7 @@ suite('Bundler', () => {
           // We've moved the 'imports/simple-import.html' into a shared bundle
           // so a link to import it now points to the shared bundle instead.
           const linkTag = dom5.query(
-              document.ast!,
+              document.ast! as parse5.ASTNode,
               preds.AND(
                   preds.hasTagName('link'),
                   preds.hasAttrValue('rel', 'import')))!;
@@ -157,7 +157,8 @@ suite('Bundler', () => {
           const shared = documents.get('shared_bundle_1.html')!;
           assert(shared);
           assert.isOk(dom5.query(
-              shared.ast, dom5.predicates.hasAttrValue('id', 'my-element')));
+              shared.ast as parse5.ASTNode,
+              dom5.predicates.hasAttrValue('id', 'my-element')));
         });
 
     test('bundle documents should not have tags added to them', async () => {
@@ -206,7 +207,7 @@ suite('Bundler', () => {
     // one is lazy and should not be moved.
     const entrypointBundle = documents.get('lazy-imports.html')!.ast;
     const entrypointLazyImports = dom5.queryAll(
-        entrypointBundle,
+        entrypointBundle as parse5.ASTNode,
         preds.AND(preds.parentMatches(matchers.head), matchers.htmlImport));
     assert.equal(entrypointLazyImports.length, 1);
     assert.equal(dom5.getAttribute(entrypointLazyImports[0]!, 'group'), 'one');
@@ -216,7 +217,7 @@ suite('Bundler', () => {
     // is preserved.
     const sharedBundle = documents.get('shared_bundle_1.html')!.ast;
     const sharedLazyImports = dom5.queryAll(
-        sharedBundle,
+        sharedBundle as parse5.ASTNode,
         preds.AND(
             preds.parentMatches(preds.hasTagName('dom-module')),
             preds.hasTagName('link'),
@@ -246,8 +247,8 @@ suite('Bundler', () => {
     const manifest = await bundler.generateManifest(['lazy-imports.html']);
     const {documents} = await bundler.bundle(manifest);
 
-    const lazyImports =
-        parse5.serialize(documents.get('lazy-imports.html')!.ast);
+    const lazyImports = parse5.serialize(
+        documents.get('lazy-imports.html')!.ast as parse5.ASTNode);
     assert.include(
         lazyImports,
         '<link rel="lazy-import" group="one" href="lazy-imports/lazy-import-1.html">',
@@ -257,8 +258,9 @@ suite('Bundler', () => {
         '<link rel="lazy-import" group="two" href="lazy-imports/lazy-import-2.html">',
         'lazy-imports.html should keep link to lazy-import-2.html');
 
-    const lazyImport1 =
-        parse5.serialize(documents.get('lazy-imports/lazy-import-1.html')!.ast);
+    const lazyImport1 = parse5.serialize(
+        documents.get('lazy-imports/lazy-import-1.html')!.ast as
+        parse5.ASTNode);
     assert.include(
         lazyImport1,
         '<link rel="import" href="../shared_bundle_1.html">',
@@ -268,8 +270,9 @@ suite('Bundler', () => {
         '<link rel="lazy-import" href="shared-eager-and-lazy-import-1.html">',
         'lazy-import-1.html should keep link to lazy-import shared-eager-and-lazy-import-1.html');
 
-    const lazyImport2 =
-        parse5.serialize(documents.get('lazy-imports/lazy-import-2.html')!.ast);
+    const lazyImport2 = parse5.serialize(
+        documents.get('lazy-imports/lazy-import-2.html')!.ast as
+        parse5.ASTNode);
     assert.include(
         lazyImport2,
         '<link rel="import" href="../shared_bundle_1.html">',
@@ -279,8 +282,8 @@ suite('Bundler', () => {
         '<link rel="import" href="shared-eager-and-lazy-import-1.html">',
         'lazy-import-2.html should keep link to import shared-eager-and-lazy-import-1.html');
 
-    const sharedEagerBundle =
-        parse5.serialize(documents.get('shared_bundle_1.html')!.ast);
+    const sharedEagerBundle = parse5.serialize(
+        documents.get('shared_bundle_1.html')!.ast as parse5.ASTNode);
     assert.include(sharedEagerBundle, '<div id="shared-eager-import-2">');
   });
 
@@ -293,8 +296,9 @@ suite('Bundler', () => {
     });
     const manifest = await bundler.generateManifest(['lazy-imports.html']);
     const {documents} = await bundler.bundle(manifest);
-    const lazyImport2 =
-        parse5.serialize(documents.get('lazy-imports/lazy-import-2.html')!.ast);
+    const lazyImport2 = parse5.serialize(
+        documents.get('lazy-imports/lazy-import-2.html')!.ast as
+        parse5.ASTNode);
     assert.include(
         lazyImport2,
         '<dom-module id="eager-import-1" assetpath="subfolder/">',
@@ -869,7 +873,8 @@ suite('Bundler', () => {
       const result = await bundler.bundle(manifest);
       assert.equal(result.manifest.bundles.size, 4);
       const shell = parse5.serialize(
-          result.documents.get('importing-fragments/shell.html')!.ast);
+          result.documents.get('importing-fragments/shell.html')!.ast as
+          parse5.ASTNode);
       const fragmentAAt = shell.indexOf('rel="import" href="fragment-a.html"');
       const shellAt = shell.indexOf(`console.log('shell.html')`);
       const sharedUtilAt = shell.indexOf(`console.log('shared-util.html')`);

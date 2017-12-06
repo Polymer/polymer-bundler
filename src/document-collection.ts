@@ -11,11 +11,12 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import {ASTNode} from 'parse5';
+import {Node as JavaScriptASTNode} from 'babel-types';
+import {ASTNode as HtmlASTNode} from 'parse5';
 import {UrlString} from './url-utils';
 
 export interface BundledDocument {
-  ast: ASTNode;
+  ast: JavaScriptASTNode|HtmlASTNode;
   files: UrlString[];
 }
 

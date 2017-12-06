@@ -45,7 +45,7 @@ suite('Bundler', () => {
         bundler = new Bundler(bundlerOpts);
         const manifest = await bundler.generateManifest([inputPath]);
         const {documents} = await bundler.bundle(manifest);
-        return documents.get(inputPath)!.ast;
+        return documents.get(inputPath)!.ast as parse5.ASTNode;
       }
 
   function getLine(original: string, lineNum: number) {

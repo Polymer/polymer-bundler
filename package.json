@@ -13,6 +13,13 @@
     "polymer-bundler": "lib/bin/polymer-bundler.js"
   },
   "dependencies": {
+    "@types/babel-generator": "^6.25.1",
+    "@types/babel-traverse": "^6.25.3",
+    "@types/babylon": "^6.16.2",
+    "@types/rollup": "^0.51.1",
+    "babel-generator": "^6.26.0",
+    "babel-traverse": "^6.26.0",
+    "babylon": "^6.18.0",
     "clone": "^2.1.0",
     "command-line-args": "^3.0.1",
     "command-line-usage": "^3.0.3",
@@ -21,6 +28,8 @@
     "mkdirp": "^0.5.1",
     "parse5": "^2.2.2",
     "polymer-analyzer": "^3.0.0-pre.2",
+    "rollup": "^0.52.1",
+    "rollup-plugin-node-resolve": "^3.0.0",
     "source-map": "^0.5.6"
   },
   "devDependencies": {

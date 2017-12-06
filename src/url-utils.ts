@@ -96,7 +96,10 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   const toDir = toUrl.pathname !== undefined ? toUrl.pathname : '';
   // Note, below, the _ character is appended so that paths with trailing
   // slash retain the trailing slash in the path.relative result.
-  const relPath = pathPosixRelative(fromDir, toDir + '_').replace(/_$/, '');
+  let relPath = pathPosixRelative(fromDir, toDir + '_').replace(/_$/, '');
+  if (!/^\.*\//.test(relPath)) {
+    relPath = `./${relPath}`;
+  }
   sharedRelativeUrlProperties.forEach((p) => toUrl[p] = null);
   toUrl.path = undefined;
   toUrl.pathname = relPath;

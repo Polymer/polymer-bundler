@@ -14,6 +14,8 @@
 /// <reference path="../../node_modules/@types/chai/index.d.ts" />
 /// <reference path="../../node_modules/@types/node/index.d.ts" />
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
+import * as babelGenerator from 'babel-generator';
+import * as babel from 'babel-types';
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
@@ -48,10 +50,10 @@ suite('Bundler', () => {
         }
         bundler = new Bundler(bundlerOpts);
         const manifest = await bundler.generateManifest(inputPath);
-        return await bundler.bundle(manifest);
+        return bundler.bundle(manifest);
       }
 
-  function assertContainsAndExcludes(
+  function assertHtmlContainsAndExcludes(
       doc: parse5.ASTNode,
       contains: dom5.Predicate[],
       excludes: dom5.Predicate[]) {
@@ -71,13 +73,14 @@ suite('Bundler', () => {
           [common, entrypoint1, entrypoint2],
           {strategy: generateSharedDepsMergeStrategy(2)});
       assert.equal(documents.size, 4);
-      const commonDoc: parse5.ASTNode = documents.get(common)!.ast;
+      const commonDoc = documents.get(common)!.ast as parse5.ASTNode;
       assert.isDefined(commonDoc);
-      const entrypoint1Doc = documents.get(entrypoint1)!.ast;
+      const entrypoint1Doc = documents.get(entrypoint1)!.ast as parse5.ASTNode;
       assert.isDefined(entrypoint1Doc);
-      const entrypoint2Doc = documents.get(entrypoint2)!.ast;
+      const entrypoint2Doc = documents.get(entrypoint2)!.ast as parse5.ASTNode;
       assert.isDefined(entrypoint2Doc);
-      const sharedDoc = documents.get('shared_bundle_1.html')!.ast;
+      const sharedDoc =
+          documents.get('shared_bundle_1.html')!.ast as parse5.ASTNode;
       assert.isDefined(sharedDoc);
       const commonModule = domModulePredicate('common-module');
       const elOne = domModulePredicate('el-one');
@@ -86,12 +89,13 @@ suite('Bundler', () => {
       const depTwo = domModulePredicate('el-dep2');
 
       // Check that all the dom modules are in their expected shards
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           commonDoc, [commonModule], [elOne, elTwo, depOne, depTwo]);
-      assertContainsAndExcludes(sharedDoc, [depOne], [elOne, elTwo, depTwo]);
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
+          sharedDoc, [depOne], [elOne, elTwo, depTwo]);
+      assertHtmlContainsAndExcludes(
           entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
     });
 
@@ -100,11 +104,11 @@ suite('Bundler', () => {
           [shell, entrypoint1, entrypoint2],
           {strategy: generateShellMergeStrategy(shell, 2)});
       assert.equal(documents.size, 3);
-      const shellDoc: parse5.ASTNode = documents.get(shell)!.ast;
+      const shellDoc = documents.get(shell)!.ast as parse5.ASTNode;
       assert.isDefined(shellDoc);
-      const entrypoint1Doc = documents.get(entrypoint1)!.ast;
+      const entrypoint1Doc = documents.get(entrypoint1)!.ast as parse5.ASTNode;
       assert.isDefined(entrypoint1Doc);
-      const entrypoint2Doc = documents.get(entrypoint2)!.ast;
+      const entrypoint2Doc = documents.get(entrypoint2)!.ast as parse5.ASTNode;
       assert.isDefined(entrypoint2Doc);
       const shellDiv = dom5.predicates.hasAttrValue('id', 'shell');
       const shellImport = dom5.predicates.AND(
@@ -118,26 +122,34 @@ suite('Bundler', () => {
       const depTwo = domModulePredicate('el-dep2');
 
       // Check that all the dom modules are in their expected shards
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           shellDoc, [shellDiv, commonModule, depOne], [elOne, elTwo, depTwo]);
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           entrypoint1Doc,
           [elOne],
           [commonModule, elTwo, depOne, depTwo, shellImport]);
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           entrypoint2Doc,
           [elTwo, depTwo],
           [commonModule, elOne, depOne, shellImport]);
     });
 
-    test('with JavaScript modules, all deps in their places', async () => {
+    test.only('with JavaScript modules, all deps in their places', async () => {
       const entrypoint = 'test/html/modules/animal-index.html';
       const coolKitties = 'test/html/modules/cool-kitties.html';
       const sharkTime = 'test/html/modules/shark-time.html';
 
       const {documents} =
           await bundleMultiple([entrypoint, coolKitties, sharkTime]);
-      console.log(documents);
+      const sharedBundle2 =
+          documents.get('shared_bundle_2.js')!.ast! as babel.Node;
+
+      const dog = documents.get('test/html/modules/dog.js')!.ast! as babel.Node;
+
+      console.log('/* dog.js */\n---\n' + babelGenerator.default(dog).code);
+      console.log(
+          '/* shared_bundle_2.js */\n---\n' +
+          babelGenerator.default(sharedBundle2).code);
     });
   });
 });

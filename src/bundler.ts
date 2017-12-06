@@ -11,6 +11,8 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
+// import {AssertionError} from 'assert';
+import * as babel from 'babel-types';
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
@@ -20,8 +22,10 @@ import {Analyzer, Document, FSUrlLoader, InMemoryOverlayUrlLoader} from 'polymer
 // TODO(usergenic): Move import below to statement above, when polymer-analyzer
 // 3.0.0-pre.3 is released.
 import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
-import {getAnalysisDocument} from './analyzer-utils';
+import * as rollup from 'rollup';
+import * as urlLib from 'url';
 
+import {getAnalysisDocument} from './analyzer-utils';
 import * as astUtils from './ast-utils';
 import * as bundleManifestLib from './bundle-manifest';
 import {AssignedBundle, Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-manifest';
@@ -32,6 +36,8 @@ import * as matchers from './matchers';
 import {updateSourcemapLocations} from './source-map';
 import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
+
+const rollupResolve = require('rollup-plugin-node-resolve');
 
 export * from './bundle-manifest';
 
@@ -132,7 +138,12 @@ export class Bundler {
     for (const bundleEntry of manifest.bundles) {
       const bundleUrl = bundleEntry[0];
       const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-      const bundledAst = await this._bundleDocument(bundle, manifest);
+      let bundledAst: ASTNode|babel.Node;
+      if (bundle.url.endsWith('js')) {
+        bundledAst = await this._bundleJsDocument(bundle, manifest);
+      } else {
+        bundledAst = await this._bundleHtmlDocument(bundle, manifest);
+      }
       documents.set(
           bundleUrl, {ast: bundledAst, files: Array.from(bundle.bundle.files)});
     }
@@ -202,10 +213,10 @@ export class Bundler {
    * If the bundle's url resolves to an existing html file, that file will be
    * used as the basis for the generated document.
    */
-  private async _bundleDocument(
+  private async _bundleHtmlDocument(
       docBundle: AssignedBundle,
       bundleManifest: BundleManifest): Promise<ASTNode> {
-    let document = await this._prepareBundleDocument(docBundle);
+    let document = await this._prepareHtmlBundleDocument(docBundle);
     const ast = clone(document.parsedDocument.ast);
     dom5.removeFakeRootElements(ast);
     this._injectHtmlImportsForBundle(document, ast, docBundle, bundleManifest);
@@ -241,6 +252,115 @@ export class Bundler {
     } else {
       return ast;
     }
+  }
+
+  private _moduleUrlToExportName(bundleUrl: string, moduleUrl: string): string {
+    return urlUtils.relativeUrl(bundleUrl, moduleUrl)
+        .replace(/[^a-z0-9_]+/g, '$')
+        .replace(/\$js/, '');
+  }
+
+  private async _generateJsBasisDocument(docBundle: AssignedBundle):
+      Promise<Document> {
+    let jsLines: string[] = [];
+    docBundle.bundle.files.forEach((url: string) => {
+      const exportName = this._moduleUrlToExportName(docBundle.url, url);
+      const relativeUrl = urlUtils.relativeUrl(docBundle.url, url);
+      jsLines.push(`import * as _${exportName} from '${relativeUrl}';`);
+      jsLines.push(`export const ${exportName} = _${exportName};`);
+    });
+    return this._analyzeContents(docBundle.url, jsLines.join('\n'));
+  }
+
+  private async _bundleJsDocument(
+      docBundle: AssignedBundle,
+      bundleManifest: BundleManifest): Promise<babel.Node> {
+    let document: Document;
+    if (!docBundle.bundle.files.has(docBundle.url)) {
+      document = await this._generateJsBasisDocument(docBundle);
+    }
+
+    const analysis = await this.analyzer.analyze([...docBundle.bundle.files]);
+    // We have to compose the `external` array here because the id value yielded
+    // to the external function has no importer context making that form totally
+    // useless. *shakes fist*
+    let external: string[] = [];
+    bundleManifest.bundles.forEach((b, url) => {
+      if (url !== docBundle.url) {
+        external.push(...[...b.files, url].map((u) => `=${u}`));
+      }
+    });
+    const bundle = await rollup.rollup({
+      input: docBundle.url,
+      external,
+      plugins: [
+        {
+          resolveId: (importee: string, importer: string | undefined) => {
+            if (importer && !/^=/.test(importee)) {
+              importee = urlLib.resolve(importer, importee);
+            }
+            if (!/^=/.test(importee)) {
+              importee = `=${importee}`;
+            }
+            return importee;
+          },
+          load: (id: string) => {
+            if (!/^=/.test(id)) {
+              throw new Error(`Unable to load unresolved id ${id}`);
+            }
+            const url = id.slice(1);
+            if (docBundle.bundle.files.has(url)) {
+              return (analysis.getDocument(url) as Document)
+                  .parsedDocument.contents;
+            } else if (docBundle.url === url) {
+              return document.parsedDocument.contents;
+            }
+          }
+        },
+        rollupResolve({
+          module: true,
+          main: true,
+          modulesOnly: true,
+        }),
+      ],
+    });
+    // generate code and a sourcemap
+    let {code} = await bundle.generate(
+        {sourcemap: true, sourcemapFile: docBundle.url + '.map', format: 'es'});
+
+    // Reanalyzing this here results in a temporarily broken analysis because
+    // the urls in the import statements are messed up with the '=' prefix, but
+    // reanalyzing gives us an easy way to get at the import statements so we
+    // can fiddle with the ast without reparsing and requiring babylon and
+    // babel-traverse directly in bundler.
+    document = await this._analyzeContents(docBundle.url, code);
+    document =
+        await this._rewriteJsBundleImports(document, docBundle, bundleManifest);
+
+    // TODO(usergenic): Update sourcemap?
+    return document.parsedDocument.ast;
+  }
+
+  private async _rewriteJsBundleImports(
+      document: Document,
+      docBundle: AssignedBundle,
+      bundleManifest: BundleManifest) {
+    const jsImports = document.getFeatures({});
+    const warnings = document.getWarnings({});
+    console.log(warnings);
+    for (const jsImport of jsImports) {
+      console.log(`rewriting jsImport statement`, [...jsImport.kinds]);
+    }
+    /*
+        // Resolve the bundle url for the importee if it is in another
+        // bundle.
+        const bundleForFile =
+            bundleManifest.getBundleForFile(importee.replace(/^=/, ''));
+        if (bundleForFile && bundleForFile.url !== docBundle.url) {
+          importee = `=${bundleForFile.url}`;
+        }
+    */
+    return document;
   }
 
   /**
@@ -320,8 +440,8 @@ export class Bundler {
       bundle: AssignedBundle,
       bundleManifest: BundleManifest) {
     // Gather all the document's direct html imports.  We want the direct (not
-    // transitive) imports only here, because we'll be using their AST nodes as
-    // targets to prepended injected imports to.
+    // transitive) imports only here, because we'll be using their AST nodes
+    // as targets to prepended injected imports to.
     const existingImports = [
       ...document.getFeatures(
           {kind: 'html-import', noLazyImports: true, imported: false})
@@ -333,21 +453,22 @@ export class Bundler {
                   {kind: 'html-import', imported: true, noLazyImports: true})
             ].filter((i) => !i.lazy).map((feature) => feature.document.url)]));
 
-    // Every file in the bundle is a candidate for injection into the document.
+    // Every file in the bundle is a candidate for injection into the
+    // document.
     for (const importUrl of bundle.bundle.files) {
       // We don't want to inject the bundle into itself.
       if (bundle.url === importUrl) {
         continue;
       }
 
-      // If there is an existing import in the document that matches the import
-      // URL already, we don't need to inject one.
+      // If there is an existing import in the document that matches the
+      // import URL already, we don't need to inject one.
       if (existingImports.find((e) => e.document.url === importUrl)) {
         continue;
       }
 
-      // We are looking for the earliest eager import of an html document which
-      // has a dependency on the html import we want to inject.
+      // We are looking for the earliest eager import of an html document
+      // which has a dependency on the html import we want to inject.
       let prependTarget = undefined;
 
       // We are only concerned with imports that are not of files in this
@@ -361,9 +482,9 @@ export class Bundler {
           const newPrependTarget = dom5.query(
               ast, (node) => astUtils.sameNode(node, existingImport.astNode));
 
-          // IF we don't have a target already or if the old target comes after
-          // the new one in the source code, the new one will replace the old
-          // one.
+          // IF we don't have a target already or if the old target comes
+          // after the new one in the source code, the new one will replace
+          // the old one.
           if (newPrependTarget &&
               (!prependTarget ||
                astUtils.inSourceOrder(newPrependTarget, prependTarget))) {
@@ -572,7 +693,7 @@ export class Bundler {
    * should load that file and prepare it as the bundle document, otherwise
    * we'll create a clean/empty html document.
    */
-  private async _prepareBundleDocument(bundle: AssignedBundle):
+  private async _prepareHtmlBundleDocument(bundle: AssignedBundle):
       Promise<Document> {
     if (!bundle.bundle.files.has(bundle.url)) {
       return this._analyzeContents(bundle.url, '');

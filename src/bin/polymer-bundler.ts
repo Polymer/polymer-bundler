@@ -309,7 +309,7 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
       const out = pathLib.resolve(pathLib.join(outDir, url));
       const finalDir = pathLib.dirname(out);
       mkdirp.sync(finalDir);
-      const serialized = parse5.serialize(ast);
+      const serialized = parse5.serialize(ast as parse5.ASTNode);
       const fd = fs.openSync(out, 'w');
       fs.writeSync(fd, serialized + '\n');
       fs.closeSync(fd);
@@ -320,7 +320,7 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
   if (!doc) {
     return;
   }
-  const serialized = parse5.serialize(doc.ast);
+  const serialized = parse5.serialize(doc.ast as parse5.ASTNode);
   if (options['out-html']) {
     const fd = fs.openSync(options['out-html'], 'w');
     fs.writeSync(fd, serialized + '\n');
