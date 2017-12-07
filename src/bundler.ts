@@ -12,6 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 // import {AssertionError} from 'assert';
+import * as babelGenerate from 'babel-generator';
 import * as babel from 'babel-types';
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
@@ -27,6 +28,7 @@ import * as urlLib from 'url';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import * as astUtils from './ast-utils';
+import * as babelUtils from './babel-utils';
 import * as bundleManifestLib from './bundle-manifest';
 import {AssignedBundle, Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-manifest';
 import * as depsIndexLib from './deps-index';
@@ -286,7 +288,7 @@ export class Bundler {
       const relativeUrl = urlUtils.relativeUrl(docBundle.url, url, true);
       jsLines.push(`import * as ${exportName} from '${relativeUrl}';`);
     });
-    jsLines.push(`export default {${exportNames.join(', ')}}`);
+    jsLines.push(`export {${exportNames.join(', ')}}`);
     return this._analyzeContents(docBundle.url, jsLines.join('\n'));
   }
 
@@ -305,8 +307,8 @@ export class Bundler {
     let external: string[] = [];
     bundleManifest.bundles.forEach((b, url) => {
       if (url !== docBundle.url) {
-        external.push(
-            ...[...b.files, url].map((u) => `polymer-bundler://${u}`));
+        external.push(...[...b.files, url].map(
+            (u) => `${this._polymerBundlerScheme}${u}`));
       }
     });
     const bundle = await rollup.rollup({
@@ -331,7 +333,7 @@ export class Bundler {
               importee = urlLib.resolve(importer, importee);
             }
             if (!this._isRollupResolvedUrl(importee)) {
-              importee = `polymer-bundler://${importee}`;
+              importee = `${this._polymerBundlerScheme}${importee}`;
             }
             return importee;
           },
@@ -339,7 +341,7 @@ export class Bundler {
             if (!this._isRollupResolvedUrl(id)) {
               throw new Error(`Unable to load unresolved id ${id}`);
             }
-            const url = id.slice('polymer-bundler://'.length);
+            const url = id.slice(this._polymerBundlerScheme.length);
             if (docBundle.bundle.files.has(url)) {
               return (analysis.getDocument(url) as Document)
                   .parsedDocument.contents;
@@ -386,19 +388,98 @@ export class Bundler {
       docBundle: AssignedBundle,
       bundleManifest: BundleManifest) {
     const jsImports = document.getFeatures({kind: 'js-import'});
+    const importedNamesBySource:
+        Map<string, {local: string, imported: string}[]> = new Map();
     for (const jsImport of jsImports) {
-      console.log(`rewriting jsImport statement`, [...jsImport.kinds]);
-    }
-    /*
-        // Resolve the bundle url for the importee if it is in another
-        // bundle.
-        const bundleForFile =
-            bundleManifest.getBundleForFile(importee.replace(/^=/, ''));
-        if (bundleForFile && bundleForFile.url !== docBundle.url) {
-          importee = `=${bundleForFile.url}`;
+      const astNode = jsImport.astNode;
+      if (babel.isImportDeclaration(astNode)) {
+        const source = astNode.source;
+        let sourceUrl: string = '';
+        if (babel.isStringLiteral(source)) {
+          sourceUrl = source.value;
         }
-    */
-    return document;
+        if (!sourceUrl) {
+          continue;
+        }
+        const resolvedSourceUrl = urlLib.resolve(docBundle.url, sourceUrl);
+        const sourceBundle = bundleManifest.getBundleForFile(resolvedSourceUrl);
+        if (sourceBundle && sourceBundle.url !== resolvedSourceUrl) {
+          // TODO(usergenic): Rewrite the url to the bundle url.  Also, now we
+          // know we have to hoist out the bundled values.  This last bit of
+          // knowledge is actually a bit of a hack though, because in actuality
+          // we need a way to actually determine whether this is true or we need
+          // bundling to always make it true.  Bundles should probably be
+          // annotated to express.
+
+          // TODO(usergenic): Preserve the single-quote preference of original
+          // codebase when changing the value.
+          source.value =
+              urlUtils.relativeUrl(docBundle.url, sourceBundle.url, true);
+
+          if (!importedNamesBySource.has(sourceBundle.url)) {
+            importedNamesBySource.set(sourceBundle.url, []);
+          }
+          for (const specifier of astNode.specifiers) {
+            if (babel.isImportSpecifier(specifier)) {
+              importedNamesBySource.get(sourceBundle.url)!.push({
+                local: specifier.local.name,
+                imported: specifier.imported.name
+              });
+            }
+          }
+          astNode.specifiers.splice(
+              0,
+              astNode.specifiers.length,
+              babel.importSpecifier(
+                  babel.identifier(this._moduleUrlToExportName(
+                      sourceBundle.url, resolvedSourceUrl)),
+                  babel.identifier(this._moduleUrlToExportName(
+                      sourceBundle.url, resolvedSourceUrl))));
+          const importDeclarationParent =
+              babelUtils.getParent(document.parsedDocument.ast, astNode)!;
+          if (!importDeclarationParent) {
+            // TODO(usergenic): This log should be a real error or warning or
+            // something.
+            console.log(
+                'CAN NOT INSERT CODE BECAUSE CAN NOT FIND PARENT OF IMPORT IN DOCUMENT AST');
+            continue;
+          }
+          const objectProperties: babel.ObjectProperty[] =
+              importedNamesBySource.get(sourceBundle.url)!.map(
+                  ({local, imported}) => babel.objectProperty(
+                      babel.identifier(imported), babel.identifier(local)));
+          const variableDeclaration = babel.variableDeclaration(
+              'const',
+              [babel.variableDeclarator(
+                  // TODO(usergenic): There's some kind of typings
+                  // mismatch here- should allow ObjectProperty[] but is
+                  // not doing so 'as any' to the rescue.
+                  babel.objectPattern(objectProperties as any[]),
+                  babel.identifier(this._moduleUrlToExportName(
+                      sourceBundle.url, resolvedSourceUrl)))]);
+
+          let importDeclarationContainerArray;
+          if (babel.isProgram(importDeclarationParent)) {
+            importDeclarationContainerArray = importDeclarationParent.body;
+          }
+          if (!importDeclarationContainerArray) {
+            // TODO(usergenic): This log should be a real error or warning or
+            // something.
+            console.log(
+                'DONT KNOW HOW TO INSERT CODE INTO CONTAINER TYPE',
+                importDeclarationParent.type);
+            continue;
+          }
+          importDeclarationContainerArray.splice(
+              importDeclarationContainerArray.indexOf(astNode) + 1,
+              0,
+              variableDeclaration);
+        }
+      }
+    }
+
+    return this._analyzeContents(
+        docBundle.url, babelGenerate.default(document.parsedDocument.ast).code);
   }
 
   /**
