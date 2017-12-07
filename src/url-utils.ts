@@ -81,7 +81,9 @@ function pathPosixRelative(from: string, to: string): string {
  * the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
  * `/a/` is correctly treated as a folder path where `/a` is not.
  */
-export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
+export function relativeUrl(
+    fromUri: UrlString, toUri: UrlString, requireLeadingDot: boolean = false):
+    UrlString {
   const fromUrl = parseUrl(fromUri)!;
   const toUrl = parseUrl(toUri)!;
   // Return the toUri as-is if there are conflicting components which
@@ -97,7 +99,7 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   // Note, below, the _ character is appended so that paths with trailing
   // slash retain the trailing slash in the path.relative result.
   let relPath = pathPosixRelative(fromDir, toDir + '_').replace(/_$/, '');
-  if (!/^\.*\//.test(relPath)) {
+  if (requireLeadingDot && !/^\.*\//.test(relPath)) {
     relPath = `./${relPath}`;
   }
   sharedRelativeUrlProperties.forEach((p) => toUrl[p] = null);

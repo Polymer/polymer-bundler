@@ -37,7 +37,7 @@ import {updateSourcemapLocations} from './source-map';
 import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
 
-const rollupResolve = require('rollup-plugin-node-resolve');
+// const rollupResolve = require('rollup-plugin-node-resolve');
 
 export * from './bundle-manifest';
 
@@ -254,21 +254,39 @@ export class Bundler {
     }
   }
 
+  private _regexpEscape(pattern: string): string {
+    return pattern.replace(/([/^$.+()[\]])/g, '\\$1');
+  }
+  private get _polymerBundlerScheme(): string {
+    return 'polymer-bundler://';
+  }
+
+  private _isRollupResolvedUrl(url: string): boolean {
+    return url.startsWith(this._polymerBundlerScheme);
+  }
+
+  private _isRelativePath(url: string): boolean {
+    return /^\.+\//.test(url);
+  }
+
   private _moduleUrlToExportName(bundleUrl: string, moduleUrl: string): string {
     return urlUtils.relativeUrl(bundleUrl, moduleUrl)
         .replace(/[^a-z0-9_]+/g, '$')
+        .replace(/^\$/, '')
         .replace(/\$js/, '');
   }
 
   private async _generateJsBasisDocument(docBundle: AssignedBundle):
       Promise<Document> {
     let jsLines: string[] = [];
+    const exportNames: string[] = [];
     docBundle.bundle.files.forEach((url: string) => {
       const exportName = this._moduleUrlToExportName(docBundle.url, url);
-      const relativeUrl = urlUtils.relativeUrl(docBundle.url, url);
-      jsLines.push(`import * as _${exportName} from '${relativeUrl}';`);
-      jsLines.push(`export const ${exportName} = _${exportName};`);
+      exportNames.push(exportName);
+      const relativeUrl = urlUtils.relativeUrl(docBundle.url, url, true);
+      jsLines.push(`import * as ${exportName} from '${relativeUrl}';`);
     });
+    jsLines.push(`export default {${exportNames.join(', ')}}`);
     return this._analyzeContents(docBundle.url, jsLines.join('\n'));
   }
 
@@ -287,28 +305,41 @@ export class Bundler {
     let external: string[] = [];
     bundleManifest.bundles.forEach((b, url) => {
       if (url !== docBundle.url) {
-        external.push(...[...b.files, url].map((u) => `=${u}`));
+        external.push(
+            ...[...b.files, url].map((u) => `polymer-bundler://${u}`));
       }
     });
     const bundle = await rollup.rollup({
       input: docBundle.url,
       external,
+      /*external: (url: string): boolean => {
+        const originalUrl = url;
+        if (this._isRelativePath(url)) {
+          url = urlLib.resolve(docBundle.url, url);
+        }
+        const isExternal =
+            !(docBundle.bundle.files.has(url) || docBundle.url === url);
+        console.log(
+            docBundle.url, 'testing', originalUrl, 'is external?', isExternal);
+        return isExternal;
+      },*/
       plugins: [
         {
           resolveId: (importee: string, importer: string | undefined) => {
-            if (importer && !/^=/.test(importee)) {
+            if (importer && !this._isRollupResolvedUrl(importee) &&
+                this._isRelativePath(importee)) {
               importee = urlLib.resolve(importer, importee);
             }
-            if (!/^=/.test(importee)) {
-              importee = `=${importee}`;
+            if (!this._isRollupResolvedUrl(importee)) {
+              importee = `polymer-bundler://${importee}`;
             }
             return importee;
           },
           load: (id: string) => {
-            if (!/^=/.test(id)) {
+            if (!this._isRollupResolvedUrl(id)) {
               throw new Error(`Unable to load unresolved id ${id}`);
             }
-            const url = id.slice(1);
+            const url = id.slice('polymer-bundler://'.length);
             if (docBundle.bundle.files.has(url)) {
               return (analysis.getDocument(url) as Document)
                   .parsedDocument.contents;
@@ -317,23 +348,32 @@ export class Bundler {
             }
           }
         },
-        rollupResolve({
-          module: true,
-          main: true,
-          modulesOnly: true,
-        }),
+        /*
+                  rollupResolve({
+                    module: true,
+                    main: true,
+                    modulesOnly: true,
+                  }),
+                  */
       ],
     });
     // generate code and a sourcemap
     let {code} = await bundle.generate(
         {sourcemap: true, sourcemapFile: docBundle.url + '.map', format: 'es'});
 
-    // Reanalyzing this here results in a temporarily broken analysis because
-    // the urls in the import statements are messed up with the '=' prefix, but
-    // reanalyzing gives us an easy way to get at the import statements so we
-    // can fiddle with the ast without reparsing and requiring babylon and
-    // babel-traverse directly in bundler.
+    // This bit replaces those polymer-bundler:// urls with relative paths to
+    // the original resolved paths.
+    code = code.replace(
+        new RegExp(
+            `${this._regexpEscape(this._polymerBundlerScheme)}[^'"]+`, 'g'),
+        (m) => urlUtils.relativeUrl(
+            docBundle.url, m.slice(this._polymerBundlerScheme.length), true));
+
+    // Now we analyze the document code again to get features related to the
+    // imports.
     document = await this._analyzeContents(docBundle.url, code);
+
+    // With the newly analyzed document, we can now rewrite the import sites.
     document =
         await this._rewriteJsBundleImports(document, docBundle, bundleManifest);
 
@@ -345,9 +385,7 @@ export class Bundler {
       document: Document,
       docBundle: AssignedBundle,
       bundleManifest: BundleManifest) {
-    const jsImports = document.getFeatures({});
-    const warnings = document.getWarnings({});
-    console.log(warnings);
+    const jsImports = document.getFeatures({kind: 'js-import'});
     for (const jsImport of jsImports) {
       console.log(`rewriting jsImport statement`, [...jsImport.kinds]);
     }
@@ -375,8 +413,8 @@ export class Bundler {
   }
 
   /**
-   * Append a `<link rel="import" ...>` node to `node` with a value of `url`
-   * for the "href" attribute.
+   * Append a `<link rel="import" ...>` node to `node` with a value of
+   * `url` for the "href" attribute.
    */
   private _createHtmlImport(url: UrlString): ASTNode {
     const link = dom5.constructors.element('link');
@@ -386,9 +424,9 @@ export class Bundler {
   }
 
   /**
-   * Given an array of Bundles, remove all files from bundles which are in the
-   * "excludes" set.  Remove any bundles which are left empty after excluded
-   * files are removed.
+   * Given an array of Bundles, remove all files from bundles which are in
+   * the "excludes" set.  Remove any bundles which are left empty after
+   * excluded files are removed.
    */
   private _filterExcludesFromBundles(bundles: Bundle[]) {
     // Remove excluded files from bundles.
@@ -416,8 +454,8 @@ export class Bundler {
 
   /**
    * Given a document, search for the hidden div, if it isn't found, then
-   * create it.  After creating it, attach it to the desired location.  Then
-   * return it.
+   * create it.  After creating it, attach it to the desired location.
+   * Then return it.
    */
   private _findOrCreateHiddenDiv(ast: ASTNode): ASTNode {
     const hiddenDiv =
@@ -429,19 +467,19 @@ export class Bundler {
   }
 
   /**
-   * Add HTML Import elements for each file in the bundle.  Efforts are made to
-   * ensure that imports are injected prior to any eager imports of other
-   * bundles which are known to depend on them, to preserve expectations of
-   * evaluation order.
+   * Add HTML Import elements for each file in the bundle.  Efforts are
+   * made to ensure that imports are injected prior to any eager imports
+   * of other bundles which are known to depend on them, to preserve
+   * expectations of evaluation order.
    */
   private _injectHtmlImportsForBundle(
       document: Document,
       ast: ASTNode,
       bundle: AssignedBundle,
       bundleManifest: BundleManifest) {
-    // Gather all the document's direct html imports.  We want the direct (not
-    // transitive) imports only here, because we'll be using their AST nodes
-    // as targets to prepended injected imports to.
+    // Gather all the document's direct html imports.  We want the direct
+    // (not transitive) imports only here, because we'll be using their
+    // AST nodes as targets to prepended injected imports to.
     const existingImports = [
       ...document.getFeatures(
           {kind: 'html-import', noLazyImports: true, imported: false})
@@ -475,16 +513,16 @@ export class Bundler {
       // bundle.
       for (const existingImport of existingImports.filter(
                (e) => !bundle.bundle.files.has(e.document.url))) {
-        // If the existing import has a dependency on the import we are about
-        // to inject, it may be our new target.
+        // If the existing import has a dependency on the import we are
+        // about to inject, it may be our new target.
         if (existingImportDependencies.get(existingImport.document.url)!
                 .indexOf(importUrl as ResolvedUrl) !== -1) {
           const newPrependTarget = dom5.query(
               ast, (node) => astUtils.sameNode(node, existingImport.astNode));
 
           // IF we don't have a target already or if the old target comes
-          // after the new one in the source code, the new one will replace
-          // the old one.
+          // after the new one in the source code, the new one will
+          // replace the old one.
           if (newPrependTarget &&
               (!prependTarget ||
                astUtils.inSourceOrder(newPrependTarget, prependTarget))) {
@@ -553,9 +591,9 @@ export class Bundler {
   }
 
   /**
-   * Replace all polymer stylesheet imports (`<link rel="import" type="css">`)
-   * with `<style>` tags containing the file contents, with internal URLs
-   * relatively transposed as necessary.
+   * Replace all polymer stylesheet imports (`<link rel="import"
+   * type="css">`) with `<style>` tags containing the file contents, with
+   * internal URLs relatively transposed as necessary.
    */
   private async _inlineStylesheetImports(
       document: Document,
@@ -582,9 +620,9 @@ export class Bundler {
   }
 
   /**
-   * Replace all external stylesheet references, in `<link rel="stylesheet">`
-   * tags with `<style>` tags containing file contents, with internal URLs
-   * relatively transposed as necessary.
+   * Replace all external stylesheet references, in `<link
+   * rel="stylesheet">` tags with `<style>` tags containing file contents,
+   * with internal URLs relatively transposed as necessary.
    */
   private async _inlineStylesheetLinks(
       document: Document,
@@ -607,13 +645,14 @@ export class Bundler {
 
   /**
    * Old Polymer supported `<style>` tag in `<dom-module>` but outside of
-   * `<template>`.  This is also where the deprecated Polymer CSS import tag
+   * `<template>`.  This is also where the deprecated Polymer CSS import
+   * tag
    * `<link rel="import" type="css">` would generate inline `<style>`.
    * Migrates these `<style>` tags into available `<template>` of the
    * `<dom-module>`.  Will create a `<template>` container if not present.
    *
-   * TODO(usergenic): Why is this in bundler... shouldn't this be some kind of
-   * polyup or pre-bundle operation?
+   * TODO(usergenic): Why is this in bundler... shouldn't this be some
+   * kind of polyup or pre-bundle operation?
    */
   private _moveDomModuleStyleIntoTemplate(style: ASTNode, refStyle?: ASTNode) {
     const domModule =
@@ -648,10 +687,10 @@ export class Bundler {
   }
 
   /**
-   * When an HTML Import is encountered in the head of the document, it needs
-   * to be moved into the hidden div and any subsequent order-dependent
-   * imperatives (imports, styles, scripts) must also be move into the
-   * hidden div.
+   * When an HTML Import is encountered in the head of the document, it
+   * needs to be moved into the hidden div and any subsequent
+   * order-dependent imperatives (imports, styles, scripts) must also be
+   * move into the hidden div.
    */
   private _moveOrderedImperativesFromHeadIntoHiddenDiv(ast: ASTNode) {
     const head = dom5.query(ast, matchers.head);
@@ -690,8 +729,8 @@ export class Bundler {
   /**
    * Generate a fresh document (ASTNode) to bundle contents into.
    * If we're building a bundle which is based on an existing file, we
-   * should load that file and prepare it as the bundle document, otherwise
-   * we'll create a clean/empty html document.
+   * should load that file and prepare it as the bundle document,
+   * otherwise we'll create a clean/empty html document.
    */
   private async _prepareHtmlBundleDocument(bundle: AssignedBundle):
       Promise<Document> {
