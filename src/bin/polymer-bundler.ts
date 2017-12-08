@@ -15,14 +15,10 @@
 import * as commandLineArgs from 'command-line-args';
 import * as commandLineUsage from 'command-line-usage';
 import * as fs from 'fs';
-import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
-import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, UrlLoader, UrlResolver} from 'polymer-analyzer';
-// TODO(usergenic): Move import below to statement above, when polymer-analyzer
-// 3.0.0-pre.3 is released.
-import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
+import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {UrlString} from '../url-utils';
 import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
@@ -305,13 +301,12 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
           'Must specify out-dir when bundling multiple entrypoints');
     }
     for (const [url, document] of documents) {
-      const ast = document.ast;
+      const code = document.code;
       const out = pathLib.resolve(pathLib.join(outDir, url));
       const finalDir = pathLib.dirname(out);
       mkdirp.sync(finalDir);
-      const serialized = parse5.serialize(ast as parse5.ASTNode);
       const fd = fs.openSync(out, 'w');
-      fs.writeSync(fd, serialized + '\n');
+      fs.writeSync(fd, code + '\n');
       fs.closeSync(fd);
     }
     return;
@@ -320,13 +315,13 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
   if (!doc) {
     return;
   }
-  const serialized = parse5.serialize(doc.ast as parse5.ASTNode);
+  const code = doc.code;
   if (options['out-html']) {
     const fd = fs.openSync(options['out-html'], 'w');
-    fs.writeSync(fd, serialized + '\n');
+    fs.writeSync(fd, code + '\n');
     fs.closeSync(fd);
   } else {
-    process.stdout.write(serialized);
+    process.stdout.write(code);
   }
 })().catch((err) => {
   console.log(err.stack);

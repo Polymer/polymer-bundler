@@ -14,8 +14,6 @@
 /// <reference path="../../node_modules/@types/chai/index.d.ts" />
 /// <reference path="../../node_modules/@types/node/index.d.ts" />
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
-import * as babelGenerator from 'babel-generator';
-import * as babel from 'babel-types';
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
@@ -73,14 +71,14 @@ suite('Bundler', () => {
           [common, entrypoint1, entrypoint2],
           {strategy: generateSharedDepsMergeStrategy(2)});
       assert.equal(documents.size, 4);
-      const commonDoc = documents.get(common)!.ast as parse5.ASTNode;
+      const commonDoc = parse5.parse(documents.get(common)!.code);
       assert.isDefined(commonDoc);
-      const entrypoint1Doc = documents.get(entrypoint1)!.ast as parse5.ASTNode;
+      const entrypoint1Doc = parse5.parse(documents.get(entrypoint1)!.code);
       assert.isDefined(entrypoint1Doc);
-      const entrypoint2Doc = documents.get(entrypoint2)!.ast as parse5.ASTNode;
+      const entrypoint2Doc = parse5.parse(documents.get(entrypoint2)!.code);
       assert.isDefined(entrypoint2Doc);
       const sharedDoc =
-          documents.get('shared_bundle_1.html')!.ast as parse5.ASTNode;
+          parse5.parse(documents.get('shared_bundle_1.html')!.code);
       assert.isDefined(sharedDoc);
       const commonModule = domModulePredicate('common-module');
       const elOne = domModulePredicate('el-one');
@@ -104,11 +102,11 @@ suite('Bundler', () => {
           [shell, entrypoint1, entrypoint2],
           {strategy: generateShellMergeStrategy(shell, 2)});
       assert.equal(documents.size, 3);
-      const shellDoc = documents.get(shell)!.ast as parse5.ASTNode;
+      const shellDoc = parse5.parse(documents.get(shell)!.code);
       assert.isDefined(shellDoc);
-      const entrypoint1Doc = documents.get(entrypoint1)!.ast as parse5.ASTNode;
+      const entrypoint1Doc = parse5.parse(documents.get(entrypoint1)!.code);
       assert.isDefined(entrypoint1Doc);
-      const entrypoint2Doc = documents.get(entrypoint2)!.ast as parse5.ASTNode;
+      const entrypoint2Doc = parse5.parse(documents.get(entrypoint2)!.code);
       assert.isDefined(entrypoint2Doc);
       const shellDiv = dom5.predicates.hasAttrValue('id', 'shell');
       const shellImport = dom5.predicates.AND(
@@ -141,19 +139,16 @@ suite('Bundler', () => {
 
       const {documents} =
           await bundleMultiple([entrypoint, coolKitties, sharkTime]);
-      const sharedBundle2 =
-          documents.get('shared_bundle_2.js')!.ast! as babel.Node;
+      const sharedBundle2 = documents.get('shared_bundle_2.js')!.code;
 
-      const dog = documents.get('test/html/modules/dog.js')!.ast! as babel.Node;
+      const dog = documents.get('test/html/modules/dog.js')!.code;
 
       // TODO(usergenic): Should bundler really be returning ASTs?  We should
       // probably just be returning the asset code.
 
-      console.log('/* dog.js */\n---\n' + babelGenerator.default(dog).code);
+      console.log('/* dog.js */\n---\n' + dog);
 
-      console.log(
-          '/* shared_bundle_2.js */\n---\n' +
-          babelGenerator.default(sharedBundle2).code);
+      console.log('/* shared_bundle_2.js */\n---\n' + sharedBundle2);
     });
   });
 });
