@@ -134,7 +134,7 @@ suite('Bundler', () => {
           [commonModule, elOne, depOne, shellImport]);
     });
 
-    test.only('with JavaScript modules, all deps in their places', async () => {
+    test('with JavaScript modules, all deps in their places', async () => {
       const entrypoint = 'test/html/modules/animal-index.html';
       const coolKitties = 'test/html/modules/cool-kitties.html';
       const sharkTime = 'test/html/modules/shark-time.html';
@@ -146,7 +146,11 @@ suite('Bundler', () => {
 
       const dog = documents.get('test/html/modules/dog.js')!.ast! as babel.Node;
 
+      // TODO(usergenic): Should bundler really be returning ASTs?  We should
+      // probably just be returning the asset code.
+
       console.log('/* dog.js */\n---\n' + babelGenerator.default(dog).code);
+
       console.log(
           '/* shared_bundle_2.js */\n---\n' +
           babelGenerator.default(sharedBundle2).code);
