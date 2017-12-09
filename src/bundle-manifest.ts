@@ -34,6 +34,8 @@ export type BundleUrlMapper = (bundles: Bundle[]) => Map<UrlString, Bundle>;
  */
 export type TransitiveDependenciesMap = Map<UrlString, Set<UrlString>>;
 
+export type BundleType = 'js-module' | 'html-document';
+
 /**
  * A bundle is a grouping of files which serve the need of one or more
  * entrypoint files.
@@ -44,6 +46,9 @@ export class Bundle {
 
   // Set of all files included in the bundle.
   files: Set<UrlString>;
+
+  // Map of original resolved urls to exported names.
+  exportedJsModules = new Set<UrlString>();
 
   // Set of imports which should be removed when encountered.
   stripImports = new Set<UrlString>();
@@ -65,8 +70,13 @@ export class Bundle {
   // that a bundle which is pure javascript is a module bundle, whereas if there
   // is any html, it is considered an html bundle with inlined javascript
   // modules.
-  get fileExtension() {
-    return [...this.files].every((f) => f.endsWith('.js')) ? 'js' : 'html';
+  get fileExtension(): string|undefined {
+    return this.type === 'js-module' ? 'js' : 'html';
+  }
+
+  get type(): BundleType {
+    return [...this.files].every((f) => f.endsWith('.js')) ? 'js-module' :
+                                                             'html-document';
   }
 }
 
@@ -160,6 +170,13 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
     if (!bundle) {
       bundle = new Bundle(entrypoints);
       bundles.push(bundle);
+    }
+    // TODO(usergenic): Right now we have to assume that js files in the dep
+    // index are considered js modules.  We should consider updating the dep
+    // index to have more fidelity on what *kind* of dep it is so that we don't
+    // have to assume.
+    if (dep.endsWith('.js')) {
+      bundle.exportedJsModules.add(dep);
     }
     bundle.files.add(dep);
   }
@@ -302,16 +319,23 @@ export function generateNoBackLinkStrategy(urls: UrlString[]): BundleStrategy {
  * files of all bundles represented.
  */
 export function mergeBundles(bundles: Bundle[]): Bundle {
+  if (!bundles.every((b) => b.type === bundles[0].type)) {
+    console.log(bundles.map((b) => b.type));
+    throw new Error('Can not merge bundles of different type.');
+  }
   const newBundle = new Bundle();
   for (const {
          entrypoints,
          files,
+         exportedJsModules,
          inlinedHtmlImports,
          inlinedScripts,
          inlinedStyles,
        } of bundles) {
     newBundle.entrypoints =
         new Set<UrlString>([...newBundle.entrypoints, ...entrypoints]);
+    newBundle.exportedJsModules = new Set<UrlString>(
+        [...newBundle.exportedJsModules, ...exportedJsModules]);
     newBundle.files = new Set<UrlString>([...newBundle.files, ...files]);
     newBundle.inlinedHtmlImports = new Set<UrlString>(
         [...newBundle.inlinedHtmlImports, ...inlinedHtmlImports]);
