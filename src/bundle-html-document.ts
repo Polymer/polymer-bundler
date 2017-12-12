@@ -12,6 +12,8 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
+import * as babelGenerator from 'babel-generator';
+import * as babylon from 'babylon';
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
@@ -22,7 +24,7 @@ import * as urlLib from 'url';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import * as astUtils from './ast-utils';
-import {obscureDynamicImports, restoreDynamicImports} from './bundle-js-module';
+import {defaultExportedJsModuleNameFn, obscureDynamicImports, restoreDynamicImports, rewriteJsBundleImports} from './bundle-js-module';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import * as importUtils from './import-utils';
@@ -362,7 +364,7 @@ async function inlineModuleScripts(
     bundleManifest: BundleManifest,
     excludes?: string[]) {
   // All module scripts.
-  const moduleScripts = dom5.queryAll(
+  let moduleScripts = dom5.queryAll(
       ast,
       dom5.predicates.AND(
           dom5.predicates.hasTagName('script'),
@@ -396,6 +398,7 @@ async function inlineModuleScripts(
           ...[...b.files, url].map((u) => `${polymerBundlerScheme}${u}`));
     }
   });
+
   // Should this analysis exclude perhaps the bundle file itself...?
   const analysis = await bundler.analyzer.analyze([...bundle.bundle.files]);
   const rollupBundle = await rollup.rollup({
@@ -445,6 +448,25 @@ async function inlineModuleScripts(
       new RegExp(`${regexpEscape(polymerBundlerScheme)}[^'"]+`, 'g'),
       (m) => urlUtils.relativeUrl(
           bundle.url, m.slice(polymerBundlerScheme.length), true));
+  const jsAst = babylon.parse(code, {
+    sourceFilename: bundle.url,
+    sourceType: 'module',
+    plugins: [
+      'asyncGenerators',
+      'dynamicImport',
+      // 'importMeta', // not yet in the @types file
+      'objectRestSpread',
+    ],
+  });
+
+  // TODO(usergenic): Explicitly sending in the default js module name function
+  // here is bad.  I need a better place to define this.  Maybe *on* the
+  // bundler.
+  rewriteJsBundleImports(
+      bundler, jsAst, bundle, bundleManifest, defaultExportedJsModuleNameFn);
+
+  code = babelGenerator.default(jsAst).code;
+
   // Remove all module scripts.
   moduleScripts.forEach((m) => dom5.remove(m));
   const newScript =

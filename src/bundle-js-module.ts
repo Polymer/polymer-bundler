@@ -13,7 +13,9 @@
  */
 
 import * as babelGenerate from 'babel-generator';
+import * as babelTraverse from 'babel-traverse';
 import * as babel from 'babel-types';
+import * as clone from 'clone';
 import {Document} from 'polymer-analyzer';
 import * as rollup from 'rollup';
 import * as urlLib from 'url';
@@ -130,28 +132,43 @@ export async function bundleJsModule(
   // imports.
   document = await bundler.analyzeContents(docBundle.url, code);
 
+  const ast = clone(document.parsedDocument.ast);
+
   // With the newly analyzed document, we can now rewrite the import sites.
-  document = await rewriteJsBundleImports(
-      bundler, document, docBundle, bundleManifest, exportedJsModuleNameFn);
+  await rewriteJsBundleImports(
+      bundler, ast, docBundle, bundleManifest, exportedJsModuleNameFn);
+
+  code = babelGenerate.default(ast).code;
+
+  document = await bundler.analyzeContents(docBundle.url, code);
 
   // TODO(usergenic): Update sourcemap?
   return {code: document.parsedDocument.contents};
 }
 
-async function rewriteJsBundleImports(
+export async function rewriteJsBundleImports(
     bundler: Bundler,
-    document: Document,
+    astRoot: babel.Node,
     docBundle: AssignedBundle,
     bundleManifest: BundleManifest,
     exportedJsModuleNameFn: ExportedJsModuleNameFn) {
-  const astRoot = document.parsedDocument.ast;
-  const jsImports = document.getFeatures({kind: 'js-import'});
+  const jsImports: babel.Node[] = [];
+
+  babelTraverse.default(astRoot, {
+    enter(path: babelTraverse.NodePath) {
+      const node = path.node;
+      if (babel.isImportDeclaration(node)) {
+        jsImports.push(node);
+      }
+    },
+    noScope: true,
+  });
+
   const importedNamesBySource:
       Map<string, {local: string, imported: string}[]> = new Map();
   for (const jsImport of jsImports) {
-    const astNode = jsImport.astNode;
-    if (babel.isImportDeclaration(astNode)) {
-      const source = astNode.source;
+    if (babel.isImportDeclaration(jsImport)) {
+      const source = jsImport.source;
       let sourceUrl: string = '';
       if (babel.isStringLiteral(source)) {
         sourceUrl = source.value;
@@ -177,7 +194,7 @@ async function rewriteJsBundleImports(
         if (!importedNamesBySource.has(sourceBundle.url)) {
           importedNamesBySource.set(sourceBundle.url, []);
         }
-        for (const specifier of astNode.specifiers) {
+        for (const specifier of jsImport.specifiers) {
           if (babel.isImportSpecifier(specifier)) {
             importedNamesBySource.get(sourceBundle.url)!.push({
               local: specifier.local.name,
@@ -198,14 +215,15 @@ async function rewriteJsBundleImports(
             resolvedSourceUrl,
             () => exportedJsModuleNameFn(sourceBundle.url, resolvedSourceUrl));
 
-        astNode.specifiers.splice(
+        jsImport.specifiers.splice(
             0,
-            astNode.specifiers.length,
+            jsImport.specifiers.length,
             babel.importSpecifier(
                 babel.identifier(exportedName),
                 babel.identifier(exportedName)));
 
-        const importDeclarationParent = babelUtils.getParent(astRoot, astNode)!;
+        const importDeclarationParent =
+            babelUtils.getParent(astRoot, jsImport)!;
         if (!importDeclarationParent) {
           // TODO(usergenic): This log should be a real error or warning or
           // something.
@@ -268,19 +286,15 @@ async function rewriteJsBundleImports(
         }
 
         importDeclarationContainerArray.splice(
-            importDeclarationContainerArray.indexOf(astNode) + 1,
+            importDeclarationContainerArray.indexOf(jsImport) + 1,
             0,
             ...variableDeclarations);
       }
     }
   }
-
-  return bundler.analyzeContents(
-      docBundle.url, babelGenerate.default(astRoot).code);
 }
 
-async function
-generateJsBasisDocument(
+async function generateJsBasisDocument(
     bundler: Bundler,
     docBundle: AssignedBundle,
     exportedJsModuleNameFn: ExportedJsModuleNameFn):

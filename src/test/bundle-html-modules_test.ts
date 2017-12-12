@@ -49,63 +49,65 @@ suite('import declaration forms', () => {
             .documents.get(`import-declaration-forms/${url}`)!.code;
 
     test('default specifier', async () => {
-      const code = await bundleOne('default-specifier.js');
-      assert.deepEqual(code, undent(`
-        const value = 'DEFAULT';
-        console.log(value);
+      const code = await bundleOne('default-specifier.html');
+      assert.deepEqual(code.trim(), undent(`
+        <script type="module">const value = 'DEFAULT';
+
+        console.log(value);</script>
       `));
     });
 
     test('dynamic import await', async () => {
-      const code = await bundleOne('dynamic-import-await.js');
-      assert.deepEqual(code, undent(`
-        async function dynamicExample() {
+      const code = await bundleOne('dynamic-import-await.html');
+      assert.deepEqual(code.trim(), undent(`
+        <script type="module">async function dynamicExample() {
           const moduleC = await import("../module-c.js");
           console.log(moduleC.value);
         }
 
-        export { dynamicExample };
+        dynamicExample();</script>
       `));
     });
 
     test('named specifier', async () => {
-      const code = await bundleOne('named-specifier.js');
-      assert.deepEqual(code, undent(`
-        const a = {
-          value: 'A'
-        };
+      const code = await bundleOne('named-specifier.html');
+      assert.deepEqual(code.trim(), undent(`
+        <script type="module">const a = { value: 'A' };
+
         console.log('module-a side-effect');
-        console.log(a.value);
+
+        console.log(a.value);</script>
       `));
     });
 
     test('namespace specifier', async () => {
-      const code = await bundleOne('namespace-specifier.js');
-      assert.deepEqual(code, undent(`
-        const b = {
-          value: 'B'
-        };
+      const code = await bundleOne('namespace-specifier.html');
+      assert.deepEqual(code.trim(), undent(`
+        <script type="module">const b = { value: 'B' };
+
         console.log('module-b side-effect');
-        console.log(b.value);
+
+        console.log(b.value);</script>
       `));
     });
 
     test('no specifier', async () => {
-      const code = await bundleOne('no-specifier.js');
-      assert.deepEqual(code, undent(`
-        console.log('module-b side-effect');
-        console.log('no-specifier side-effect');
+      const code = await bundleOne('no-specifier.html');
+      assert.deepEqual(code.trim(), undent(`
+        <script type="module">console.log('module-b side-effect');
+
+        console.log('no-specifier side-effect');</script>
       `));
     });
 
     test('renamed local specifier', async () => {
-      const code = await bundleOne('renamed-local-specifier.js');
-      assert.deepEqual(code, undent(`
-        const a = {
-          value: 'A'
-        };
+      const code = await bundleOne('renamed-local-specifier.html');
+      assert.deepEqual(code.trim(), undent(`
+        <script type="module">const a = { value: 'A' };
+
         console.log('module-a side-effect');
-        console.log(a.value);
+
+        console.log(a.value);</script>
       `));
     });
   });
@@ -121,56 +123,61 @@ suite('import declaration forms', () => {
 
       const result = await bundleMultiple(
           [
-            'named-specifier.js',
-            'namespace-specifier.js',
-            'no-specifier.js',
-            'renamed-local-specifier.js',
+            'named-specifier.html',
+            'namespace-specifier.html',
+            'no-specifier.html',
+            'renamed-local-specifier.html',
           ],
           {strategy: generateSharedDepsMergeStrategy(2)});
 
       const namedSpecifier =
-          result.documents.get('import-declaration-forms/named-specifier.js')!
+          result.documents.get('import-declaration-forms/named-specifier.html')!
               .code;
-      assert.deepEqual(namedSpecifier, undent(`
-        import { $bundled$module$a } from "../shared_bundle_1.js";
+      assert.deepEqual(namedSpecifier.trim(), undent(`
+        <script type="module">import { $bundled$module$a } from "../shared_bundle_1.js";
+
         const {
           a: a
         } = $bundled$module$a;
-        console.log(a.value);
+        console.log(a.value);</script>
       `));
 
       const namespaceSpecifier =
           result.documents
-              .get('import-declaration-forms/namespace-specifier.js')!.code;
-      assert.deepEqual(namespaceSpecifier, undent(`
-        import { $bundled$module$b } from "../shared_bundle_1.js";
+              .get('import-declaration-forms/namespace-specifier.html')!.code;
+      assert.deepEqual(namespaceSpecifier.trim(), undent(`
+        <script type="module">import { $bundled$module$b } from "../shared_bundle_1.js";
+
         const {
           b: b
         } = $bundled$module$b;
-        console.log(b.value);
+        console.log(b.value);</script>
       `));
 
       const noSpecifier =
-          result.documents.get(
-                              'import-declaration-forms/no-specifier.js')!.code;
-      assert.deepEqual(noSpecifier, undent(`
-        import { $bundled$module$b } from "../shared_bundle_1.js";
-        console.log('no-specifier side-effect');
+          result.documents.get('import-declaration-forms/no-specifier.html')!
+              .code;
+      assert.deepEqual(noSpecifier.trim(), undent(`
+        <script type="module">import { $bundled$module$b } from "../shared_bundle_1.js";
+
+        console.log('no-specifier side-effect');</script>
       `));
 
       const renamedLocalSpecifier =
           result.documents
-              .get('import-declaration-forms/renamed-local-specifier.js')!.code;
-      assert.deepEqual(renamedLocalSpecifier, undent(`
-        import { $bundled$module$a } from "../shared_bundle_1.js";
+              .get('import-declaration-forms/renamed-local-specifier.html')!
+              .code;
+      assert.deepEqual(renamedLocalSpecifier.trim(), undent(`
+        <script type="module">import { $bundled$module$a } from "../shared_bundle_1.js";
+
         const {
           a: a
         } = $bundled$module$a;
-        console.log(a.value);
+        console.log(a.value);</script>
       `));
 
       const sharedBundle = result.documents.get('shared_bundle_1.js')!.code;
-      assert.deepEqual(sharedBundle, undent(`
+      assert.deepEqual(sharedBundle.trim(), undent(`
         const a = {
           value: 'A'
         };

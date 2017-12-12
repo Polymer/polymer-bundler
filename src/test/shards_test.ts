@@ -22,6 +22,7 @@ import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 import {generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, BundleResult} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
+import {undent} from './test-utils';
 
 chai.config.showDiff = true;
 
@@ -147,6 +148,24 @@ suite('Bundler', () => {
       const dogCode = documents.get('test/html/modules/animals/dog.js')!.code;
       const sharkTimeCode =
           documents.get('test/html/modules/animals/shark-time.html')!.code;
+
+      assert.deepEqual(animalIndexCode.trim(), undent(`
+        <link rel="lazy-import" href="cool-kitties.html">
+        <link rel="lazy-import" href="shark-time.html">
+
+
+        <div hidden="" by-polymer-bundler=""><script>console.log('imports/external.js');
+        </script>
+        </div><script type="module">function jumpOver(something) {
+          import("./dog.js").then(dog => {
+            const lazyDog = new dog.Dog();
+            console.log(\`\${something} jumped over the lazy dog.\`);
+            console.log(lazyDog.speak());
+          });
+        }
+
+        jumpOver('the quick brown fox');</script>
+      `));
 
       console.log('/* animal-index.html */\n---\n' + animalIndexCode + '\n');
       console.log('/* cool-kitties.js */\n---\n' + coolKittiesCode + '\n');
