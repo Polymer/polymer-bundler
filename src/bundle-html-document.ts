@@ -22,6 +22,7 @@ import * as urlLib from 'url';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import * as astUtils from './ast-utils';
+import {obscureDynamicImports, restoreDynamicImports} from './bundle-js-module';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import * as importUtils from './import-utils';
@@ -32,8 +33,8 @@ import * as urlUtils from './url-utils';
 // branded url types.
 import {UrlString} from './url-utils';
 
-const polymerBundlerScheme = 'polymer-bundler://';
-const polymerBundlerInlineScheme = 'polymer-bundler-inline://';
+const polymerBundlerScheme = 'polymer-bundler://root/';
+const polymerBundlerInlineScheme = 'polymer-bundler-inline://root/';
 
 function regexpEscape(pattern: string): string {
   return pattern.replace(/([/^$.+()[\]])/g, '\\$1');
@@ -421,22 +422,25 @@ async function inlineModuleScripts(
         if (id.startsWith(polymerBundlerScheme)) {
           const url = id.slice(polymerBundlerScheme.length);
           if (bundle.bundle.files.has(url)) {
-            return obscureDynamicImports((analysis.getDocument(url) as Document)
-                                             .parsedDocument.contents);
+            let code =
+                (analysis.getDocument(url) as Document).parsedDocument.contents;
+            code = obscureDynamicImports(bundle.url, url, code);
+            return code;
           }
         }
         if (id.startsWith(polymerBundlerInlineScheme)) {
           const index =
               parseInt(id.slice(polymerBundlerInlineScheme.length), 10);
-          const code = inlineScriptContents[index];
-          return obscureDynamicImports(code);
+          let code = inlineScriptContents[index];
+          code = obscureDynamicImports(bundle.url, bundle.url, code);
+          return code;
         }
       }
     }]
   });
   let {code} = await rollupBundle.generate(
       {sourcemap: true, sourcemapFile: bundle.url + '.map', format: 'es'});
-  code = restoreDynamicImports(code);
+  code = restoreDynamicImports(bundle.url, code);
   code = code.replace(
       new RegExp(`${regexpEscape(polymerBundlerScheme)}[^'"]+`, 'g'),
       (m) => urlUtils.relativeUrl(
@@ -560,22 +564,4 @@ function removeEmptyHiddenDivs(ast: ASTNode) {
       dom5.remove(div);
     }
   }
-}
-
-// TODO(usergenic): Rollup is complaining about the 'import' in the dynamic
-// import syntax and so we have to rename it to something innocuous before
-// rollup sees the code.
-function obscureDynamicImports(code: string):
-    string {
-      return code.replace(
-          /\bimport\(/g,
-          '____dynamicimport____' +
-              '(');
-    }
-
-function restoreDynamicImports(code: string): string {
-  return code.replace(
-      /\b____dynamicimport____\(/g,
-      'import' +
-          '(');
 }

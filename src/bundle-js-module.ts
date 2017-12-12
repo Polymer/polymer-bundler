@@ -24,7 +24,7 @@ import {Bundler} from './bundler';
 import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
 
-const polymerBundlerScheme = 'polymer-bundler://';
+const polymerBundlerScheme = 'polymer-bundler://root/';
 
 export type ExportedJsModuleNameFn =
     (importerUrl: UrlString, importeeUrl: UrlString) => string;
@@ -93,10 +93,14 @@ export async function bundleJsModule(
           }
           const url = id.slice(polymerBundlerScheme.length);
           if (docBundle.bundle.files.has(url)) {
-            return (analysis.getDocument(url) as Document)
-                .parsedDocument.contents;
+            let code =
+                (analysis.getDocument(url) as Document).parsedDocument.contents;
+            code = obscureDynamicImports(docBundle.url, url, code);
+            return code;
           } else if (docBundle.url === url) {
-            return document.parsedDocument.contents;
+            let code = document.parsedDocument.contents;
+            code = obscureDynamicImports(docBundle.url, url, code);
+            return code;
           }
         }
       },
@@ -119,6 +123,8 @@ export async function bundleJsModule(
       new RegExp(`${regexpEscape(polymerBundlerScheme)}[^'"]+`, 'g'),
       (m) => urlUtils.relativeUrl(
           docBundle.url, m.slice(polymerBundlerScheme.length), true));
+
+  code = restoreDynamicImports(docBundle.url, code);
 
   // Now we analyze the document code again to get features related to the
   // imports.
@@ -291,7 +297,6 @@ generateJsBasisDocument(
         jsLines.push(`import * as ${exportName} from '${relativeUrl}';`);
       }
       jsLines.push(`export {${exportNames.join(', ')}};`);
-      console.log(jsLines.join('\n'));
       return bundler.analyzeContents(docBundle.url, jsLines.join('\n'));
     }
 
@@ -313,4 +318,31 @@ getOrSet<K, V>(map: Map<K, V>, key: K, fn: () => V) {
     map.set(key, fn());
   }
   return map.get(key);
+}
+
+// TODO(usergenic): Rollup is complaining about the 'import' in the dynamic
+// import syntax and so we have to rename it to something innocuous before
+// rollup sees the code.  The problem with this approach is that dynamic imports
+// which are rolled up into a file from another directory aren't rewritten, so
+// we have to capture the original dynamic import statement and rewrite the urls
+// as we restore the `import()` syntax after rollup is done.
+export function obscureDynamicImports(
+    bundleUrl: UrlString, sourceUrl: UrlString, code: string) {
+  return code.replace(
+      /\bimport\([^)]+/gm,
+      (m) => `____dynamic_${m}, ${JSON.stringify(sourceUrl)}`);
+}
+
+export function restoreDynamicImports(bundleUrl: UrlString, code: string) {
+  return code.replace(/\b____dynamic_import\([^)]+/gm, (m: string) => {
+    let argspan = m.split('(')[1];
+    argspan = argspan.slice(1, argspan.length - 2);
+    const args = argspan.split(', "');
+    const importUrl = args[0]!.slice(0, args[0]!.length - 1);
+    let sourceUrl = args[1]!;
+    const resolvedImportUrl = urlLib.resolve(sourceUrl, importUrl);
+    const newRelativeImportUrl =
+        urlUtils.relativeUrl(bundleUrl, resolvedImportUrl, true);
+    return `import(${JSON.stringify(newRelativeImportUrl)}`;
+  });
 }
