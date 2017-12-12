@@ -167,11 +167,75 @@ suite('Bundler', () => {
         jumpOver('the quick brown fox');</script>
       `));
 
-      console.log('/* animal-index.html */\n---\n' + animalIndexCode + '\n');
-      console.log('/* cool-kitties.js */\n---\n' + coolKittiesCode + '\n');
-      console.log('/* dog.js */\n---\n' + dogCode + '\n');
-      console.log('/* shared_bundle_2.js */\n---\n' + sharedBundle2Code + '\n');
-      console.log('/* shark-time.html */\n---\n' + sharkTimeCode + '\n');
+      assert.deepEqual(coolKittiesCode.trim(), undent(`
+        <div hidden="" by-polymer-bundler=""><link rel="import" href="../../../../shared_bundle_1.html"></div><script type="module">import { $bundled$test$html$modules$animals$mammal } from "../../../../shared_bundle_2.js";
+
+        const {
+          Mammal: Mammal
+        } = $bundled$test$html$modules$animals$mammal;
+        class Cat extends Mammal {
+          speak() {
+            return 'meow';
+          }
+        }
+
+        const cat = new Cat();
+        cat.speak();</script>
+      `));
+
+      assert.deepEqual(dogCode.trim(), undent(`
+        import { $bundled$test$html$modules$animals$mammal } from "../../../../shared_bundle_2.js";
+        const {
+          Mammal: Mammal
+        } = $bundled$test$html$modules$animals$mammal;
+
+        class Dog extends Mammal {
+          speak() {
+            return 'arf';
+          }
+
+        }
+
+        export { Dog };
+      `));
+
+      assert.deepEqual(sharedBundle2Code.trim(), undent(`
+        class Vertebrate {
+          hasBones() {
+            return true;
+          }
+
+        }
+
+        var vertebrate = Object.freeze({
+          Vertebrate: Vertebrate
+        });
+
+        class Mammal extends Vertebrate {}
+
+        var mammal = Object.freeze({
+          Mammal: Mammal
+        });
+        export { mammal as $bundled$test$html$modules$animals$mammal, vertebrate as $bundled$test$html$modules$animals$vertebrate };
+      `));
+
+      assert.deepEqual(sharkTimeCode.trim(), undent(`
+        <div hidden="" by-polymer-bundler=""><link rel="import" href="../../../../shared_bundle_1.html"></div><script type="module">import { $bundled$test$html$modules$animals$vertebrate } from "../../../../shared_bundle_2.js";
+
+        const {
+          Vertebrate: Vertebrate
+        } = $bundled$test$html$modules$animals$vertebrate;
+        class Fish extends Vertebrate {}
+
+        class Shark extends Fish {
+          speak() {
+            return 'nuh-nuh! nuh-nuh nuh-nuh!';
+          }
+        }
+
+        const jaws = new Shark();
+        jaws.speak();</script>
+      `));
     });
   });
 });

@@ -401,6 +401,7 @@ async function inlineModuleScripts(
 
   // Should this analysis exclude perhaps the bundle file itself...?
   const analysis = await bundler.analyzer.analyze([...bundle.bundle.files]);
+
   const rollupBundle = await rollup.rollup({
     input: `${polymerBundlerInlineScheme + (inlineScriptContents.length - 1)}`,
     external,
@@ -441,6 +442,7 @@ async function inlineModuleScripts(
       }
     }]
   });
+
   let {code} = await rollupBundle.generate(
       {sourcemap: true, sourcemapFile: bundle.url + '.map', format: 'es'});
   code = restoreDynamicImports(bundle.url, code);

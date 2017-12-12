@@ -63,20 +63,10 @@ export async function bundleJsModule(
           ...[...b.files, url].map((u) => `${polymerBundlerScheme}${u}`));
     }
   });
+
   const bundle = await rollup.rollup({
     input: docBundle.url,
     external,
-    /*external: (url: string): boolean => {
-      const originalUrl = url;
-      if (this._isRelativePath(url)) {
-        url = urlLib.resolve(docBundle.url, url);
-      }
-      const isExternal =
-          !(docBundle.bundle.files.has(url) || docBundle.url === url);
-      console.log(
-          docBundle.url, 'testing', originalUrl, 'is external?', isExternal);
-      return isExternal;
-    },*/
     plugins: [
       {
         resolveId: (importee: string, importer: string | undefined) => {
@@ -106,15 +96,9 @@ export async function bundleJsModule(
           }
         }
       },
-      /*
-                rollupResolve({
-                  module: true,
-                  main: true,
-                  modulesOnly: true,
-                }),
-                */
     ],
   });
+
   // generate code and a sourcemap
   let {code} = await bundle.generate(
       {sourcemap: true, sourcemapFile: docBundle.url + '.map', format: 'es'});
