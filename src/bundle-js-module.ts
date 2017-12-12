@@ -326,12 +326,16 @@ getOrSet<K, V>(map: Map<K, V>, key: K, fn: () => V) {
 // as we restore the `import()` syntax after rollup is done.
 export function obscureDynamicImports(
     bundleUrl: UrlString, sourceUrl: UrlString, code: string) {
+  // TODO(usergenic): Please use babylon to parse this instead of this brittle
+  // insane regexp replacement.
   return code.replace(
       /\bimport\([^)]+/gm,
       (m) => `____dynamic_${m}, ${JSON.stringify(sourceUrl)}`);
 }
 
 export function restoreDynamicImports(bundleUrl: UrlString, code: string) {
+  // TODO(usergenic): Please use babylon to parse this instead of this brittle
+  // insane regexp replacement.
   return code.replace(/\b____dynamic_import\([^)]+/gm, (m: string) => {
     let argspan = m.split('(')[1];
     argspan = argspan.slice(1, argspan.length - 2);
