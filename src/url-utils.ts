@@ -60,6 +60,13 @@ export function isAbsolutePath(href: UrlString): boolean {
 }
 
 /**
+ * Returns true if the href is a relative path.
+ */
+export function isRelativePath(url: string): boolean {
+  return /^\.+\//.test(url);
+}
+
+/**
  * Returns true if the href is a templated value, i.e. `{{...}}` or `[[...]]`
  */
 export function isTemplatedUrl(href: UrlString): boolean {

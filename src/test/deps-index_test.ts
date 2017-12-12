@@ -141,12 +141,12 @@ suite('Bundler', () => {
 
         const cat = 'modules/cat.js';
         const dog = 'modules/dog.js';
-        const fish = 'modules/fish.js';
+        const fish = 'modules/aquatic-js/fish.js';
         const invertebrate = 'modules/invertebrate.js';
         const lazyDog = 'modules/lazy-dog.js';
         const mammal = 'modules/mammal.js';
         const sharedImport = 'modules/shared-import.html';
-        const shark = 'modules/shark.js';
+        const shark = 'modules/aquatic-js/shark.js';
         const snail = 'modules/snail.js';
         const vertebrate = 'modules/vertebrate.js';
 

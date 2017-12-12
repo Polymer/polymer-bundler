@@ -123,15 +123,15 @@ export class Bundler {
     for (const bundleEntry of manifest.bundles) {
       const bundleUrl = bundleEntry[0];
       const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-      let bundleResult: {code: string};
+      let bundledDocument: {code: string};
 
-      if (bundle.url.endsWith('js')) {
-        bundleResult = await bundleJsModule(this, bundle, manifest);
+      if (bundle.url.endsWith('.js')) {
+        bundledDocument = await bundleJsModule(this, bundle, manifest);
       } else {
-        bundleResult = await bundleHtmlDocument(this, bundle, manifest);
+        bundledDocument = await bundleHtmlDocument(this, bundle, manifest);
       }
 
-      const {code} = bundleResult;
+      const {code} = bundledDocument;
       documents.set(bundleUrl, {code, files: Array.from(bundle.bundle.files)});
     }
 
@@ -157,7 +157,8 @@ export class Bundler {
         bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
     this._filterExcludesFromBundles(bundles);
     bundles = this.strategy(bundles);
-    return new BundleManifest(bundles, this.urlMapper);
+    const manifest = new BundleManifest(bundles, this.urlMapper);
+    return manifest;
   }
 
   /**

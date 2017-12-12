@@ -11,6 +11,10 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
+import * as babelGenerator from 'babel-generator';
+import * as babelTraverse from 'babel-traverse';
+import * as babel from 'babel-types';
+import * as babylon from 'babylon';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
@@ -345,6 +349,8 @@ export function rewriteAstBaseUrl(
     rewriteUrlsInTemplates?: boolean) {
   rewriteElementAttrsBaseUrl(
       ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
+  rewriteScriptImportsBaseUrl(
+      ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
   rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
   setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
 }
@@ -460,6 +466,60 @@ function rewriteElementAttrsBaseUrl(
         dom5.setAttribute(node, attr, relUrl);
       }
     }
+  }
+}
+
+/**
+ * Find all paths in JavaScript import declarations and rewrites them so they
+ * are based on the relationship of the old base url to the new base url.
+ */
+function rewriteScriptImportsBaseUrl(
+    ast: ASTNode,
+    oldBaseUrl: UrlString,
+    newBaseUrl: UrlString,
+    rewriteUrlsInTemplates: boolean = false) {
+  const childNodesOption = rewriteUrlsInTemplates ?
+      dom5.childNodesIncludeTemplate :
+      dom5.defaultChildNodes;
+  const inlineModules = dom5.queryAll(
+      ast, matchers.inlineJsModuleMatcher, undefined, childNodesOption);
+  // TODO(usergenic): iterate through the inline module scripts and adjust any
+  // relative path in import statements found.
+  for (const inlineModule of inlineModules) {
+    const code = dom5.getTextContent(inlineModule);
+    const jsAst = babylon.parse(code);
+    babelTraverse.default(jsAst, {
+      CallExpression: {
+        enter(path: babelTraverse.NodePath) {
+          const callExp = path.node as babel.CallExpression;
+          const callee = callExp.callee as babel.Node;
+          const arg0 = callExp.arguments[0] as babel.StringLiteral;
+          if (callee && callee.type === 'Import' && arg0 &&
+              babel.isStringLiteral(arg0)) {
+            const originalSource = arg0.value;
+            const resolvedSource = urlLib.resolve(oldBaseUrl, originalSource);
+            if (urlUtils.isRelativePath(originalSource)) {
+              const rebasedSource =
+                  urlUtils.relativeUrl(newBaseUrl, resolvedSource);
+              arg0.value = rebasedSource;
+            }
+          }
+        }
+      },
+      ImportDeclaration: {
+        enter(path: babelTraverse.NodePath) {
+          const impDec = path.node as babel.ImportDeclaration;
+          const originalSource = impDec.source.value;
+          const resolvedSource = urlLib.resolve(oldBaseUrl, originalSource);
+          if (urlUtils.isRelativePath(originalSource)) {
+            const rebasedSource =
+                urlUtils.relativeUrl(newBaseUrl, resolvedSource);
+            impDec.source.value = rebasedSource;
+          }
+        }
+      }
+    });
+    dom5.setTextContent(inlineModule, babelGenerator.default(jsAst).code);
   }
 }
 

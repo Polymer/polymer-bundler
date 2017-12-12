@@ -15,9 +15,11 @@
   "dependencies": {
     "@types/babel-generator": "^6.25.1",
     "@types/babel-traverse": "^6.25.3",
+    "@types/babylon": "^6.16.2",
     "@types/rollup": "^0.51.1",
     "babel-generator": "^6.26.0",
     "babel-traverse": "^6.26.0",
+    "babylon": "^6.18.0",
     "clone": "^2.1.0",
     "command-line-args": "^3.0.1",
     "command-line-usage": "^3.0.3",

@@ -1,8 +1,24 @@
+/**
+ * @license
+ * Copyright (c) 2017 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at
+ * http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at
+ * http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at
+ * http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at
+ * http://polymer.github.io/PATENTS.txt
+ */
+
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode, serialize, treeAdapters} from 'parse5';
 import {Document, ResolvedUrl} from 'polymer-analyzer';
+import * as rollup from 'rollup';
+import * as urlLib from 'url';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import * as astUtils from './ast-utils';
@@ -15,6 +31,13 @@ import * as urlUtils from './url-utils';
 // TODO(usergenic): Get rid of UrlString in favor of the new polymer-analyzer
 // branded url types.
 import {UrlString} from './url-utils';
+
+const polymerBundlerScheme = 'polymer-bundler://';
+const polymerBundlerInlineScheme = 'polymer-bundler-inline://';
+
+function regexpEscape(pattern: string): string {
+  return pattern.replace(/([/^$.+()[\]])/g, '\\$1');
+}
 
 /**
  * Produces a document containing the content of all of the bundle's files.
@@ -41,6 +64,8 @@ export async function bundleHtmlDocument(
   await inlineHtmlImports(bundler, document, ast, docBundle, bundleManifest);
 
   if (bundler.enableScriptInlining) {
+    await inlineModuleScripts(
+        bundler, document, ast, docBundle, bundleManifest, bundler.excludes);
     await inlineScripts(bundler, document, ast, docBundle, bundler.excludes);
   }
   if (bundler.enableCssInlining) {
@@ -157,9 +182,14 @@ function injectHtmlImportsForBundle(
                 {kind: 'html-import', imported: true, noLazyImports: true})
           ].filter((i) => !i.lazy).map((feature) => feature.document.url)]));
 
-  // Every file in the bundle is a candidate for injection into the
-  // document.
+  // Every file in the bundle is a candidate for injection into
+  // the document.
   for (const importUrl of bundle.bundle.files) {
+    // If the file isn't html, it will be brought in by other means.
+    if (!importUrl.endsWith('.html')) {
+      continue;
+    }
+
     // We don't want to inject the bundle into itself.
     if (bundle.url === importUrl) {
       continue;
@@ -314,6 +344,111 @@ async function inlineStylesheetLinks(
   }
 }
 
+function isRollupResolvedUrl(url: string) {
+  return url.startsWith(polymerBundlerInlineScheme) ||
+      url.startsWith(polymerBundlerScheme);
+}
+
+/**
+ * Creates a single `<script type="module">` tag containing a rollup of all the
+ * module scripts on the page, both inline and external.
+ */
+async function inlineModuleScripts(
+    bundler: Bundler,
+    document: Document,
+    ast: ASTNode,
+    bundle: AssignedBundle,
+    bundleManifest: BundleManifest,
+    excludes?: string[]) {
+  // All module scripts.
+  const moduleScripts = dom5.queryAll(
+      ast,
+      dom5.predicates.AND(
+          dom5.predicates.hasTagName('script'),
+          dom5.predicates.hasAttrValue('type', 'module')));
+  if (moduleScripts.length === 0) {
+    return;
+  }
+  const inlineScriptContents: string[] = [];
+  let bundleSource: string[] = [];
+  for (const moduleScript of moduleScripts) {
+    const src = dom5.getAttribute(moduleScript, 'src');
+    if (src) {
+      bundleSource.push(`import ${JSON.stringify(src)};`);
+    } else {
+      bundleSource.push(`import ${
+                                  JSON.stringify(
+                                      polymerBundlerInlineScheme +
+                                      inlineScriptContents.length)
+                                };`);
+      inlineScriptContents.push(dom5.getTextContent(ast));
+    }
+  }
+  inlineScriptContents.push(bundleSource.join('\n'));
+  // We have to compose the `external` array here because the id value yielded
+  // to the external function has no importer context making that form totally
+  // useless. *shakes fist*
+  let external: string[] = [];
+  bundleManifest.bundles.forEach((b, url) => {
+    if (url !== bundle.url) {
+      external.push(
+          ...[...b.files, url].map((u) => `${polymerBundlerScheme}${u}`));
+    }
+  });
+  // Should this analysis exclude perhaps the bundle file itself...?
+  const analysis = await bundler.analyzer.analyze([...bundle.bundle.files]);
+  const rollupBundle = await rollup.rollup({
+    input: `${polymerBundlerInlineScheme + (inlineScriptContents.length - 1)}`,
+    external,
+    plugins: [{
+      resolveId: (importee: string, importer: string | undefined) => {
+        if (importer && !isRollupResolvedUrl(importee) &&
+            urlUtils.isRelativePath(importee)) {
+          if (importer.startsWith(polymerBundlerInlineScheme)) {
+            importer = bundle.url;
+          }
+          importee = urlLib.resolve(importer, importee);
+        }
+        if (!isRollupResolvedUrl(importee)) {
+          importee = `${polymerBundlerScheme}${importee}`;
+        }
+        return importee;
+      },
+      load: (id: string) => {
+        if (!isRollupResolvedUrl(id)) {
+          throw new Error(`Unable to load unresolved id ${id}`);
+        }
+        if (id.startsWith(polymerBundlerScheme)) {
+          const url = id.slice(polymerBundlerScheme.length);
+          if (bundle.bundle.files.has(url)) {
+            return obscureDynamicImports((analysis.getDocument(url) as Document)
+                                             .parsedDocument.contents);
+          }
+        }
+        if (id.startsWith(polymerBundlerInlineScheme)) {
+          const index =
+              parseInt(id.slice(polymerBundlerInlineScheme.length), 10);
+          const code = inlineScriptContents[index];
+          return obscureDynamicImports(code);
+        }
+      }
+    }]
+  });
+  let {code} = await rollupBundle.generate(
+      {sourcemap: true, sourcemapFile: bundle.url + '.map', format: 'es'});
+  code = restoreDynamicImports(code);
+  code = code.replace(
+      new RegExp(`${regexpEscape(polymerBundlerScheme)}[^'"]+`, 'g'),
+      (m) => urlUtils.relativeUrl(
+          bundle.url, m.slice(polymerBundlerScheme.length), true));
+  // Remove all module scripts.
+  moduleScripts.forEach((m) => dom5.remove(m));
+  const newScript =
+      parse5.parseFragment(`<script type="module">${code}</script>`);
+  const body = dom5.query(ast, dom5.predicates.hasTagName('body')) || ast;
+  dom5.append(body, newScript);
+}
+
 /**
  * Old Polymer supported `<style>` tag in `<dom-module>` but outside of
  * `<template>`.  This is also where the deprecated Polymer CSS import
@@ -425,4 +560,22 @@ function removeEmptyHiddenDivs(ast: ASTNode) {
       dom5.remove(div);
     }
   }
+}
+
+// TODO(usergenic): Rollup is complaining about the 'import' in the dynamic
+// import syntax and so we have to rename it to something innocuous before
+// rollup sees the code.
+function obscureDynamicImports(code: string):
+    string {
+      return code.replace(
+          /\bimport\(/g,
+          '____dynamicimport____' +
+              '(');
+    }
+
+function restoreDynamicImports(code: string): string {
+  return code.replace(
+      /\b____dynamicimport____\(/g,
+      'import' +
+          '(');
 }

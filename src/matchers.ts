@@ -27,6 +27,17 @@ export const jsMatcher: Matcher = predicates.AND(
         predicates.NOT(predicates.hasAttr('type')),
         predicates.hasAttrValue('type', 'text/javascript'),
         predicates.hasAttrValue('type', 'application/javascript')));
+export const externalJavascript: Matcher =
+    predicates.AND(predicates.hasAttr('src'), jsMatcher);
+export const inlineJavascript: Matcher =
+    predicates.AND(predicates.NOT(predicates.hasAttr('src')), jsMatcher);
+
+export const jsModuleMatcher: Matcher = predicates.AND(
+    predicates.hasTagName('script'), predicates.hasAttrValue('type', 'module'));
+export const externalJsModuleMatcher: Matcher =
+    predicates.AND(jsModuleMatcher, predicates.hasAttr('src'));
+export const inlineJsModuleMatcher: Matcher =
+    predicates.AND(jsModuleMatcher, predicates.NOT(predicates.hasAttr('src')));
 
 export const externalStyle: Matcher = predicates.AND(
     predicates.hasTagName('link'),
@@ -56,10 +67,6 @@ export const domModuleWithoutAssetpath: Matcher = predicates.AND(
     predicates.hasAttr('id'),
     predicates.NOT(predicates.hasAttr('assetpath')));
 export const polymerElement: Matcher = predicates.hasTagName('polymer-element');
-export const externalJavascript: Matcher =
-    predicates.AND(predicates.hasAttr('src'), jsMatcher);
-export const inlineJavascript: Matcher =
-    predicates.AND(predicates.NOT(predicates.hasAttr('src')), jsMatcher);
 export const eagerHtmlImport: Matcher = predicates.AND(
     predicates.hasTagName('link'),
     predicates.hasAttrValue('rel', 'import'),

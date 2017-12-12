@@ -48,7 +48,7 @@ export class Bundle {
   files: Set<UrlString>;
 
   // Map of original resolved urls to exported names.
-  exportedJsModules = new Set<UrlString>();
+  exportedJsModules = new Map<UrlString, string>();
 
   // Set of imports which should be removed when encountered.
   stripImports = new Set<UrlString>();
@@ -170,13 +170,6 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
     if (!bundle) {
       bundle = new Bundle(entrypoints);
       bundles.push(bundle);
-    }
-    // TODO(usergenic): Right now we have to assume that js files in the dep
-    // index are considered js modules.  We should consider updating the dep
-    // index to have more fidelity on what *kind* of dep it is so that we don't
-    // have to assume.
-    if (dep.endsWith('.js')) {
-      bundle.exportedJsModules.add(dep);
     }
     bundle.files.add(dep);
   }
@@ -320,8 +313,9 @@ export function generateNoBackLinkStrategy(urls: UrlString[]): BundleStrategy {
  */
 export function mergeBundles(bundles: Bundle[]): Bundle {
   if (!bundles.every((b) => b.type === bundles[0].type)) {
-    console.log(bundles.map((b) => b.type));
-    throw new Error('Can not merge bundles of different type.');
+    throw new Error(
+        'Can not merge bundles of different types: ' +
+        bundles.map((b) => b.type).join(', '));
   }
   const newBundle = new Bundle();
   for (const {
@@ -334,7 +328,7 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
        } of bundles) {
     newBundle.entrypoints =
         new Set<UrlString>([...newBundle.entrypoints, ...entrypoints]);
-    newBundle.exportedJsModules = new Set<UrlString>(
+    newBundle.exportedJsModules = new Map<UrlString, string>(
         [...newBundle.exportedJsModules, ...exportedJsModules]);
     newBundle.files = new Set<UrlString>([...newBundle.files, ...files]);
     newBundle.inlinedHtmlImports = new Set<UrlString>(

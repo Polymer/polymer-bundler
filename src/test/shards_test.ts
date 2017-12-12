@@ -139,16 +139,20 @@ suite('Bundler', () => {
 
       const {documents} =
           await bundleMultiple([entrypoint, coolKitties, sharkTime]);
-      const sharedBundle2 = documents.get('shared_bundle_2.js')!.code;
 
-      const dog = documents.get('test/html/modules/dog.js')!.code;
+      const animalIndexCode = documents.get(entrypoint)!.code;
+      const coolKittiesCode = documents.get(coolKitties)!.code;
 
-      // TODO(usergenic): Should bundler really be returning ASTs?  We should
-      // probably just be returning the asset code.
+      const sharedBundle2Code = documents.get('shared_bundle_2.js')!.code;
+      const dogCode = documents.get('test/html/modules/dog.js')!.code;
+      const sharkTimeCode =
+          documents.get('test/html/modules/shark-time.html')!.code;
 
-      console.log('/* dog.js */\n---\n' + dog);
-
-      console.log('/* shared_bundle_2.js */\n---\n' + sharedBundle2);
+      console.log('/* animal-index.html */\n---\n' + animalIndexCode + '\n');
+      console.log('/* cool-kitties.js */\n---\n' + coolKittiesCode + '\n');
+      console.log('/* dog.js */\n---\n' + dogCode + '\n');
+      console.log('/* shared_bundle_2.js */\n---\n' + sharedBundle2Code + '\n');
+      console.log('/* shark-time.html */\n---\n' + sharkTimeCode + '\n');
     });
   });
 });

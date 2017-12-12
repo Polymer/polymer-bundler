@@ -1,3 +1,17 @@
+/**
+ * @license
+ * Copyright (c) 2017 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at
+ * http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at
+ * http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at
+ * http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at
+ * http://polymer.github.io/PATENTS.txt
+ */
+
 import * as babelGenerate from 'babel-generator';
 import * as babel from 'babel-types';
 import {Document} from 'polymer-analyzer';
@@ -8,16 +22,32 @@ import * as babelUtils from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import * as urlUtils from './url-utils';
+import {UrlString} from './url-utils';
 
 const polymerBundlerScheme = 'polymer-bundler://';
+
+export type ExportedJsModuleNameFn =
+    (importerUrl: UrlString, importeeUrl: UrlString) => string;
+
+export function defaultExportedJsModuleNameFn(
+    importerUrl: UrlString, importeeUrl: UrlString): string {
+  return '$bundled$' +
+      urlUtils.relativeUrl(importerUrl, importeeUrl)
+          .replace(/^\.\//, '')
+          .replace(/\.js$/, '')
+          .replace(/[^A-Za-z0-9_]/g, '$');
+};
 
 export async function bundleJsModule(
     bundler: Bundler,
     docBundle: AssignedBundle,
-    bundleManifest: BundleManifest): Promise<{code: string}> {
+    bundleManifest: BundleManifest,
+    exportedJsModuleNameFn: ExportedJsModuleNameFn =
+        defaultExportedJsModuleNameFn): Promise<{code: string}> {
   let document: Document;
   if (!docBundle.bundle.files.has(docBundle.url)) {
-    document = await generateJsBasisDocument(bundler, docBundle);
+    document = await generateJsBasisDocument(
+        bundler, docBundle, exportedJsModuleNameFn);
   }
 
   const analysis = await bundler.analyzer.analyze([...docBundle.bundle.files]);
@@ -49,7 +79,7 @@ export async function bundleJsModule(
       {
         resolveId: (importee: string, importer: string | undefined) => {
           if (importer && !isRollupResolvedUrl(importee) &&
-              isRelativePath(importee)) {
+              urlUtils.isRelativePath(importee)) {
             importee = urlLib.resolve(importer, importee);
           }
           if (!isRollupResolvedUrl(importee)) {
@@ -96,7 +126,7 @@ export async function bundleJsModule(
 
   // With the newly analyzed document, we can now rewrite the import sites.
   document = await rewriteJsBundleImports(
-      bundler, document, docBundle, bundleManifest);
+      bundler, document, docBundle, bundleManifest, exportedJsModuleNameFn);
 
   // TODO(usergenic): Update sourcemap?
   return {code: document.parsedDocument.contents};
@@ -106,7 +136,9 @@ async function rewriteJsBundleImports(
     bundler: Bundler,
     document: Document,
     docBundle: AssignedBundle,
-    bundleManifest: BundleManifest) {
+    bundleManifest: BundleManifest,
+    exportedJsModuleNameFn: ExportedJsModuleNameFn) {
+  const astRoot = document.parsedDocument.ast;
   const jsImports = document.getFeatures({kind: 'js-import'});
   const importedNamesBySource:
       Map<string, {local: string, imported: string}[]> = new Map();
@@ -143,20 +175,31 @@ async function rewriteJsBundleImports(
           if (babel.isImportSpecifier(specifier)) {
             importedNamesBySource.get(sourceBundle.url)!.push({
               local: specifier.local.name,
-              imported: specifier.imported.name
+              imported: specifier.imported.name,
+            });
+          }
+          if (babel.isImportDefaultSpecifier(specifier) ||
+              babel.isImportNamespaceSpecifier(specifier)) {
+            importedNamesBySource.get(sourceBundle.url)!.push({
+              local: specifier.local.name,
+              imported: '*',
             });
           }
         }
+
+        const exportedName = getOrSet(
+            docBundle.bundle.exportedJsModules,
+            resolvedSourceUrl,
+            () => exportedJsModuleNameFn(sourceBundle.url, resolvedSourceUrl));
+
         astNode.specifiers.splice(
             0,
             astNode.specifiers.length,
             babel.importSpecifier(
-                babel.identifier(
-                    moduleUrlToExportName(sourceBundle.url, resolvedSourceUrl)),
-                babel.identifier(moduleUrlToExportName(
-                    sourceBundle.url, resolvedSourceUrl))));
-        const importDeclarationParent =
-            babelUtils.getParent(document.parsedDocument.ast, astNode)!;
+                babel.identifier(exportedName),
+                babel.identifier(exportedName)));
+
+        const importDeclarationParent = babelUtils.getParent(astRoot, astNode)!;
         if (!importDeclarationParent) {
           // TODO(usergenic): This log should be a real error or warning or
           // something.
@@ -164,19 +207,6 @@ async function rewriteJsBundleImports(
               'CAN NOT INSERT CODE BECAUSE CAN NOT FIND PARENT OF IMPORT IN DOCUMENT AST');
           continue;
         }
-        const objectProperties: babel.ObjectProperty[] =
-            importedNamesBySource.get(sourceBundle.url)!.map(
-                ({local, imported}) => babel.objectProperty(
-                    babel.identifier(imported), babel.identifier(local)));
-        const variableDeclaration = babel.variableDeclaration(
-            'const', [babel.variableDeclarator(
-                         // TODO(usergenic): There's some kind of typings
-                         // mismatch here- should allow ObjectProperty[] but is
-                         // not doing so 'as any' to the rescue.
-                         babel.objectPattern(objectProperties as any[]),
-                         babel.identifier(moduleUrlToExportName(
-                             sourceBundle.url, resolvedSourceUrl)))]);
-
         let importDeclarationContainerArray;
         if (babel.isProgram(importDeclarationParent)) {
           importDeclarationContainerArray = importDeclarationParent.body;
@@ -189,52 +219,98 @@ async function rewriteJsBundleImports(
               importDeclarationParent.type);
           continue;
         }
+        const variableDeclarations = [];
+
+        // Transform:
+        //   import {a as A, b as B} from './some/module.js';
+        // Into:
+        //   import {$bundled$some$module} from './bundle_1.js';
+        //   const {a: A, b: B} = $bundled$some$module;
+        const importsInSourceBundle =
+            importedNamesBySource.get(sourceBundle.url)!;
+        const importsOfNamedValues =
+            importsInSourceBundle.filter(({imported}) => imported !== '*');
+        if (importsOfNamedValues.length > 0) {
+          variableDeclarations.push(babel.variableDeclaration(
+              'const',
+              [babel.variableDeclarator(
+                  // TODO(usergenic): There's some kind of typings
+                  // mismatch here- should allow ObjectProperty[] but is
+                  // not doing so 'as any' to the rescue.
+                  babel.objectPattern(
+                      importsOfNamedValues.map(
+                          ({local, imported}) => babel.objectProperty(
+                              babel.identifier(imported),
+                              babel.identifier(local))) as any),
+                  babel.identifier(exportedName))]));
+        }
+
+        // Transform:
+        //   import * as A from './some/module.js';
+        // Into:
+        //   import {$bundled$some$module} from './bundle_1.js';
+        //   const A = $bundled$some$module;
+        const importsOfNamespace =
+            importsInSourceBundle.filter(({imported}) => imported === '*');
+        if (importsOfNamespace.length > 0) {
+          for (const importOfNamespace of importsOfNamespace) {
+            variableDeclarations.push(babel.variableDeclaration(
+                'const', [babel.variableDeclarator(
+                             babel.identifier(importOfNamespace.local),
+                             babel.identifier(exportedName))]));
+          }
+        }
+
         importDeclarationContainerArray.splice(
             importDeclarationContainerArray.indexOf(astNode) + 1,
             0,
-            variableDeclaration);
+            ...variableDeclarations);
       }
     }
   }
 
   return bundler.analyzeContents(
-      docBundle.url, babelGenerate.default(document.parsedDocument.ast).code);
+      docBundle.url, babelGenerate.default(astRoot).code);
 }
 
-
-async function generateJsBasisDocument(
-    bundler: Bundler, docBundle: AssignedBundle):
+async function
+generateJsBasisDocument(
+    bundler: Bundler,
+    docBundle: AssignedBundle,
+    exportedJsModuleNameFn: ExportedJsModuleNameFn):
     Promise<Document> {
       let jsLines: string[] = [];
       const exportNames: string[] = [];
-      docBundle.bundle.files.forEach((url: string) => {
-        const exportName = moduleUrlToExportName(docBundle.url, url);
+      for (const url of docBundle.bundle.files) {
+        const exportName = getOrSet(
+            docBundle.bundle.exportedJsModules,
+            url,
+            () => exportedJsModuleNameFn(docBundle.url, url))!;
         exportNames.push(exportName);
         const relativeUrl = urlUtils.relativeUrl(docBundle.url, url, true);
         jsLines.push(`import * as ${exportName} from '${relativeUrl}';`);
-      });
-      jsLines.push(`export {${exportNames.join(', ')}}`);
+      }
+      jsLines.push(`export {${exportNames.join(', ')}};`);
+      console.log(jsLines.join('\n'));
       return bundler.analyzeContents(docBundle.url, jsLines.join('\n'));
     }
 
-function regexpEscape(pattern: string):
+function
+regexpEscape(pattern: string):
     string {
       return pattern.replace(/([/^$.+()[\]])/g, '\\$1');
     }
 
-function isRollupResolvedUrl(url: string):
+function
+isRollupResolvedUrl(url: string):
     boolean {
       return url.startsWith(polymerBundlerScheme);
     }
 
-function isRelativePath(url: string):
-    boolean {
-      return /^\.+\//.test(url);
-    }
-
-function moduleUrlToExportName(bundleUrl: string, moduleUrl: string): string {
-  return urlUtils.relativeUrl(bundleUrl, moduleUrl)
-      .replace(/[^a-z0-9_]+/g, '$')
-      .replace(/^\$/, '')
-      .replace(/\$js/, '');
+function
+getOrSet<K, V>(map: Map<K, V>, key: K, fn: () => V) {
+  if (!map.has(key)) {
+    map.set(key, fn());
+  }
+  return map.get(key);
 }

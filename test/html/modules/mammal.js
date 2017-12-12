@@ -1,4 +1,4 @@
-import { Vertebrate } from './vertebrate.js';
+import * as v from './vertebrate.js';
 
-export class Mammal extends Vertebrate {
+export class Mammal extends v.Vertebrate {
 }
