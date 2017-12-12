@@ -133,9 +133,9 @@ suite('Bundler', () => {
     });
 
     test('with JavaScript modules, all deps in their places', async () => {
-      const entrypoint = 'test/html/modules/animal-index.html';
-      const coolKitties = 'test/html/modules/cool-kitties.html';
-      const sharkTime = 'test/html/modules/shark-time.html';
+      const entrypoint = 'test/html/modules/animals/animal-index.html';
+      const coolKitties = 'test/html/modules/animals/cool-kitties.html';
+      const sharkTime = 'test/html/modules/animals/shark-time.html';
 
       const {documents} =
           await bundleMultiple([entrypoint, coolKitties, sharkTime]);
@@ -144,9 +144,9 @@ suite('Bundler', () => {
       const coolKittiesCode = documents.get(coolKitties)!.code;
 
       const sharedBundle2Code = documents.get('shared_bundle_2.js')!.code;
-      const dogCode = documents.get('test/html/modules/dog.js')!.code;
+      const dogCode = documents.get('test/html/modules/animals/dog.js')!.code;
       const sharkTimeCode =
-          documents.get('test/html/modules/shark-time.html')!.code;
+          documents.get('test/html/modules/animals/shark-time.html')!.code;
 
       console.log('/* animal-index.html */\n---\n' + animalIndexCode + '\n');
       console.log('/* cool-kitties.js */\n---\n' + coolKittiesCode + '\n');

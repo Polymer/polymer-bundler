@@ -135,20 +135,20 @@ suite('Bundler', () => {
       });
 
       test('only module type scripts are bundle files', async () => {
-        const entrypoint = 'modules/animal-index.html';
-        const coolKitties = 'modules/cool-kitties.html';
-        const sharkTime = 'modules/shark-time.html';
+        const entrypoint = 'modules/animals/animal-index.html';
+        const coolKitties = 'modules/animals/cool-kitties.html';
+        const sharkTime = 'modules/animals/shark-time.html';
 
-        const cat = 'modules/cat.js';
-        const dog = 'modules/dog.js';
-        const fish = 'modules/aquatic-js/fish.js';
-        const invertebrate = 'modules/invertebrate.js';
-        const lazyDog = 'modules/lazy-dog.js';
-        const mammal = 'modules/mammal.js';
+        const cat = 'modules/animals/cat.js';
+        const dog = 'modules/animals/dog.js';
+        const fish = 'modules/animals/aquatic-js/fish.js';
+        const invertebrate = 'modules/animals/invertebrate.js';
+        const lazyDog = 'modules/animals/lazy-dog.js';
+        const mammal = 'modules/animals/mammal.js';
         const sharedImport = 'modules/shared-import.html';
-        const shark = 'modules/aquatic-js/shark.js';
-        const snail = 'modules/snail.js';
-        const vertebrate = 'modules/vertebrate.js';
+        const shark = 'modules/animals/aquatic-js/shark.js';
+        const snail = 'modules/animals/snail.js';
+        const vertebrate = 'modules/animals/vertebrate.js';
 
         const externalScript = 'imports/external-script.html';
 
