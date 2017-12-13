@@ -193,7 +193,8 @@ suite('Bundling JS Modules', () => {
         `));
       });
 
-      test('dynamically imported from shared bundle', async () => {
+      test('dynamically importing from a shared bundle', async () => {
+
         const result = await bundleMultiple(
             ['dynamic-import-await.js', 'dynamic-import-then.js'], {
               strategy: (bundles) => mergeMatchingBundles(
