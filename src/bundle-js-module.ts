@@ -144,6 +144,9 @@ export async function rewriteJsBundleImports(
       if (babel.isImportDeclaration(node)) {
         jsImports.push(node);
       }
+      if (node.type === 'Import') {
+        jsImports.push(node);
+      }
     },
     noScope: true,
   });
@@ -273,6 +276,84 @@ export async function rewriteJsBundleImports(
             importDeclarationContainerArray.indexOf(jsImport) + 1,
             0,
             ...variableDeclarations);
+      }
+    }
+    // Dynamic Import
+    if (jsImport.type === 'Import') {
+      // Transform:
+      //   import('./some/module.js')
+      // Into:
+      //   import('./bundle_1.js')
+      //       .then(({ $bundled$some$module }) => $bundled$some$module)
+      const importCallExpression = babelUtils.getParent(astRoot, jsImport);
+      if (!importCallExpression ||
+          !babel.isCallExpression(importCallExpression)) {
+        // TODO(usergenic): This log should be a real error or warning or
+        // something.
+        console.log(
+            'CAN NOT INSERT CODE BECAUSE CAN NOT FIND PARENT OF IMPORT IN DOCUMENT AST');
+        continue;
+      }
+      const importCallArgument = importCallExpression.arguments[0]!;
+      if (!babel.isStringLiteral(importCallArgument)) {
+        console.log(
+            'CAN NOT FIGURE OUT WHERE THE DYNAMIC IMPORT IS PULLING FROM.  I ONLY UNDERSTAND STRING LITERALS');
+        continue;
+      }
+      const sourceUrl = importCallArgument.value;
+      const resolvedSourceUrl = urlLib.resolve(docBundle.url, sourceUrl);
+      const sourceBundle = bundleManifest.getBundleForFile(resolvedSourceUrl);
+      if (sourceBundle && sourceBundle.url !== resolvedSourceUrl) {
+        const exportedName = getOrSet(
+            docBundle.bundle.exportedJsModules,
+            resolvedSourceUrl,
+            () => exportedJsModuleNameFn(sourceBundle.url, resolvedSourceUrl));
+
+        importCallExpression.arguments[0] = babel.stringLiteral(
+            urlUtils.relativeUrl(docBundle.url, sourceBundle.url));
+        const thenifiedCallExpression = babel.callExpression(
+            babel.memberExpression(
+                importCallExpression, babel.identifier('then')),
+            [babel.arrowFunctionExpression(
+                [
+                  babel.objectPattern([
+                    babel.objectProperty(
+                        babel.identifier(exportedName),
+                        babel.identifier(exportedName)) as any,
+                  ]),
+                ],
+                babel.identifier(exportedName))]);
+
+        babelTraverse.default(astRoot, {
+          enter(path: babelTraverse.NodePath) {
+            const node = path.node;
+            if (babel.isAwaitExpression(node) &&
+                node.argument === importCallExpression) {
+              node.argument = thenifiedCallExpression;
+              path.stop();
+              return;
+            }
+            if (babel.isExpressionStatement(node) &&
+                node.expression === importCallExpression) {
+              node.expression = thenifiedCallExpression;
+              path.stop();
+              return;
+            }
+            if (babel.isMemberExpression(node) &&
+                node.object === importCallExpression) {
+              node.object = thenifiedCallExpression;
+              path.stop();
+              return;
+            }
+            if (babel.isVariableDeclarator(node) &&
+                node.init === importCallExpression) {
+              node.init = thenifiedCallExpression;
+              path.stop();
+              return;
+            }
+          },
+          noScope: true,
+        });
       }
     }
   }
