@@ -190,7 +190,7 @@ suite('import declaration forms', () => {
       `));
     });
 
-    test.only('dynamically imported from shared bundle', async () => {
+    test('dynamically imported from shared bundle', async () => {
       const result = await bundleMultiple(
           ['dynamic-import-await.js', 'dynamic-import-then.js'], {
             strategy: (bundles) => mergeMatchingBundles(
@@ -222,21 +222,21 @@ suite('import declaration forms', () => {
 
       const sharedBundle = result.documents.get('shared_bundle_1.js')!.code;
       assert.deepEqual(sharedBundle, undent(`
-      const c = {
-        value: 'C'
-      };
-      console.log('module-c side-effect');
-      var moduleC = Object.freeze({
-        c: c
-      });
-      const b = {
-        value: 'B'
-      };
-      console.log('module-b side-effect');
-      var moduleB = Object.freeze({
-        b: b
-      });
-      export { moduleC as $bundled$module$c, moduleB as $bundled$module$b };
+        const c = {
+          value: 'C'
+        };
+        console.log('module-c side-effect');
+        var moduleC = Object.freeze({
+          c: c
+        });
+        const b = {
+          value: 'B'
+        };
+        console.log('module-b side-effect');
+        var moduleB = Object.freeze({
+          b: b
+        });
+        export { moduleC as $bundled$module$c, moduleB as $bundled$module$b };
       `));
     });
   });
