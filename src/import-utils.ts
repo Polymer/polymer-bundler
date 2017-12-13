@@ -14,7 +14,6 @@
 import * as babelGenerator from 'babel-generator';
 import * as babelTraverse from 'babel-traverse';
 import * as babel from 'babel-types';
-import * as babylon from 'babylon';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
@@ -22,6 +21,7 @@ import {Analyzer, Document, ParsedHtmlDocument, ResolvedUrl} from 'polymer-analy
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';
+import * as babelUtils from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import constants from './constants';
 import * as matchers from './matchers';
@@ -29,7 +29,6 @@ import {addOrUpdateSourcemapComment} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
 import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
-
 
 // TODO(usergenic): Revisit the organization of this module and *consider*
 // building a class to encapsulate the common document details like docUrl and
@@ -487,7 +486,7 @@ function rewriteScriptImportsBaseUrl(
   // relative path in import statements found.
   for (const inlineModule of inlineModules) {
     const code = dom5.getTextContent(inlineModule);
-    const jsAst = babylon.parse(code);
+    const jsAst = babelUtils.parseModuleFile(oldBaseUrl, code);
     babelTraverse.default(jsAst, {
       CallExpression: {
         enter(path: babelTraverse.NodePath) {

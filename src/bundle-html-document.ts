@@ -13,7 +13,6 @@
  */
 
 import * as babelGenerator from 'babel-generator';
-import * as babylon from 'babylon';
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
@@ -24,6 +23,7 @@ import * as urlLib from 'url';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import * as astUtils from './ast-utils';
+import * as babelUtils from './babel-utils';
 import {defaultExportedJsModuleNameFn, obscureDynamicImports, restoreDynamicImports, rewriteJsBundleImports} from './bundle-js-module';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
@@ -450,16 +450,7 @@ async function inlineModuleScripts(
       new RegExp(`${regexpEscape(polymerBundlerScheme)}[^'"]+`, 'g'),
       (m) => urlUtils.relativeUrl(
           bundle.url, m.slice(polymerBundlerScheme.length), true));
-  const jsAst = babylon.parse(code, {
-    sourceFilename: bundle.url,
-    sourceType: 'module',
-    plugins: [
-      'asyncGenerators',
-      'dynamicImport',
-      // 'importMeta', // not yet in the @types file
-      'objectRestSpread',
-    ],
-  });
+  const jsAst = babelUtils.parseModuleFile(bundle.url, code);
 
   // TODO(usergenic): Explicitly sending in the default js module name function
   // here is bad.  I need a better place to define this.  Maybe *on* the

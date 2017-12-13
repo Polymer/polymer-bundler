@@ -210,7 +210,7 @@ export async function rewriteJsBundleImports(
                 babel.identifier(exportedName)));
 
         const importDeclarationParent =
-            babelUtils.getParent(astRoot, jsImport)!;
+            babelUtils.getParentNode(astRoot, jsImport)!;
         if (!importDeclarationParent) {
           // TODO(usergenic): This log should be a real error or warning or
           // something.
@@ -285,7 +285,7 @@ export async function rewriteJsBundleImports(
       // Into:
       //   import('./bundle_1.js')
       //       .then(({ $bundled$some$module }) => $bundled$some$module)
-      const importCallExpression = babelUtils.getParent(astRoot, jsImport);
+      const importCallExpression = babelUtils.getParentNode(astRoot, jsImport);
       if (!importCallExpression ||
           !babel.isCallExpression(importCallExpression)) {
         // TODO(usergenic): This log should be a real error or warning or
@@ -407,8 +407,8 @@ getOrSet<K, V>(map: Map<K, V>, key: K, fn: () => V) {
 // as we restore the `import()` syntax after rollup is done.
 export function obscureDynamicImports(
     bundleUrl: UrlString, sourceUrl: UrlString, code: string) {
-  // TODO(usergenic): Please use babylon to parse this instead of this brittle
-  // insane regexp replacement.
+  // TODO(usergenic): Please use babylon to parse this instead of
+  // this brittle insane regexp replacement.
   return code.replace(
       /\bimport\([^)]+/gm,
       (m) => `____dynamic_${m}, ${JSON.stringify(sourceUrl)}`);
