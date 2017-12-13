@@ -18,7 +18,7 @@ import * as chai from 'chai';
 import * as path from 'path';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
-import {generateSharedDepsMergeStrategy} from '../bundle-manifest';
+import {generateSharedDepsMergeStrategy, mergeMatchingBundles} from '../bundle-manifest';
 import {Bundler, BundleResult, Options} from '../bundler';
 import {undent} from './test-utils';
 
@@ -28,13 +28,13 @@ const assert = chai.assert;
 
 async function bundle(root: string, urls: string[], options?: Options):
     Promise<BundleResult> {
-      const bundler = new Bundler(Object.assign(
-          {
-            analyzer: new Analyzer({
-              urlLoader: new FSUrlLoader(path.resolve(root)),
-            }),
-          },
-          options));
+      const bundlerOptions = Object.assign({}, options) as Options;
+      if (!bundlerOptions.analyzer) {
+        bundlerOptions.analyzer = new Analyzer({
+          urlLoader: new FSUrlLoader(path.resolve(root)),
+        });
+      }
+      const bundler = new Bundler(bundlerOptions);
       return bundler.bundle(await bundler.generateManifest(urls));
     }
 
@@ -118,7 +118,7 @@ suite('Bundling HTML Documents', () => {
 
       const bundleMultiple = async (urls: string[], options?: Options) => {
         return (await bundle(
-            root, urls.map((u) => `import-declaration-forms/${u}`, options)));
+            root, urls.map((u) => `import-declaration-forms/${u}`), options));
       };
 
       test('shared bundle with 2 exported modules', async () => {
@@ -195,6 +195,59 @@ suite('Bundling HTML Documents', () => {
             b: b
           });
           export { moduleA as $bundled$module$a, moduleB as $bundled$module$b };
+        `));
+      });
+
+      test('dynamically importing from a shared bundle', async () => {
+
+        const result = await bundleMultiple(
+            ['dynamic-import-await.html', 'dynamic-import-then.html'], {
+              strategy: (bundles) => mergeMatchingBundles(
+                  bundles,
+                  (b) => [...b.files].some((f) => !!f.match(/module-/))),
+            });
+
+        const sharedBundle = result.documents.get('shared_bundle_1.js')!.code;
+        assert.deepEqual(sharedBundle, undent(`
+          const c = {
+            value: 'C'
+          };
+          console.log('module-c side-effect');
+          var moduleC = Object.freeze({
+            c: c
+          });
+          const b = {
+            value: 'B'
+          };
+          console.log('module-b side-effect');
+          var moduleB = Object.freeze({
+            b: b
+          });
+          export { moduleC as $bundled$module$c, moduleB as $bundled$module$b };
+        `));
+
+        const dynamicImportAwait =
+            result.documents
+                .get(
+                    'import-declaration-forms/dynamic-import-await.html')!.code;
+        assert.deepEqual(dynamicImportAwait.trim(), undent(`
+          <script type="module">async function dynamicExample() {
+            const moduleC = await import("../shared_bundle_1.js").then(({
+              $bundled$module$c: $bundled$module$c
+            }) => $bundled$module$c);
+            console.log(moduleC.value);
+          }
+
+          dynamicExample();</script>
+        `));
+
+        const dynamicImportThen =
+            result.documents
+                .get('import-declaration-forms/dynamic-import-then.html')!.code;
+        assert.deepEqual(dynamicImportThen.trim(), undent(`
+          <script type="module">import("../shared_bundle_1.js").then(({
+            $bundled$module$b: $bundled$module$b
+          }) => $bundled$module$b).then(b => console.log(b.value));</script>
         `));
       });
     });
