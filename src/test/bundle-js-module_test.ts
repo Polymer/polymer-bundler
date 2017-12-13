@@ -39,205 +39,210 @@ async function bundle(root: string, urls: string[], options?: Options):
       return bundler.bundle(await bundler.generateManifest(urls));
     }
 
-suite('import declaration forms', () => {
+suite('Bundling JS Modules', () => {
 
-  const root = 'test/html/modules';
+  suite('import declaration forms', () => {
 
-  suite('single entrypoint', () => {
+    const root = 'test/html/modules';
 
-    const bundleOne = async (url: string) =>
-        (await bundle(root, [`import-declaration-forms/${url}`]))
-            .documents.get(`import-declaration-forms/${url}`)!.code;
+    suite('single entrypoint', () => {
 
-    test('default specifier', async () => {
-      const code = await bundleOne('default-specifier.js');
-      assert.deepEqual(code, undent(`
-        const value = 'DEFAULT';
-        console.log(value);
-      `));
+      const bundleOne = async (url: string) =>
+          (await bundle(root, [`import-declaration-forms/${url}`]))
+              .documents.get(`import-declaration-forms/${url}`)!.code;
+
+      test('default specifier', async () => {
+        const code = await bundleOne('default-specifier.js');
+        assert.deepEqual(code, undent(`
+          const value = 'DEFAULT';
+          console.log(value);
+        `));
+      });
+
+      test('dynamic import await', async () => {
+        const code = await bundleOne('dynamic-import-await.js');
+        assert.deepEqual(code, undent(`
+          async function dynamicExample() {
+            const moduleC = await import("../module-c.js");
+            console.log(moduleC.value);
+          }
+
+          export { dynamicExample };
+        `));
+      });
+
+      test('named specifier', async () => {
+        const code = await bundleOne('named-specifier.js');
+        assert.deepEqual(code, undent(`
+          const a = {
+            value: 'A'
+          };
+          console.log('module-a side-effect');
+          console.log(a.value);
+        `));
+      });
+
+      test('namespace specifier', async () => {
+        const code = await bundleOne('namespace-specifier.js');
+        assert.deepEqual(code, undent(`
+          const b = {
+            value: 'B'
+          };
+          console.log('module-b side-effect');
+          console.log(b.value);
+        `));
+      });
+
+      test('no specifier', async () => {
+        const code = await bundleOne('no-specifier.js');
+        assert.deepEqual(code, undent(`
+          console.log('module-b side-effect');
+          console.log('no-specifier side-effect');
+        `));
+      });
+
+      test('renamed local specifier', async () => {
+        const code = await bundleOne('renamed-local-specifier.js');
+        assert.deepEqual(code, undent(`
+          const a = {
+            value: 'A'
+          };
+          console.log('module-a side-effect');
+          console.log(a.value);
+        `));
+      });
     });
 
-    test('dynamic import await', async () => {
-      const code = await bundleOne('dynamic-import-await.js');
-      assert.deepEqual(code, undent(`
-        async function dynamicExample() {
-          const moduleC = await import("../module-c.js");
-          console.log(moduleC.value);
-        }
+    suite('shared bundles', () => {
 
-        export { dynamicExample };
-      `));
-    });
+      const bundleMultiple = async (urls: string[], options?: Options) => {
+        return (await bundle(
+            root, urls.map((u) => `import-declaration-forms/${u}`), options));
+      };
 
-    test('named specifier', async () => {
-      const code = await bundleOne('named-specifier.js');
-      assert.deepEqual(code, undent(`
-        const a = {
-          value: 'A'
-        };
-        console.log('module-a side-effect');
-        console.log(a.value);
-      `));
-    });
+      test('shared bundle with 2 exported modules', async () => {
 
-    test('namespace specifier', async () => {
-      const code = await bundleOne('namespace-specifier.js');
-      assert.deepEqual(code, undent(`
-        const b = {
-          value: 'B'
-        };
-        console.log('module-b side-effect');
-        console.log(b.value);
-      `));
-    });
+        const result = await bundleMultiple(
+            [
+              'named-specifier.js',
+              'namespace-specifier.js',
+              'no-specifier.js',
+              'renamed-local-specifier.js',
+            ],
+            {strategy: generateSharedDepsMergeStrategy(2)});
 
-    test('no specifier', async () => {
-      const code = await bundleOne('no-specifier.js');
-      assert.deepEqual(code, undent(`
-        console.log('module-b side-effect');
-        console.log('no-specifier side-effect');
-      `));
-    });
+        const namedSpecifier =
+            result.documents.get('import-declaration-forms/named-specifier.js')!
+                .code;
+        assert.deepEqual(namedSpecifier, undent(`
+          import { $bundled$module$a } from "../shared_bundle_1.js";
+          const {
+            a: a
+          } = $bundled$module$a;
+          console.log(a.value);
+        `));
 
-    test('renamed local specifier', async () => {
-      const code = await bundleOne('renamed-local-specifier.js');
-      assert.deepEqual(code, undent(`
-        const a = {
-          value: 'A'
-        };
-        console.log('module-a side-effect');
-        console.log(a.value);
-      `));
-    });
-  });
+        const namespaceSpecifier =
+            result.documents
+                .get('import-declaration-forms/namespace-specifier.js')!.code;
+        assert.deepEqual(namespaceSpecifier, undent(`
+          import { $bundled$module$b } from "../shared_bundle_1.js";
+          const {
+            b: b
+          } = $bundled$module$b;
+          console.log(b.value);
+        `));
 
-  suite('shared bundles', () => {
+        const noSpecifier =
+            result.documents.get('import-declaration-forms/no-specifier.js')!
+                .code;
+        assert.deepEqual(noSpecifier, undent(`
+          import { $bundled$module$b } from "../shared_bundle_1.js";
+          console.log('no-specifier side-effect');
+        `));
 
-    const bundleMultiple = async (urls: string[], options?: Options) => {
-      return (await bundle(
-          root, urls.map((u) => `import-declaration-forms/${u}`), options));
-    };
+        const renamedLocalSpecifier =
+            result.documents
+                .get('import-declaration-forms/renamed-local-specifier.js')!
+                .code;
+        assert.deepEqual(renamedLocalSpecifier, undent(`
+          import { $bundled$module$a } from "../shared_bundle_1.js";
+          const {
+            a: a
+          } = $bundled$module$a;
+          console.log(a.value);
+        `));
 
-    test('shared bundle with 2 exported modules', async () => {
-
-      const result = await bundleMultiple(
-          [
-            'named-specifier.js',
-            'namespace-specifier.js',
-            'no-specifier.js',
-            'renamed-local-specifier.js',
-          ],
-          {strategy: generateSharedDepsMergeStrategy(2)});
-
-      const namedSpecifier =
-          result.documents.get('import-declaration-forms/named-specifier.js')!
-              .code;
-      assert.deepEqual(namedSpecifier, undent(`
-        import { $bundled$module$a } from "../shared_bundle_1.js";
-        const {
-          a: a
-        } = $bundled$module$a;
-        console.log(a.value);
-      `));
-
-      const namespaceSpecifier =
-          result.documents
-              .get('import-declaration-forms/namespace-specifier.js')!.code;
-      assert.deepEqual(namespaceSpecifier, undent(`
-        import { $bundled$module$b } from "../shared_bundle_1.js";
-        const {
-          b: b
-        } = $bundled$module$b;
-        console.log(b.value);
-      `));
-
-      const noSpecifier =
-          result.documents.get(
-                              'import-declaration-forms/no-specifier.js')!.code;
-      assert.deepEqual(noSpecifier, undent(`
-        import { $bundled$module$b } from "../shared_bundle_1.js";
-        console.log('no-specifier side-effect');
-      `));
-
-      const renamedLocalSpecifier =
-          result.documents
-              .get('import-declaration-forms/renamed-local-specifier.js')!.code;
-      assert.deepEqual(renamedLocalSpecifier, undent(`
-        import { $bundled$module$a } from "../shared_bundle_1.js";
-        const {
-          a: a
-        } = $bundled$module$a;
-        console.log(a.value);
-      `));
-
-      const sharedBundle = result.documents.get('shared_bundle_1.js')!.code;
-      assert.deepEqual(sharedBundle, undent(`
-        const a = {
-          value: 'A'
-        };
-        console.log('module-a side-effect');
-        var moduleA = Object.freeze({
-          a: a
-        });
-        const b = {
-          value: 'B'
-        };
-        console.log('module-b side-effect');
-        var moduleB = Object.freeze({
-          b: b
-        });
-        export { moduleA as $bundled$module$a, moduleB as $bundled$module$b };
-      `));
-    });
-
-    test('dynamically imported from shared bundle', async () => {
-      const result = await bundleMultiple(
-          ['dynamic-import-await.js', 'dynamic-import-then.js'], {
-            strategy: (bundles) => mergeMatchingBundles(
-                bundles, (b) => [...b.files].some((f) => !!f.match(/module-/))),
+        const sharedBundle = result.documents.get('shared_bundle_1.js')!.code;
+        assert.deepEqual(sharedBundle, undent(`
+          const a = {
+            value: 'A'
+          };
+          console.log('module-a side-effect');
+          var moduleA = Object.freeze({
+            a: a
           });
+          const b = {
+            value: 'B'
+          };
+          console.log('module-b side-effect');
+          var moduleB = Object.freeze({
+            b: b
+          });
+          export { moduleA as $bundled$module$a, moduleB as $bundled$module$b };
+        `));
+      });
 
-      const dynamicImportAwait =
-          result.documents
-              .get('import-declaration-forms/dynamic-import-await.js')!.code;
-      assert.deepEqual(dynamicImportAwait, undent(`
-        async function dynamicExample() {
-          const moduleC = await import("../shared_bundle_1.js").then(({
-            $bundled$module$c: $bundled$module$c
-          }) => $bundled$module$c);
-          console.log(moduleC.value);
-        }
+      test('dynamically imported from shared bundle', async () => {
+        const result = await bundleMultiple(
+            ['dynamic-import-await.js', 'dynamic-import-then.js'], {
+              strategy: (bundles) => mergeMatchingBundles(
+                  bundles,
+                  (b) => [...b.files].some((f) => !!f.match(/module-/))),
+            });
 
-        export { dynamicExample };
-      `));
+        const dynamicImportAwait =
+            result.documents
+                .get('import-declaration-forms/dynamic-import-await.js')!.code;
+        assert.deepEqual(dynamicImportAwait, undent(`
+          async function dynamicExample() {
+            const moduleC = await import("../shared_bundle_1.js").then(({
+              $bundled$module$c: $bundled$module$c
+            }) => $bundled$module$c);
+            console.log(moduleC.value);
+          }
 
-      const dynamicImportThen =
-          result.documents
-              .get('import-declaration-forms/dynamic-import-then.js')!.code;
-      assert.deepEqual(dynamicImportThen, undent(`
-        import("../shared_bundle_1.js").then(({
-          $bundled$module$b: $bundled$module$b
-        }) => $bundled$module$b).then(b => console.log(b.value));
-      `));
+          export { dynamicExample };
+        `));
 
-      const sharedBundle = result.documents.get('shared_bundle_1.js')!.code;
-      assert.deepEqual(sharedBundle, undent(`
-        const c = {
-          value: 'C'
-        };
-        console.log('module-c side-effect');
-        var moduleC = Object.freeze({
-          c: c
-        });
-        const b = {
-          value: 'B'
-        };
-        console.log('module-b side-effect');
-        var moduleB = Object.freeze({
-          b: b
-        });
-        export { moduleC as $bundled$module$c, moduleB as $bundled$module$b };
-      `));
+        const dynamicImportThen =
+            result.documents
+                .get('import-declaration-forms/dynamic-import-then.js')!.code;
+        assert.deepEqual(dynamicImportThen, undent(`
+          import("../shared_bundle_1.js").then(({
+            $bundled$module$b: $bundled$module$b
+          }) => $bundled$module$b).then(b => console.log(b.value));
+        `));
+
+        const sharedBundle = result.documents.get('shared_bundle_1.js')!.code;
+        assert.deepEqual(sharedBundle, undent(`
+          const c = {
+            value: 'C'
+          };
+          console.log('module-c side-effect');
+          var moduleC = Object.freeze({
+            c: c
+          });
+          const b = {
+            value: 'B'
+          };
+          console.log('module-b side-effect');
+          var moduleB = Object.freeze({
+            b: b
+          });
+          export { moduleC as $bundled$module$c, moduleB as $bundled$module$b };
+        `));
+      });
     });
   });
 });
