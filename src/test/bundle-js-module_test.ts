@@ -71,6 +71,26 @@ suite('Bundling JS Modules', () => {
         `));
       });
 
+      test('multiple specifiers (default and named)', async () => {
+        const code = await bundleOne('multiple-specifiers-1.js');
+        assert.deepEqual(code, undent(`
+          const value = 'DEFAULT';
+          const otherValue = 'OTHER';
+          console.log('default value:', value);
+          console.log('other value:', otherValue);
+        `));
+      });
+
+      test('multiple specifiers (default and namespaced)', async () => {
+        const code = await bundleOne('multiple-specifiers-2.js');
+        assert.deepEqual(code, undent(`
+          const value = 'DEFAULT';
+          const otherValue = 'OTHER';
+          console.log('default value:', value);
+          console.log('other value:', otherValue);
+        `));
+      });
+
       test('named specifier', async () => {
         const code = await bundleOne('named-specifier.js');
         assert.deepEqual(code, undent(`
