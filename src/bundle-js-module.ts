@@ -12,8 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import * as babelGenerate from 'babel-generator';
-import * as babelTraverse from 'babel-traverse';
+import babelTraverse, {NodePath} from 'babel-traverse';
 import * as babel from 'babel-types';
 import * as clone from 'clone';
 import {Document, ResolvedUrl} from 'polymer-analyzer';
@@ -26,6 +25,7 @@ import {Bundler} from './bundler';
 import * as urlUtils from './url-utils';
 
 const polymerBundlerScheme = 'polymer-bundler://root/';
+const polymerBundlerDynamicImportIdentifier = '____polymerBundlerDynamicImport';
 
 export type ExportedJsModuleNameFn =
     (importerUrl: ResolvedUrl, importeeUrl: ResolvedUrl) => string;
@@ -123,7 +123,7 @@ export async function bundleJsModule(
   await rewriteJsBundleImports(
       bundler, ast, docBundle, bundleManifest, exportedJsModuleNameFn);
 
-  code = babelGenerate.default(ast).code;
+  code = babelUtils.serialize(ast);
 
   document = await bundler.analyzeContents(docBundle.url, code);
 
@@ -139,8 +139,8 @@ export async function rewriteJsBundleImports(
     exportedJsModuleNameFn: ExportedJsModuleNameFn) {
   const jsImports: babel.Node[] = [];
 
-  babelTraverse.default(astRoot, {
-    enter(path: babelTraverse.NodePath) {
+  babelTraverse(astRoot, {
+    enter(path: NodePath) {
       const node = path.node;
       if (babel.isImportDeclaration(node)) {
         jsImports.push(node);
@@ -327,8 +327,8 @@ export async function rewriteJsBundleImports(
                 ],
                 babel.identifier(exportedName))]);
 
-        babelTraverse.default(astRoot, {
-          enter(path: babelTraverse.NodePath) {
+        babelTraverse(astRoot, {
+          enter(path: NodePath) {
             const node = path.node;
             if (babel.isAwaitExpression(node) &&
                 node.argument === importCallExpression) {
@@ -407,29 +407,63 @@ getOrSet<K, V>(map: Map<K, V>, key: K, fn: () => V) {
 // rollup sees the code.  The problem with this approach is that dynamic imports
 // which are rolled up into a file from another directory aren't rewritten, so
 // we have to capture the original dynamic import statement and rewrite the urls
-// as we restore the `import()` syntax after rollup is done.
+// as we restore the `import()` syntax after rollup is done.  We also have to
+// capture the source url of the original import statement so that when rollup
+// moves this code into the bundle, we can rebase the url to the bundle's url
+// appropriately.
 export function obscureDynamicImports(
     bundleUrl: ResolvedUrl, sourceUrl: ResolvedUrl, code: string) {
-  // TODO(usergenic): Please use babylon to parse this instead of
-  // this brittle insane regexp replacement.
-  return code.replace(
-      /\bimport\([^)]+/gm,
-      (m) => `____dynamic_${m}, ${JSON.stringify(sourceUrl)}`);
+  const ast = babelUtils.parseModuleFile(bundleUrl, code);
+  babelTraverse(ast, {
+    noScope: true,
+    CallExpression: {
+      enter(path: NodePath) {
+        const callExpression = path.node as babel.CallExpression;
+        const callee = callExpression.callee;
+        // Have to cast to string because type defs don't include 'Import' as
+        // possible type.
+        if (callee.type as string === 'Import') {
+          callee.type = 'Identifier';
+          (callee as babel.Identifier).name =
+              polymerBundlerDynamicImportIdentifier;
+          callExpression.arguments.push(babel.stringLiteral(sourceUrl));
+        }
+      },
+    },
+  });
+
+  return babelUtils.serialize(ast);
 }
 
 export function restoreDynamicImports(bundleUrl: ResolvedUrl, code: string) {
-  // TODO(usergenic): Please use babylon to parse this instead of this brittle
-  // insane regexp replacement.
-  return code.replace(/\b____dynamic_import\([^)]+/gm, (m: string) => {
-    let argspan = m.split('(')[1];
-    argspan = argspan.slice(1, argspan.length - 2);
-    const args = argspan.split(', "');
-    const importUrl = args[0]!.slice(0, args[0]!.length - 1);
-    let sourceUrl = args[1]!;
-    const resolvedImportUrl =
-        urlLib.resolve(sourceUrl, importUrl) as ResolvedUrl;
-    const newRelativeImportUrl =
-        urlUtils.relativeUrl(bundleUrl, resolvedImportUrl, true);
-    return `import(${JSON.stringify(newRelativeImportUrl)}`;
+  const ast = babelUtils.parseModuleFile(bundleUrl, code);
+  babelTraverse(ast, {
+    noScope: true,
+    CallExpression: {
+      enter(path: NodePath) {
+        const callExpression = path.node as babel.CallExpression;
+        const callee = callExpression.callee;
+        if (babel.isIdentifier(callee) &&
+            callee.name === polymerBundlerDynamicImportIdentifier) {
+          (callee as babel.Node).type = 'Import';
+          delete callee.name;
+          const sourceUrl =
+              (callExpression.arguments.pop()! as babel.StringLiteral).value;
+          const importUrlArgument = callExpression.arguments[0];
+          let importUrl;
+          if (importUrlArgument && babel.isStringLiteral(importUrlArgument)) {
+            importUrl = importUrlArgument.value;
+            const resolvedImportUrl =
+                urlLib.resolve(sourceUrl, importUrl) as ResolvedUrl;
+            const newRelativeImportUrl =
+                urlUtils.relativeUrl(bundleUrl, resolvedImportUrl, true);
+            importUrlArgument.value = newRelativeImportUrl as string;
+            return;
+          }
+        }
+      },
+    },
   });
+
+  return babelUtils.serialize(ast);
 }

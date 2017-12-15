@@ -12,7 +12,6 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import * as babelGenerator from 'babel-generator';
 import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
@@ -459,12 +458,12 @@ async function inlineModuleScripts(
   rewriteJsBundleImports(
       bundler, jsAst, bundle, bundleManifest, defaultExportedJsModuleNameFn);
 
-  code = babelGenerator.default(jsAst).code;
+  code = babelUtils.serialize(jsAst);
 
   // Remove all module scripts.
   moduleScripts.forEach((m) => dom5.remove(m));
   const newScript =
-      parse5.parseFragment(`<script type="module">${code}</script>`);
+      parse5.parseFragment(`<script type="module">\n${code}\n</script>`);
   const body = dom5.query(ast, dom5.predicates.hasTagName('body')) || ast;
   dom5.append(body, newScript);
 }

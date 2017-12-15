@@ -157,19 +157,22 @@ suite('Bundler', () => {
 
         <div hidden="" by-polymer-bundler=""><script>console.log('imports/external.js');
         </script>
-        </div><script type="module">function jumpOver(something) {
-          import("./dog.js").then(dog => {
+        </div><script type="module">
+        function jumpOver(something) {
+          import('./dog.js').then(dog => {
             const lazyDog = new dog.Dog();
             console.log(\`\${something} jumped over the lazy dog.\`);
             console.log(lazyDog.speak());
           });
         }
 
-        jumpOver('the quick brown fox');</script>
+        jumpOver('the quick brown fox');
+        </script>
       `));
 
       assert.deepEqual(coolKittiesCode.trim(), undent(`
-        <div hidden="" by-polymer-bundler=""><link rel="import" href="../../../../shared_bundle_1.html"></div><script type="module">import { $bundled$test$html$modules$animals$mammal } from "../../../../shared_bundle_2.js";
+        <div hidden="" by-polymer-bundler=""><link rel="import" href="../../../../shared_bundle_1.html"></div><script type="module">
+        import { $bundled$test$html$modules$animals$mammal } from '../../../../shared_bundle_2.js';
 
         const {
           Mammal: Mammal
@@ -181,11 +184,12 @@ suite('Bundler', () => {
         }
 
         const cat = new Cat();
-        cat.speak();</script>
+        cat.speak();
+        </script>
       `));
 
       assert.deepEqual(dogCode.trim(), undent(`
-        import { $bundled$test$html$modules$animals$mammal } from "../../../../shared_bundle_2.js";
+        import { $bundled$test$html$modules$animals$mammal } from '../../../../shared_bundle_2.js';
         const {
           Mammal: Mammal
         } = $bundled$test$html$modules$animals$mammal;
@@ -221,7 +225,8 @@ suite('Bundler', () => {
       `));
 
       assert.deepEqual(sharkTimeCode.trim(), undent(`
-        <div hidden="" by-polymer-bundler=""><link rel="import" href="../../../../shared_bundle_1.html"></div><script type="module">import { $bundled$test$html$modules$animals$vertebrate } from "../../../../shared_bundle_2.js";
+        <div hidden="" by-polymer-bundler=""><link rel="import" href="../../../../shared_bundle_1.html"></div><script type="module">
+        import { $bundled$test$html$modules$animals$vertebrate } from '../../../../shared_bundle_2.js';
 
         const {
           Vertebrate: Vertebrate
@@ -235,7 +240,8 @@ suite('Bundler', () => {
         }
 
         const jaws = new Shark();
-        jaws.speak();</script>
+        jaws.speak();
+        </script>
       `));
     });
   });

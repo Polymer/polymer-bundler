@@ -64,7 +64,7 @@ suite('Bundling JS Modules', () => {
         const code = await bundleOne('dynamic-import-await.js');
         assert.deepEqual(code, undent(`
           async function dynamicExample() {
-            const moduleC = await import("../module-c.js");
+            const moduleC = await import('../module-c.js');
             console.log(moduleC.value);
           }
 
@@ -156,7 +156,7 @@ suite('Bundling JS Modules', () => {
             result.documents.get('import-declaration-forms/named-specifier.js')!
                 .code;
         assert.deepEqual(namedSpecifier, undent(`
-          import { $bundled$module$a } from "../shared_bundle_1.js";
+          import { $bundled$module$a } from '../shared_bundle_1.js';
           const {
             a: a
           } = $bundled$module$a;
@@ -167,7 +167,7 @@ suite('Bundling JS Modules', () => {
             result.documents
                 .get('import-declaration-forms/namespace-specifier.js')!.code;
         assert.deepEqual(namespaceSpecifier, undent(`
-          import { $bundled$module$b } from "../shared_bundle_1.js";
+          import { $bundled$module$b } from '../shared_bundle_1.js';
           const {
             b: b
           } = $bundled$module$b;
@@ -178,7 +178,7 @@ suite('Bundling JS Modules', () => {
             result.documents.get('import-declaration-forms/no-specifier.js')!
                 .code;
         assert.deepEqual(noSpecifier, undent(`
-          import { $bundled$module$b } from "../shared_bundle_1.js";
+          import { $bundled$module$b } from '../shared_bundle_1.js';
           console.log('no-specifier side-effect');
         `));
 
@@ -187,7 +187,7 @@ suite('Bundling JS Modules', () => {
                 .get('import-declaration-forms/renamed-local-specifier.js')!
                 .code;
         assert.deepEqual(renamedLocalSpecifier, undent(`
-          import { $bundled$module$a } from "../shared_bundle_1.js";
+          import { $bundled$module$a } from '../shared_bundle_1.js';
           const {
             a: a
           } = $bundled$module$a;
@@ -228,7 +228,7 @@ suite('Bundling JS Modules', () => {
                 .get('import-declaration-forms/dynamic-import-await.js')!.code;
         assert.deepEqual(dynamicImportAwait, undent(`
           async function dynamicExample() {
-            const moduleC = await import("../shared_bundle_1.js").then(({
+            const moduleC = await import('../shared_bundle_1.js').then(({
               $bundled$module$c: $bundled$module$c
             }) => $bundled$module$c);
             console.log(moduleC.value);
@@ -241,7 +241,7 @@ suite('Bundling JS Modules', () => {
             result.documents
                 .get('import-declaration-forms/dynamic-import-then.js')!.code;
         assert.deepEqual(dynamicImportThen, undent(`
-          import("../shared_bundle_1.js").then(({
+          import('../shared_bundle_1.js').then(({
             $bundled$module$b: $bundled$module$b
           }) => $bundled$module$b).then(b => console.log(b.value));
         `));

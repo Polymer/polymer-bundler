@@ -1,3 +1,4 @@
+import generate from 'babel-generator';
 import traverse from 'babel-traverse';
 import {NodePath} from 'babel-traverse';
 import * as babel from 'babel-types';
@@ -36,4 +37,8 @@ export function parseModuleFile(url: string, code: string): babel.File {
       'objectRestSpread',
     ],
   });
+}
+
+export function serialize(root: babel.Node): string {
+  return generate(root, {quotes: 'single'}).code;
 }
