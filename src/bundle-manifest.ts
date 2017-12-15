@@ -41,6 +41,9 @@ export type BundleType = 'js-module' | 'html-document';
  * entrypoint files.
  */
 export class Bundle {
+  // Indicates that this Bundle is the result of merging two or more bundles.
+  isMerged: boolean;
+
   // Set of all dependant entrypoint urls of this bundle.
   entrypoints: Set<ResolvedUrl>;
 
@@ -62,6 +65,7 @@ export class Bundle {
   inlinedStyles = new Set<ResolvedUrl>();
 
   constructor(entrypoints?: Set<ResolvedUrl>, files?: Set<ResolvedUrl>) {
+    this.isMerged = false;
     this.entrypoints = entrypoints || new Set<ResolvedUrl>();
     this.files = files || new Set<ResolvedUrl>();
   }
@@ -320,6 +324,7 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
         bundles.map((b) => b.type).join(', '));
   }
   const newBundle = new Bundle();
+  newBundle.isMerged = true;
   for (const {
          entrypoints,
          files,

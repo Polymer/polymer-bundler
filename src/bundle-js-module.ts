@@ -19,6 +19,7 @@ import {Document, ResolvedUrl} from 'polymer-analyzer';
 import * as rollup from 'rollup';
 import * as urlLib from 'url';
 
+import {getAnalysisDocument} from './analyzer-utils';
 import * as babelUtils from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
@@ -46,10 +47,9 @@ export async function bundleJsModule(
     exportedJsModuleNameFn: ExportedJsModuleNameFn =
         defaultExportedJsModuleNameFn): Promise<{code: string}> {
   let document: Document;
-  if (!docBundle.bundle.files.has(docBundle.url)) {
-    document = await generateJsBasisDocument(
-        bundler, docBundle, exportedJsModuleNameFn);
-  }
+
+  document =
+      await generateJsBasisDocument(bundler, docBundle, exportedJsModuleNameFn);
 
   const analysis = await bundler.analyzer.analyze([...docBundle.bundle.files]);
   // We have to compose the `external` array here because the id value yielded
@@ -85,7 +85,7 @@ export async function bundleJsModule(
           const url = id.slice(polymerBundlerScheme.length) as ResolvedUrl;
           if (docBundle.bundle.files.has(url)) {
             let code =
-                (analysis.getDocument(url) as Document).parsedDocument.contents;
+                getAnalysisDocument(analysis, url).parsedDocument.contents;
             code = obscureDynamicImports(docBundle.url, url, code);
             return code;
           } else if (docBundle.url === url) {
@@ -146,9 +146,10 @@ export async function rewriteJsBundleImports(
     noScope: true,
   });
 
-  const importedNamesBySource:
-      Map<string, {local: string, imported: string}[]> = new Map();
+
   for (const jsImport of jsImports) {
+    const importedNamesBySource:
+        Map<string, {local: string, imported: string}[]> = new Map();
     if (babel.isImportDeclaration(jsImport)) {
       const source = jsImport.source;
       let sourceUrl: string = '';
@@ -390,8 +391,32 @@ async function generateJsBasisDocument(
     exportedJsModuleNameFn: ExportedJsModuleNameFn):
     Promise<Document> {
       let jsLines: string[] = [];
+      // If there's already a document at the url, we don't want to step on it.
+      // We have one of two cases:
+      // 1. It's a bundle which incorporates only files which are its direct
+      //    dependencies, i.e. it is not a merged bundle.
+      // 2. It is a merged bundle which needs to export the modules it
+      //    imports to make them available to other bundles.
+      if (docBundle.bundle.files.has(docBundle.url)) {
+        const originalDocument = (await bundler.analyzer.analyze([
+                                   docBundle.url
+                                 ])).getDocument(docBundle.url) as Document;
+        // If this isn't a merged bundle, it can skip exporting all the files
+        // in the bundle.  This can significantly reduce amount of unnecessary
+        // code in the rolled up module.
+        if (!docBundle.bundle.isMerged) {
+          return originalDocument;
+        }
+        // We'll use the original document contents as the basis, appending
+        // the bundle's import and export statements to it.
+        jsLines.push(originalDocument.parsedDocument.contents);
+      }
       const exportNames: string[] = [];
       for (const url of docBundle.bundle.files) {
+        // No need to re-export what we're already exporting.
+        if (url === docBundle.url) {
+          continue;
+        }
         const exportName = getOrSet(
             docBundle.bundle.exportedJsModules,
             url,

@@ -421,7 +421,7 @@ async function inlineModuleScripts(
           const url = id.slice(polymerBundlerScheme.length) as ResolvedUrl;
           if (bundle.bundle.files.has(url)) {
             let code =
-                (analysis.getDocument(url) as Document).parsedDocument.contents;
+                getAnalysisDocument(analysis, url).parsedDocument.contents;
             code = obscureDynamicImports(bundle.url, url, code);
             return code;
           }
