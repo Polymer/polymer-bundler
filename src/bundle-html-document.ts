@@ -23,7 +23,7 @@ import * as urlLib from 'url';
 import {getAnalysisDocument} from './analyzer-utils';
 import * as astUtils from './ast-utils';
 import * as babelUtils from './babel-utils';
-import {defaultExportedJsModuleNameFn, obscureDynamicImports, restoreDynamicImports, rewriteJsBundleImports} from './bundle-js-module';
+import {convertPolymerBundlerSchemeUrlsToRelativeUrls, defaultExportedJsModuleNameFn, obscureDynamicImports, restoreDynamicImports, rewriteJsBundleImports} from './bundle-js-module';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import * as importUtils from './import-utils';
@@ -34,10 +34,6 @@ import {UrlString} from './url-utils';
 
 const polymerBundlerScheme = 'polymer-bundler://root/';
 const polymerBundlerInlineScheme = 'polymer-bundler-inline://root/';
-
-function regexpEscape(pattern: string): string {
-  return pattern.replace(/([/^$.+()[\]])/g, '\\$1');
-}
 
 /**
  * Produces a document containing the content of all of the bundle's files.
@@ -443,13 +439,12 @@ async function inlineModuleScripts(
 
   let {code} = await rollupBundle.generate(
       {sourcemap: true, sourcemapFile: bundle.url + '.map', format: 'es'});
+
+  // This bit replaces those polymer-bundler:// urls with relative paths to
+  // the original resolved paths.
+  code = convertPolymerBundlerSchemeUrlsToRelativeUrls(bundle.url, code);
   code = restoreDynamicImports(bundle.url, code);
-  code = code.replace(
-      new RegExp(`${regexpEscape(polymerBundlerScheme)}[^'"]+`, 'g'),
-      (m) => urlUtils.relativeUrl(
-          bundle.url,
-          m.slice(polymerBundlerScheme.length) as ResolvedUrl,
-          true));
+
   const jsAst = babelUtils.parseModuleFile(bundle.url, code);
 
   // TODO(usergenic): Explicitly sending in the default js module name function
@@ -467,6 +462,7 @@ async function inlineModuleScripts(
   const body = dom5.query(ast, dom5.predicates.hasTagName('body')) || ast;
   dom5.append(body, newScript);
 }
+
 
 /**
  * Old Polymer supported `<style>` tag in `<dom-module>` but outside of

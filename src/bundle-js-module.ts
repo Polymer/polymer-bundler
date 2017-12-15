@@ -104,13 +104,7 @@ export async function bundleJsModule(
 
   // This bit replaces those polymer-bundler:// urls with relative paths to
   // the original resolved paths.
-  code = code.replace(
-      new RegExp(`${regexpEscape(polymerBundlerScheme)}[^'"]+`, 'g'),
-      (m) => urlUtils.relativeUrl(
-          docBundle.url,
-          m.slice(polymerBundlerScheme.length) as ResolvedUrl,
-          true));
-
+  code = convertPolymerBundlerSchemeUrlsToRelativeUrls(docBundle.url, code);
   code = restoreDynamicImports(docBundle.url, code);
 
   // Now we analyze the document code again to get features related to the
@@ -362,6 +356,34 @@ export async function rewriteJsBundleImports(
   }
 }
 
+/**
+ * Removes the polymer bundler scheme prefix from import declaration urls after
+ * code has been rolled up.
+ */
+export function convertPolymerBundlerSchemeUrlsToRelativeUrls(
+    bundleUrl: ResolvedUrl, code: string): string {
+  const ast = babelUtils.parseModuleFile(bundleUrl, code);
+  babelTraverse(ast, {
+    noScope: true,
+    ImportDeclaration: {
+      enter(path: NodePath) {
+        const importDeclaration = path.node as babel.ImportDeclaration;
+        const source = importDeclaration.source;
+        if (babel.isStringLiteral(source)) {
+          const sourceUrl = source.value;
+          if (sourceUrl.startsWith(polymerBundlerScheme)) {
+            source.value = urlUtils.relativeUrl(
+                bundleUrl,
+                sourceUrl.slice(polymerBundlerScheme.length) as ResolvedUrl,
+                true);
+          }
+        }
+      },
+    }
+  });
+  return babelUtils.serialize(ast);
+}
+
 async function generateJsBasisDocument(
     bundler: Bundler,
     docBundle: AssignedBundle,
@@ -380,12 +402,6 @@ async function generateJsBasisDocument(
       }
       jsLines.push(`export {${exportNames.join(', ')}};`);
       return bundler.analyzeContents(docBundle.url, jsLines.join('\n'));
-    }
-
-function
-regexpEscape(pattern: string):
-    string {
-      return pattern.replace(/([/^$.+()[\]])/g, '\\$1');
     }
 
 function
