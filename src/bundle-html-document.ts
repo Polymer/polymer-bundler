@@ -31,8 +31,6 @@ import * as importUtils from './import-utils';
 import * as matchers from './matchers';
 import {updateSourcemapLocations} from './source-map';
 import * as urlUtils from './url-utils';
-// TODO(usergenic): Get rid of UrlString in favor of the new polymer-analyzer
-// branded url types.
 import {UrlString} from './url-utils';
 
 const polymerBundlerScheme = 'polymer-bundler://root/';
@@ -253,7 +251,7 @@ async function inlineHtmlImports(
     ast: ASTNode,
     bundle: AssignedBundle,
     bundleManifest: BundleManifest) {
-  const stripImports = new Set<UrlString>(bundle.bundle.stripImports);
+  const stripImports = new Set<ResolvedUrl>(bundle.bundle.stripImports);
   const htmlImports = dom5.queryAll(ast, matchers.htmlImport);
   for (const htmlImport of htmlImports) {
     await importUtils.inlineHtmlImport(
@@ -278,7 +276,7 @@ async function inlineScripts(
     document: Document,
     ast: ASTNode,
     bundle: AssignedBundle,
-    excludes: string[]):
+    excludes: ResolvedUrl[]):
     Promise<void> {
       const scriptImports = dom5.queryAll(ast, matchers.externalJavascript);
       for (const externalScript of scriptImports) {
@@ -302,7 +300,7 @@ async function inlineStylesheetImports(
     document: Document,
     ast: ASTNode,
     bundle: AssignedBundle,
-    excludes: string[],
+    excludes: ResolvedUrl[],
     rewriteUrlsInTemplates: boolean) {
   const cssImports = dom5.queryAll(ast, matchers.stylesheetImport);
   let lastInlined: (ASTNode|undefined);
@@ -332,7 +330,7 @@ async function inlineStylesheetLinks(
     document: Document,
     ast: ASTNode,
     bundle: AssignedBundle,
-    excludes?: string[],
+    excludes?: ResolvedUrl[],
     rewriteUrlsInTemplates?: boolean) {
   const cssLinks = dom5.queryAll(
       ast, matchers.externalStyle, undefined, dom5.childNodesIncludeTemplate);
@@ -412,7 +410,8 @@ async function inlineModuleScripts(
           if (importer.startsWith(polymerBundlerInlineScheme)) {
             importer = bundle.url;
           }
-          importee = urlLib.resolve(importer, importee);
+          importee =
+              urlLib.resolve(importer as ResolvedUrl, importee as UrlString);
         }
         if (!isRollupResolvedUrl(importee)) {
           importee = `${polymerBundlerScheme}${importee}`;
@@ -424,7 +423,7 @@ async function inlineModuleScripts(
           throw new Error(`Unable to load unresolved id ${id}`);
         }
         if (id.startsWith(polymerBundlerScheme)) {
-          const url = id.slice(polymerBundlerScheme.length);
+          const url = id.slice(polymerBundlerScheme.length) as ResolvedUrl;
           if (bundle.bundle.files.has(url)) {
             let code =
                 (analysis.getDocument(url) as Document).parsedDocument.contents;
@@ -449,7 +448,9 @@ async function inlineModuleScripts(
   code = code.replace(
       new RegExp(`${regexpEscape(polymerBundlerScheme)}[^'"]+`, 'g'),
       (m) => urlUtils.relativeUrl(
-          bundle.url, m.slice(polymerBundlerScheme.length), true));
+          bundle.url,
+          m.slice(polymerBundlerScheme.length) as ResolvedUrl,
+          true));
   const jsAst = babelUtils.parseModuleFile(bundle.url, code);
 
   // TODO(usergenic): Explicitly sending in the default js module name function

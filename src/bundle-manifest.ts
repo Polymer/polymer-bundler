@@ -14,7 +14,7 @@
 
 import * as clone from 'clone';
 
-import {UrlString} from './url-utils';
+import {ResolvedUrl} from 'polymer-analyzer';
 
 /**
  * A bundle strategy function is used to transform an array of bundles.
@@ -24,7 +24,7 @@ export type BundleStrategy = (bundles: Bundle[]) => Bundle[];
 /**
  * A bundle url mapper function produces a map of urls to bundles.
  */
-export type BundleUrlMapper = (bundles: Bundle[]) => Map<UrlString, Bundle>;
+export type BundleUrlMapper = (bundles: Bundle[]) => Map<ResolvedUrl, Bundle>;
 
 /**
  * A mapping of entrypoints to their full set of transitive dependencies,
@@ -32,7 +32,7 @@ export type BundleUrlMapper = (bundles: Bundle[]) => Map<UrlString, Bundle>;
  * represented `{a:[a,c,d,e], b:[b,d,e,f]}`.  Please note that there is an
  * explicit identity dependency (`a` depends on `a`, `b` depends on `b`).
  */
-export type TransitiveDependenciesMap = Map<UrlString, Set<UrlString>>;
+export type TransitiveDependenciesMap = Map<ResolvedUrl, Set<ResolvedUrl>>;
 
 export type BundleType = 'js-module' | 'html-document';
 
@@ -42,28 +42,28 @@ export type BundleType = 'js-module' | 'html-document';
  */
 export class Bundle {
   // Set of all dependant entrypoint urls of this bundle.
-  entrypoints: Set<UrlString>;
+  entrypoints: Set<ResolvedUrl>;
 
   // Set of all files included in the bundle.
-  files: Set<UrlString>;
+  files: Set<ResolvedUrl>;
 
   // Map of original resolved urls to exported names.
-  exportedJsModules = new Map<UrlString, string>();
+  exportedJsModules = new Map<ResolvedUrl, string>();
 
   // Set of imports which should be removed when encountered.
-  stripImports = new Set<UrlString>();
+  stripImports = new Set<ResolvedUrl>();
 
   // Set of imports which could not be loaded.
-  missingImports = new Set<UrlString>();
+  missingImports = new Set<ResolvedUrl>();
 
   // These sets are updated as bundling occurs.
-  inlinedHtmlImports = new Set<UrlString>();
-  inlinedScripts = new Set<UrlString>();
-  inlinedStyles = new Set<UrlString>();
+  inlinedHtmlImports = new Set<ResolvedUrl>();
+  inlinedScripts = new Set<ResolvedUrl>();
+  inlinedStyles = new Set<ResolvedUrl>();
 
-  constructor(entrypoints?: Set<UrlString>, files?: Set<UrlString>) {
-    this.entrypoints = entrypoints || new Set<UrlString>();
-    this.files = files || new Set<UrlString>();
+  constructor(entrypoints?: Set<ResolvedUrl>, files?: Set<ResolvedUrl>) {
+    this.entrypoints = entrypoints || new Set<ResolvedUrl>();
+    this.files = files || new Set<ResolvedUrl>();
   }
 
   // TODO(usergenic): This rule is a little hacky at the moment.  The notion is
@@ -85,7 +85,7 @@ export class Bundle {
  */
 export class AssignedBundle {
   bundle: Bundle;
-  url: UrlString;
+  url: ResolvedUrl;
 }
 
 /**
@@ -93,10 +93,10 @@ export class AssignedBundle {
  */
 export class BundleManifest {
   // Map of bundle url to bundle.
-  bundles: Map<UrlString, Bundle>;
+  bundles: Map<ResolvedUrl, Bundle>;
 
   // Map of file url to bundle url.
-  private _bundleUrlForFile: Map<UrlString, UrlString>;
+  private _bundleUrlForFile: Map<ResolvedUrl, ResolvedUrl>;
 
   /**
    * Given a collection of bundles and a BundleUrlMapper to generate urls for
@@ -122,7 +122,7 @@ export class BundleManifest {
   }
 
   // Convenience method to return a bundle for a constituent file url.
-  getBundleForFile(url: UrlString): AssignedBundle|undefined {
+  getBundleForFile(url: ResolvedUrl): AssignedBundle|undefined {
     const bundleUrl = this._bundleUrlForFile.get(url);
     if (bundleUrl) {
       return {bundle: this.bundles.get(bundleUrl)!, url: bundleUrl};
@@ -160,8 +160,8 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
   const invertedIndex = invertMultimap(depsIndex);
 
   for (const entry of invertedIndex.entries()) {
-    const dep: UrlString = entry[0];
-    const entrypoints: Set<UrlString> = entry[1];
+    const dep: ResolvedUrl = entry[0];
+    const entrypoints: Set<ResolvedUrl> = entry[1];
 
     // Find the bundle defined by the specific set of shared dependant
     // entrypoints.
@@ -180,13 +180,14 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
  * Creates a bundle url mapper function which takes a prefix and appends an
  * incrementing value, starting with `1` to the filename.
  */
-export function generateCountingSharedBundleUrlMapper(urlPrefix: UrlString):
+export function generateCountingSharedBundleUrlMapper(urlPrefix: string):
     BundleUrlMapper {
   return generateSharedBundleUrlMapper(
-      (sharedBundles: Bundle[]): UrlString[] => {
+      (sharedBundles: Bundle[]): ResolvedUrl[] => {
         let counter = 0;
         return sharedBundles.map(
-            (b) => `${urlPrefix}${++counter}.${b.fileExtension}`);
+                   (b) => `${urlPrefix}${++counter}.${b.fileExtension}`) as
+            ResolvedUrl[];
       });
 }
 
@@ -195,7 +196,7 @@ export function generateCountingSharedBundleUrlMapper(urlPrefix: UrlString):
  * are dependencies of the given entrypoint and merges them into that
  * entrypoint's bundle.
  */
-export function generateEagerMergeStrategy(entrypoint: UrlString):
+export function generateEagerMergeStrategy(entrypoint: ResolvedUrl):
     BundleStrategy {
   return generateMatchMergeStrategy(
       (b) => b.files.has(entrypoint) ||
@@ -219,9 +220,9 @@ export function generateMatchMergeStrategy(predicate: (b: Bundle) => boolean):
  * `.set(url, bundle)` for each.
  */
 export function generateSharedBundleUrlMapper(
-    mapper: (sharedBundles: Bundle[]) => UrlString[]): BundleUrlMapper {
+    mapper: (sharedBundles: Bundle[]) => ResolvedUrl[]): BundleUrlMapper {
   return (bundles: Bundle[]) => {
-    const urlMap = new Map<UrlString, Bundle>();
+    const urlMap = new Map<ResolvedUrl, Bundle>();
     const sharedBundles: Bundle[] = [];
     for (const bundle of bundles) {
       const bundleEntrypoint = getBundleEntrypoint(bundle);
@@ -265,7 +266,7 @@ export function generateSharedDepsMergeStrategy(maybeMinEntrypoints?: number):
  * bundle for an application shell.
  */
 export function generateShellMergeStrategy(
-    shell: UrlString, maybeMinEntrypoints?: number): BundleStrategy {
+    shell: ResolvedUrl, maybeMinEntrypoints?: number): BundleStrategy {
   const minEntrypoints =
       maybeMinEntrypoints === undefined ? 2 : maybeMinEntrypoints;
   if (minEntrypoints < 0) {
@@ -294,7 +295,8 @@ export function generateShellMergeStrategy(
  * Generates a strategy function that ensures bundles do not link to given urls.
  * Bundles which contain matching files will still have them inlined.
  */
-export function generateNoBackLinkStrategy(urls: UrlString[]): BundleStrategy {
+export function generateNoBackLinkStrategy(urls: ResolvedUrl[]):
+    BundleStrategy {
   return (bundles) => {
     for (const bundle of bundles) {
       for (const url of urls) {
@@ -327,16 +329,16 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
          inlinedStyles,
        } of bundles) {
     newBundle.entrypoints =
-        new Set<UrlString>([...newBundle.entrypoints, ...entrypoints]);
-    newBundle.exportedJsModules = new Map<UrlString, string>(
+        new Set<ResolvedUrl>([...newBundle.entrypoints, ...entrypoints]);
+    newBundle.exportedJsModules = new Map<ResolvedUrl, string>(
         [...newBundle.exportedJsModules, ...exportedJsModules]);
-    newBundle.files = new Set<UrlString>([...newBundle.files, ...files]);
-    newBundle.inlinedHtmlImports = new Set<UrlString>(
+    newBundle.files = new Set<ResolvedUrl>([...newBundle.files, ...files]);
+    newBundle.inlinedHtmlImports = new Set<ResolvedUrl>(
         [...newBundle.inlinedHtmlImports, ...inlinedHtmlImports]);
     newBundle.inlinedScripts =
-        new Set<UrlString>([...newBundle.inlinedScripts, ...inlinedScripts]);
+        new Set<ResolvedUrl>([...newBundle.inlinedScripts, ...inlinedScripts]);
     newBundle.inlinedStyles =
-        new Set<UrlString>([...newBundle.inlinedStyles, ...inlinedStyles]);
+        new Set<ResolvedUrl>([...newBundle.inlinedStyles, ...inlinedStyles]);
   }
   return newBundle;
 }
@@ -370,7 +372,7 @@ export function mergeMatchingBundles(
  * Return the entrypoint that represents the given bundle, or null if no
  * entrypoint represents the bundle.
  */
-function getBundleEntrypoint(bundle: Bundle): UrlString|null {
+function getBundleEntrypoint(bundle: Bundle): ResolvedUrl|null {
   let bundleEntrypoint = null;
   for (const entrypoint of bundle.entrypoints) {
     if (bundle.files.has(entrypoint)) {

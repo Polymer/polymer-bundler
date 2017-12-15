@@ -13,7 +13,7 @@
  */
 // import {AssertionError} from 'assert';
 import * as path from 'path';
-import {Analyzer, Document, FSUrlLoader, InMemoryOverlayUrlLoader} from 'polymer-analyzer';
+import {Analyzer, Document, FSUrlLoader, InMemoryOverlayUrlLoader, ResolvedUrl} from 'polymer-analyzer';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import {bundleHtmlDocument} from './bundle-html-document';
@@ -22,7 +22,6 @@ import * as bundleManifestLib from './bundle-manifest';
 import {Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-manifest';
 import * as depsIndexLib from './deps-index';
 import {BundledDocument, DocumentCollection} from './document-collection';
-import {UrlString} from './url-utils';
 
 export * from './bundle-manifest';
 
@@ -33,7 +32,7 @@ export interface Options {
 
   // URLs of files and/or folders that should not be inlined. HTML tags
   // referencing excluded URLs are preserved.'
-  excludes?: UrlString[];
+  excludes?: ResolvedUrl[];
 
   // When true, inline external CSS file contents into <style> tags in the
   // output document.
@@ -69,7 +68,7 @@ export class Bundler {
   analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
-  excludes: UrlString[];
+  excludes: ResolvedUrl[];
   rewriteUrlsInTemplates: boolean;
   sourcemaps: boolean;
   stripComments: boolean;
@@ -150,7 +149,7 @@ export class Bundler {
    * @param mapper - A function that produces urls for the generated bundles.
    *     See 'polymer-analyzer/src/bundle-manifest'.
    */
-  async generateManifest(entrypoints: UrlString[]): Promise<BundleManifest> {
+  async generateManifest(entrypoints: ResolvedUrl[]): Promise<BundleManifest> {
     const dependencyIndex =
         await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
     let bundles =
@@ -165,7 +164,7 @@ export class Bundler {
    * Analyze a url using the given contents in place of what would otherwise
    * have been loaded.
    */
-  async analyzeContents(url: string, contents: string): Promise<Document> {
+  async analyzeContents(url: ResolvedUrl, contents: string): Promise<Document> {
     this._overlayUrlLoader.urlContentsMap.set(url, contents);
     await this.analyzer.filesChanged([url]);
     const analysis = await this.analyzer.analyze([url]);

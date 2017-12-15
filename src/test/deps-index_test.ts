@@ -19,6 +19,7 @@ import * as chai from 'chai';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
 import {buildDepsIndex} from '../deps-index';
+import {resolvedUrl as r} from './test-utils';
 
 chai.config.showDiff = true;
 
@@ -39,11 +40,11 @@ suite('Bundler', () => {
   suite('Deps index tests', () => {
 
     test('with 3 endpoints', async () => {
-      const common = 'common.html';
-      const dep1 = 'dep1.html';
-      const dep2 = 'dep2.html';
-      const endpoint1 = 'endpoint1.html';
-      const endpoint2 = 'endpoint2.html';
+      const common = r`common.html`;
+      const dep1 = r`dep1.html`;
+      const dep2 = r`dep2.html`;
+      const endpoint1 = r`endpoint1.html`;
+      const endpoint2 = r`endpoint2.html`;
       const analyzer = new Analyzer({
         urlLoader: new FSUrlLoader('test/html/shards/polymer_style_project')
       });
@@ -61,17 +62,17 @@ suite('Bundler', () => {
 
     // Deps index currently treats lazy imports as eager imports.
     test('with lazy imports', async () => {
-      const entrypoint = 'lazy-imports.html';
-      const lazyImport1 = 'lazy-imports/lazy-import-1.html';
-      const lazyImport2 = 'lazy-imports/lazy-import-2.html';
-      const lazyImport3 = 'lazy-imports/subfolder/lazy-import-3.html';
-      const shared1 = 'lazy-imports/shared-eager-import-1.html';
-      const shared2 = 'lazy-imports/shared-eager-import-2.html';
-      const shared3 = 'lazy-imports/shared-eager-and-lazy-import-1.html';
-      const eager1 = 'lazy-imports/subfolder/eager-import-1.html';
-      const eager2 = 'lazy-imports/subfolder/eager-import-2.html';
-      const deeply1 = 'lazy-imports/deeply-lazy-import-1.html';
-      const deeply2 = 'lazy-imports/deeply-lazy-imports-eager-import-1.html';
+      const entrypoint = r`lazy-imports.html`;
+      const lazyImport1 = r`lazy-imports/lazy-import-1.html`;
+      const lazyImport2 = r`lazy-imports/lazy-import-2.html`;
+      const lazyImport3 = r`lazy-imports/subfolder/lazy-import-3.html`;
+      const shared1 = r`lazy-imports/shared-eager-import-1.html`;
+      const shared2 = r`lazy-imports/shared-eager-import-2.html`;
+      const shared3 = r`lazy-imports/shared-eager-and-lazy-import-1.html`;
+      const eager1 = r`lazy-imports/subfolder/eager-import-1.html`;
+      const eager2 = r`lazy-imports/subfolder/eager-import-2.html`;
+      const deeply1 = r`lazy-imports/deeply-lazy-import-1.html`;
+      const deeply2 = r`lazy-imports/deeply-lazy-imports-eager-import-1.html`;
       const analyzer =
           new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')});
       const expectedEntrypointsToDeps = new Map([
@@ -92,11 +93,11 @@ suite('Bundler', () => {
     });
 
     test('when an entrypoint imports an entrypoint', async () => {
-      const entrypoint = 'eagerly-importing-a-fragment.html';
-      const fragmentA = 'importing-fragments/fragment-a.html';
-      const fragmentB = 'importing-fragments/fragment-a.html';
-      const util = 'importing-fragments/shared-util.html';
-      const shell = 'importing-fragments/shell.html';
+      const entrypoint = r`eagerly-importing-a-fragment.html`;
+      const fragmentA = r`importing-fragments/fragment-a.html`;
+      const fragmentB = r`importing-fragments/fragment-a.html`;
+      const util = r`importing-fragments/shared-util.html`;
+      const shell = r`importing-fragments/shell.html`;
       const analyzer =
           new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')});
       const expectedEntrypointsToDeps = new Map([
@@ -114,11 +115,24 @@ suite('Bundler', () => {
 
     suite('JavaScript modules', () => {
 
+      test('html document with base href and js module', async () => {
+        const documentWithBaseHref = r`document-base.html`;
+        const moduleA = r`module-a.js`;
+        const analyzer =
+            new Analyzer({urlLoader: new FSUrlLoader('test/html/modules')});
+        const expectedEntrypointsToDeps = new Map(
+            [[documentWithBaseHref, new Set([documentWithBaseHref, moduleA])]]);
+        const index = await buildDepsIndex([documentWithBaseHref], analyzer);
+        chai.assert.deepEqual(
+            serializeMap(index.entrypointToDeps),
+            serializeMap(expectedEntrypointsToDeps));
+      });
+
       test('single entrypoint, 2 modules with a shared module', async () => {
-        const entrypoint = 'scripts-type-module.html';
-        const moduleA = 'imports/module-a.js';
-        const moduleB = 'imports/module-b.js';
-        const sharedModule = 'imports/shared-module.js';
+        const entrypoint = r`scripts-type-module.html`;
+        const moduleA = r`imports/module-a.js`;
+        const moduleB = r`imports/module-b.js`;
+        const sharedModule = r`imports/shared-module.js`;
         const analyzer =
             new Analyzer({urlLoader: new FSUrlLoader('test/html')});
         const expectedEntrypointsToDeps = new Map([
@@ -135,22 +149,22 @@ suite('Bundler', () => {
       });
 
       test('only module type scripts are bundle files', async () => {
-        const entrypoint = 'modules/animals/animal-index.html';
-        const coolKitties = 'modules/animals/cool-kitties.html';
-        const sharkTime = 'modules/animals/shark-time.html';
+        const entrypoint = r`modules/animals/animal-index.html`;
+        const coolKitties = r`modules/animals/cool-kitties.html`;
+        const sharkTime = r`modules/animals/shark-time.html`;
 
-        const cat = 'modules/animals/cat.js';
-        const dog = 'modules/animals/dog.js';
-        const fish = 'modules/animals/aquatic-js/fish.js';
-        const invertebrate = 'modules/animals/invertebrate.js';
-        const lazyDog = 'modules/animals/lazy-dog.js';
-        const mammal = 'modules/animals/mammal.js';
-        const sharedImport = 'modules/shared-import.html';
-        const shark = 'modules/animals/aquatic-js/shark.js';
-        const snail = 'modules/animals/snail.js';
-        const vertebrate = 'modules/animals/vertebrate.js';
+        const cat = r`modules/animals/cat.js`;
+        const dog = r`modules/animals/dog.js`;
+        const fish = r`modules/animals/aquatic-js/fish.js`;
+        const invertebrate = r`modules/animals/invertebrate.js`;
+        const lazyDog = r`modules/animals/lazy-dog.js`;
+        const mammal = r`modules/animals/mammal.js`;
+        const sharedImport = r`modules/shared-import.html`;
+        const shark = r`modules/animals/aquatic-js/shark.js`;
+        const snail = r`modules/animals/snail.js`;
+        const vertebrate = r`modules/animals/vertebrate.js`;
 
-        const externalScript = 'imports/external-script.html';
+        const externalScript = r`imports/external-script.html`;
 
         const analyzer =
             new Analyzer({urlLoader: new FSUrlLoader('test/html')});

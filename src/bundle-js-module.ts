@@ -16,7 +16,7 @@ import * as babelGenerate from 'babel-generator';
 import * as babelTraverse from 'babel-traverse';
 import * as babel from 'babel-types';
 import * as clone from 'clone';
-import {Document} from 'polymer-analyzer';
+import {Document, ResolvedUrl} from 'polymer-analyzer';
 import * as rollup from 'rollup';
 import * as urlLib from 'url';
 
@@ -24,15 +24,14 @@ import * as babelUtils from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import * as urlUtils from './url-utils';
-import {UrlString} from './url-utils';
 
 const polymerBundlerScheme = 'polymer-bundler://root/';
 
 export type ExportedJsModuleNameFn =
-    (importerUrl: UrlString, importeeUrl: UrlString) => string;
+    (importerUrl: ResolvedUrl, importeeUrl: ResolvedUrl) => string;
 
 export function defaultExportedJsModuleNameFn(
-    importerUrl: UrlString, importeeUrl: UrlString): string {
+    importerUrl: ResolvedUrl, importeeUrl: ResolvedUrl): string {
   return '$bundled$' +
       urlUtils.relativeUrl(importerUrl, importeeUrl)
           .replace(/^\.\//, '')
@@ -83,7 +82,7 @@ export async function bundleJsModule(
           if (!isRollupResolvedUrl(id)) {
             throw new Error(`Unable to load unresolved id ${id}`);
           }
-          const url = id.slice(polymerBundlerScheme.length);
+          const url = id.slice(polymerBundlerScheme.length) as ResolvedUrl;
           if (docBundle.bundle.files.has(url)) {
             let code =
                 (analysis.getDocument(url) as Document).parsedDocument.contents;
@@ -108,7 +107,9 @@ export async function bundleJsModule(
   code = code.replace(
       new RegExp(`${regexpEscape(polymerBundlerScheme)}[^'"]+`, 'g'),
       (m) => urlUtils.relativeUrl(
-          docBundle.url, m.slice(polymerBundlerScheme.length), true));
+          docBundle.url,
+          m.slice(polymerBundlerScheme.length) as ResolvedUrl,
+          true));
 
   code = restoreDynamicImports(docBundle.url, code);
 
@@ -163,7 +164,8 @@ export async function rewriteJsBundleImports(
       if (!sourceUrl) {
         continue;
       }
-      const resolvedSourceUrl = urlLib.resolve(docBundle.url, sourceUrl);
+      const resolvedSourceUrl =
+          urlLib.resolve(docBundle.url, sourceUrl) as ResolvedUrl;
       const sourceBundle = bundleManifest.getBundleForFile(resolvedSourceUrl);
       if (sourceBundle && sourceBundle.url !== resolvedSourceUrl) {
         // TODO(usergenic): Rewrite the url to the bundle url.  Also, now we
@@ -301,7 +303,8 @@ export async function rewriteJsBundleImports(
         continue;
       }
       const sourceUrl = importCallArgument.value;
-      const resolvedSourceUrl = urlLib.resolve(docBundle.url, sourceUrl);
+      const resolvedSourceUrl =
+          urlLib.resolve(docBundle.url, sourceUrl) as ResolvedUrl;
       const sourceBundle = bundleManifest.getBundleForFile(resolvedSourceUrl);
       if (sourceBundle && sourceBundle.url !== resolvedSourceUrl) {
         const exportedName = getOrSet(
@@ -406,7 +409,7 @@ getOrSet<K, V>(map: Map<K, V>, key: K, fn: () => V) {
 // we have to capture the original dynamic import statement and rewrite the urls
 // as we restore the `import()` syntax after rollup is done.
 export function obscureDynamicImports(
-    bundleUrl: UrlString, sourceUrl: UrlString, code: string) {
+    bundleUrl: ResolvedUrl, sourceUrl: ResolvedUrl, code: string) {
   // TODO(usergenic): Please use babylon to parse this instead of
   // this brittle insane regexp replacement.
   return code.replace(
@@ -414,7 +417,7 @@ export function obscureDynamicImports(
       (m) => `____dynamic_${m}, ${JSON.stringify(sourceUrl)}`);
 }
 
-export function restoreDynamicImports(bundleUrl: UrlString, code: string) {
+export function restoreDynamicImports(bundleUrl: ResolvedUrl, code: string) {
   // TODO(usergenic): Please use babylon to parse this instead of this brittle
   // insane regexp replacement.
   return code.replace(/\b____dynamic_import\([^)]+/gm, (m: string) => {
@@ -423,7 +426,8 @@ export function restoreDynamicImports(bundleUrl: UrlString, code: string) {
     const args = argspan.split(', "');
     const importUrl = args[0]!.slice(0, args[0]!.length - 1);
     let sourceUrl = args[1]!;
-    const resolvedImportUrl = urlLib.resolve(sourceUrl, importUrl);
+    const resolvedImportUrl =
+        urlLib.resolve(sourceUrl, importUrl) as ResolvedUrl;
     const newRelativeImportUrl =
         urlUtils.relativeUrl(bundleUrl, resolvedImportUrl, true);
     return `import(${JSON.stringify(newRelativeImportUrl)}`;

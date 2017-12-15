@@ -17,12 +17,12 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
-import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader, ResolvedUrl} from 'polymer-analyzer';
 
 import {generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, BundleResult} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
-import {undent} from './test-utils';
+import {resolvedUrl as r, undent} from './test-utils';
 
 chai.config.showDiff = true;
 
@@ -36,12 +36,13 @@ const domModulePredicate = (id: string) => {
 
 suite('Bundler', () => {
   let bundler: Bundler;
-  const shell = 'test/html/shards/shop_style_project/shell.html';
-  const common = 'test/html/shards/shop_style_project/common.html';
-  const entrypoint1 = 'test/html/shards/shop_style_project/entrypoint1.html';
-  const entrypoint2 = 'test/html/shards/shop_style_project/entrypoint2.html';
+  const shell = r`test/html/shards/shop_style_project/shell.html`;
+  const common = r`test/html/shards/shop_style_project/common.html`;
+  const entrypoint1 = r`test/html/shards/shop_style_project/entrypoint1.html`;
+  const entrypoint2 = r`test/html/shards/shop_style_project/entrypoint2.html`;
 
-  async function bundleMultiple(inputPath: string[], opts?: BundlerOptions):
+  async function bundleMultiple(
+      inputPath: ResolvedUrl[], opts?: BundlerOptions):
       Promise<BundleResult> {
         const bundlerOpts = opts || {};
         if (!bundlerOpts.analyzer) {
@@ -134,9 +135,9 @@ suite('Bundler', () => {
     });
 
     test('with JavaScript modules, all deps in their places', async () => {
-      const entrypoint = 'test/html/modules/animals/animal-index.html';
-      const coolKitties = 'test/html/modules/animals/cool-kitties.html';
-      const sharkTime = 'test/html/modules/animals/shark-time.html';
+      const entrypoint = r`test/html/modules/animals/animal-index.html`;
+      const coolKitties = r`test/html/modules/animals/cool-kitties.html`;
+      const sharkTime = r`test/html/modules/animals/shark-time.html`;
 
       const {documents} =
           await bundleMultiple([entrypoint, coolKitties, sharkTime]);

@@ -20,7 +20,6 @@ import * as pathLib from 'path';
 import {Bundler} from '../bundler';
 import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
-import {UrlString} from '../url-utils';
 import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
 
 const prefixArgument = '[underline]{prefix}';
@@ -169,7 +168,7 @@ const options = commandLineArgs(optionDefinitions);
 const projectRoot =
     options.root ? pathLib.resolve(options.root) : pathLib.resolve('.');
 
-const entrypoints: UrlString[] = options['in-html'];
+const entrypoints: ResolvedUrl[] = options['in-html'];
 
 function printHelp() {
   console.log(commandLineUsage(usage));
@@ -244,12 +243,12 @@ if (options.shell) {
 }
 
 interface JsonManifest {
-  [entrypoint: string]: UrlString[];
+  [entrypoint: string]: ResolvedUrl[];
 }
 
 function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
   const json: JsonManifest = {};
-  const missingImports: Set<string> = new Set();
+  const missingImports: Set<ResolvedUrl> = new Set();
   for (const [url, bundle] of manifest.bundles) {
     json[url] = [...new Set([
       // `files` and `inlinedHtmlImports` will be partially duplicative, but use

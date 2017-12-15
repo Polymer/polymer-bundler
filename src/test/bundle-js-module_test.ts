@@ -16,12 +16,12 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 import * as path from 'path';
-import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader, ResolvedUrl} from 'polymer-analyzer';
 
 import {generateSharedDepsMergeStrategy, mergeMatchingBundles} from '../bundle-manifest';
 import {Bundler, BundleResult, Options} from '../bundler';
 
-import {undent} from './test-utils';
+import {resolvedUrl as r, undent} from './test-utils';
 
 chai.config.showDiff = true;
 
@@ -36,7 +36,8 @@ async function bundle(root: string, urls: string[], options?: Options):
         });
       }
       const bundler = new Bundler(bundlerOptions);
-      return bundler.bundle(await bundler.generateManifest(urls));
+      return bundler.bundle(
+          await bundler.generateManifest(urls as ResolvedUrl[]));
     }
 
 suite('Bundling JS Modules', () => {
@@ -49,7 +50,7 @@ suite('Bundling JS Modules', () => {
 
       const bundleOne = async (url: string) =>
           (await bundle(root, [`import-declaration-forms/${url}`]))
-              .documents.get(`import-declaration-forms/${url}`)!.code;
+              .documents.get(r`import-declaration-forms/${url}`)!.code;
 
       test('default specifier', async () => {
         const code = await bundleOne('default-specifier.js');

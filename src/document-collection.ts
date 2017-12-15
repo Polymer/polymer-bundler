@@ -11,11 +11,11 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import {UrlString} from './url-utils';
+import {ResolvedUrl} from 'polymer-analyzer';
 
 export interface BundledDocument {
   code: string;
-  files: UrlString[];
+  files: ResolvedUrl[];
 }
 
 /* A collection of documents, keyed by path */

@@ -12,24 +12,23 @@
  * http://polymer.github.io/PATENTS.txt
  */
 import * as dom5 from 'dom5';
-import {Analyzer, Document} from 'polymer-analyzer';
+import {Analyzer, Document, ResolvedUrl} from 'polymer-analyzer';
 
 import {getAnalysisDocument} from './analyzer-utils';
-import {UrlString} from './url-utils';
 
 export interface DepsIndex {
   // An index of entrypoint -> html dependencies
-  entrypointToDeps: Map<UrlString, Set<UrlString>>;
+  entrypointToDeps: Map<ResolvedUrl, Set<ResolvedUrl>>;
 }
 
 type DependencyMapEntry = {
   // All dependencies of the document
-  deps: Set<UrlString>,
+  deps: Set<ResolvedUrl>,
   // Eagerly loaded dependencies of the document
-  eagerDeps: Set<UrlString>,
+  eagerDeps: Set<ResolvedUrl>,
   // All imports defined with `<link rel="lazy-import">` or with dynamic ES
   // module import syntax like `import().then()`
-  lazyImports: Set<UrlString>,
+  lazyImports: Set<ResolvedUrl>,
 };
 
 /**
@@ -37,9 +36,9 @@ type DependencyMapEntry = {
  * all eagerly-loaded dependencies and lazy html imports encountered.
  */
 function getDependencies(document: Document): DependencyMapEntry {
-  const deps = new Set<UrlString>();
-  const eagerDeps = new Set<UrlString>();
-  const lazyImports = new Set<UrlString>();
+  const deps = new Set<ResolvedUrl>();
+  const eagerDeps = new Set<ResolvedUrl>();
+  const lazyImports = new Set<ResolvedUrl>();
   _getDependencies(document, true, deps, eagerDeps, lazyImports);
   return {deps, eagerDeps, lazyImports};
 }
@@ -47,9 +46,9 @@ function getDependencies(document: Document): DependencyMapEntry {
 function _getDependencies(
     document: Document,
     viaEager: boolean,
-    visited: Set<UrlString>,
-    visitedEager: Set<UrlString>,
-    lazyImports: Set<UrlString>) {
+    visited: Set<ResolvedUrl>,
+    visitedEager: Set<ResolvedUrl>,
+    lazyImports: Set<ResolvedUrl>) {
   const jsImports = document.getFeatures(
       {kind: 'js-import', imported: false, externalPackages: true});
   const htmlImports = document.getFeatures(
@@ -116,10 +115,12 @@ function _getDependencies(
  *     were discovered as lazy entrypoints in the graph.
  */
 export async function buildDepsIndex(
-    entrypoints: UrlString[], analyzer: Analyzer): Promise<DepsIndex> {
-  const depsIndex = {entrypointToDeps: new Map<UrlString, Set<UrlString>>()};
+    entrypoints: ResolvedUrl[], analyzer: Analyzer): Promise<DepsIndex> {
+  const depsIndex = {
+    entrypointToDeps: new Map<ResolvedUrl, Set<ResolvedUrl>>()
+  };
   const analysis = await analyzer.analyze(entrypoints);
-  const allEntrypoints = new Set<UrlString>(entrypoints);
+  const allEntrypoints = new Set<ResolvedUrl>(entrypoints);
 
   // Note: the following iteration takes place over a Set which may be added
   // to from within the loop.

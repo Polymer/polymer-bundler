@@ -16,7 +16,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 import * as path from 'path';
-import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader, ResolvedUrl} from 'polymer-analyzer';
 
 import {generateSharedDepsMergeStrategy, mergeMatchingBundles} from '../bundle-manifest';
 import {Bundler, BundleResult, Options} from '../bundler';
@@ -35,20 +35,37 @@ async function bundle(root: string, urls: string[], options?: Options):
         });
       }
       const bundler = new Bundler(bundlerOptions);
-      return bundler.bundle(await bundler.generateManifest(urls));
+      return bundler.bundle(
+          await bundler.generateManifest(urls as ResolvedUrl[]));
     }
 
 suite('Bundling HTML Documents', () => {
 
+  const root = 'test/html/modules';
+  const bundleOne = async (url: string) =>
+      (await bundle(root, [url])).documents.get(url)!.code;
+
+  suite('document base honored', () => {
+
+    test('when base href is parent folder', async () => {
+      const code = await bundleOne('document-base.html');
+      assert.deepEqual(code.trim(), undent(`
+        <script type="module">const a = { value: 'A' };
+
+        console.log('module-a side-effect');
+
+        console.log(a.value);</script>
+      `));
+    });
+  });
+
   suite('import declaration forms', () => {
 
-    const root = 'test/html/modules';
+    const bundleOne = async (url: string) =>
+        (await bundle(root, [`import-declaration-forms/${url}`]))
+            .documents.get(`import-declaration-forms/${url}`)!.code;
 
     suite('single entrypoint', () => {
-
-      const bundleOne = async (url: string) =>
-          (await bundle(root, [`import-declaration-forms/${url}`]))
-              .documents.get(`import-declaration-forms/${url}`)!.code;
 
       test('default specifier', async () => {
         const code = await bundleOne('default-specifier.html');
