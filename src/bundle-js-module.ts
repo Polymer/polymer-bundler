@@ -146,6 +146,7 @@ export async function rewriteJsBundleImports(
     noScope: true,
   });
 
+  const importedBundledModuleNames: Set<string> = new Set();
 
   for (const jsImport of jsImports) {
     const importedNamesBySource:
@@ -197,7 +198,7 @@ export async function rewriteJsBundleImports(
         const exportedName = getOrSet(
             docBundle.bundle.exportedJsModules,
             resolvedSourceUrl,
-            () => exportedJsModuleNameFn(sourceBundle.url, resolvedSourceUrl));
+            () => exportedJsModuleNameFn(sourceBundle.url, resolvedSourceUrl))!;
 
         jsImport.specifiers.splice(
             0,
@@ -205,6 +206,10 @@ export async function rewriteJsBundleImports(
             babel.importSpecifier(
                 babel.identifier(exportedName),
                 babel.identifier(exportedName)));
+
+        const duplicateJsImportSpecifier =
+            importedBundledModuleNames.has(exportedName);
+        importedBundledModuleNames.add(exportedName);
 
         const importDeclarationParent =
             babelUtils.getParentNode(astRoot, jsImport)!;
@@ -273,6 +278,11 @@ export async function rewriteJsBundleImports(
             importDeclarationContainerArray.indexOf(jsImport) + 1,
             0,
             ...variableDeclarations);
+
+        if (duplicateJsImportSpecifier) {
+          importDeclarationContainerArray.splice(
+              importDeclarationContainerArray.indexOf(jsImport), 1);
+        }
       }
     }
     // Dynamic Import
