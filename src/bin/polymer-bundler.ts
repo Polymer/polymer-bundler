@@ -15,16 +15,11 @@
 import * as commandLineArgs from 'command-line-args';
 import * as commandLineUsage from 'command-line-usage';
 import * as fs from 'fs';
-import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
-import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, UrlLoader, UrlResolver} from 'polymer-analyzer';
-// TODO(usergenic): Move import below to statement above, when polymer-analyzer
-// 3.0.0-pre.3 is released.
-import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
+import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
-import {UrlString} from '../url-utils';
 import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
 
 const prefixArgument = '[underline]{prefix}';
@@ -173,7 +168,7 @@ const options = commandLineArgs(optionDefinitions);
 const projectRoot =
     options.root ? pathLib.resolve(options.root) : pathLib.resolve('.');
 
-const entrypoints: UrlString[] = options['in-html'];
+const entrypoints: ResolvedUrl[] = options['in-html'];
 
 function printHelp() {
   console.log(commandLineUsage(usage));
@@ -248,12 +243,12 @@ if (options.shell) {
 }
 
 interface JsonManifest {
-  [entrypoint: string]: UrlString[];
+  [entrypoint: string]: ResolvedUrl[];
 }
 
 function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
   const json: JsonManifest = {};
-  const missingImports: Set<string> = new Set();
+  const missingImports: Set<ResolvedUrl> = new Set();
   for (const [url, bundle] of manifest.bundles) {
     json[url] = [...new Set([
       // `files` and `inlinedHtmlImports` will be partially duplicative, but use
@@ -305,13 +300,12 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
           'Must specify out-dir when bundling multiple entrypoints');
     }
     for (const [url, document] of documents) {
-      const ast = document.ast;
+      const code = document.code;
       const out = pathLib.resolve(pathLib.join(outDir, url));
       const finalDir = pathLib.dirname(out);
       mkdirp.sync(finalDir);
-      const serialized = parse5.serialize(ast);
       const fd = fs.openSync(out, 'w');
-      fs.writeSync(fd, serialized + '\n');
+      fs.writeSync(fd, code + '\n');
       fs.closeSync(fd);
     }
     return;
@@ -320,13 +314,13 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
   if (!doc) {
     return;
   }
-  const serialized = parse5.serialize(doc.ast);
+  const code = doc.code;
   if (options['out-html']) {
     const fd = fs.openSync(options['out-html'], 'w');
-    fs.writeSync(fd, serialized + '\n');
+    fs.writeSync(fd, code + '\n');
     fs.closeSync(fd);
   } else {
-    process.stdout.write(serialized);
+    process.stdout.write(code);
   }
 })().catch((err) => {
   console.log(err.stack);

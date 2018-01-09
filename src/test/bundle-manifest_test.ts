@@ -15,8 +15,9 @@
 /// <reference path="../../node_modules/@types/node/index.d.ts" />
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
-
+import {ResolvedUrl} from 'polymer-analyzer';
 import {Bundle, BundleManifest, composeStrategies, generateBundles, generateCountingSharedBundleUrlMapper, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedBundleUrlMapper, generateSharedDepsMergeStrategy, generateShellMergeStrategy, TransitiveDependenciesMap} from '../bundle-manifest';
+import {resolvedUrl as r} from './test-utils';
 
 chai.config.showDiff = true;
 
@@ -30,8 +31,8 @@ suite('BundleManifest', () => {
    */
   function deserializeBundle(serialized: string): Bundle {
     const arrowSplit = serialized.split(/->/);
-    const entrypoints = arrowSplit[0].slice(1, -1).split(',');
-    const files = arrowSplit[1].slice(1, -1).split(',');
+    const entrypoints = arrowSplit[0].slice(1, -1).split(',') as ResolvedUrl[];
+    const files = arrowSplit[1].slice(1, -1).split(',') as ResolvedUrl[];
     return new Bundle(new Set(entrypoints), new Set(files));
   }
 
@@ -54,26 +55,28 @@ suite('BundleManifest', () => {
     ].map(deserializeBundle);
 
     const underscoreJoinMapper = generateSharedBundleUrlMapper(
-        (bundles) => bundles.map((b) => Array.from(b.entrypoints).join('_')));
+        (bundles) => bundles.map(
+            (b) => Array.from(b.entrypoints).join('_') as ResolvedUrl));
 
     test('maps bundles to urls based on given mapper', () => {
       const manifest = new BundleManifest(bundles, underscoreJoinMapper);
-      assert.equal(serializeBundle(manifest.bundles.get('A_B')!), '[A,B]->[E]');
+      assert.equal(
+          serializeBundle(manifest.bundles.get(r`A_B`)!), '[A,B]->[E]');
     });
 
     test('enables bundles to be found by constituent file', () => {
       const manifest = new BundleManifest(bundles, underscoreJoinMapper);
-      assert.equal(manifest.getBundleForFile('E')!.url, 'A_B');
+      assert.equal(manifest.getBundleForFile(r`E`)!.url, 'A_B');
       assert.equal(
-          serializeBundle(manifest.getBundleForFile('E')!.bundle),
+          serializeBundle(manifest.getBundleForFile(r`E`)!.bundle),
           '[A,B]->[E]');
     });
 
     test('generateCountingSharedBundleUrlMapper allows a custom prefix', () => {
       const manifest = new BundleManifest(
-          bundles, generateCountingSharedBundleUrlMapper('path/to/shared'));
+          bundles, generateCountingSharedBundleUrlMapper(r`path/to/shared`));
       assert.equal(
-          serializeBundle(manifest.bundles.get('path/to/shared1.html')!),
+          serializeBundle(manifest.bundles.get(r`path/to/shared1.html`)!),
           '[A,B]->[E]');
     });
   });
@@ -81,10 +84,10 @@ suite('BundleManifest', () => {
   suite('generateBundles', () => {
 
     test('produces an array of bundles from dependencies index', () => {
-      const depsIndex = new Map<string, Set<string>>();
-      depsIndex.set('A', new Set(['A', 'B', 'C', 'G']));
-      depsIndex.set('D', new Set(['D', 'B', 'E']));
-      depsIndex.set('F', new Set(['F', 'G']));
+      const depsIndex = new Map<ResolvedUrl, Set<ResolvedUrl>>();
+      depsIndex.set(r`A`, new Set([r`A`, r`B`, r`C`, r`G`]));
+      depsIndex.set(r`D`, new Set([r`D`, r`B`, r`E`]));
+      depsIndex.set(r`F`, new Set([r`F`, r`G`]));
 
       const bundles = generateBundles(depsIndex).map(serializeBundle).sort();
       assert.deepEqual(
@@ -116,9 +119,9 @@ suite('BundleManifest', () => {
 
       const strategyABCD = composeStrategies([
         generateMatchMergeStrategy(
-            (b) => b.files.has('B') || b.entrypoints.has('A')),
+            (b) => b.files.has(r`B`) || b.entrypoints.has(r`A`)),
         generateMatchMergeStrategy(
-            (b) => b.files.has('D') || b.entrypoints.has('C'))
+            (b) => b.files.has(r`D`) || b.entrypoints.has(r`C`))
       ]);
 
       const composedABCD = strategyABCD(bundles).map(serializeBundle).sort();
@@ -126,9 +129,9 @@ suite('BundleManifest', () => {
 
       const strategyCDBD = composeStrategies([
         generateMatchMergeStrategy(
-            (b) => b.files.has('D') || b.entrypoints.has('C')),
+            (b) => b.files.has(r`D`) || b.entrypoints.has(r`C`)),
         generateMatchMergeStrategy(
-            (b) => b.files.has('D') || b.entrypoints.has('B'))
+            (b) => b.files.has(r`D`) || b.entrypoints.has(r`B`))
       ]);
 
       const composedCDBD = strategyCDBD(bundles).map(serializeBundle).sort();
@@ -151,13 +154,13 @@ suite('BundleManifest', () => {
           '[E]->[E]',
         ].map(deserializeBundle);
 
-        const eagerStrategyA = generateEagerMergeStrategy('A');
+        const eagerStrategyA = generateEagerMergeStrategy(r`A`);
         const eagerA = eagerStrategyA(bundles).map(serializeBundle).sort();
-        const eagerStrategyB = generateEagerMergeStrategy('B');
+        const eagerStrategyB = generateEagerMergeStrategy(r`B`);
         const eagerB = eagerStrategyB(bundles).map(serializeBundle).sort();
-        const eagerStrategyD = generateEagerMergeStrategy('D');
+        const eagerStrategyD = generateEagerMergeStrategy(r`D`);
         const eagerD = eagerStrategyD(bundles).map(serializeBundle).sort();
-        const eagerStrategyE = generateEagerMergeStrategy('E');
+        const eagerStrategyE = generateEagerMergeStrategy(r`E`);
         const eagerE = eagerStrategyE(bundles).map(serializeBundle).sort();
 
         test('merges 2 bundles into eager A', () => {
@@ -217,7 +220,7 @@ suite('BundleManifest', () => {
           '[A,C]->[3]',
           '[A,D]->[5,D]'
         ].map(deserializeBundle);
-        const eagerStrategy = generateEagerMergeStrategy('A');
+        const eagerStrategy = generateEagerMergeStrategy(r`A`);
         const eager = eagerStrategy(bundles).map(serializeBundle).sort();
         assert.deepEqual(
             eager,
@@ -347,7 +350,7 @@ suite('BundleManifest', () => {
           '[SHELL]->[8,SHELL]'
         ].map(deserializeBundle);
 
-        const shellStrategy2 = generateShellMergeStrategy('SHELL', 2);
+        const shellStrategy2 = generateShellMergeStrategy(r`SHELL`, 2);
         const shelled = shellStrategy2(bundles).map(serializeBundle).sort();
 
         assert.deepEqual(shelled, [
@@ -367,7 +370,7 @@ suite('BundleManifest', () => {
           '[A,C,D]->[5]',
           '[B,D]->[6,D]'
         ].map(deserializeBundle);
-        const shellStrategy = generateShellMergeStrategy('B', 2);
+        const shellStrategy = generateShellMergeStrategy(r`B`, 2);
         const shelled = shellStrategy(bundles).map(serializeBundle).sort();
         assert.deepEqual(
             shelled,
@@ -386,26 +389,28 @@ suite('BundleManifest', () => {
 
       const depsIndex: TransitiveDependenciesMap = new Map();
 
-      depsIndex.set('app-shell.html', new Set(['app-shell.html']));
-      depsIndex.set('catalog-list.html', new Set([
-                      'catalog-list.html',
-                      'tin-photo.html',
-                      'tin-add-to-cart.html',
-                      'tin-caption.html',
-                      'tin-paginator.html'
+      depsIndex.set(r`app-shell.html`, new Set([
+                      r`app-shell.html`,
                     ]));
-      depsIndex.set('catalog-item.html', new Set([
-                      'catalog-item.html',
-                      'tin-photo.html',
-                      'tin-add-to-cart.html',
-                      'tin-gallery.html'
+      depsIndex.set(r`catalog-list.html`, new Set([
+                      r`catalog-list.html`,
+                      r`tin-photo.html`,
+                      r`tin-add-to-cart.html`,
+                      r`tin-caption.html`,
+                      r`tin-paginator.html`,
+                    ]));
+      depsIndex.set(r`catalog-item.html`, new Set([
+                      r`catalog-item.html`,
+                      r`tin-photo.html`,
+                      r`tin-add-to-cart.html`,
+                      r`tin-gallery.html`,
                     ]));
       depsIndex.set(
-          'cart.html',
-          new Set(['cart.html', 'tin-photo.html', 'tin-caption.html']));
+          r`cart.html`,
+          new Set([r`cart.html`, r`tin-photo.html`, r`tin-caption.html`]));
       depsIndex.set(
-          'checkout.html',
-          new Set(['checkout.html', 'tin-point-of-sale.html']));
+          r`checkout.html`,
+          new Set([r`checkout.html`, r`tin-point-of-sale.html`]));
 
       const expected = [
         '[app-shell.html]->[app-shell.html]',

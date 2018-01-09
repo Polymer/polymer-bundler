@@ -17,39 +17,40 @@
 
 import * as path from 'path';
 import * as url from 'url';
+import {ResolvedUrl, FileRelativeUrl, PackageRelativeUrl} from 'polymer-analyzer';
+
+// TODO(usergenic): parseUrl should be top-level export of polymer-analyzer.
 import {parseUrl} from 'polymer-analyzer/lib/core/utils';
 import constants from './constants';
 
 const sharedRelativeUrlProperties =
     ['protocol', 'slashes', 'auth', 'host', 'port', 'hostname'];
 
-/**
- * A string representing a URL.
- */
-export type UrlString = string;
+export type UrlString = ResolvedUrl | FileRelativeUrl | PackageRelativeUrl;
 
-export function ensureTrailingSlash(href: UrlString): UrlString {
-  return href.endsWith('/') ? href : href + '/';
+export function ensureTrailingSlash(href: ResolvedUrl): ResolvedUrl {
+  return href.endsWith('/') ? href : (href + '/' as ResolvedUrl);
 }
 
 /**
  * Returns a URL with the basename removed from the pathname.  Strips the
  * search off of the URL as well, since it will not apply.
  */
-export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
+export function stripUrlFileSearchAndHash(href: ResolvedUrl): ResolvedUrl {
   const u = url.parse(href);
   // Using != so tests for null AND undefined
   if (u.pathname != null) {
     // Suffix path with `_` so that `/a/b/` is treated as `/a/b/_` and that
     // `path.posix.dirname()` returns `/a/b` because it would otherwise
     // return `/a` incorrectly.
-    u.pathname = ensureTrailingSlash(path.posix.dirname(u.pathname + '_'));
+    u.pathname = ensureTrailingSlash(
+        path.posix.dirname(u.pathname + '_') as ResolvedUrl);
   }
   // Assigning to undefined because TSC says type of these is
   // `string | undefined` as opposed to `string | null`
   u.search = undefined;
   u.hash = undefined;
-  return url.format(u);
+  return url.format(u) as ResolvedUrl;
 }
 
 /**
@@ -57,6 +58,13 @@ export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
  */
 export function isAbsolutePath(href: UrlString): boolean {
   return constants.ABS_URL.test(href);
+}
+
+/**
+ * Returns true if the href is a relative path.
+ */
+export function isRelativePath(url: string): boolean {
+  return /^\.+\//.test(url);
 }
 
 /**
@@ -81,14 +89,17 @@ function pathPosixRelative(from: string, to: string): string {
  * the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
  * `/a/` is correctly treated as a folder path where `/a` is not.
  */
-export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
+export function relativeUrl(
+    fromUri: ResolvedUrl,
+    toUri: ResolvedUrl,
+    requireLeadingDot: boolean = false): UrlString {
   const fromUrl = parseUrl(fromUri)!;
   const toUrl = parseUrl(toUri)!;
   // Return the toUri as-is if there are conflicting components which
   // prohibit calculating a relative form.
   if (sharedRelativeUrlProperties.some(
           (p) => toUrl[p] !== null && fromUrl[p] !== toUrl[p])) {
-    return toUri;
+    return toUri as string as UrlString;
   }
   const fromDir = fromUrl.pathname !== undefined ?
       fromUrl.pathname.replace(/[^/]+$/, '') :
@@ -96,11 +107,14 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   const toDir = toUrl.pathname !== undefined ? toUrl.pathname : '';
   // Note, below, the _ character is appended so that paths with trailing
   // slash retain the trailing slash in the path.relative result.
-  const relPath = pathPosixRelative(fromDir, toDir + '_').replace(/_$/, '');
+  let relPath = pathPosixRelative(fromDir, toDir + '_').replace(/_$/, '');
+  if (requireLeadingDot && !/^\.*\//.test(relPath)) {
+    relPath = `./${relPath}`;
+  }
   sharedRelativeUrlProperties.forEach((p) => toUrl[p] = null);
   toUrl.path = undefined;
   toUrl.pathname = relPath;
-  return url.format(toUrl);
+  return url.format(toUrl) as UrlString;
 }
 
 /**
@@ -108,7 +122,8 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
  * the new base url.
  */
 export function rewriteHrefBaseUrl(
-    href: UrlString, oldBaseUrl: UrlString, newBaseUrl: UrlString): UrlString {
+    href: UrlString, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl):
+    UrlString {
   if (isAbsolutePath(href)) {
     return href;
   }
@@ -127,10 +142,13 @@ export function rewriteHrefBaseUrl(
       pathTo = makeAbsolutePath(pathTo);
     }
     const pathname = pathPosixRelative(dirFrom, pathTo);
-    return url.format(
-        {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
+    return url.format({
+      pathname: pathname,
+      search: parsedTo.search,
+      hash: parsedTo.hash
+    }) as ResolvedUrl;
   }
-  return absUrl;
+  return absUrl as ResolvedUrl;
 }
 
 function makeAbsolutePath(path: string): string {

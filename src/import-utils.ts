@@ -11,16 +11,17 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
+import * as babelGenerator from 'babel-generator';
+import * as babelTraverse from 'babel-traverse';
+import * as babel from 'babel-types';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
-import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
-// TODO(usergenic): Move import below to statement above, when polymer-analyzer
-// 3.0.0-pre.3 is released.
-import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
+import {Analyzer, Document, ParsedHtmlDocument, ResolvedUrl} from 'polymer-analyzer';
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';
+import * as babelUtils from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import constants from './constants';
 import * as matchers from './matchers';
@@ -28,7 +29,6 @@ import {addOrUpdateSourcemapComment} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
 import * as urlUtils from './url-utils';
 import {UrlString} from './url-utils';
-
 
 // TODO(usergenic): Revisit the organization of this module and *consider*
 // building a class to encapsulate the common document details like docUrl and
@@ -43,19 +43,19 @@ export async function inlineHtmlImport(
     analyzer: Analyzer,
     document: Document,
     linkTag: ASTNode,
-    stripImports: Set<UrlString>,
+    stripImports: Set<ResolvedUrl>,
     docBundle: AssignedBundle,
     manifest: BundleManifest,
     enableSourcemaps: boolean,
     rewriteUrlsInTemplates?: boolean,
-    excludes?: string[]) {
+    excludes?: ResolvedUrl[]) {
   const isLazy = dom5.getAttribute(linkTag, 'rel')!.match(/lazy-import/i);
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
-  if (!analyzer.canResolveUrl(importUrl)) {
+  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  if (!resolvedImportUrl) {
     return;
   }
-  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   const importBundle = manifest.getBundleForFile(resolvedImportUrl);
 
   // We don't want to process the same eager import again, but we want to
@@ -194,13 +194,13 @@ export async function inlineScript(
     scriptTag: ASTNode,
     docBundle: AssignedBundle,
     enableSourcemaps: boolean,
-    excludes?: string[]) {
+    excludes?: ResolvedUrl[]) {
   const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
   const importUrl = urlLib.resolve(document.url, rawImportUrl);
-  if (!analyzer.canResolveUrl(importUrl)) {
+  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  if (!resolvedImportUrl) {
     return;
   }
-  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   if (excludes &&
       excludes.some(
           (e) => resolvedImportUrl === e ||
@@ -244,14 +244,14 @@ export async function inlineStylesheet(
     document: Document,
     cssLink: ASTNode,
     docBundle: AssignedBundle,
-    excludes?: string[],
+    excludes?: ResolvedUrl[],
     rewriteUrlsInTemplates?: boolean) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
   const importUrl = urlLib.resolve(document.url, stylesheetUrl);
-  if (!analyzer.canResolveUrl(importUrl)) {
+  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  if (!resolvedImportUrl) {
     return;
   }
-  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   if (excludes &&
       excludes.some(
           (e) => resolvedImportUrl === e ||
@@ -309,7 +309,7 @@ export async function inlineStylesheet(
  * link and form target attributes and remove the base tag.
  */
 export function rewriteAstToEmulateBaseTag(
-    ast: ASTNode, docUrl: UrlString, rewriteUrlsInTemplates?: boolean) {
+    ast: ASTNode, docUrl: ResolvedUrl, rewriteUrlsInTemplates?: boolean) {
   const baseTag = dom5.query(ast, matchers.base);
   const p = dom5.predicates;
   // If there's no base tag, there's nothing to do.
@@ -320,7 +320,9 @@ export function rewriteAstToEmulateBaseTag(
     astUtils.removeElementAndNewline(baseTag);
   }
   if (dom5.predicates.hasAttr('href')(baseTag)) {
-    const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
+    const baseUrl =
+        urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!) as
+        ResolvedUrl;
     rewriteAstBaseUrl(ast, baseUrl, docUrl, rewriteUrlsInTemplates);
   }
   if (p.hasAttr('target')(baseTag)) {
@@ -343,10 +345,12 @@ export function rewriteAstToEmulateBaseTag(
  */
 export function rewriteAstBaseUrl(
     ast: ASTNode,
-    oldBaseUrl: UrlString,
-    newBaseUrl: UrlString,
+    oldBaseUrl: ResolvedUrl,
+    newBaseUrl: ResolvedUrl,
     rewriteUrlsInTemplates?: boolean) {
   rewriteElementAttrsBaseUrl(
+      ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
+  rewriteScriptImportsBaseUrl(
       ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
   rewriteStyleTagsBaseUrl(ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
   setDomModuleAssetpaths(ast, oldBaseUrl, newBaseUrl);
@@ -364,7 +368,7 @@ export async function addOrUpdateSourcemapsForInlineScripts(
     analyzer: Analyzer,
     originalDoc: Document,
     reparsedDoc: ParsedHtmlDocument,
-    oldBaseUrl: UrlString) {
+    oldBaseUrl: ResolvedUrl) {
   const inlineScripts =
       dom5.queryAll(reparsedDoc.ast, matchers.inlineJavascript);
   const promises = inlineScripts.map(scriptAst => {
@@ -426,9 +430,9 @@ function findInSet<T>(set: Set<T>, predicate: (item: T) => boolean): T|
  * new base url.
  */
 function rewriteCssTextBaseUrl(
-    cssText: string, oldBaseUrl: UrlString, newBaseUrl: UrlString): string {
+    cssText: string, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl): string {
   return cssText.replace(constants.URL, (match) => {
-    let path = match.replace(/["']/g, '').slice(4, -1);
+    let path = match.replace(/["']/g, '').slice(4, -1) as UrlString;
     path = urlUtils.rewriteHrefBaseUrl(path, oldBaseUrl, newBaseUrl);
     return 'url("' + path + '")';
   });
@@ -440,8 +444,8 @@ function rewriteCssTextBaseUrl(
  */
 function rewriteElementAttrsBaseUrl(
     ast: ASTNode,
-    oldBaseUrl: UrlString,
-    newBaseUrl: UrlString,
+    oldBaseUrl: ResolvedUrl,
+    newBaseUrl: ResolvedUrl,
     rewriteUrlsInTemplates?: boolean) {
   const nodes = dom5.queryAll(
       ast,
@@ -452,17 +456,74 @@ function rewriteElementAttrsBaseUrl(
   for (const node of nodes) {
     for (const attr of constants.URL_ATTR) {
       const attrValue = dom5.getAttribute(node, attr);
-      if (attrValue && !urlUtils.isTemplatedUrl(attrValue)) {
-        let relUrl: UrlString;
+      if (attrValue && !urlUtils.isTemplatedUrl(attrValue as UrlString)) {
+        let relUrl;
         if (attr === 'style') {
-          relUrl = rewriteCssTextBaseUrl(attrValue, oldBaseUrl, newBaseUrl);
+          relUrl = rewriteCssTextBaseUrl(
+              attrValue as UrlString, oldBaseUrl, newBaseUrl);
         } else {
-          relUrl =
-              urlUtils.rewriteHrefBaseUrl(attrValue, oldBaseUrl, newBaseUrl);
+          relUrl = urlUtils.rewriteHrefBaseUrl(
+              attrValue as UrlString, oldBaseUrl, newBaseUrl);
         }
         dom5.setAttribute(node, attr, relUrl);
       }
     }
+  }
+}
+
+/**
+ * Find all paths in JavaScript import declarations and rewrites them so they
+ * are based on the relationship of the old base url to the new base url.
+ */
+function rewriteScriptImportsBaseUrl(
+    ast: ASTNode,
+    oldBaseUrl: ResolvedUrl,
+    newBaseUrl: ResolvedUrl,
+    rewriteUrlsInTemplates: boolean = false) {
+  const childNodesOption = rewriteUrlsInTemplates ?
+      dom5.childNodesIncludeTemplate :
+      dom5.defaultChildNodes;
+  const inlineModules = dom5.queryAll(
+      ast, matchers.inlineJsModuleMatcher, undefined, childNodesOption);
+  // TODO(usergenic): iterate through the inline module scripts and adjust any
+  // relative path in import statements found.
+  for (const inlineModule of inlineModules) {
+    const code = dom5.getTextContent(inlineModule);
+    const jsAst = babelUtils.parseModuleFile(oldBaseUrl, code);
+    babelTraverse.default(jsAst, {
+      CallExpression: {
+        enter(path: babelTraverse.NodePath) {
+          const callExp = path.node as babel.CallExpression;
+          const callee = callExp.callee as babel.Node;
+          const arg0 = callExp.arguments[0] as babel.StringLiteral;
+          if (callee && callee.type === 'Import' && arg0 &&
+              babel.isStringLiteral(arg0)) {
+            const originalSource = arg0.value;
+            const resolvedSource =
+                urlLib.resolve(oldBaseUrl, originalSource) as ResolvedUrl;
+            if (urlUtils.isRelativePath(originalSource)) {
+              const rebasedSource =
+                  urlUtils.relativeUrl(newBaseUrl, resolvedSource, true);
+              arg0.value = rebasedSource;
+            }
+          }
+        }
+      },
+      ImportDeclaration: {
+        enter(path: babelTraverse.NodePath) {
+          const impDec = path.node as babel.ImportDeclaration;
+          const originalSource = impDec.source.value;
+          const resolvedSource =
+              urlLib.resolve(oldBaseUrl, originalSource) as ResolvedUrl;
+          if (urlUtils.isRelativePath(originalSource)) {
+            const rebasedSource =
+                urlUtils.relativeUrl(newBaseUrl, resolvedSource, true);
+            impDec.source.value = rebasedSource;
+          }
+        }
+      }
+    });
+    dom5.setTextContent(inlineModule, babelGenerator.default(jsAst).code);
   }
 }
 
@@ -472,8 +533,8 @@ function rewriteElementAttrsBaseUrl(
  */
 function rewriteStyleTagsBaseUrl(
     ast: ASTNode,
-    oldBaseUrl: UrlString,
-    newBaseUrl: UrlString,
+    oldBaseUrl: ResolvedUrl,
+    newBaseUrl: ResolvedUrl,
     rewriteUrlsInTemplates: boolean = false) {
   const childNodesOption = rewriteUrlsInTemplates ?
       dom5.childNodesIncludeTemplate :
@@ -511,7 +572,7 @@ function rewriteStyleTagsBaseUrl(
  * have them if the base urls are different.
  */
 function setDomModuleAssetpaths(
-    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
+    ast: ASTNode, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl) {
   const domModules = dom5.queryAll(ast, matchers.domModuleWithoutAssetpath);
   for (let i = 0, node: ASTNode; i < domModules.length; i++) {
     node = domModules[i];

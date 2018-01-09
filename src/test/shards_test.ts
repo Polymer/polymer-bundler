@@ -17,11 +17,12 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
-import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader, ResolvedUrl} from 'polymer-analyzer';
 
 import {generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, BundleResult} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
+import {resolvedUrl as r, undent} from './test-utils';
 
 chai.config.showDiff = true;
 
@@ -35,12 +36,13 @@ const domModulePredicate = (id: string) => {
 
 suite('Bundler', () => {
   let bundler: Bundler;
-  const shell = 'test/html/shards/shop_style_project/shell.html';
-  const common = 'test/html/shards/shop_style_project/common.html';
-  const entrypoint1 = 'test/html/shards/shop_style_project/entrypoint1.html';
-  const entrypoint2 = 'test/html/shards/shop_style_project/entrypoint2.html';
+  const shell = r`test/html/shards/shop_style_project/shell.html`;
+  const common = r`test/html/shards/shop_style_project/common.html`;
+  const entrypoint1 = r`test/html/shards/shop_style_project/entrypoint1.html`;
+  const entrypoint2 = r`test/html/shards/shop_style_project/entrypoint2.html`;
 
-  async function bundleMultiple(inputPath: string[], opts?: BundlerOptions):
+  async function bundleMultiple(
+      inputPath: ResolvedUrl[], opts?: BundlerOptions):
       Promise<BundleResult> {
         const bundlerOpts = opts || {};
         if (!bundlerOpts.analyzer) {
@@ -48,10 +50,10 @@ suite('Bundler', () => {
         }
         bundler = new Bundler(bundlerOpts);
         const manifest = await bundler.generateManifest(inputPath);
-        return await bundler.bundle(manifest);
+        return bundler.bundle(manifest);
       }
 
-  function assertContainsAndExcludes(
+  function assertHtmlContainsAndExcludes(
       doc: parse5.ASTNode,
       contains: dom5.Predicate[],
       excludes: dom5.Predicate[]) {
@@ -71,13 +73,14 @@ suite('Bundler', () => {
           [common, entrypoint1, entrypoint2],
           {strategy: generateSharedDepsMergeStrategy(2)});
       assert.equal(documents.size, 4);
-      const commonDoc: parse5.ASTNode = documents.get(common)!.ast;
+      const commonDoc = parse5.parse(documents.get(common)!.code);
       assert.isDefined(commonDoc);
-      const entrypoint1Doc = documents.get(entrypoint1)!.ast;
+      const entrypoint1Doc = parse5.parse(documents.get(entrypoint1)!.code);
       assert.isDefined(entrypoint1Doc);
-      const entrypoint2Doc = documents.get(entrypoint2)!.ast;
+      const entrypoint2Doc = parse5.parse(documents.get(entrypoint2)!.code);
       assert.isDefined(entrypoint2Doc);
-      const sharedDoc = documents.get('shared_bundle_1.html')!.ast;
+      const sharedDoc =
+          parse5.parse(documents.get('shared_bundle_1.html')!.code);
       assert.isDefined(sharedDoc);
       const commonModule = domModulePredicate('common-module');
       const elOne = domModulePredicate('el-one');
@@ -86,12 +89,13 @@ suite('Bundler', () => {
       const depTwo = domModulePredicate('el-dep2');
 
       // Check that all the dom modules are in their expected shards
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           commonDoc, [commonModule], [elOne, elTwo, depOne, depTwo]);
-      assertContainsAndExcludes(sharedDoc, [depOne], [elOne, elTwo, depTwo]);
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
+          sharedDoc, [depOne], [elOne, elTwo, depTwo]);
+      assertHtmlContainsAndExcludes(
           entrypoint1Doc, [elOne], [commonModule, elTwo, depOne, depTwo]);
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           entrypoint2Doc, [elTwo, depTwo], [commonModule, elOne, depOne]);
     });
 
@@ -100,11 +104,11 @@ suite('Bundler', () => {
           [shell, entrypoint1, entrypoint2],
           {strategy: generateShellMergeStrategy(shell, 2)});
       assert.equal(documents.size, 3);
-      const shellDoc: parse5.ASTNode = documents.get(shell)!.ast;
+      const shellDoc = parse5.parse(documents.get(shell)!.code);
       assert.isDefined(shellDoc);
-      const entrypoint1Doc = documents.get(entrypoint1)!.ast;
+      const entrypoint1Doc = parse5.parse(documents.get(entrypoint1)!.code);
       assert.isDefined(entrypoint1Doc);
-      const entrypoint2Doc = documents.get(entrypoint2)!.ast;
+      const entrypoint2Doc = parse5.parse(documents.get(entrypoint2)!.code);
       assert.isDefined(entrypoint2Doc);
       const shellDiv = dom5.predicates.hasAttrValue('id', 'shell');
       const shellImport = dom5.predicates.AND(
@@ -118,16 +122,127 @@ suite('Bundler', () => {
       const depTwo = domModulePredicate('el-dep2');
 
       // Check that all the dom modules are in their expected shards
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           shellDoc, [shellDiv, commonModule, depOne], [elOne, elTwo, depTwo]);
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           entrypoint1Doc,
           [elOne],
           [commonModule, elTwo, depOne, depTwo, shellImport]);
-      assertContainsAndExcludes(
+      assertHtmlContainsAndExcludes(
           entrypoint2Doc,
           [elTwo, depTwo],
           [commonModule, elOne, depOne, shellImport]);
+    });
+
+    test('with JavaScript modules, all deps in their places', async () => {
+      const entrypoint = r`test/html/modules/animals/animal-index.html`;
+      const coolKitties = r`test/html/modules/animals/cool-kitties.html`;
+      const sharkTime = r`test/html/modules/animals/shark-time.html`;
+
+      const {documents} =
+          await bundleMultiple([entrypoint, coolKitties, sharkTime]);
+
+      const animalIndexCode = documents.get(entrypoint)!.code;
+      const coolKittiesCode = documents.get(coolKitties)!.code;
+
+      const sharedBundle2Code = documents.get('shared_bundle_2.js')!.code;
+      const dogCode = documents.get('test/html/modules/animals/dog.js')!.code;
+      const sharkTimeCode =
+          documents.get('test/html/modules/animals/shark-time.html')!.code;
+
+      assert.deepEqual(animalIndexCode.trim(), undent(`
+        <link rel="lazy-import" href="cool-kitties.html">
+        <link rel="lazy-import" href="shark-time.html">
+
+
+        <div hidden="" by-polymer-bundler=""><script>console.log('imports/external.js');
+        </script>
+        </div><script type="module">
+        function jumpOver(something) {
+          import('./dog.js').then(dog => {
+            const lazyDog = new dog.Dog();
+            console.log(\`\${something} jumped over the lazy dog.\`);
+            console.log(lazyDog.speak());
+          });
+        }
+
+        jumpOver('the quick brown fox');
+        </script>
+      `));
+
+      assert.deepEqual(coolKittiesCode.trim(), undent(`
+        <div hidden="" by-polymer-bundler=""><link rel="import" href="../../../../shared_bundle_1.html"></div><script type="module">
+        import { $bundled$test$html$modules$animals$mammal } from '../../../../shared_bundle_2.js';
+
+        const {
+          Mammal: Mammal
+        } = $bundled$test$html$modules$animals$mammal;
+        class Cat extends Mammal {
+          speak() {
+            return 'meow';
+          }
+        }
+
+        const cat = new Cat();
+        cat.speak();
+        </script>
+      `));
+
+      assert.deepEqual(dogCode.trim(), undent(`
+        import { $bundled$test$html$modules$animals$mammal } from '../../../../shared_bundle_2.js';
+        const {
+          Mammal: Mammal
+        } = $bundled$test$html$modules$animals$mammal;
+
+        class Dog extends Mammal {
+          speak() {
+            return 'arf';
+          }
+
+        }
+
+        export { Dog };
+      `));
+
+      assert.deepEqual(sharedBundle2Code.trim(), undent(`
+        class Vertebrate {
+          hasBones() {
+            return true;
+          }
+
+        }
+
+        var vertebrate = Object.freeze({
+          Vertebrate: Vertebrate
+        });
+
+        class Mammal extends Vertebrate {}
+
+        var mammal = Object.freeze({
+          Mammal: Mammal
+        });
+        export { mammal as $bundled$test$html$modules$animals$mammal, vertebrate as $bundled$test$html$modules$animals$vertebrate };
+      `));
+
+      assert.deepEqual(sharkTimeCode.trim(), undent(`
+        <div hidden="" by-polymer-bundler=""><link rel="import" href="../../../../shared_bundle_1.html"></div><script type="module">
+        import { $bundled$test$html$modules$animals$vertebrate } from '../../../../shared_bundle_2.js';
+
+        const {
+          Vertebrate: Vertebrate
+        } = $bundled$test$html$modules$animals$vertebrate;
+        class Fish extends Vertebrate {}
+
+        class Shark extends Fish {
+          speak() {
+            return 'nuh-nuh! nuh-nuh nuh-nuh!';
+          }
+        }
+
+        const jaws = new Shark();
+        jaws.speak();
+        </script>
+      `));
     });
   });
 });

@@ -18,11 +18,12 @@
 
 import * as chai from 'chai';
 
+import {ResolvedUrl} from 'polymer-analyzer';
 import * as urlUtils from '../url-utils';
-
+import {UrlString} from '../url-utils';
+import {resolvedUrl as r} from './test-utils';
 
 const assert = chai.assert;
-
 
 suite('URL Utils', () => {
 
@@ -30,34 +31,36 @@ suite('URL Utils', () => {
 
     test('Strips "man.html" basename off url', () => {
       assert.equal(
-          urlUtils.stripUrlFileSearchAndHash('shark://alligator/man.html'),
+          urlUtils.stripUrlFileSearchAndHash(
+              'shark://alligator/man.html' as ResolvedUrl),
           'shark://alligator/');
     });
 
     test('Strips "file.html" basename off url', () => {
       assert.equal(
           urlUtils.stripUrlFileSearchAndHash(
-              'https://example.com/path/to/file.html'),
+              'https://example.com/path/to/file.html' as ResolvedUrl),
           'https://example.com/path/to/');
     });
 
     test('Strips "something?a=b&c=d" basename and search off url', () => {
       assert.equal(
           urlUtils.stripUrlFileSearchAndHash(
-              'https://example.com/path/to/something?a=b&c=d'),
+              'https://example.com/path/to/something?a=b&c=d' as ResolvedUrl),
           'https://example.com/path/to/');
     });
 
     test('Strips "#some-hash-value" off url', () => {
       assert.equal(
           urlUtils.stripUrlFileSearchAndHash(
-              'https://example.com/path/#some-hash-value'),
+              'https://example.com/path/#some-hash-value' as ResolvedUrl),
           'https://example.com/path/');
     });
 
     test('Handles relative paths', () => {
       assert.equal(
-          urlUtils.stripUrlFileSearchAndHash('relative/path/to/file'),
+          urlUtils.stripUrlFileSearchAndHash(
+              'relative/path/to/file' as ResolvedUrl),
           'relative/path/to/');
     });
   });
@@ -70,7 +73,10 @@ suite('URL Utils', () => {
         newBaseUrl: string,
         expected: string,
         msg?: string) {
-      const actual = urlUtils.rewriteHrefBaseUrl(href, oldBaseUrl, newBaseUrl);
+      const actual = urlUtils.rewriteHrefBaseUrl(
+          href as UrlString,
+          oldBaseUrl as ResolvedUrl,
+          newBaseUrl as ResolvedUrl);
       assert.equal(actual, expected, msg);
     }
 
@@ -124,53 +130,56 @@ suite('URL Utils', () => {
   suite('Relative URL calculations', () => {
 
     test('Basic relative paths', () => {
-      assert.equal(urlUtils.relativeUrl('/', '/'), '');
-      assert.equal(urlUtils.relativeUrl('/', '/a'), 'a');
-      assert.equal(urlUtils.relativeUrl('/a', '/b'), 'b');
-      assert.equal(urlUtils.relativeUrl('/a/b', '/c'), '../c');
-      assert.equal(urlUtils.relativeUrl('/a/b', '/a/c'), 'c');
-      assert.equal(urlUtils.relativeUrl('/a/b', '/a/c/d'), 'c/d');
-      assert.equal(urlUtils.relativeUrl('/a/b/c/d', '/a/b/c/d'), 'd');
+      assert.equal(urlUtils.relativeUrl(r`/`, r`/`), '');
+      assert.equal(urlUtils.relativeUrl(r`/`, r`/a`), 'a');
+      assert.equal(urlUtils.relativeUrl(r`/a`, r`/b`), 'b');
+      assert.equal(urlUtils.relativeUrl(r`/a/b`, r`/c`), '../c');
+      assert.equal(urlUtils.relativeUrl(r`/a/b`, r`/a/c`), 'c');
+      assert.equal(urlUtils.relativeUrl(r`/a/b`, r`/a/c/d`), 'c/d');
+      assert.equal(urlUtils.relativeUrl(r`/a/b/c/d`, r`/a/b/c/d`), 'd');
     });
 
     test('Trailing slash relevance', () => {
-      assert.equal(urlUtils.relativeUrl('/a', '/b/'), 'b/');
-      assert.equal(urlUtils.relativeUrl('/a/', '/b'), '../b');
-      assert.equal(urlUtils.relativeUrl('/a/', '/b/'), '../b/');
-      assert.equal(urlUtils.relativeUrl('/a/', '/a/b/c'), 'b/c');
-      assert.equal(urlUtils.relativeUrl('/a/b/c/', '/a/d/'), '../../d/');
+      assert.equal(urlUtils.relativeUrl(r`/a`, r`/b/`), 'b/');
+      assert.equal(urlUtils.relativeUrl(r`/a/`, r`/b`), '../b');
+      assert.equal(urlUtils.relativeUrl(r`/a/`, r`/b/`), '../b/');
+      assert.equal(urlUtils.relativeUrl(r`/a/`, r`/a/b/c`), 'b/c');
+      assert.equal(urlUtils.relativeUrl(r`/a/b/c/`, r`/a/d/`), '../../d/');
     });
 
     test('Matching shared relative URL properties', () => {
-      assert.equal(urlUtils.relativeUrl('//a/b', '//a/c'), 'c');
-      assert.equal(urlUtils.relativeUrl('p://a/b/', 'p://a/c/'), '../c/');
+      assert.equal(urlUtils.relativeUrl(r`//a/b`, r`//a/c`), 'c');
+      assert.equal(urlUtils.relativeUrl(r`p://a/b/`, r`p://a/c/`), '../c/');
     });
 
     test('Mismatched schemes and hosts', () => {
-      assert.equal(urlUtils.relativeUrl('p://a/b/', 'p2://a/c/'), 'p2://a/c/');
-      assert.equal(urlUtils.relativeUrl('p://h/a/', 'p://i/b/'), 'p://i/b/');
-      assert.equal(urlUtils.relativeUrl('p://h:1/a/', 'p://h/b/'), 'p://h/b/');
+      assert.equal(
+          urlUtils.relativeUrl(r`p://a/b/`, r`p2://a/c/`), 'p2://a/c/');
+      assert.equal(urlUtils.relativeUrl(r`p://h/a/`, r`p://i/b/`), 'p://i/b/');
+      assert.equal(
+          urlUtils.relativeUrl(r`p://h:1/a/`, r`p://h/b/`), 'p://h/b/');
     });
 
     test('URLs with queries', () => {
-      assert.equal(urlUtils.relativeUrl('/a/?q=1', '/a/'), '');
-      assert.equal(urlUtils.relativeUrl('/a/', '/a/?q=1'), '?q=1');
+      assert.equal(urlUtils.relativeUrl(r`/a/?q=1`, r`/a/`), '');
+      assert.equal(urlUtils.relativeUrl(r`/a/`, r`/a/?q=1`), '?q=1');
       assert.equal(
-          urlUtils.relativeUrl('p://a:8080/b?q=x#1', 'p://a:8080/b?q=x#1'),
+          urlUtils.relativeUrl(r`p://a:8080/b?q=x#1`, r`p://a:8080/b?q=x#1`),
           'b?q=x#1');
     });
 
     test('Ignore unshared relative URL properties', () => {
-      assert.equal(urlUtils.relativeUrl('/a?q=x', '/b'), 'b');
-      assert.equal(urlUtils.relativeUrl('/a/b/c?q=x', '/a/d?q=y'), '../d?q=y');
+      assert.equal(urlUtils.relativeUrl(r`/a?q=x`, r`/b`), 'b');
       assert.equal(
-          urlUtils.relativeUrl('p://h/a/?q=x#1', 'p://h/b/?q=y#2'),
+          urlUtils.relativeUrl(r`/a/b/c?q=x`, r`/a/d?q=y`), '../d?q=y');
+      assert.equal(
+          urlUtils.relativeUrl(r`p://h/a/?q=x#1`, r`p://h/b/?q=y#2`),
           '../b/?q=y#2');
     });
 
     test('Scheme-less URLs should be interpreted as browsers do', () => {
-      assert.equal(urlUtils.relativeUrl('//a/b', '/c/d'), 'c/d');
-      assert.equal(urlUtils.relativeUrl('/a/b', '//c/d'), '//c/d');
+      assert.equal(urlUtils.relativeUrl(r`//a/b`, r`/c/d`), 'c/d');
+      assert.equal(urlUtils.relativeUrl(r`/a/b`, r`//c/d`), '//c/d');
     });
   });
 });
