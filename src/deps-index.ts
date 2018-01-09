@@ -76,12 +76,14 @@ function _getDependencies(
         htmlScript.document, true, visited, visitedEager, lazyImports);
   }
 
+  /*
   for (const jsDocument of [...jsImports].map((j) => j.document)) {
     for (const jsImport of jsDocument.getFeatures(
              {kind: 'js-import', imported: false, externalPackages: true})) {
       jsImports.add(jsImport);
     }
   }
+  */
 
   for (const importFeature of [...htmlImports, ...jsImports]) {
     const importUrl = importFeature.document.url;
@@ -91,7 +93,7 @@ function _getDependencies(
     if (visitedEager.has(importUrl)) {
       continue;
     }
-    const isEager = viaEager && !importFeature.lazy;
+    const isEager = viaEager && !lazyImports.has(importUrl);
     if (isEager) {
       visitedEager.add(importUrl);
       // In this case we've visited a node eagerly for the first time,
@@ -139,5 +141,6 @@ export async function buildDepsIndex(
       console.warn(e.message);
     }
   }
+
   return depsIndex;
 }

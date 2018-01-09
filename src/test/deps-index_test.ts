@@ -101,10 +101,10 @@ suite('Bundler', () => {
       const analyzer =
           new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')});
       const expectedEntrypointsToDeps = new Map([
-        [entrypoint, new Set([entrypoint, fragmentA, shell, util])],
+        [entrypoint, new Set([entrypoint, shell])],
         [fragmentA, new Set([fragmentA, util])],
         [fragmentB, new Set([fragmentB, util])],
-        [shell, new Set([shell, fragmentA, util])],
+        [shell, new Set([shell])],
       ]);
       const index = await buildDepsIndex(
           [entrypoint, fragmentA, fragmentB, shell], analyzer);
@@ -176,9 +176,7 @@ suite('Bundler', () => {
               externalScript,
               invertebrate,
               lazyDog,
-              mammal,
               snail,
-              vertebrate
             ])
           ],
           [
