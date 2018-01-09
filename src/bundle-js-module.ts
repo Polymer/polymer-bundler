@@ -190,7 +190,7 @@ export async function rewriteJsBundleImports(
               babel.isImportNamespaceSpecifier(specifier)) {
             importedNamesBySource.get(sourceBundle.url)!.push({
               local: specifier.local.name,
-              imported: '*',
+              imported: 'default',
             });
           }
         }
