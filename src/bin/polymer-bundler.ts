@@ -209,9 +209,20 @@ const fsUrlLoader = new FSUrlLoader(projectRoot);
 // to NPM: https://github.com/Polymer/polymer-analyzer/pull/841
 class BetterFSUrlLoader extends FSUrlLoader {
   canLoad(url: ResolvedUrl): boolean {
-    return url.startsWith(Uri.file(this.root).toString());
+    return url.startsWith(
+        Uri.file(this.root).toString().replace(/([^/])$/, '$1/'));
   }
 }
+
+const projectRootUrl =
+    Uri.file(projectRoot).toString().replace(/([^/])$/, '$1/') as ResolvedUrl;
+let getPackageRelativeUrl: (r: ResolvedUrl) => PackageRelativeUrl = function(
+    resolvedUrl: ResolvedUrl): PackageRelativeUrl {
+  if (resolvedUrl.startsWith(projectRootUrl)) {
+    return resolvedUrl.slice(projectRootUrl.length) as PackageRelativeUrl;
+  }
+  return resolvedUrl as any as PackageRelativeUrl;
+};
 
 if (options.redirect) {
   type redirection = {prefix: string, path: string};
@@ -233,6 +244,21 @@ if (options.redirect) {
         r.prefix,
         resolvedPath);
   });
+
+  redirections.reverse().forEach((r: redirection) => {
+    const oldGetPackageRelativeUrl = getPackageRelativeUrl;
+    const newGetPackageRelativeUrl = function(resolvedUrl: ResolvedUrl):
+        PackageRelativeUrl {
+          const redirectionPathUrl = Uri.file(path.resolve(r.path)).toString();
+          if (resolvedUrl.startsWith(redirectionPathUrl)) {
+            return r.prefix + resolvedUrl.slice(redirectionPathUrl.length) as
+                PackageRelativeUrl;
+          }
+          return oldGetPackageRelativeUrl(resolvedUrl);
+        };
+    getPackageRelativeUrl = newGetPackageRelativeUrl;
+  });
+
   const loaders: UrlLoader[] = redirections.map(
       (r: redirection) => new BetterFSUrlLoader(path.resolve(r.path)));
   if (redirections.length > 0) {
@@ -265,7 +291,7 @@ interface JsonManifest {
     const missingImports: Set<string> = new Set();
 
     for (const [url, bundle] of manifest.bundles) {
-      json[makePackageRelative(url)] =
+      json[getPackageRelativeUrl(url)] =
           [...new Set([
             // `files` and `inlinedHtmlImports` will be partially
             // duplicative, but use of both ensures the basis document
@@ -275,24 +301,19 @@ interface JsonManifest {
             ...bundle.inlinedHtmlImports,
             ...bundle.inlinedScripts,
             ...bundle.inlinedStyles
-          ])].map(makePackageRelative);
+          ])].map(getPackageRelativeUrl);
 
       for (const missingImport of bundle.missingImports) {
         missingImports.add(missingImport);
       }
     }
     if (missingImports.size > 0) {
-      json['_missing'] = [...missingImports].map(makePackageRelative);
+      json['_missing'] = [...missingImports].map(getPackageRelativeUrl);
     }
     return json;
   }
 
-  function makePackageRelative(resolvedUrl: ResolvedUrl): PackageRelativeUrl {
-    return resolvedUrl.replace(projectRootUrl, '') as PackageRelativeUrl;
-  }
-
   const bundler = new Bundler(options);
-  const projectRootUrl = bundler.analyzer.resolveUrl('')!;
 
   let documents: DocumentCollection;
   let manifest: BundleManifest;
@@ -330,7 +351,7 @@ interface JsonManifest {
     for (const [url, document] of documents) {
       const ast = document.ast;
       const out =
-          pathLib.resolve(pathLib.join(outDir, makePackageRelative(url)));
+          pathLib.resolve(pathLib.join(outDir, getPackageRelativeUrl(url)));
       const finalDir = pathLib.dirname(out);
       mkdirp.sync(finalDir);
       const serialized = parse5.serialize(ast);
