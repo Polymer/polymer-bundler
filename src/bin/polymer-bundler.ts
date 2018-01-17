@@ -19,11 +19,9 @@ import * as path from 'path';
 import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
+import Uri from 'vscode-uri';
 import {Bundler} from '../bundler';
-import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageRelativeUrl, PackageUrlResolver, PrefixedUrlLoader, UrlLoader, UrlResolver} from 'polymer-analyzer';
-// TODO(usergenic): Move import below to statement above, when polymer-analyzer
-// 3.0.0-pre.3 is released.
-import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
+import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageRelativeUrl, PackageUrlResolver, RedirectResolver, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
 
@@ -201,19 +199,17 @@ options.inlineScripts = Boolean(options['inline-scripts']);
 options.inlineCss = Boolean(options['inline-css']);
 options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
 
-class RedirectionResolver extends UrlResolver {
-  private _prefix: string;
-  constructor(prefix: string) {
-    super();
-    this._prefix = prefix;
-  }
-  relative(from: ResolvedUrl, to: ResolvedUrl) {
-    return this.simpleUrlRelative(from, to);
-  }
-  resolve(url: string) {
-    if (url.startsWith(this._prefix)) {
-      return url as ResolvedUrl;
-    }
+const packageUrlResolver = new PackageUrlResolver({
+  packageDir: projectRoot,
+  componentDir: path.join(projectRoot, 'bower_components'),
+});
+const fsUrlLoader = new FSUrlLoader(projectRoot);
+
+// TODO(usergenic): Make FSUrlLoader in Analyzer behave this way.  There's no
+// fall-thru support for multiple fs url loaders without this behavior.
+class BetterFSUrlLoader extends FSUrlLoader {
+  canLoad(url: ResolvedUrl): boolean {
+    return url.startsWith(Uri.file(this.root).toString());
   }
 }
 
@@ -226,33 +222,31 @@ if (options.redirect) {
             return {prefix, path};
           })
           .filter((r: redirection) => r.prefix && r.path);
-  const resolvers: UrlResolver[] =
-      redirections.map((r: redirection) => new RedirectionResolver(r.prefix));
+  const resolvers: UrlResolver[] = redirections.map((r: redirection) => {
+    let resolvedPath = Uri.file(path.resolve(r.path)).toString();
+    // Ensure trailing slash if input path had trailing slash
+    if (r.path.match(/\\$|\/$/)) {
+      resolvedPath = resolvedPath.replace(/([^/])$/, '$1/');
+    }
+    return new RedirectResolver(
+        packageUrlResolver.resolve(r.prefix as PackageRelativeUrl)!,
+        r.prefix,
+        resolvedPath);
+  });
   const loaders: UrlLoader[] = redirections.map(
-      (r: redirection) =>
-          new PrefixedUrlLoader(r.prefix, new FSUrlLoader(r.path)));
+      (r: redirection) => new BetterFSUrlLoader(path.resolve(r.path)));
   if (redirections.length > 0) {
     options.analyzer = new Analyzer({
-      urlResolver: new MultiUrlResolver([
-        ...resolvers,
-        new PackageUrlResolver({
-          packageDir: projectRoot,
-          componentDir: path.join(projectRoot, 'bower_components'),
-        })
-      ]),
-      urlLoader:
-          new MultiUrlLoader([...loaders, new FSUrlLoader(projectRoot)])
+      urlResolver: new MultiUrlResolver([...resolvers, packageUrlResolver]),
+      urlLoader: new MultiUrlLoader([...loaders, fsUrlLoader]),
     });
   }
 }
 
 if (!options.analyzer) {
   options.analyzer = new Analyzer({
-    urlResolver: new PackageUrlResolver({
-      packageDir: projectRoot,
-      componentDir: path.join(projectRoot, 'bower_components'),
-    }),
-    urlLoader: new FSUrlLoader(projectRoot)
+    urlResolver: packageUrlResolver,
+    urlLoader: fsUrlLoader,
   });
 }
 
