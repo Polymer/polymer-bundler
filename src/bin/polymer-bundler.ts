@@ -205,8 +205,8 @@ const packageUrlResolver = new PackageUrlResolver({
 });
 const fsUrlLoader = new FSUrlLoader(projectRoot);
 
-// TODO(usergenic): Make FSUrlLoader in Analyzer behave this way.  There's no
-// fall-thru support for multiple fs url loaders without this behavior.
+// TODO(usergenic): Get rid of this subclass after the following PR is published
+// to NPM: https://github.com/Polymer/polymer-analyzer/pull/841
 class BetterFSUrlLoader extends FSUrlLoader {
   canLoad(url: ResolvedUrl): boolean {
     return url.startsWith(Uri.file(this.root).toString());

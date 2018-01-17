@@ -27,8 +27,6 @@ const sharedRelativeUrlProperties =
 /**
  * A string representing a URL.
  */
-export type UrlString = string;
-
 export function ensureTrailingSlash(href: FileRelativeUrl): FileRelativeUrl {
   return href.endsWith('/') ? href : (href + '/') as FileRelativeUrl;
 }
@@ -37,8 +35,8 @@ export function ensureTrailingSlash(href: FileRelativeUrl): FileRelativeUrl {
  * Returns a URL with the basename removed from the pathname.  Strips the
  * search off of the URL as well, since it will not apply.
  */
-export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
-  const u = url.parse(href);
+export function stripUrlFileSearchAndHash<T>(href: T): T {
+  const u = url.parse(href as any);
   // Using != so tests for null AND undefined
   if (u.pathname != null) {
     // Suffix path with `_` so that `/a/b/` is treated as `/a/b/_` and that
@@ -51,20 +49,20 @@ export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
   // `string | undefined` as opposed to `string | null`
   u.search = undefined;
   u.hash = undefined;
-  return url.format(u);
+  return url.format(u) as any as T;
 }
 
 /**
  * Returns true if the href is an absolute path.
  */
-export function isAbsolutePath(href: UrlString): boolean {
+export function isAbsolutePath(href: string): boolean {
   return constants.ABS_URL.test(href);
 }
 
 /**
  * Returns true if the href is a templated value, i.e. `{{...}}` or `[[...]]`
  */
-export function isTemplatedUrl(href: UrlString): boolean {
+export function isTemplatedUrl(href: string): boolean {
   return href.search(constants.URL_TEMPLATE) >= 0;
 }
 
@@ -110,14 +108,13 @@ export function relativeUrl(
  * Modifies an href by the relative difference between the old base url and
  * the new base url.
  */
-export function rewriteHrefBaseUrl(
-    href: string|ResolvedUrl|FileRelativeUrl,
-    oldBaseUrl: ResolvedUrl,
-    newBaseUrl: ResolvedUrl): string|ResolvedUrl|FileRelativeUrl {
-  if (isAbsolutePath(href)) {
+export function rewriteHrefBaseUrl<T>(
+    href: T, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl): T|
+    FileRelativeUrl {
+  if (isAbsolutePath(href as any)) {
     return href;
   }
-  const absUrl = url.resolve(oldBaseUrl, href);
+  const absUrl = url.resolve(oldBaseUrl, href as any);
   const parsedFrom = url.parse(newBaseUrl);
   const parsedTo = url.parse(absUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&

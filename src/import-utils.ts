@@ -25,7 +25,7 @@ import * as matchers from './matchers';
 import {addOrUpdateSourcemapComment} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
 import * as urlUtils from './url-utils';
-import {isAbsolutePath, UrlString} from './url-utils';
+import {isAbsolutePath} from './url-utils';
 
 
 // TODO(usergenic): Revisit the organization of this module and *consider*
@@ -41,7 +41,7 @@ export async function inlineHtmlImport(
     analyzer: Analyzer,
     document: Document,
     linkTag: ASTNode,
-    stripImports: Set<UrlString>,
+    stripImports: Set<ResolvedUrl>,
     docBundle: AssignedBundle,
     manifest: BundleManifest,
     enableSourcemaps: boolean,
@@ -372,7 +372,7 @@ export async function addOrUpdateSourcemapsForInlineScripts(
     analyzer: Analyzer,
     originalDoc: Document,
     reparsedDoc: ParsedHtmlDocument,
-    oldBaseUrl: UrlString) {
+    oldBaseUrl: ResolvedUrl) {
   const inlineScripts =
       dom5.queryAll(reparsedDoc.ast, matchers.inlineJavascript);
   const promises = inlineScripts.map(scriptAst => {
@@ -461,7 +461,7 @@ function rewriteElementAttrsBaseUrl(
     for (const attr of constants.URL_ATTR) {
       const attrValue = dom5.getAttribute(node, attr);
       if (attrValue && !urlUtils.isTemplatedUrl(attrValue)) {
-        let relUrl: UrlString;
+        let relUrl: string;
         if (attr === 'style') {
           relUrl = rewriteCssTextBaseUrl(attrValue, oldBaseUrl, newBaseUrl);
         } else {
