@@ -17,7 +17,7 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
-import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader, PackageRelativeUrl} from 'polymer-analyzer';
 
 import {generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, BundleResult} from '../bundler';
@@ -34,20 +34,50 @@ const domModulePredicate = (id: string) => {
 };
 
 suite('Bundler', () => {
-  let bundler: Bundler;
-  const shell = 'test/html/shards/shop_style_project/shell.html';
-  const common = 'test/html/shards/shop_style_project/common.html';
-  const entrypoint1 = 'test/html/shards/shop_style_project/entrypoint1.html';
-  const entrypoint2 = 'test/html/shards/shop_style_project/entrypoint2.html';
+  let analyzer: Analyzer|undefined;
+  let bundler: Bundler|undefined;
+  const shell = resolve('test/html/shards/shop_style_project/shell.html');
+  const common = resolve('test/html/shards/shop_style_project/common.html');
+  const entrypoint1 =
+      resolve('test/html/shards/shop_style_project/entrypoint1.html');
+  const entrypoint2 =
+      resolve('test/html/shards/shop_style_project/entrypoint2.html');
+
+  beforeEach(() => {
+    analyzer = undefined;
+    bundler = undefined;
+  });
+
+  function getAnalyzer(opts?: any): Analyzer {
+    if (!analyzer) {
+      if (!opts || !opts.urlLoader) {
+        const urlLoader = new FSUrlLoader();
+        opts = Object.assign({}, opts || {}, {urlLoader: urlLoader});
+      }
+      analyzer = new Analyzer(opts);
+    }
+    return analyzer;
+  }
+
+  function getBundler(opts?: any): Bundler {
+    if (!bundler) {
+      if (!opts || !opts.analyzer) {
+        opts = Object.assign({}, opts || {}, {analyzer: getAnalyzer()});
+      }
+      bundler = new Bundler(opts);
+    }
+    return bundler;
+  }
+
+  function resolve(url: string) {
+    return getAnalyzer().resolveUrl(url as PackageRelativeUrl)!;
+  }
 
   async function bundleMultiple(inputPath: string[], opts?: BundlerOptions):
       Promise<BundleResult> {
-        const bundlerOpts = opts || {};
-        if (!bundlerOpts.analyzer) {
-          bundlerOpts.analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
-        }
-        bundler = new Bundler(bundlerOpts);
-        const manifest = await bundler.generateManifest(inputPath);
+        const bundler = getBundler(opts);
+        const manifest = await bundler.generateManifest(
+            inputPath.map((e) => bundler.analyzer.resolveUrl(e)!));
         return await bundler.bundle(manifest);
       }
 
@@ -77,7 +107,7 @@ suite('Bundler', () => {
       assert.isDefined(entrypoint1Doc);
       const entrypoint2Doc = documents.get(entrypoint2)!.ast;
       assert.isDefined(entrypoint2Doc);
-      const sharedDoc = documents.get('shared_bundle_1.html')!.ast;
+      const sharedDoc = documents.get(resolve('shared_bundle_1.html'))!.ast;
       assert.isDefined(sharedDoc);
       const commonModule = domModulePredicate('common-module');
       const elOne = domModulePredicate('el-one');
@@ -96,9 +126,11 @@ suite('Bundler', () => {
     });
 
     test('with 2 entrypoints and shell, all deps in their places', async () => {
-      const {documents} = await bundleMultiple(
-          [shell, entrypoint1, entrypoint2],
-          {strategy: generateShellMergeStrategy(shell, 2)});
+      const analyzer = getAnalyzer();
+      const {documents} =
+          await bundleMultiple([shell, entrypoint1, entrypoint2], {
+            strategy: generateShellMergeStrategy(analyzer.resolveUrl(shell)!, 2)
+          });
       assert.equal(documents.size, 3);
       const shellDoc: parse5.ASTNode = documents.get(shell)!.ast;
       assert.isDefined(shellDoc);

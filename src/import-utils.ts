@@ -15,9 +15,7 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
 import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
-// TODO(usergenic): Move import below to statement above, when polymer-analyzer
-// 3.0.0-pre.3 is released.
-import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
+import {FileRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';
@@ -27,7 +25,7 @@ import * as matchers from './matchers';
 import {addOrUpdateSourcemapComment} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
 import * as urlUtils from './url-utils';
-import {UrlString} from './url-utils';
+import {isAbsolutePath, UrlString} from './url-utils';
 
 
 // TODO(usergenic): Revisit the organization of this module and *consider*
@@ -51,11 +49,13 @@ export async function inlineHtmlImport(
     excludes?: string[]) {
   const isLazy = dom5.getAttribute(linkTag, 'rel')!.match(/lazy-import/i);
   const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
-  const importUrl = urlLib.resolve(document.url, rawImportUrl);
-  if (!analyzer.canResolveUrl(importUrl)) {
+  const importUrl = isAbsolutePath(rawImportUrl) ?
+      rawImportUrl :
+      urlLib.resolve(document.url, rawImportUrl);
+  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  if (resolvedImportUrl === undefined) {
     return;
   }
-  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   const importBundle = manifest.getBundleForFile(resolvedImportUrl);
 
   // We don't want to process the same eager import again, but we want to
@@ -80,7 +80,7 @@ export async function inlineHtmlImport(
         !excludes.some(
             (u) => u === resolvedImportUrl ||
                 resolvedImportUrl.startsWith(
-                    urlUtils.ensureTrailingSlash(u)))) {
+                    urlUtils.ensureTrailingSlash(u as FileRelativeUrl)))) {
       docBundle.bundle.missingImports.add(resolvedImportUrl);
     }
     return;
@@ -196,15 +196,18 @@ export async function inlineScript(
     enableSourcemaps: boolean,
     excludes?: string[]) {
   const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
-  const importUrl = urlLib.resolve(document.url, rawImportUrl);
-  if (!analyzer.canResolveUrl(importUrl)) {
+  const importUrl = isAbsolutePath(rawImportUrl) ?
+      rawImportUrl :
+      urlLib.resolve(document.url, rawImportUrl);
+  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  if (resolvedImportUrl === undefined) {
     return;
   }
-  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   if (excludes &&
       excludes.some(
           (e) => resolvedImportUrl === e ||
-              resolvedImportUrl.startsWith(urlUtils.ensureTrailingSlash(e)))) {
+              resolvedImportUrl.startsWith(
+                  urlUtils.ensureTrailingSlash(e as FileRelativeUrl)))) {
     return;
   }
   const scriptImport = findInSet(
@@ -247,15 +250,18 @@ export async function inlineStylesheet(
     excludes?: string[],
     rewriteUrlsInTemplates?: boolean) {
   const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
-  const importUrl = urlLib.resolve(document.url, stylesheetUrl);
-  if (!analyzer.canResolveUrl(importUrl)) {
+  const importUrl = isAbsolutePath(stylesheetUrl) ?
+      stylesheetUrl :
+      urlLib.resolve(document.url, stylesheetUrl);
+  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  if (resolvedImportUrl === undefined) {
     return;
   }
-  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
   if (excludes &&
       excludes.some(
           (e) => resolvedImportUrl === e ||
-              resolvedImportUrl.startsWith(urlUtils.ensureTrailingSlash(e)))) {
+              resolvedImportUrl.startsWith(
+                  urlUtils.ensureTrailingSlash(e as FileRelativeUrl)))) {
     return;
   }
   const stylesheetImport =  // HACK(usergenic): clang-format workaround
@@ -309,7 +315,7 @@ export async function inlineStylesheet(
  * link and form target attributes and remove the base tag.
  */
 export function rewriteAstToEmulateBaseTag(
-    ast: ASTNode, docUrl: UrlString, rewriteUrlsInTemplates?: boolean) {
+    ast: ASTNode, docUrl: ResolvedUrl, rewriteUrlsInTemplates?: boolean) {
   const baseTag = dom5.query(ast, matchers.base);
   const p = dom5.predicates;
   // If there's no base tag, there's nothing to do.
@@ -320,7 +326,9 @@ export function rewriteAstToEmulateBaseTag(
     astUtils.removeElementAndNewline(baseTag);
   }
   if (dom5.predicates.hasAttr('href')(baseTag)) {
-    const baseUrl = urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!);
+    const baseUrl =
+        urlLib.resolve(docUrl, dom5.getAttribute(baseTag, 'href')!) as
+        ResolvedUrl;
     rewriteAstBaseUrl(ast, baseUrl, docUrl, rewriteUrlsInTemplates);
   }
   if (p.hasAttr('target')(baseTag)) {
@@ -343,8 +351,8 @@ export function rewriteAstToEmulateBaseTag(
  */
 export function rewriteAstBaseUrl(
     ast: ASTNode,
-    oldBaseUrl: UrlString,
-    newBaseUrl: UrlString,
+    oldBaseUrl: ResolvedUrl,
+    newBaseUrl: ResolvedUrl,
     rewriteUrlsInTemplates?: boolean) {
   rewriteElementAttrsBaseUrl(
       ast, oldBaseUrl, newBaseUrl, rewriteUrlsInTemplates);
@@ -426,7 +434,7 @@ function findInSet<T>(set: Set<T>, predicate: (item: T) => boolean): T|
  * new base url.
  */
 function rewriteCssTextBaseUrl(
-    cssText: string, oldBaseUrl: UrlString, newBaseUrl: UrlString): string {
+    cssText: string, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl): string {
   return cssText.replace(constants.URL, (match) => {
     let path = match.replace(/["']/g, '').slice(4, -1);
     path = urlUtils.rewriteHrefBaseUrl(path, oldBaseUrl, newBaseUrl);
@@ -440,8 +448,8 @@ function rewriteCssTextBaseUrl(
  */
 function rewriteElementAttrsBaseUrl(
     ast: ASTNode,
-    oldBaseUrl: UrlString,
-    newBaseUrl: UrlString,
+    oldBaseUrl: ResolvedUrl,
+    newBaseUrl: ResolvedUrl,
     rewriteUrlsInTemplates?: boolean) {
   const nodes = dom5.queryAll(
       ast,
@@ -472,8 +480,8 @@ function rewriteElementAttrsBaseUrl(
  */
 function rewriteStyleTagsBaseUrl(
     ast: ASTNode,
-    oldBaseUrl: UrlString,
-    newBaseUrl: UrlString,
+    oldBaseUrl: ResolvedUrl,
+    newBaseUrl: ResolvedUrl,
     rewriteUrlsInTemplates: boolean = false) {
   const childNodesOption = rewriteUrlsInTemplates ?
       dom5.childNodesIncludeTemplate :
@@ -511,12 +519,13 @@ function rewriteStyleTagsBaseUrl(
  * have them if the base urls are different.
  */
 function setDomModuleAssetpaths(
-    ast: ASTNode, oldBaseUrl: UrlString, newBaseUrl: UrlString) {
+    ast: ASTNode, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl) {
   const domModules = dom5.queryAll(ast, matchers.domModuleWithoutAssetpath);
   for (let i = 0, node: ASTNode; i < domModules.length; i++) {
     node = domModules[i];
     const assetPathUrl = urlUtils.relativeUrl(
-        newBaseUrl, urlUtils.stripUrlFileSearchAndHash(oldBaseUrl));
+        newBaseUrl,
+        urlUtils.stripUrlFileSearchAndHash(oldBaseUrl) as ResolvedUrl);
 
     // There's no reason to set an assetpath on a dom-module if its different
     // from the document's base.

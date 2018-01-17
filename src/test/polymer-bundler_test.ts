@@ -29,7 +29,7 @@ suite('polymer-bundler CLI', () => {
   const cliPath = path.resolve(__dirname, '../bin/polymer-bundler.js');
 
   test('uses the current working folder as loader root', async () => {
-    const projectRoot = path.resolve(__dirname, '../../test/html');
+    const projectRoot = path.resolve('test/html');
     const stdout =
         execSync(
             `cd ${projectRoot} && ` +

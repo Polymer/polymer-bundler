@@ -12,12 +12,12 @@
  * http://polymer.github.io/PATENTS.txt
  */
 import {ASTNode} from 'parse5';
-import {UrlString} from './url-utils';
+import {ResolvedUrl} from 'polymer-analyzer';
 
 export interface BundledDocument {
   ast: ASTNode;
-  files: UrlString[];
+  files: ResolvedUrl[];
 }
 
 /* A collection of documents, keyed by path */
-export type DocumentCollection = Map<string, BundledDocument>;
+export type DocumentCollection = Map<ResolvedUrl, BundledDocument>;

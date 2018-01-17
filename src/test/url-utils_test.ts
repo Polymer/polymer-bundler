@@ -18,6 +18,7 @@
 
 import * as chai from 'chai';
 
+import {FileRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
 import * as urlUtils from '../url-utils';
 
 
@@ -64,113 +65,124 @@ suite('URL Utils', () => {
 
   suite('Rewrite imported relative paths', () => {
 
-    function testRewrite(
-        href: string,
-        oldBaseUrl: string,
-        newBaseUrl: string,
-        expected: string,
-        msg?: string) {
-      const actual = urlUtils.rewriteHrefBaseUrl(href, oldBaseUrl, newBaseUrl);
-      assert.equal(actual, expected, msg);
+    function rewrite(
+        href: string, oldBaseUrl: string, newBaseUrl: string): string {
+      return urlUtils.rewriteHrefBaseUrl(
+          href as FileRelativeUrl,
+          oldBaseUrl as ResolvedUrl,
+          newBaseUrl as ResolvedUrl);
     }
 
     test('Some URL forms are not rewritten', () => {
       const importBase = '/could/be/anything/local/import.html';
       const mainBase = '/foo/bar/index.html';
-      testRewrite('#foo', importBase, mainBase, '#foo', 'just a hash');
-      testRewrite(
-          'http://foo/biz.jpg',
-          importBase,
-          mainBase,
+      assert.equal(
+          rewrite('#foo', importBase, mainBase), '#foo', 'just a hash');
+      assert.equal(
+          rewrite('http://foo/biz.jpg', importBase, mainBase),
           'http://foo/biz.jpg',
           'remote urls');
-      testRewrite(
-          '/a/b/c/', importBase, mainBase, '/a/b/c/', 'local absolute href');
+      assert.equal(
+          rewrite('/a/b/c/', importBase, mainBase),
+          '/a/b/c/',
+          'local absolute href');
     });
 
     test('Rewrite Paths when base url pathnames are absolute paths', () => {
       const importBase = '/foo/bar/my-element/index.html';
       const mainBase = '/foo/bar/index.html';
-      testRewrite(
-          'biz.jpg', importBase, mainBase, 'my-element/biz.jpg', 'relative');
-      testRewrite('/biz.jpg', importBase, mainBase, '/biz.jpg', 'absolute');
+      assert.equal(
+          rewrite('biz.jpg', importBase, mainBase),
+          'my-element/biz.jpg',
+          'relative');
+      assert.equal(
+          rewrite('/biz.jpg', importBase, mainBase), '/biz.jpg', 'absolute');
     });
 
     test('Rewrite paths when base url pathnames have no leading slash', () => {
-      testRewrite(
-          '/foo.html', 'bar.html', 'index.html', '/foo.html', 'href has ^/');
-      testRewrite(
-          'foo.html', '/bar.html', 'index.html', 'foo.html', 'only new has ^/');
-      testRewrite(
-          'foo.html', 'bar.html', '/index.html', 'foo.html', 'only old has ^/');
-      testRewrite(
-          'foo.html', 'bar.html', 'index.html', 'foo.html', 'neither has ^/');
+      assert.equal(
+          rewrite('/foo.html', 'bar.html', 'index.html'),
+          '/foo.html',
+          'href has ^/');
+      assert.equal(
+          rewrite('foo.html', '/bar.html', 'index.html'),
+          'foo.html',
+          'only new has ^/');
+      assert.equal(
+          rewrite('foo.html', 'bar.html', '/index.html'),
+          'foo.html',
+          'only old has ^/');
+      assert.equal(
+          rewrite('foo.html', 'bar.html', 'index.html'),
+          'foo.html',
+          'neither has ^/');
     });
 
     test('Rewrite paths even when they are outside package root', () => {
-      testRewrite(
-          '../../foo.html',
-          'bar.html',
-          'index.html',
+      assert.equal(
+          rewrite('../../foo.html', 'bar.html', 'index.html'),
           '../../foo.html',
           'neither has ^/');
     });
 
     test('Rewrite paths when new base url has trailing slash', () => {
-      testRewrite('pic.png', 'foo/bar/baz.html', 'foo/', 'bar/pic.png');
+      assert.equal(
+          rewrite('pic.png', 'foo/bar/baz.html', 'foo/'), 'bar/pic.png');
     });
   });
 
   suite('Relative URL calculations', () => {
 
+    function relativeUrl(from: string, to: string) {
+      return urlUtils.relativeUrl(from as ResolvedUrl, to as ResolvedUrl);
+    }
+
     test('Basic relative paths', () => {
-      assert.equal(urlUtils.relativeUrl('/', '/'), '');
-      assert.equal(urlUtils.relativeUrl('/', '/a'), 'a');
-      assert.equal(urlUtils.relativeUrl('/a', '/b'), 'b');
-      assert.equal(urlUtils.relativeUrl('/a/b', '/c'), '../c');
-      assert.equal(urlUtils.relativeUrl('/a/b', '/a/c'), 'c');
-      assert.equal(urlUtils.relativeUrl('/a/b', '/a/c/d'), 'c/d');
-      assert.equal(urlUtils.relativeUrl('/a/b/c/d', '/a/b/c/d'), 'd');
+      assert.equal(relativeUrl('/', '/'), '');
+      assert.equal(relativeUrl('/', '/a'), 'a');
+      assert.equal(relativeUrl('/a', '/b'), 'b');
+      assert.equal(relativeUrl('/a/b', '/c'), '../c');
+      assert.equal(relativeUrl('/a/b', '/a/c'), 'c');
+      assert.equal(relativeUrl('/a/b', '/a/c/d'), 'c/d');
+      assert.equal(relativeUrl('/a/b/c/d', '/a/b/c/d'), 'd');
     });
 
     test('Trailing slash relevance', () => {
-      assert.equal(urlUtils.relativeUrl('/a', '/b/'), 'b/');
-      assert.equal(urlUtils.relativeUrl('/a/', '/b'), '../b');
-      assert.equal(urlUtils.relativeUrl('/a/', '/b/'), '../b/');
-      assert.equal(urlUtils.relativeUrl('/a/', '/a/b/c'), 'b/c');
-      assert.equal(urlUtils.relativeUrl('/a/b/c/', '/a/d/'), '../../d/');
+      assert.equal(relativeUrl('/a', '/b/'), 'b/');
+      assert.equal(relativeUrl('/a/', '/b'), '../b');
+      assert.equal(relativeUrl('/a/', '/b/'), '../b/');
+      assert.equal(relativeUrl('/a/', '/a/b/c'), 'b/c');
+      assert.equal(relativeUrl('/a/b/c/', '/a/d/'), '../../d/');
     });
 
     test('Matching shared relative URL properties', () => {
-      assert.equal(urlUtils.relativeUrl('//a/b', '//a/c'), 'c');
-      assert.equal(urlUtils.relativeUrl('p://a/b/', 'p://a/c/'), '../c/');
+      assert.equal(relativeUrl('//a/b', '//a/c'), 'c');
+      assert.equal(relativeUrl('p://a/b/', 'p://a/c/'), '../c/');
     });
 
     test('Mismatched schemes and hosts', () => {
-      assert.equal(urlUtils.relativeUrl('p://a/b/', 'p2://a/c/'), 'p2://a/c/');
-      assert.equal(urlUtils.relativeUrl('p://h/a/', 'p://i/b/'), 'p://i/b/');
-      assert.equal(urlUtils.relativeUrl('p://h:1/a/', 'p://h/b/'), 'p://h/b/');
+      assert.equal(relativeUrl('p://a/b/', 'p2://a/c/'), 'p2://a/c/');
+      assert.equal(relativeUrl('p://h/a/', 'p://i/b/'), 'p://i/b/');
+      assert.equal(relativeUrl('p://h:1/a/', 'p://h/b/'), 'p://h/b/');
     });
 
     test('URLs with queries', () => {
-      assert.equal(urlUtils.relativeUrl('/a/?q=1', '/a/'), '');
-      assert.equal(urlUtils.relativeUrl('/a/', '/a/?q=1'), '?q=1');
+      assert.equal(relativeUrl('/a/?q=1', '/a/'), '');
+      assert.equal(relativeUrl('/a/', '/a/?q=1'), '?q=1');
       assert.equal(
-          urlUtils.relativeUrl('p://a:8080/b?q=x#1', 'p://a:8080/b?q=x#1'),
-          'b?q=x#1');
+          relativeUrl('p://a:8080/b?q=x#1', 'p://a:8080/b?q=x#1'), 'b?q=x#1');
     });
 
     test('Ignore unshared relative URL properties', () => {
-      assert.equal(urlUtils.relativeUrl('/a?q=x', '/b'), 'b');
-      assert.equal(urlUtils.relativeUrl('/a/b/c?q=x', '/a/d?q=y'), '../d?q=y');
+      assert.equal(relativeUrl('/a?q=x', '/b'), 'b');
+      assert.equal(relativeUrl('/a/b/c?q=x', '/a/d?q=y'), '../d?q=y');
       assert.equal(
-          urlUtils.relativeUrl('p://h/a/?q=x#1', 'p://h/b/?q=y#2'),
-          '../b/?q=y#2');
+          relativeUrl('p://h/a/?q=x#1', 'p://h/b/?q=y#2'), '../b/?q=y#2');
     });
 
     test('Scheme-less URLs should be interpreted as browsers do', () => {
-      assert.equal(urlUtils.relativeUrl('//a/b', '/c/d'), 'c/d');
-      assert.equal(urlUtils.relativeUrl('/a/b', '//c/d'), '//c/d');
+      assert.equal(relativeUrl('//a/b', '/c/d'), 'c/d');
+      assert.equal(relativeUrl('/a/b', '//c/d'), '//c/d');
     });
   });
 });

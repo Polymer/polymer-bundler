@@ -16,12 +16,9 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode, serialize, treeAdapters} from 'parse5';
 import * as path from 'path';
-import {Analyzer, Document, FSUrlLoader, InMemoryOverlayUrlLoader} from 'polymer-analyzer';
-// TODO(usergenic): Move import below to statement above, when polymer-analyzer
-// 3.0.0-pre.3 is released.
-import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
-import {getAnalysisDocument} from './analyzer-utils';
+import {Analyzer, Document, FileRelativeUrl, FSUrlLoader, InMemoryOverlayUrlLoader, ResolvedUrl} from 'polymer-analyzer';
 
+import {getAnalysisDocument} from './analyzer-utils';
 import * as astUtils from './ast-utils';
 import * as bundleManifestLib from './bundle-manifest';
 import {AssignedBundle, Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-manifest';
@@ -31,7 +28,6 @@ import * as importUtils from './import-utils';
 import * as matchers from './matchers';
 import {updateSourcemapLocations} from './source-map';
 import * as urlUtils from './url-utils';
-import {UrlString} from './url-utils';
 
 export * from './bundle-manifest';
 
@@ -42,7 +38,7 @@ export interface Options {
 
   // URLs of files and/or folders that should not be inlined. HTML tags
   // referencing excluded URLs are preserved.'
-  excludes?: UrlString[];
+  excludes?: ResolvedUrl[];
 
   // When true, inline external CSS file contents into <style> tags in the
   // output document.
@@ -78,7 +74,7 @@ export class Bundler {
   analyzer: Analyzer;
   enableCssInlining: boolean;
   enableScriptInlining: boolean;
-  excludes: UrlString[];
+  excludes: ResolvedUrl[];
   rewriteUrlsInTemplates: boolean;
   sourcemaps: boolean;
   stripComments: boolean;
@@ -115,7 +111,7 @@ export class Bundler {
         opts.strategy || bundleManifestLib.generateSharedDepsMergeStrategy();
     this.urlMapper = opts.urlMapper ||
         bundleManifestLib.generateCountingSharedBundleUrlMapper(
-            'shared_bundle_');
+            this.analyzer.resolveUrl('shared_bundle_')!);
   }
 
   /**
@@ -126,7 +122,8 @@ export class Bundler {
    * @param manifest - The manifest that describes the bundles to be produced.
    */
   async bundle(manifest: BundleManifest): Promise<BundleResult> {
-    const documents: DocumentCollection = new Map<string, BundledDocument>();
+    const documents: DocumentCollection =
+        new Map<ResolvedUrl, BundledDocument>();
     manifest = manifest.fork();
 
     for (const bundleEntry of manifest.bundles) {
@@ -152,7 +149,7 @@ export class Bundler {
    * @param mapper - A function that produces urls for the generated bundles.
    *     See 'polymer-analyzer/src/bundle-manifest'.
    */
-  async generateManifest(entrypoints: UrlString[]): Promise<BundleManifest> {
+  async generateManifest(entrypoints: ResolvedUrl[]): Promise<BundleManifest> {
     const dependencyIndex =
         await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
     let bundles =
@@ -166,7 +163,7 @@ export class Bundler {
    * Analyze a url using the given contents in place of what would otherwise
    * have been loaded.
    */
-  private async _analyzeContents(url: string, contents: string):
+  private async _analyzeContents(url: ResolvedUrl, contents: string):
       Promise<Document> {
     this._overlayUrlLoader.urlContentsMap.set(url, contents);
     await this.analyzer.filesChanged([url]);
@@ -258,7 +255,7 @@ export class Bundler {
    * Append a `<link rel="import" ...>` node to `node` with a value of `url`
    * for the "href" attribute.
    */
-  private _createHtmlImport(url: UrlString): ASTNode {
+  private _createHtmlImport(url: FileRelativeUrl|ResolvedUrl): ASTNode {
     const link = dom5.constructors.element('link');
     dom5.setAttribute(link, 'rel', 'import');
     dom5.setAttribute(link, 'href', url);
@@ -274,7 +271,11 @@ export class Bundler {
     // Remove excluded files from bundles.
     for (const bundle of bundles) {
       for (const exclude of this.excludes) {
-        bundle.files.delete(exclude);
+        const resolvedExclude = this.analyzer.resolveUrl(exclude);
+        if (!resolvedExclude) {
+          continue;
+        }
+        bundle.files.delete(resolvedExclude);
         const excludeAsFolder = exclude.endsWith('/') ? exclude : exclude + '/';
         for (const file of bundle.files) {
           if (file.startsWith(excludeAsFolder)) {
@@ -394,7 +395,7 @@ export class Bundler {
       ast: ASTNode,
       bundle: AssignedBundle,
       bundleManifest: BundleManifest) {
-    const stripImports = new Set<UrlString>(bundle.bundle.stripImports);
+    const stripImports = new Set<ResolvedUrl>(bundle.bundle.stripImports);
     const htmlImports = dom5.queryAll(ast, matchers.htmlImport);
     for (const htmlImport of htmlImports) {
       await importUtils.inlineHtmlImport(
