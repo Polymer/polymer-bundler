@@ -17,7 +17,7 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
-import {Analyzer, FSUrlLoader, PackageRelativeUrl} from 'polymer-analyzer';
+import {Analyzer, FSUrlLoader, PackageRelativeUrl, PackageUrlResolver} from 'polymer-analyzer';
 
 import {generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, BundleResult} from '../bundler';
@@ -36,25 +36,22 @@ const domModulePredicate = (id: string) => {
 suite('Bundler', () => {
   let analyzer: Analyzer|undefined;
   let bundler: Bundler|undefined;
-  const shell = resolve('test/html/shards/shop_style_project/shell.html');
-  const common = resolve('test/html/shards/shop_style_project/common.html');
-  const entrypoint1 =
-      resolve('test/html/shards/shop_style_project/entrypoint1.html');
-  const entrypoint2 =
-      resolve('test/html/shards/shop_style_project/entrypoint2.html');
+  const shell = resolve('shards/shop_style_project/shell.html');
+  const common = resolve('shards/shop_style_project/common.html');
+  const entrypoint1 = resolve('shards/shop_style_project/entrypoint1.html');
+  const entrypoint2 = resolve('shards/shop_style_project/entrypoint2.html');
 
   beforeEach(() => {
     analyzer = undefined;
     bundler = undefined;
   });
 
-  function getAnalyzer(opts?: any): Analyzer {
+  function getAnalyzer(): Analyzer {
     if (!analyzer) {
-      if (!opts || !opts.urlLoader) {
-        const urlLoader = new FSUrlLoader();
-        opts = Object.assign({}, opts || {}, {urlLoader: urlLoader});
-      }
-      analyzer = new Analyzer(opts);
+      analyzer = new Analyzer({
+        urlResolver: new PackageUrlResolver({packageDir: 'test/html'}),
+        urlLoader: new FSUrlLoader('test/html'),
+      });
     }
     return analyzer;
   }
