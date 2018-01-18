@@ -24,6 +24,7 @@ import {Bundler} from '../bundler';
 import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageRelativeUrl, PackageUrlResolver, RedirectResolver, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
+import {ensureTrailingSlash} from '../url-utils';
 
 const prefixArgument = '[underline]{prefix}';
 const pathArgument = '[underline]{path}';
@@ -170,6 +171,8 @@ const usage = [
 const options = commandLineArgs(optionDefinitions);
 const projectRoot =
     options.root ? pathLib.resolve(options.root) : pathLib.resolve('.');
+const projectRootUrl =
+    ensureTrailingSlash(Uri.file(projectRoot).toString()) as ResolvedUrl;
 
 const entrypoints: PackageRelativeUrl[] = options['in-html'];
 
@@ -199,23 +202,8 @@ options.inlineScripts = Boolean(options['inline-scripts']);
 options.inlineCss = Boolean(options['inline-css']);
 options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
 
-const packageUrlResolver = new PackageUrlResolver({
-  packageDir: projectRoot,
-  componentDir: path.join(projectRoot, 'bower_components'),
-});
 const fsUrlLoader = new FSUrlLoader(projectRoot);
-
-// TODO(usergenic): Get rid of this subclass after the following PR is published
-// to NPM: https://github.com/Polymer/polymer-analyzer/pull/841
-class BetterFSUrlLoader extends FSUrlLoader {
-  canLoad(url: ResolvedUrl): boolean {
-    return url.startsWith(
-        Uri.file(this.root).toString().replace(/([^/])$/, '$1/'));
-  }
-}
-
-const projectRootUrl =
-    Uri.file(projectRoot).toString().replace(/([^/])$/, '$1/') as ResolvedUrl;
+const packageUrlResolver = new PackageUrlResolver({packageDir: projectRoot});
 let getPackageRelativeUrl: (r: ResolvedUrl) => PackageRelativeUrl = function(
     resolvedUrl: ResolvedUrl): PackageRelativeUrl {
   if (resolvedUrl.startsWith(projectRootUrl)) {
@@ -223,6 +211,7 @@ let getPackageRelativeUrl: (r: ResolvedUrl) => PackageRelativeUrl = function(
   }
   return resolvedUrl as any as PackageRelativeUrl;
 };
+
 
 if (options.redirect) {
   type redirection = {prefix: string, path: string};
@@ -237,7 +226,7 @@ if (options.redirect) {
     let resolvedPath = Uri.file(path.resolve(r.path)).toString();
     // Ensure trailing slash if input path had trailing slash
     if (r.path.match(/\\$|\/$/)) {
-      resolvedPath = resolvedPath.replace(/([^/])$/, '$1/');
+      resolvedPath = ensureTrailingSlash(resolvedPath);
     }
     return new RedirectResolver(
         packageUrlResolver.resolve(r.prefix as PackageRelativeUrl)!,
@@ -249,7 +238,8 @@ if (options.redirect) {
     const oldGetPackageRelativeUrl = getPackageRelativeUrl;
     const newGetPackageRelativeUrl = function(resolvedUrl: ResolvedUrl):
         PackageRelativeUrl {
-          const redirectionPathUrl = Uri.file(path.resolve(r.path)).toString();
+          const redirectionPathUrl =
+              ensureTrailingSlash(Uri.file(path.resolve(r.path)).toString());
           if (resolvedUrl.startsWith(redirectionPathUrl)) {
             return r.prefix + resolvedUrl.slice(redirectionPathUrl.length) as
                 PackageRelativeUrl;
@@ -260,7 +250,7 @@ if (options.redirect) {
   });
 
   const loaders: UrlLoader[] = redirections.map(
-      (r: redirection) => new BetterFSUrlLoader(path.resolve(r.path)));
+      (r: redirection) => new FSUrlLoader(path.resolve(r.path)));
   if (redirections.length > 0) {
     options.analyzer = new Analyzer({
       urlResolver: new MultiUrlResolver([...resolvers, packageUrlResolver]),
@@ -288,7 +278,7 @@ interface JsonManifest {
 
   function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
     const json: JsonManifest = {};
-    const missingImports: Set<string> = new Set();
+    const missingImports: Set<ResolvedUrl> = new Set();
 
     for (const [url, bundle] of manifest.bundles) {
       json[getPackageRelativeUrl(url)] =

@@ -15,7 +15,7 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
 import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
-import {FileRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
+import {ResolvedUrl} from 'polymer-analyzer';
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';
@@ -80,7 +80,7 @@ export async function inlineHtmlImport(
         !excludes.some(
             (u) => u === resolvedImportUrl ||
                 resolvedImportUrl.startsWith(
-                    urlUtils.ensureTrailingSlash(u as FileRelativeUrl)))) {
+                    urlUtils.ensureTrailingSlash(u)))) {
       docBundle.bundle.missingImports.add(resolvedImportUrl);
     }
     return;
@@ -206,8 +206,7 @@ export async function inlineScript(
   if (excludes &&
       excludes.some(
           (e) => resolvedImportUrl === e ||
-              resolvedImportUrl.startsWith(
-                  urlUtils.ensureTrailingSlash(e as FileRelativeUrl)))) {
+              resolvedImportUrl.startsWith(urlUtils.ensureTrailingSlash(e)))) {
     return;
   }
   const scriptImport = findInSet(
@@ -260,8 +259,7 @@ export async function inlineStylesheet(
   if (excludes &&
       excludes.some(
           (e) => resolvedImportUrl === e ||
-              resolvedImportUrl.startsWith(
-                  urlUtils.ensureTrailingSlash(e as FileRelativeUrl)))) {
+              resolvedImportUrl.startsWith(urlUtils.ensureTrailingSlash(e)))) {
     return;
   }
   const stylesheetImport =  // HACK(usergenic): clang-format workaround

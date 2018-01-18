@@ -162,17 +162,30 @@ suite('polymer-bundler CLI', () => {
           path.resolve(__dirname, '../../test/html/url-redirection')
               // Force forward-slashes so quoting works with Windows paths.
               .replace(/\\/g, '/');
+      const tempdir = fs.mkdtempSync(path.join(os.tmpdir(), ' ').trim());
+      const manifestPath = path.join(tempdir, 'bundle-manifest.json');
       const stdout =
           execSync([
             `cd ${projectRoot}`,
             `node ${cliPath} index.html ` +
                 `--redirect="myapp://app/|${projectRoot}/" ` +
-                `--redirect="vendor://|${projectRoot}/../bower_components/"`,
+                `--redirect="vendor://|${projectRoot}/../bower_components/" ` +
+                `--manifest-out ${manifestPath}`
           ].join(' && '))
               .toString();
       assert.include(stdout, 'This is an external dependency');
       assert.include(stdout, 'id="home-page"');
       assert.include(stdout, 'id="settings-page"');
+      const manifestJson = fs.readFileSync(manifestPath).toString();
+      const manifest = JSON.parse(manifestJson);
+      assert.deepEqual(manifest, {
+        'myapp://app/index.html': [
+          'myapp://app/index.html',
+          'myapp://app/home.html',
+          'vendor://external-dependency/external-dependency.html',
+          'myapp://app/settings.html'
+        ],
+      });
     });
   });
 });

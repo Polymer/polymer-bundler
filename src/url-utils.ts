@@ -27,8 +27,8 @@ const sharedRelativeUrlProperties =
 /**
  * A string representing a URL.
  */
-export function ensureTrailingSlash(href: FileRelativeUrl): FileRelativeUrl {
-  return href.endsWith('/') ? href : (href + '/') as FileRelativeUrl;
+export function ensureTrailingSlash(href: string) {
+  return href.endsWith('/') ? href : (href + '/');
 }
 
 /**
