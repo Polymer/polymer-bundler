@@ -204,6 +204,13 @@ options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
 
 const fsUrlLoader = new FSUrlLoader(projectRoot);
 const packageUrlResolver = new PackageUrlResolver({packageDir: projectRoot});
+
+// getPackageRelativeUrl(url) reverses the resolved url format into the original
+// package relative url format.  This is done primarily so that the generated
+// manifest includes package relative urls in the output instead of detailed
+// local filesystem information which is present in resolved urls.  This is
+// defined here with a `let` because the redirect option will result in the
+// function being wrapped with transformations for any redirect options.
 let getPackageRelativeUrl: (r: ResolvedUrl) => PackageRelativeUrl = function(
     resolvedUrl: ResolvedUrl): PackageRelativeUrl {
   if (resolvedUrl.startsWith(projectRootUrl)) {
@@ -211,7 +218,6 @@ let getPackageRelativeUrl: (r: ResolvedUrl) => PackageRelativeUrl = function(
   }
   return resolvedUrl as any as PackageRelativeUrl;
 };
-
 
 if (options.redirect) {
   type redirection = {prefix: string, path: string};
@@ -234,6 +240,9 @@ if (options.redirect) {
         resolvedPath);
   });
 
+  // Wrap the getPackageRelativeUrl function for each redirection.  Because we
+  // are wrapping the function, we iterate in reverse order to ensure the
+  // redirect transformations are processed in the same order as they're given.
   redirections.reverse().forEach((r: redirection) => {
     const oldGetPackageRelativeUrl = getPackageRelativeUrl;
     const newGetPackageRelativeUrl = function(resolvedUrl: ResolvedUrl):
@@ -276,6 +285,8 @@ interface JsonManifest {
 }
 (async () => {
 
+  // Produces a bundle manifest object where all the urls represented are
+  // package relative.
   function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
     const json: JsonManifest = {};
     const missingImports: Set<ResolvedUrl> = new Set();
@@ -340,6 +351,9 @@ interface JsonManifest {
     }
     for (const [url, document] of documents) {
       const ast = document.ast;
+      // When writing the output bundles to the filesystem, we need their paths
+      // to be package relative, since the destination is different than their
+      // original filesystem locations.
       const out =
           pathLib.resolve(pathLib.join(outDir, getPackageRelativeUrl(url)));
       const finalDir = pathLib.dirname(out);
