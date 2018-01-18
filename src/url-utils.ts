@@ -82,14 +82,14 @@ function pathPosixRelative(from: string, to: string): string {
  * `/a/` is correctly treated as a folder path where `/a` is not.
  */
 export function relativeUrl(
-    fromUri: ResolvedUrl, toUri: ResolvedUrl): FileRelativeUrl|ResolvedUrl {
+    fromUri: ResolvedUrl, toUri: ResolvedUrl): FileRelativeUrl {
   const fromUrl = parseUrl(fromUri)!;
   const toUrl = parseUrl(toUri)!;
   // Return the toUri as-is if there are conflicting components which
   // prohibit calculating a relative form.
   if (sharedRelativeUrlProperties.some(
           (p) => toUrl[p] !== null && fromUrl[p] !== toUrl[p])) {
-    return toUri;
+    return toUri as any as FileRelativeUrl;
   }
   const fromDir = fromUrl.pathname !== undefined ?
       fromUrl.pathname.replace(/[^/]+$/, '') :
@@ -114,9 +114,9 @@ export function rewriteHrefBaseUrl<T>(
   if (isAbsolutePath(href as any)) {
     return href;
   }
-  const absUrl = url.resolve(oldBaseUrl, href as any);
+  const relativeUrl = url.resolve(oldBaseUrl, href as any);
   const parsedFrom = url.parse(newBaseUrl);
-  const parsedTo = url.parse(absUrl);
+  const parsedTo = url.parse(relativeUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&
       parsedFrom.host === parsedTo.host) {
     let dirFrom = path.posix.dirname(
@@ -135,7 +135,7 @@ export function rewriteHrefBaseUrl<T>(
       hash: parsedTo.hash,
     }) as FileRelativeUrl;
   }
-  return absUrl as FileRelativeUrl;
+  return relativeUrl as FileRelativeUrl;
 }
 
 function makeAbsolutePath(path: string): string {
