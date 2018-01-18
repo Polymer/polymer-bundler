@@ -80,6 +80,11 @@ function pathPosixRelative(from: string, to: string): string {
  * Computes the most succinct form of a relative URL representing the path from
  * the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
  * `/a/` is correctly treated as a folder path where `/a` is not.
+ *
+ * TODO(usergenic): Delegate all uses of this function to the analyzer's
+ * `.urlResolver.relative()` method.  This will require passing along the
+ * bundler's instantiated analyzer all over the place in import utils, so
+ * some significant refactor is probably due there.
  */
 export function relativeUrl(
     fromUri: ResolvedUrl, toUri: ResolvedUrl): FileRelativeUrl {
