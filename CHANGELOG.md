@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## Unreleased
 - [BREAKING] Upgraded to use `polymer-analyzer` version `3.0.0-pre.10` which requires the `ResolvedUrl` type in nearly all places where URLs are exchanged and provides strict typing on URLs used globally.  Eliminated the local `UrlString` type.
 - [BREAKING] Removed `relativeUrl` function from `url-utils`, shifting responsibility to `Bundler#analyzer.urlResolver.relative()`.
-- The `BundleResult` returned by `Bundler#bundle()` includes the serialized contents instead of just the root AST node of bundled document.
+- The `BundleResult` returned by `Bundler#bundle()` includes serialized contents instead of just the root AST node of bundled document.
 <!-- Add new, unreleased changes here. -->
 
 ## 3.1.1 - 2017-10-20
