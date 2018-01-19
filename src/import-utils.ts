@@ -149,6 +149,7 @@ export async function inlineHtmlImport(
       resolvedImportUrl,
       document.url,
       rewriteUrlsInTemplates);
+
   if (enableSourcemaps) {
     const reparsedDoc = new ParsedHtmlDocument({
       url: document.parsedDocument.url,
