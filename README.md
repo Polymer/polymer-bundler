@@ -120,12 +120,11 @@ polymer-bundler as a library has two exported function.
 
 A simple example:
 ```js
-const parse5 = require('parse5');
 const bundler = new require('polymer-bundler').Bundler();
 bundler.generateManifest(['my-app.html']).then((manifest) => {
   bundler.bundle(manifest).then((result) => {
     console.log('<!-- BUNDLED VERSION OF my-app.html: -->');
-    console.log(parse5.serialize(result.documents.get('my-app.html').ast));
+    console.log(result.documents.get('my-app.html').content));
   });
 });
 ```

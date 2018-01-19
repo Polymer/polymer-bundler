@@ -129,8 +129,11 @@ export class Bundler {
       const bundleUrl = bundleEntry[0];
       const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
       const bundledAst = await this._bundleDocument(bundle, manifest);
-      documents.set(
-          bundleUrl, {ast: bundledAst, files: Array.from(bundle.bundle.files)});
+      documents.set(bundleUrl, {
+        ast: bundledAst,
+        content: this._ensureTrailingNewline(parse5.serialize(bundledAst)),
+        files: Array.from(bundle.bundle.files)
+      });
     }
 
     return {manifest, documents};
@@ -259,6 +262,13 @@ export class Bundler {
     dom5.setAttribute(link, 'rel', 'import');
     dom5.setAttribute(link, 'href', url);
     return link;
+  }
+
+  /**
+   * Append a newline if text doesn't already end with one.
+   */
+  private _ensureTrailingNewline(text: string): string {
+    return text.endsWith('\n') ? text : text + '\n';
   }
 
   /**

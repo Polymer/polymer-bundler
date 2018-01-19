@@ -16,13 +16,13 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
-import * as parse5 from 'parse5';
 import * as path from 'path';
 import {Analyzer, FSUrlLoader, PackageRelativeUrl, PackageUrlResolver, ResolvedUrl} from 'polymer-analyzer';
 import {MappingItem, RawSourceMap, SourceMapConsumer} from 'source-map';
 
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
+import {BundledDocument} from '../document-collection';
 import {getExistingSourcemap} from '../source-map';
 import {resolvePath} from '../url-utils';
 
@@ -35,7 +35,7 @@ suite('Bundler', () => {
   let bundler: Bundler;
 
   async function bundle(inputPath: string, opts?: BundlerOptions):
-      Promise<parse5.ASTNode> {
+      Promise<BundledDocument> {
         // Don't modify options directly because test-isolation problems occur.
         const bundlerOpts = Object.assign({}, opts || {});
         if (!bundlerOpts.analyzer) {
@@ -47,7 +47,7 @@ suite('Bundler', () => {
         const manifest = await bundler.generateManifest(
             [bundler.analyzer.resolveUrl(inputPath as PackageRelativeUrl)!]);
         const {documents} = await bundler.bundle(manifest);
-        return documents.get(bundler.analyzer.resolveUrl(inputPath)!)!.ast;
+        return documents.get(bundler.analyzer.resolveUrl(inputPath)!)!;
       }
 
   function getLine(original: string, lineNum: number) {
@@ -94,11 +94,10 @@ suite('Bundler', () => {
   suite('Sourcemaps', () => {
 
     test('inline maps are compiled correctly', async () => {
-      const doc = await bundle(
+      const {ast: doc, content: compiledHtml} = await bundle(
           'inline.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
       assert(doc);
-      const compiledHtml = parse5.serialize(doc);
       const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
       assert.equal(inlineScripts.length, 3);
 
@@ -116,11 +115,10 @@ suite('Bundler', () => {
     });
 
     test('external map files are compiled correctly', async () => {
-      const doc = await bundle(
+      const {ast: doc, content: compiledHtml} = await bundle(
           'external.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
       assert(doc);
-      const compiledHtml = parse5.serialize(doc);
       const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
       assert.equal(inlineScripts.length, 3);
 
@@ -134,11 +132,10 @@ suite('Bundler', () => {
     });
 
     test('mix of inline and external maps are compiled correctly', async () => {
-      const doc = await bundle(
+      const {ast: doc, content: compiledHtml} = await bundle(
           'combined.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
       assert(doc);
-      const compiledHtml = parse5.serialize(doc);
       const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
       assert.equal(inlineScripts.length, 7);
 
@@ -152,11 +149,10 @@ suite('Bundler', () => {
     });
 
     test('invalid maps are compiled correctly', async () => {
-      const doc = await bundle(
+      const {ast: doc, content: compiledHtml} = await bundle(
           'invalid.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
       assert(doc);
-      const compiledHtml = parse5.serialize(doc);
       const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
       assert.equal(inlineScripts.length, 2);
 
