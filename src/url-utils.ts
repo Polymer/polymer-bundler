@@ -26,10 +26,12 @@ const sharedRelativeUrlProperties =
     ['protocol', 'slashes', 'auth', 'host', 'port', 'hostname'];
 
 /**
- * A string representing a URL.
+ * Given a string representing a URL or path of some form, append a `/`
+ * character if it doesn't already end with one.
  */
-export function ensureTrailingSlash(href: string) {
-  return href.endsWith('/') ? href : (href + '/');
+export function ensureTrailingSlash<T>(href: T): T {
+  const hrefString = href as any as string;
+  return hrefString.endsWith('/') ? href : (href + '/') as any as T;
 }
 
 /**
