@@ -99,13 +99,13 @@ export async function inlineHtmlImport(
   const stripLinkToImportBundle = importIsInAnotherBundle &&
       stripImports.has(importBundle.url) &&
       // We just added resolvedImportUrl to stripImports, so we'll exclude
-      // the case where resolved import url is not the import bundle.  This
+      // the case where resolved import URL is not the import bundle.  This
       // scenario happens when importing a file from a bundle with the same
       // name as the original import, like an entrypoint or lazy edge.
       resolvedImportUrl !== importBundle.url;
 
   // If the html import refers to a file which is bundled and has a different
-  // url, then lets just rewrite the href to point to the bundle url.
+  // URL, then lets just rewrite the href to point to the bundle URL.
   if (importIsInAnotherBundle) {
     // We guard against inlining any other file from a bundle that has
     // already been imported.  A special exclusion is for lazy imports, which
@@ -185,7 +185,7 @@ export async function inlineHtmlImport(
 }
 
 /**
- * Inlines the contents of the document returned by the script tag's src url
+ * Inlines the contents of the document returned by the script tag's src URL
  * into the script tag content and removes the src attribute.
  */
 export async function inlineScript(
@@ -238,7 +238,7 @@ export async function inlineScript(
 }
 
 /**
- * Inlines the contents of the stylesheet returned by the link tag's href url
+ * Inlines the contents of the stylesheet returned by the link tag's href URL
  * into a style tag and removes the link tag.
  */
 export async function inlineStylesheet(
@@ -281,8 +281,8 @@ export async function inlineStylesheet(
   let newBaseUrl = document.url;
 
   // If the css link we are about to inline is inside of a dom-module, the
-  // new base url must be calculated using the assetpath of the dom-module
-  // if present, since Polymer will honor assetpath when resolving urls in
+  // new base URL must be calculated using the assetpath of the dom-module
+  // if present, since Polymer will honor assetpath when resolving URLs in
   // `<style>` tags, even inside of `<template>` tags.
   const parentDomModule =
       findAncestor(cssLink, dom5.predicates.hasTagName('dom-module'));
@@ -343,9 +343,9 @@ export function rewriteAstToEmulateBaseTag(
 }
 
 /**
- * Walk through an import document, and rewrite all urls so they are
- * correctly relative to the main document url as they've been
- * imported from the import url.
+ * Walk through an import document, and rewrite all URLs so they are
+ * correctly relative to the main document URL as they've been
+ * imported from the import URL.
  */
 export function rewriteAstBaseUrl(
     ast: ASTNode,
@@ -427,9 +427,9 @@ function findInSet<T>(set: Set<T>, predicate: (item: T) => boolean): T|
 }
 
 /**
- * Given a string of CSS, return a version where all occurrences of urls,
- * have been rewritten based on the relationship of the old base url to the
- * new base url.
+ * Given a string of CSS, return a version where all occurrences of URLs,
+ * have been rewritten based on the relationship of the old base URL to the
+ * new base URL.
  */
 function rewriteCssTextBaseUrl(
     cssText: string, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl): string {
@@ -441,8 +441,8 @@ function rewriteCssTextBaseUrl(
 }
 
 /**
- * Find all element attributes which express urls and rewrite them so they
- * are based on the relationship of the old base url to the new base url.
+ * Find all element attributes which express URLs and rewrite them so they
+ * are based on the relationship of the old base URL to the new base URL.
  */
 function rewriteElementAttrsBaseUrl(
     ast: ASTNode,
@@ -473,8 +473,8 @@ function rewriteElementAttrsBaseUrl(
 }
 
 /**
- * Find all urls in imported style nodes and rewrite them so they are based
- * on the relationship of the old base url to the new base url.
+ * Find all URLs in imported style nodes and rewrite them so they are based
+ * on the relationship of the old base URL to the new base URL.
  */
 function rewriteStyleTagsBaseUrl(
     ast: ASTNode,
@@ -491,7 +491,7 @@ function rewriteStyleTagsBaseUrl(
       dom5.queryAll(ast, matchers.styleMatcher, undefined, childNodesOption);
 
   // Unless rewriteUrlsInTemplates is on, if a `<style>` tag is anywhere
-  // inside a `<dom-module>` tag, then it should not have its urls rewritten.
+  // inside a `<dom-module>` tag, then it should not have its URLs rewritten.
   if (!rewriteUrlsInTemplates) {
     for (const domModule of dom5.queryAll(
              ast, dom5.predicates.hasTagName('dom-module'))) {
@@ -514,7 +514,7 @@ function rewriteStyleTagsBaseUrl(
 
 /**
  * Set the assetpath attribute of all imported dom-modules which don't yet
- * have them if the base urls are different.
+ * have them if the base URLs are different.
  */
 function setDomModuleAssetpaths(
     ast: ASTNode, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl) {

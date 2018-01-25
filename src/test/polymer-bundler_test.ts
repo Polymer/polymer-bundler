@@ -158,7 +158,7 @@ suite('polymer-bundler CLI', () => {
 
   suite('--redirect', () => {
 
-    test('handles urls with arbitrary protocols and hosts', async () => {
+    test('handles URLs with arbitrary protocols and hosts', async () => {
       const projectRoot =
           resolvePath(__dirname, '../../test/html/url-redirection')
               // Force forward-slashes so quoting works with Windows paths.

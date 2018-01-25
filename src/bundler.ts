@@ -47,7 +47,7 @@ export interface Options {
   // the output document.
   inlineScripts?: boolean;
 
-  // Rewrite element attributes inside of templates to adjust urls in inlined
+  // Rewrite element attributes inside of templates to adjust URLs in inlined
   // html imports.
   rewriteUrlsInTemplates?: boolean;
 
@@ -60,7 +60,7 @@ export interface Options {
   // Bundle strategy used to construct the output bundles.
   strategy?: BundleStrategy;
 
-  // Bundle url mapper function that produces urls for the generated bundles.
+  // Bundle URL mapper function that produces URLs for the generated bundles.
   urlMapper?: BundleUrlMapper;
 }
 
@@ -145,7 +145,7 @@ export class Bundler {
    *     `strategy`.
    * @param strategy - The strategy used to construct the output bundles.
    *     See 'polymer-analyzer/src/bundle-manifest'.
-   * @param mapper - A function that produces urls for the generated bundles.
+   * @param mapper - A function that produces URLs for the generated bundles.
    *     See 'polymer-analyzer/src/bundle-manifest'.
    */
   async generateManifest(entrypoints: ResolvedUrl[]): Promise<BundleManifest> {
@@ -159,7 +159,7 @@ export class Bundler {
   }
 
   /**
-   * Analyze a url using the given contents in place of what would otherwise
+   * Analyze a URL using the given contents in place of what would otherwise
    * have been loaded.
    */
   private async _analyzeContents(url: ResolvedUrl, contents: string):
@@ -195,7 +195,7 @@ export class Bundler {
 
   /**
    * Produces a document containing the content of all of the bundle's files.
-   * If the bundle's url resolves to an existing html file, that file will be
+   * If the bundle's URL resolves to an existing html file, that file will be
    * used as the basis for the generated document.
    */
   private async _bundleDocument(
@@ -387,7 +387,7 @@ export class Bundler {
 
   /**
    * Replace html import links in the document with the contents of the
-   * imported file, but only once per url.
+   * imported file, but only once per URL.
    */
   private async _inlineHtmlImports(
       document: Document,

@@ -144,7 +144,7 @@ const usage = [
       },
       {
         desc:
-            'Inline the HTML Imports of \`target.html\`, treat \`path/to/target/\` as the webroot of target.html, and make all urls absolute to the provided webroot.',
+            'Inline the HTML Imports of \`target.html\`, treat \`path/to/target/\` as the webroot of target.html, and make all URLs absolute to the provided webroot.',
         example: 'polymer-bundler -p "path/to/target/" /target.html'
       },
       {
@@ -201,10 +201,10 @@ options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
 const fsUrlLoader = new FSUrlLoader(projectRoot);
 const packageUrlResolver = new PackageUrlResolver({packageDir: projectRoot});
 
-// getPackageRelativeUrl(url) reverses the resolved url format into the original
-// package relative url format.  This is done primarily so that the generated
-// manifest includes package relative urls in the output instead of detailed
-// local filesystem information which is present in resolved urls.  This is
+// getPackageRelativeUrl(url) reverses the resolved URL format into the original
+// package relative URL format.  This is done primarily so that the generated
+// manifest includes package relative URLs in the output instead of detailed
+// local filesystem information which is present in resolved URLs.  This is
 // defined here with a `let` because the redirect option will result in the
 // function being wrapped with transformations for any redirect options.
 let getPackageRelativeUrl: (r: ResolvedUrl) => PackageRelativeUrl =
@@ -233,6 +233,9 @@ if (options.redirect) {
   // Wrap the getPackageRelativeUrl function for each redirection.  Because we
   // are wrapping the function, we iterate in reverse order to ensure the
   // redirect transformations are processed in the same order as they're given.
+  // TODO(usergenic): Remove this whole getPackageRelativeUrl() function when
+  // analyzer can reliably reverse a resolved URL into provide a package
+  // relative URL when using MultiUrlResolver.
   redirections.reverse().forEach((r: redirection) => {
     const oldGetPackageRelativeUrl = getPackageRelativeUrl;
     const newGetPackageRelativeUrl =
@@ -274,7 +277,7 @@ interface JsonManifest {
 }
 (async () => {
 
-  // Produces a bundle manifest object where all the urls represented are
+  // Produces a bundle manifest object where all the URLs represented are
   // package relative.
   function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
     const json: JsonManifest = {};

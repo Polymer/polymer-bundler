@@ -21,7 +21,7 @@ import {ResolvedUrl} from 'polymer-analyzer';
 export type BundleStrategy = (bundles: Bundle[]) => Bundle[];
 
 /**
- * A bundle url mapper function produces a map of urls to bundles.
+ * A bundle URL mapper function produces a map of URLs to bundles.
  */
 export type BundleUrlMapper = (bundles: Bundle[]) => Map<ResolvedUrl, Bundle>;
 
@@ -38,7 +38,7 @@ export type TransitiveDependenciesMap = Map<ResolvedUrl, Set<ResolvedUrl>>;
  * entrypoint files.
  */
 export class Bundle {
-  // Set of all dependant entrypoint urls of this bundle.
+  // Set of all dependant entrypoint URLs of this bundle.
   entrypoints: Set<ResolvedUrl>;
 
   // Set of all files included in the bundle.
@@ -70,17 +70,17 @@ export class AssignedBundle {
 }
 
 /**
- * A bundle manifest is a mapping of urls to bundles.
+ * A bundle manifest is a mapping of URLs to bundles.
  */
 export class BundleManifest {
-  // Map of bundle url to bundle.
+  // Map of bundle URL to bundle.
   bundles: Map<ResolvedUrl, Bundle>;
 
-  // Map of file url to bundle url.
+  // Map of file URL to bundle URL.
   private _bundleUrlForFile: Map<ResolvedUrl, ResolvedUrl>;
 
   /**
-   * Given a collection of bundles and a BundleUrlMapper to generate urls for
+   * Given a collection of bundles and a BundleUrlMapper to generate URLs for
    * them, the constructor populates the `bundles` and `files` index properties.
    */
   constructor(bundles: Bundle[], urlMapper: BundleUrlMapper) {
@@ -102,7 +102,7 @@ export class BundleManifest {
     return clone(this);
   }
 
-  // Convenience method to return a bundle for a constituent file url.
+  // Convenience method to return a bundle for a constituent file URL.
   getBundleForFile(url: ResolvedUrl): AssignedBundle|undefined {
     const bundleUrl = this._bundleUrlForFile.get(url);
     if (bundleUrl) {
@@ -158,7 +158,7 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
 }
 
 /**
- * Creates a bundle url mapper function which takes a prefix and appends an
+ * Creates a bundle URL mapper function which takes a prefix and appends an
  * incrementing value, starting with `1` to the filename.
  */
 export function generateCountingSharedBundleUrlMapper(urlPrefix: ResolvedUrl):
@@ -193,10 +193,10 @@ export function generateMatchMergeStrategy(predicate: (b: Bundle) => boolean):
 }
 
 /**
- * Creates a bundle url mapper function which maps non-shared bundles to the
- * urls of their single entrypoint and yields responsibility for naming
- * remaining shared bundle urls to the `mapper` function argument.  The
- * mapper function takes a collection of shared bundles and a url map, calling
+ * Creates a bundle URL mapper function which maps non-shared bundles to the
+ * URLs of their single entrypoint and yields responsibility for naming
+ * remaining shared bundle URLs to the `mapper` function argument.  The
+ * mapper function takes a collection of shared bundles and a URL map, calling
  * `.set(url, bundle)` for each.
  */
 export function generateSharedBundleUrlMapper(
@@ -272,7 +272,7 @@ export function generateShellMergeStrategy(
 }
 
 /**
- * Generates a strategy function that ensures bundles do not link to given urls.
+ * Generates a strategy function that ensures bundles do not link to given URLs.
  * Bundles which contain matching files will still have them inlined.
  */
 export function generateNoBackLinkStrategy(urls: ResolvedUrl[]):

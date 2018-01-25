@@ -134,8 +134,8 @@ export function resolvePath(...segments: string[]): string {
 }
 
 /**
- * Modifies an href by the relative difference between the old base url and
- * the new base url.
+ * Modifies an href by the relative difference between the old base URL and
+ * the new base URL.
  */
 export function rewriteHrefBaseUrl<T>(
     href: T, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl): T|

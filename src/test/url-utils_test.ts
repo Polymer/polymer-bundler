@@ -29,27 +29,27 @@ suite('URL Utils', () => {
 
   suite('stripUrlFileSearchAndHash', () => {
 
-    test('Strips "man.html" basename off url', () => {
+    test('Strips "man.html" basename off URL', () => {
       assert.equal(
           urlUtils.stripUrlFileSearchAndHash('shark://alligator/man.html'),
           'shark://alligator/');
     });
 
-    test('Strips "file.html" basename off url', () => {
+    test('Strips "file.html" basename off URL', () => {
       assert.equal(
           urlUtils.stripUrlFileSearchAndHash(
               'https://example.com/path/to/file.html'),
           'https://example.com/path/to/');
     });
 
-    test('Strips "something?a=b&c=d" basename and search off url', () => {
+    test('Strips "something?a=b&c=d" basename and search off URL', () => {
       assert.equal(
           urlUtils.stripUrlFileSearchAndHash(
               'https://example.com/path/to/something?a=b&c=d'),
           'https://example.com/path/to/');
     });
 
-    test('Strips "#some-hash-value" off url', () => {
+    test('Strips "#some-hash-value" off URL', () => {
       assert.equal(
           urlUtils.stripUrlFileSearchAndHash(
               'https://example.com/path/#some-hash-value'),
@@ -81,14 +81,14 @@ suite('URL Utils', () => {
       assert.equal(
           rewrite('http://foo/biz.jpg', importBase, mainBase),
           'http://foo/biz.jpg',
-          'remote urls');
+          'remote URLs');
       assert.equal(
           rewrite('/a/b/c/', importBase, mainBase),
           '/a/b/c/',
           'local absolute href');
     });
 
-    test('Rewrite Paths when base url pathnames are absolute paths', () => {
+    test('Rewrite Paths when base URL pathnames are absolute paths', () => {
       const importBase = '/foo/bar/my-element/index.html';
       const mainBase = '/foo/bar/index.html';
       assert.equal(
@@ -99,7 +99,7 @@ suite('URL Utils', () => {
           rewrite('/biz.jpg', importBase, mainBase), '/biz.jpg', 'absolute');
     });
 
-    test('Rewrite paths when base url pathnames have no leading slash', () => {
+    test('Rewrite paths when base URL pathnames have no leading slash', () => {
       assert.equal(
           rewrite('/foo.html', 'bar.html', 'index.html'),
           '/foo.html',
@@ -125,7 +125,7 @@ suite('URL Utils', () => {
           'neither has ^/');
     });
 
-    test('Rewrite paths when new base url has trailing slash', () => {
+    test('Rewrite paths when new base URL has trailing slash', () => {
       assert.equal(
           rewrite('pic.png', 'foo/bar/baz.html', 'foo/'), 'bar/pic.png');
     });
