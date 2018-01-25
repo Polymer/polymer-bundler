@@ -19,7 +19,7 @@ import {execSync} from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 
-import {resolvePath} from '../url-utils';
+import {ensureTrailingSlash, resolvePath} from '../url-utils';
 
 chai.config.showDiff = true;
 
@@ -27,6 +27,8 @@ const assert = chai.assert;
 
 suite('polymer-bundler CLI', () => {
 
+  const getTempDir = () =>
+      fs.mkdtempSync(resolvePath(ensureTrailingSlash(os.tmpdir())));
   const cliPath = resolvePath(__dirname, '../bin/polymer-bundler.js');
 
   test('uses the current working folder as loader root', async () => {
@@ -67,7 +69,7 @@ suite('polymer-bundler CLI', () => {
 
     test('writes to the dir even for single bundle', async () => {
       const projectRoot = resolvePath(__dirname, '../../test/html');
-      const tempdir = fs.mkdtempSync(resolvePath(os.tmpdir()));
+      const tempdir = getTempDir();
       execSync(
           `cd ${projectRoot} && ` +
           `node ${cliPath} absolute-paths.html ` +
@@ -80,7 +82,7 @@ suite('polymer-bundler CLI', () => {
 
     test('a single in-html file with deep path stays deep', async () => {
       const projectRoot = resolvePath(__dirname, '../../test');
-      const tempdir = fs.mkdtempSync(resolvePath(os.tmpdir()));
+      const tempdir = getTempDir();
       execSync(
           `cd ${projectRoot} && ` +
           `node ${cliPath} html/default.html ` +
@@ -96,7 +98,7 @@ suite('polymer-bundler CLI', () => {
 
     test('writes out the bundle manifest to given path', async () => {
       const projectRoot = resolvePath(__dirname, '../../test/html');
-      const tempdir = fs.mkdtempSync(resolvePath(os.tmpdir()));
+      const tempdir = getTempDir();
       const manifestPath = resolvePath(tempdir, 'bundle-manifest.json');
       execSync(
           `cd ${projectRoot} && ` +
@@ -122,7 +124,7 @@ suite('polymer-bundler CLI', () => {
 
     test('manifest includes all files including basis', async () => {
       const projectRoot = resolvePath(__dirname, '../../test/html/imports');
-      const tempdir = fs.mkdtempSync(resolvePath(os.tmpdir()));
+      const tempdir = getTempDir();
       const manifestPath = resolvePath(tempdir, 'bundle-manifest.json');
       execSync(
           `cd ${projectRoot} && ` +
@@ -163,7 +165,7 @@ suite('polymer-bundler CLI', () => {
           resolvePath(__dirname, '../../test/html/url-redirection')
               // Force forward-slashes so quoting works with Windows paths.
               .replace(/\\/g, '/');
-      const tempdir = fs.mkdtempSync(resolvePath(os.tmpdir()));
+      const tempdir = getTempDir();
       const manifestPath = resolvePath(tempdir, 'bundle-manifest.json');
       const stdout =
           execSync([
