@@ -15,7 +15,7 @@ import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode} from 'parse5';
 import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
-import {ResolvedUrl} from 'polymer-analyzer';
+import {FileRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
 import * as urlLib from 'url';
 
 import * as astUtils from './ast-utils';
@@ -25,7 +25,6 @@ import * as matchers from './matchers';
 import {addOrUpdateSourcemapComment} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
 import * as urlUtils from './url-utils';
-import {isAbsolutePath} from './url-utils';
 
 
 // TODO(usergenic): Revisit the organization of this module and *consider*
@@ -48,11 +47,9 @@ export async function inlineHtmlImport(
     rewriteUrlsInTemplates?: boolean,
     excludes?: string[]) {
   const isLazy = dom5.getAttribute(linkTag, 'rel')!.match(/lazy-import/i);
-  const rawImportUrl = dom5.getAttribute(linkTag, 'href')!;
-  const importUrl = isAbsolutePath(rawImportUrl) ?
-      rawImportUrl :
-      urlLib.resolve(document.url, rawImportUrl);
-  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  const importHref = dom5.getAttribute(linkTag, 'href')!;
+  const resolvedImportUrl =
+      analyzer.urlResolver.resolve(document.url, importHref as FileRelativeUrl);
   if (resolvedImportUrl === undefined) {
     return;
   }
@@ -195,11 +192,9 @@ export async function inlineScript(
     docBundle: AssignedBundle,
     enableSourcemaps: boolean,
     excludes?: string[]) {
-  const rawImportUrl = dom5.getAttribute(scriptTag, 'src')!;
-  const importUrl = isAbsolutePath(rawImportUrl) ?
-      rawImportUrl :
-      urlLib.resolve(document.url, rawImportUrl);
-  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  const scriptHref = dom5.getAttribute(scriptTag, 'src')!;
+  const resolvedImportUrl =
+      analyzer.urlResolver.resolve(document.url, scriptHref as FileRelativeUrl);
   if (resolvedImportUrl === undefined) {
     return;
   }
@@ -248,11 +243,9 @@ export async function inlineStylesheet(
     docBundle: AssignedBundle,
     excludes?: string[],
     rewriteUrlsInTemplates?: boolean) {
-  const stylesheetUrl = dom5.getAttribute(cssLink, 'href')!;
-  const importUrl = isAbsolutePath(stylesheetUrl) ?
-      stylesheetUrl :
-      urlLib.resolve(document.url, stylesheetUrl);
-  const resolvedImportUrl = analyzer.resolveUrl(importUrl);
+  const stylesheetHref = dom5.getAttribute(cssLink, 'href')!;
+  const resolvedImportUrl = analyzer.urlResolver.resolve(
+      document.url, stylesheetHref as FileRelativeUrl);
   if (resolvedImportUrl === undefined) {
     return;
   }
