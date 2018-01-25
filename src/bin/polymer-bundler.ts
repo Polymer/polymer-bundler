@@ -207,13 +207,13 @@ const packageUrlResolver = new PackageUrlResolver({packageDir: projectRoot});
 // local filesystem information which is present in resolved urls.  This is
 // defined here with a `let` because the redirect option will result in the
 // function being wrapped with transformations for any redirect options.
-let getPackageRelativeUrl: (r: ResolvedUrl) => PackageRelativeUrl = function(
-    resolvedUrl: ResolvedUrl): PackageRelativeUrl {
-  if (resolvedUrl.startsWith(projectRootUrl)) {
-    return resolvedUrl.slice(projectRootUrl.length) as PackageRelativeUrl;
-  }
-  return resolvedUrl as any as PackageRelativeUrl;
-};
+let getPackageRelativeUrl: (r: ResolvedUrl) => PackageRelativeUrl =
+    (resolvedUrl: ResolvedUrl): PackageRelativeUrl => {
+      if (resolvedUrl.startsWith(projectRootUrl)) {
+        return resolvedUrl.slice(projectRootUrl.length) as PackageRelativeUrl;
+      }
+      return resolvedUrl as any as PackageRelativeUrl;
+    };
 
 if (options.redirect) {
   type redirection = {prefix: string, path: string};
