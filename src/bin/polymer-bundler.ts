@@ -235,8 +235,8 @@ if (options.redirect) {
   // redirect transformations are processed in the same order as they're given.
   redirections.reverse().forEach((r: redirection) => {
     const oldGetPackageRelativeUrl = getPackageRelativeUrl;
-    const newGetPackageRelativeUrl = function(resolvedUrl: ResolvedUrl):
-        PackageRelativeUrl {
+    const newGetPackageRelativeUrl =
+        (resolvedUrl: ResolvedUrl): PackageRelativeUrl => {
           const redirectionPathUrl = getFileUrl(resolvePath(r.path));
           if (resolvedUrl.startsWith(redirectionPathUrl)) {
             return r.prefix + resolvedUrl.slice(redirectionPathUrl.length) as
