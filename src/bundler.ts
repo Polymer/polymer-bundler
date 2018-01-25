@@ -26,6 +26,7 @@ import {BundledDocument, DocumentCollection} from './document-collection';
 import * as importUtils from './import-utils';
 import * as matchers from './matchers';
 import {updateSourcemapLocations} from './source-map';
+import {resolvePath} from './url-utils';
 
 export * from './bundle-manifest';
 
@@ -92,8 +93,8 @@ export class Bundler {
       this._overlayUrlLoader = new InMemoryOverlayUrlLoader(analyzer);
       this.analyzer = analyzer._fork({urlLoader: this._overlayUrlLoader});
     } else {
-      this._overlayUrlLoader = new InMemoryOverlayUrlLoader(
-          new FSUrlLoader(urlUtils.resolvePath('.')));
+      this._overlayUrlLoader =
+          new InMemoryOverlayUrlLoader(new FSUrlLoader(resolvePath('.')));
       this.analyzer = new Analyzer({urlLoader: this._overlayUrlLoader});
     }
 
