@@ -24,6 +24,7 @@ import {MappingItem, RawSourceMap, SourceMapConsumer} from 'source-map';
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import {getExistingSourcemap} from '../source-map';
+import {resolvePath} from '../url-utils';
 
 chai.config.showDiff = true;
 
@@ -83,7 +84,7 @@ suite('Bundler', () => {
     }
   }
 
-  const basePath = path.resolve('test/html/sourcemaps');
+  const basePath = resolvePath('test/html/sourcemaps/');
   const urlLoader = new FSUrlLoader(basePath);
   const analyzer = new Analyzer({
     urlResolver: new PackageUrlResolver({packageDir: basePath}),

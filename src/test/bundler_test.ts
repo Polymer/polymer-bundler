@@ -18,12 +18,12 @@ import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as fs from 'fs';
 import * as parse5 from 'parse5';
-import * as path from 'path';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 import {PackageUrlResolver} from 'polymer-analyzer/lib/url-loader/package-url-resolver';
 
 import {Bundle, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, Options as BundlerOptions} from '../bundler';
+import {resolvePath} from '../url-utils';
 
 chai.config.showDiff = true;
 
@@ -48,12 +48,12 @@ suite('Bundler', () => {
     if (!analyzer) {
       if (!opts || !opts.urlResolver) {
         const urlResolver = new PackageUrlResolver({
-          packageDir: path.resolve('test/html'),
+          packageDir: resolvePath('test/html'),
         });
         opts = Object.assign({}, opts || {}, {urlResolver: urlResolver});
       }
       if (!opts || !opts.urlLoader) {
-        const urlLoader = new FSUrlLoader(path.resolve('test/html'));
+        const urlLoader = new FSUrlLoader(resolvePath('test/html'));
         opts = Object.assign({}, opts || {}, {urlLoader: urlLoader});
       }
       analyzer = new Analyzer(opts);

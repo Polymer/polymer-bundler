@@ -15,7 +15,6 @@ import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 import {ASTNode, serialize, treeAdapters} from 'parse5';
-import * as path from 'path';
 import {Analyzer, Document, FileRelativeUrl, FSUrlLoader, InMemoryOverlayUrlLoader, ResolvedUrl} from 'polymer-analyzer';
 
 import {getAnalysisDocument} from './analyzer-utils';
@@ -94,8 +93,8 @@ export class Bundler {
       this._overlayUrlLoader = new InMemoryOverlayUrlLoader(analyzer);
       this.analyzer = analyzer._fork({urlLoader: this._overlayUrlLoader});
     } else {
-      this._overlayUrlLoader =
-          new InMemoryOverlayUrlLoader(new FSUrlLoader(path.resolve('.')));
+      this._overlayUrlLoader = new InMemoryOverlayUrlLoader(
+          new FSUrlLoader(urlUtils.resolvePath('.')));
       this.analyzer = new Analyzer({urlLoader: this._overlayUrlLoader});
     }
 
