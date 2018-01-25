@@ -224,13 +224,11 @@ if (options.redirect) {
             return {prefix, path};
           })
           .filter((r: redirection) => r.prefix && r.path);
-  const resolvers: UrlResolver[] = redirections.map((r: redirection) => {
-    let resolvedPath = getFileUrl(r.path);
-    return new RedirectResolver(
-        packageUrlResolver.resolve(r.prefix as PackageRelativeUrl)!,
-        r.prefix,
-        resolvedPath);
-  });
+  const resolvers: UrlResolver[] = redirections.map(
+      (r: redirection) => new RedirectResolver(
+          packageUrlResolver.resolve(r.prefix as PackageRelativeUrl)!,
+          r.prefix,
+          getFileUrl(r.path)));
 
   // Wrap the getPackageRelativeUrl function for each redirection.  Because we
   // are wrapping the function, we iterate in reverse order to ensure the

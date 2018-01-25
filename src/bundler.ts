@@ -357,7 +357,7 @@ export class Bundler {
         // If the existing import has a dependency on the import we are about
         // to inject, it may be our new target.
         if (existingImportDependencies.get(existingImport.document.url)!
-                .indexOf(importUrl as ResolvedUrl) !== -1) {
+                .indexOf(importUrl) !== -1) {
           const newPrependTarget = dom5.query(
               ast, (node) => astUtils.sameNode(node, existingImport.astNode));
 
