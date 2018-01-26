@@ -20,7 +20,7 @@
     "espree": "^3.5.2",
     "mkdirp": "^0.5.1",
     "parse5": "^2.2.2",
-    "polymer-analyzer": "^3.0.0-pre.8",
+    "polymer-analyzer": "^3.0.0-pre.9",
     "source-map": "^0.5.6",
     "vscode-uri": "^1.0.1"
   },
