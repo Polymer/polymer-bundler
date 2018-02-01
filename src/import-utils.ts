@@ -144,15 +144,15 @@ export async function inlineHtmlImport(
       importAst, resolvedImportUrl, rewriteUrlsInTemplates);
   rewriteAstBaseUrl(
       importAst, resolvedImportUrl, document.url, rewriteUrlsInTemplates);
-
   if (enableSourcemaps) {
     const reparsedDoc = new ParsedHtmlDocument({
-      url: document.url,
+      url: document.parsedDocument.url,
+      baseUrl: document.parsedDocument.baseUrl,
       contents: htmlImport.document.parsedDocument.contents,
       ast: importAst,
       isInline: false,
       locationOffset: undefined,
-      astNode: null
+      astNode: undefined,
     });
     await addOrUpdateSourcemapsForInlineScripts(
         analyzer, document, reparsedDoc, resolvedImportUrl);

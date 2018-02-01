@@ -162,7 +162,7 @@ suite('polymer-bundler CLI', () => {
 
     test('handles URLs with arbitrary protocols and hosts', async () => {
       const projectRoot =
-          resolvePath(__dirname, '../../test/html/url-redirection')
+          resolvePath(__dirname, '../../test/html')
               // Force forward-slashes so quoting works with Windows paths.
               .replace(/\\/g, '/');
       const tempdir = getTempDir();
@@ -170,9 +170,9 @@ suite('polymer-bundler CLI', () => {
       const stdout =
           execSync([
             `cd ${projectRoot}`,
-            `node ${cliPath} index.html ` +
-                `--redirect="myapp://app/|${projectRoot}/" ` +
-                `--redirect="vendor://|${projectRoot}/../bower_components/" ` +
+            `node ${cliPath} myapp://app/index.html ` +
+                `--redirect="myapp://app/|${projectRoot}/url-redirection/" ` +
+                `--redirect="vendor://|${projectRoot}/bower_components/" ` +
                 `--manifest-out ${manifestPath}`
           ].join(' && '))
               .toString();

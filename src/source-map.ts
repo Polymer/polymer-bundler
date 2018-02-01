@@ -212,12 +212,13 @@ export function updateSourcemapLocations(
   ast = astUtils.parse(documentContents, {locationInfo: true});
 
   const reparsedDoc = new ParsedHtmlDocument({
-    url: document.url,
+    url: document.parsedDocument.url,
+    baseUrl: document.parsedDocument.baseUrl,
     contents: documentContents,
     ast: ast,
     isInline: document.isInline,
     locationOffset: undefined,
-    astNode: null
+    astNode: undefined,
   });
 
   const inlineScripts = dom5.queryAll(ast, matchers.inlineJavascript);

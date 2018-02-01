@@ -13,7 +13,7 @@
  */
 
 import * as clone from 'clone';
-import {ResolvedUrl} from 'polymer-analyzer';
+import {PackageRelativeUrl, ResolvedUrl, UrlResolver} from 'polymer-analyzer';
 
 /**
  * A bundle strategy function is used to transform an array of bundles.
@@ -69,6 +69,10 @@ export class AssignedBundle {
   url: ResolvedUrl;
 }
 
+export interface BundleManifestJson {
+  [entrypoint: string]: PackageRelativeUrl[];
+}
+
 /**
  * A bundle manifest is a mapping of URLs to bundles.
  */
@@ -108,6 +112,34 @@ export class BundleManifest {
     if (bundleUrl) {
       return {bundle: this.bundles.get(bundleUrl)!, url: bundleUrl};
     }
+  }
+
+  toJson(urlResolver: UrlResolver): BundleManifestJson {
+    const json = {};
+    const missingImports: Set<ResolvedUrl> = new Set();
+
+    for (const [url, bundle] of this.bundles) {
+      json[urlResolver.relative(url)] =
+          [...new Set([
+            // `files` and `inlinedHtmlImports` will be partially
+            // duplicative, but use of both ensures the basis document
+            // for a file is included since there is no other specific
+            // property that currently expresses it.
+            ...bundle.files,
+            ...bundle.inlinedHtmlImports,
+            ...bundle.inlinedScripts,
+            ...bundle.inlinedStyles
+          ])].map((url: ResolvedUrl) => urlResolver.relative(url));
+
+      for (const missingImport of bundle.missingImports) {
+        missingImports.add(missingImport);
+      }
+    }
+    if (missingImports.size > 0) {
+      json['_missing'] = [...missingImports].map(
+          (url: ResolvedUrl) => urlResolver.relative(url));
+    }
+    return json;
   }
 }
 
