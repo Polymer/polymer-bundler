@@ -17,13 +17,9 @@
 
 import * as path from 'path';
 import * as url from 'url';
-import {parseUrl} from 'polymer-analyzer/lib/core/utils';
 import constants from './constants';
 import {FileRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
 import Uri from 'vscode-uri';
-
-const sharedRelativeUrlProperties =
-    ['protocol', 'slashes', 'auth', 'host', 'port', 'hostname'];
 
 /**
  * Given a string representing a URL or path of some form, append a `/`
@@ -84,39 +80,6 @@ function pathPosixRelative(from: string, to: string): string {
   const relative = path.posix.relative(from, to);
   return path === path.win32 ? relative.replace(/\.\.\.\./g, '../..') :
                                relative;
-}
-
-/**
- * Computes the most succinct form of a relative URL representing the path from
- * the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
- * `/a/` is correctly treated as a folder path where `/a` is not.
- *
- * TODO(usergenic): Delegate all uses of this function to the analyzer's
- * `.urlResolver.relative()` method.  This will require passing along the
- * bundler's instantiated analyzer all over the place in import utils, so
- * some significant refactor is probably due there.
- */
-export function relativeUrl(
-    fromUri: ResolvedUrl, toUri: ResolvedUrl): FileRelativeUrl {
-  const fromUrl = parseUrl(fromUri)!;
-  const toUrl = parseUrl(toUri)!;
-  // Return the toUri as-is if there are conflicting components which
-  // prohibit calculating a relative form.
-  if (sharedRelativeUrlProperties.some(
-          (p) => toUrl[p] !== null && fromUrl[p] !== toUrl[p])) {
-    return toUri as any as FileRelativeUrl;
-  }
-  const fromDir = fromUrl.pathname !== undefined ?
-      fromUrl.pathname.replace(/[^/]+$/, '') :
-      '';
-  const toDir = toUrl.pathname !== undefined ? toUrl.pathname : '';
-  // Note, below, the _ character is appended so that paths with trailing
-  // slash retain the trailing slash in the path.relative result.
-  const relPath = pathPosixRelative(fromDir, toDir + '_').replace(/_$/, '');
-  sharedRelativeUrlProperties.forEach((p) => toUrl[p] = null);
-  toUrl.path = undefined;
-  toUrl.pathname = relPath;
-  return url.format(toUrl) as FileRelativeUrl;
 }
 
 /**

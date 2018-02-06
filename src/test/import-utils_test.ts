@@ -16,6 +16,7 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 import * as parse5 from 'parse5';
+import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
 const rewire = require('rewire');
 const astUtils = require('../ast-utils');
@@ -24,7 +25,7 @@ const importUtils = rewire('../import-utils');
 chai.config.showDiff = true;
 
 const assert = chai.assert;
-
+const analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
 const stripSpace = (html: string): string =>
     html.replace(/>\s+/g, '>').replace(/>/g, '>\n').trim();
 
@@ -102,7 +103,8 @@ suite('import-utils', () => {
         `;
 
         const ast = astUtils.parse(html);
-        importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
+        importUtils.rewriteAstBaseUrl(
+            analyzer, ast, importDocPath, mainDocPath);
 
         const actual = parse5.serialize(ast);
         assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
@@ -142,7 +144,8 @@ suite('import-utils', () => {
         `;
 
         const ast = astUtils.parse(html);
-        importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath, true);
+        importUtils.rewriteAstBaseUrl(
+            analyzer, ast, importDocPath, mainDocPath, true);
 
         const actual = parse5.serialize(ast);
         assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
@@ -156,7 +159,7 @@ suite('import-utils', () => {
       `;
 
       const ast = astUtils.parse(base);
-      importUtils.rewriteAstBaseUrl(ast, importDocPath, mainDocPath);
+      importUtils.rewriteAstBaseUrl(analyzer, ast, importDocPath, mainDocPath);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(base), 'templated urls');
@@ -191,7 +194,7 @@ suite('import-utils', () => {
         <script>Polymer({is: "my-element"})</script>`;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
+      importUtils.rewriteAstToEmulateBaseTag(analyzer, ast, 'the/doc/url');
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -226,7 +229,7 @@ suite('import-utils', () => {
       `;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
+      importUtils.rewriteAstToEmulateBaseTag(analyzer, ast, 'the/doc/url');
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -251,7 +254,7 @@ suite('import-utils', () => {
       `;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(ast, 'the/doc/url');
+      importUtils.rewriteAstToEmulateBaseTag(analyzer, ast, 'the/doc/url');
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(

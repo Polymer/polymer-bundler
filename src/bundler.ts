@@ -26,7 +26,7 @@ import {BundledDocument, DocumentCollection} from './document-collection';
 import * as importUtils from './import-utils';
 import * as matchers from './matchers';
 import {updateSourcemapLocations} from './source-map';
-import * as urlUtils from './url-utils';
+import {resolvePath} from './url-utils';
 
 export * from './bundle-manifest';
 
@@ -93,8 +93,8 @@ export class Bundler {
       this._overlayUrlLoader = new InMemoryOverlayUrlLoader(analyzer);
       this.analyzer = analyzer._fork({urlLoader: this._overlayUrlLoader});
     } else {
-      this._overlayUrlLoader = new InMemoryOverlayUrlLoader(
-          new FSUrlLoader(urlUtils.resolvePath('.')));
+      this._overlayUrlLoader =
+          new InMemoryOverlayUrlLoader(new FSUrlLoader(resolvePath('.')));
       this.analyzer = new Analyzer({urlLoader: this._overlayUrlLoader});
     }
 
@@ -206,7 +206,7 @@ export class Bundler {
     dom5.removeFakeRootElements(ast);
     this._injectHtmlImportsForBundle(document, ast, docBundle, bundleManifest);
     importUtils.rewriteAstToEmulateBaseTag(
-        ast, document.url, this.rewriteUrlsInTemplates);
+        this.analyzer, ast, document.url, this.rewriteUrlsInTemplates);
 
     // Re-analyzing the document using the updated ast to refresh the scanned
     // imports, since we may now have appended some that were not initially
@@ -373,7 +373,8 @@ export class Bundler {
       }
 
       // Inject the new html import into the document.
-      const relativeImportUrl = urlUtils.relativeUrl(bundle.url, importUrl);
+      const relativeImportUrl =
+          this.analyzer.urlResolver.relative(bundle.url, importUrl);
       const newHtmlImport = this._createHtmlImport(relativeImportUrl);
       if (prependTarget) {
         dom5.insertBefore(
