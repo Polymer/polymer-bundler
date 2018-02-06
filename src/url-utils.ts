@@ -19,50 +19,60 @@ import * as path from 'path';
 import * as url from 'url';
 import {parseUrl} from 'polymer-analyzer/lib/core/utils';
 import constants from './constants';
+import {FileRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
+import Uri from 'vscode-uri';
 
 const sharedRelativeUrlProperties =
     ['protocol', 'slashes', 'auth', 'host', 'port', 'hostname'];
 
 /**
- * A string representing a URL.
+ * Given a string representing a URL or path of some form, append a `/`
+ * character if it doesn't already end with one.
  */
-export type UrlString = string;
+export function ensureTrailingSlash<T>(href: T): T {
+  const hrefString = href as any as string;
+  return hrefString.endsWith('/') ? href : (href + '/') as any as T;
+}
 
-export function ensureTrailingSlash(href: UrlString): UrlString {
-  return href.endsWith('/') ? href : href + '/';
+/**
+ * Returns a WHATWG ResolvedURL for a filename on local filesystem.
+ */
+export function getFileUrl(filename: string): ResolvedUrl {
+  return Uri.file(resolvePath(filename)).toString() as ResolvedUrl;
 }
 
 /**
  * Returns a URL with the basename removed from the pathname.  Strips the
  * search off of the URL as well, since it will not apply.
  */
-export function stripUrlFileSearchAndHash(href: UrlString): UrlString {
-  const u = url.parse(href);
+export function stripUrlFileSearchAndHash<T>(href: T): T {
+  const u = url.parse(href as any);
   // Using != so tests for null AND undefined
   if (u.pathname != null) {
     // Suffix path with `_` so that `/a/b/` is treated as `/a/b/_` and that
     // `path.posix.dirname()` returns `/a/b` because it would otherwise
     // return `/a` incorrectly.
-    u.pathname = ensureTrailingSlash(path.posix.dirname(u.pathname + '_'));
+    u.pathname = ensureTrailingSlash(
+        path.posix.dirname(u.pathname + '_') as FileRelativeUrl);
   }
   // Assigning to undefined because TSC says type of these is
   // `string | undefined` as opposed to `string | null`
   u.search = undefined;
   u.hash = undefined;
-  return url.format(u);
+  return url.format(u) as any as T;
 }
 
 /**
  * Returns true if the href is an absolute path.
  */
-export function isAbsolutePath(href: UrlString): boolean {
+export function isAbsolutePath(href: string): boolean {
   return constants.ABS_URL.test(href);
 }
 
 /**
  * Returns true if the href is a templated value, i.e. `{{...}}` or `[[...]]`
  */
-export function isTemplatedUrl(href: UrlString): boolean {
+export function isTemplatedUrl(href: string): boolean {
   return href.search(constants.URL_TEMPLATE) >= 0;
 }
 
@@ -80,15 +90,21 @@ function pathPosixRelative(from: string, to: string): string {
  * Computes the most succinct form of a relative URL representing the path from
  * the `fromUri` to the `toUri`.  Function is URL aware, not path-aware, so
  * `/a/` is correctly treated as a folder path where `/a` is not.
+ *
+ * TODO(usergenic): Delegate all uses of this function to the analyzer's
+ * `.urlResolver.relative()` method.  This will require passing along the
+ * bundler's instantiated analyzer all over the place in import utils, so
+ * some significant refactor is probably due there.
  */
-export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
+export function relativeUrl(
+    fromUri: ResolvedUrl, toUri: ResolvedUrl): FileRelativeUrl {
   const fromUrl = parseUrl(fromUri)!;
   const toUrl = parseUrl(toUri)!;
   // Return the toUri as-is if there are conflicting components which
   // prohibit calculating a relative form.
   if (sharedRelativeUrlProperties.some(
           (p) => toUrl[p] !== null && fromUrl[p] !== toUrl[p])) {
-    return toUri;
+    return toUri as any as FileRelativeUrl;
   }
   const fromDir = fromUrl.pathname !== undefined ?
       fromUrl.pathname.replace(/[^/]+$/, '') :
@@ -100,21 +116,38 @@ export function relativeUrl(fromUri: UrlString, toUri: UrlString): UrlString {
   sharedRelativeUrlProperties.forEach((p) => toUrl[p] = null);
   toUrl.path = undefined;
   toUrl.pathname = relPath;
-  return url.format(toUrl);
+  return url.format(toUrl) as FileRelativeUrl;
 }
 
 /**
- * Modifies an href by the relative difference between the old base url and
- * the new base url.
+ * The path library's resolve function drops the trailing slash from the input
+ * when returning the result.  This is bad because clients of the function then
+ * have to ensure it is reapplied conditionally.  This function resolves the
+ * input path while preserving the trailing slash, when present.
  */
-export function rewriteHrefBaseUrl(
-    href: UrlString, oldBaseUrl: UrlString, newBaseUrl: UrlString): UrlString {
-  if (isAbsolutePath(href)) {
+export function resolvePath(...segments: string[]): string {
+  if (segments.length === 0) {
+    // Special cwd case
+    return ensureTrailingSlash(path.resolve());
+  }
+  const lastSegment = segments[segments.length - 1];
+  const resolved = path.resolve(...segments);
+  return lastSegment.endsWith('/') ? ensureTrailingSlash(resolved) : resolved;
+}
+
+/**
+ * Modifies an href by the relative difference between the old base URL and
+ * the new base URL.
+ */
+export function rewriteHrefBaseUrl<T>(
+    href: T, oldBaseUrl: ResolvedUrl, newBaseUrl: ResolvedUrl): T|
+    FileRelativeUrl {
+  if (isAbsolutePath(href as any)) {
     return href;
   }
-  const absUrl = url.resolve(oldBaseUrl, href);
+  const relativeUrl = url.resolve(oldBaseUrl, href as any);
   const parsedFrom = url.parse(newBaseUrl);
-  const parsedTo = url.parse(absUrl);
+  const parsedTo = url.parse(relativeUrl);
   if (parsedFrom.protocol === parsedTo.protocol &&
       parsedFrom.host === parsedTo.host) {
     let dirFrom = path.posix.dirname(
@@ -127,10 +160,13 @@ export function rewriteHrefBaseUrl(
       pathTo = makeAbsolutePath(pathTo);
     }
     const pathname = pathPosixRelative(dirFrom, pathTo);
-    return url.format(
-        {pathname: pathname, search: parsedTo.search, hash: parsedTo.hash});
+    return url.format({
+      pathname: pathname,
+      search: parsedTo.search,
+      hash: parsedTo.hash,
+    }) as FileRelativeUrl;
   }
-  return absUrl;
+  return relativeUrl as FileRelativeUrl;
 }
 
 function makeAbsolutePath(path: string): string {

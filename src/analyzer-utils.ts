@@ -11,23 +11,16 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import {Analysis, Document, Warning} from 'polymer-analyzer';
+import {Analysis, Document} from 'polymer-analyzer';
 
 export function getAnalysisDocument(analysis: Analysis, url: string): Document {
-  const document = analysis.getDocument(url);
-  if (document instanceof Document) {
-    return document;
+  const result = analysis.getDocument(url);
+  if (result.successful) {
+    return result.value;
   }
-  if (document instanceof Warning || !document ||
-      (typeof document === 'object' && document['code'] &&
-       document['message'])) {
-    const reason = document && document.message || 'unknown';
-    const message = `Unable to get document ${url}: ${reason}`;
+  if (result.error) {
+    const message = `Unable to get document ${url}: ${result.error.message}`;
     throw new Error(message);
   }
-  throw new Error(
-      `Bundler was given a different version of polymer-analyzer than ` +
-      `expected.  Please ensure only one version of polymer-analyzer ` +
-      `present in node_modules folder:\n\n` +
-      `$ npm ls polymer- analyzer`);
+  throw new Error(`Unable to get document ${url}`);
 }

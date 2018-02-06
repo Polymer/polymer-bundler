@@ -11,22 +11,21 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import {Analyzer, Document} from 'polymer-analyzer';
+import {Analyzer, Document, ResolvedUrl} from 'polymer-analyzer';
 import {getAnalysisDocument} from './analyzer-utils';
-import {UrlString} from './url-utils';
 
 export interface DepsIndex {
   // An index of entrypoint -> html dependencies
-  entrypointToDeps: Map<UrlString, Set<UrlString>>;
+  entrypointToDeps: Map<ResolvedUrl, Set<ResolvedUrl>>;
 }
 
 type DependencyMapEntry = {
   // All dependencies of the document
-  deps: Set<UrlString>,
+  deps: Set<ResolvedUrl>,
   // Eagerly loaded dependencies of the document
-  eagerDeps: Set<UrlString>,
+  eagerDeps: Set<ResolvedUrl>,
   // All imports defined with `<link rel="lazy-import">`
-  lazyImports: Set<UrlString>,
+  lazyImports: Set<ResolvedUrl>,
 };
 
 /**
@@ -34,9 +33,9 @@ type DependencyMapEntry = {
  * all eagerly-loaded dependencies and lazy html imports encountered.
  */
 function getHtmlDependencies(document: Document): DependencyMapEntry {
-  const deps = new Set<UrlString>();
-  const eagerDeps = new Set<UrlString>();
-  const lazyImports = new Set<UrlString>();
+  const deps = new Set<ResolvedUrl>();
+  const eagerDeps = new Set<ResolvedUrl>();
+  const lazyImports = new Set<ResolvedUrl>();
   _getHtmlDependencies(document, true, deps, eagerDeps, lazyImports);
   return {deps, eagerDeps, lazyImports};
 }
@@ -44,9 +43,9 @@ function getHtmlDependencies(document: Document): DependencyMapEntry {
 function _getHtmlDependencies(
     document: Document,
     viaEager: boolean,
-    visited: Set<UrlString>,
-    visitedEager: Set<UrlString>,
-    lazyImports: Set<UrlString>) {
+    visited: Set<ResolvedUrl>,
+    visitedEager: Set<ResolvedUrl>,
+    lazyImports: Set<ResolvedUrl>) {
   const htmlImports = document.getFeatures(
       {kind: 'html-import', imported: false, externalPackages: true});
   for (const htmlImport of htmlImports) {
@@ -81,10 +80,12 @@ function _getHtmlDependencies(
  *     were discovered as lazy entrypoints in the graph.
  */
 export async function buildDepsIndex(
-    entrypoints: UrlString[], analyzer: Analyzer): Promise<DepsIndex> {
-  const depsIndex = {entrypointToDeps: new Map<UrlString, Set<UrlString>>()};
+    entrypoints: ResolvedUrl[], analyzer: Analyzer): Promise<DepsIndex> {
+  const depsIndex = {
+    entrypointToDeps: new Map<ResolvedUrl, Set<ResolvedUrl>>()
+  };
   const analysis = await analyzer.analyze(entrypoints);
-  const allEntrypoints = new Set<UrlString>(entrypoints);
+  const allEntrypoints = new Set<ResolvedUrl>(entrypoints);
 
   // Note: the following iteration takes place over a Set which may be added
   // to from within the loop.

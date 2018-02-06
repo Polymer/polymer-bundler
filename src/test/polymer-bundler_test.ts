@@ -18,7 +18,8 @@ import * as chai from 'chai';
 import {execSync} from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
-import * as path from 'path';
+
+import {ensureTrailingSlash, resolvePath} from '../url-utils';
 
 chai.config.showDiff = true;
 
@@ -26,10 +27,12 @@ const assert = chai.assert;
 
 suite('polymer-bundler CLI', () => {
 
-  const cliPath = path.resolve(__dirname, '../bin/polymer-bundler.js');
+  const getTempDir = () =>
+      fs.mkdtempSync(resolvePath(ensureTrailingSlash(os.tmpdir())));
+  const cliPath = resolvePath(__dirname, '../bin/polymer-bundler.js');
 
   test('uses the current working folder as loader root', async () => {
-    const projectRoot = path.resolve(__dirname, '../../test/html');
+    const projectRoot = resolvePath('test/html');
     const stdout =
         execSync(
             `cd ${projectRoot} && ` +
@@ -65,28 +68,28 @@ suite('polymer-bundler CLI', () => {
   suite('--out-dir', () => {
 
     test('writes to the dir even for single bundle', async () => {
-      const projectRoot = path.resolve(__dirname, '../../test/html');
-      const tempdir = fs.mkdtempSync(path.join(os.tmpdir(), ' ').trim());
+      const projectRoot = resolvePath(__dirname, '../../test/html');
+      const tempdir = getTempDir();
       execSync(
           `cd ${projectRoot} && ` +
           `node ${cliPath} absolute-paths.html ` +
           `--out-dir ${tempdir}`)
           .toString();
-      const html =
-          fs.readFileSync(path.join(tempdir, 'absolute-paths.html')).toString();
+      const html = fs.readFileSync(resolvePath(tempdir, 'absolute-paths.html'))
+                       .toString();
       assert.notEqual(html, '');
     });
 
     test('a single in-html file with deep path stays deep', async () => {
-      const projectRoot = path.resolve(__dirname, '../../test');
-      const tempdir = fs.mkdtempSync(path.join(os.tmpdir(), ' ').trim());
+      const projectRoot = resolvePath(__dirname, '../../test');
+      const tempdir = getTempDir();
       execSync(
           `cd ${projectRoot} && ` +
           `node ${cliPath} html/default.html ` +
           `--out-dir ${tempdir}`)
           .toString();
       const html =
-          fs.readFileSync(path.join(tempdir, 'html/default.html')).toString();
+          fs.readFileSync(resolvePath(tempdir, 'html/default.html')).toString();
       assert.notEqual(html, '');
     });
   });
@@ -94,9 +97,9 @@ suite('polymer-bundler CLI', () => {
   suite('--manifest-out', () => {
 
     test('writes out the bundle manifest to given path', async () => {
-      const projectRoot = path.resolve(__dirname, '../../test/html');
-      const tempdir = fs.mkdtempSync(path.join(os.tmpdir(), ' ').trim());
-      const manifestPath = path.join(tempdir, 'bundle-manifest.json');
+      const projectRoot = resolvePath(__dirname, '../../test/html');
+      const tempdir = getTempDir();
+      const manifestPath = resolvePath(tempdir, 'bundle-manifest.json');
       execSync(
           `cd ${projectRoot} && ` +
           `node ${cliPath} --inline-scripts --inline-css absolute-paths.html ` +
@@ -120,9 +123,9 @@ suite('polymer-bundler CLI', () => {
     });
 
     test('manifest includes all files including basis', async () => {
-      const projectRoot = path.resolve(__dirname, '../../test/html/imports');
-      const tempdir = fs.mkdtempSync(path.join(os.tmpdir(), ' ').trim());
-      const manifestPath = path.join(tempdir, 'bundle-manifest.json');
+      const projectRoot = resolvePath(__dirname, '../../test/html/imports');
+      const tempdir = getTempDir();
+      const manifestPath = resolvePath(tempdir, 'bundle-manifest.json');
       execSync(
           `cd ${projectRoot} && ` +
           `node ${cliPath} --inline-scripts --inline-css ` +
@@ -157,22 +160,35 @@ suite('polymer-bundler CLI', () => {
 
   suite('--redirect', () => {
 
-    test('handles urls with arbitrary protocols and hosts', async () => {
+    test('handles URLs with arbitrary protocols and hosts', async () => {
       const projectRoot =
-          path.resolve(__dirname, '../../test/html/url-redirection')
+          resolvePath(__dirname, '../../test/html')
               // Force forward-slashes so quoting works with Windows paths.
               .replace(/\\/g, '/');
+      const tempdir = getTempDir();
+      const manifestPath = resolvePath(tempdir, 'bundle-manifest.json');
       const stdout =
           execSync([
             `cd ${projectRoot}`,
-            `node ${cliPath} index.html ` +
-                `--redirect="myapp://app/|${projectRoot}" ` +
-                `--redirect="vendor://|${projectRoot}/../bower_components"`,
+            `node ${cliPath} myapp://app/index.html ` +
+                `--redirect="myapp://app/|${projectRoot}/url-redirection/" ` +
+                `--redirect="vendor://|${projectRoot}/bower_components/" ` +
+                `--manifest-out ${manifestPath}`
           ].join(' && '))
               .toString();
       assert.include(stdout, 'This is an external dependency');
       assert.include(stdout, 'id="home-page"');
       assert.include(stdout, 'id="settings-page"');
+      const manifestJson = fs.readFileSync(manifestPath).toString();
+      const manifest = JSON.parse(manifestJson);
+      assert.deepEqual(manifest, {
+        'myapp://app/index.html': [
+          'myapp://app/index.html',
+          'myapp://app/home.html',
+          'vendor://external-dependency/external-dependency.html',
+          'myapp://app/settings.html'
+        ],
+      });
     });
   });
 });

@@ -140,8 +140,8 @@ export async function getExistingSourcemap(
 }
 
 /**
- * For an inline script AST node, locate an existing source map url comment.
- * If found, load that source map. If no source map url comment is found,
+ * For an inline script AST node, locate an existing source map URL comment.
+ * If found, load that source map. If no source map URL comment is found,
  * create an identity source map.
  *
  * In both cases, the generated mappings reflect the relative position of
@@ -212,12 +212,13 @@ export function updateSourcemapLocations(
   ast = astUtils.parse(documentContents, {locationInfo: true});
 
   const reparsedDoc = new ParsedHtmlDocument({
-    url: document.url,
+    url: document.parsedDocument.url,
+    baseUrl: document.parsedDocument.baseUrl,
     contents: documentContents,
     ast: ast,
     isInline: document.isInline,
     locationOffset: undefined,
-    astNode: null
+    astNode: undefined,
   });
 
   const inlineScripts = dom5.queryAll(ast, matchers.inlineJavascript);

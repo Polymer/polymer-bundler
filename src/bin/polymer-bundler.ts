@@ -19,13 +19,10 @@ import * as parse5 from 'parse5';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
-import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageUrlResolver, PrefixedUrlLoader, UrlLoader, UrlResolver} from 'polymer-analyzer';
-// TODO(usergenic): Move import below to statement above, when polymer-analyzer
-// 3.0.0-pre.3 is released.
-import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
+import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageRelativeUrl, PackageUrlResolver, RedirectResolver, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
-import {UrlString} from '../url-utils';
 import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
+import {ensureTrailingSlash, getFileUrl, resolvePath} from '../url-utils';
 
 const prefixArgument = '[underline]{prefix}';
 const pathArgument = '[underline]{path}';
@@ -147,7 +144,7 @@ const usage = [
       },
       {
         desc:
-            'Inline the HTML Imports of \`target.html\`, treat \`path/to/target/\` as the webroot of target.html, and make all urls absolute to the provided webroot.',
+            'Inline the HTML Imports of \`target.html\`, treat \`path/to/target/\` as the webroot of target.html, and make all URLs absolute to the provided webroot.',
         example: 'polymer-bundler -p "path/to/target/" /target.html'
       },
       {
@@ -170,10 +167,9 @@ const usage = [
 ];
 
 const options = commandLineArgs(optionDefinitions);
-const projectRoot =
-    options.root ? pathLib.resolve(options.root) : pathLib.resolve('.');
+const projectRoot = resolvePath(ensureTrailingSlash(options.root || '.'));
 
-const entrypoints: UrlString[] = options['in-html'];
+const entrypoints: PackageRelativeUrl[] = options['in-html'];
 
 function printHelp() {
   console.log(commandLineUsage(usage));
@@ -201,82 +197,51 @@ options.inlineScripts = Boolean(options['inline-scripts']);
 options.inlineCss = Boolean(options['inline-css']);
 options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
 
-class RedirectionResolver extends UrlResolver {
-  private _prefix: string;
-  constructor(prefix: string) {
-    super();
-    this._prefix = prefix;
-  }
-  canResolve(url: string) {
-    return url.startsWith(this._prefix);
-  }
-  resolve(url: string) {
-    return url as ResolvedUrl;
-  }
-}
+const fsUrlLoader = new FSUrlLoader(projectRoot);
+const packageUrlResolver = new PackageUrlResolver({packageDir: projectRoot});
+const projectRootUrl = getFileUrl(projectRoot);
+
+type Redirection = {
+  prefix: ResolvedUrl; path: ResolvedUrl;
+};
 
 if (options.redirect) {
-  type redirection = {prefix: string, path: string};
-  const redirections: redirection[] =
+  const redirections: Redirection[] =
       options.redirect
           .map((redirect: string) => {
             const [prefix, path] = redirect.split('|');
-            return {prefix, path};
+            const resolvedPrefix = packageUrlResolver.resolve(prefix as any);
+            return {prefix: resolvedPrefix, path};
           })
-          .filter((r: redirection) => r.prefix && r.path);
-  const resolvers: UrlResolver[] =
-      redirections.map((r: redirection) => new RedirectionResolver(r.prefix));
+          .filter((r: Redirection) => r.prefix && r.path);
+  const resolvers: UrlResolver[] = redirections.map(
+      (r: Redirection) =>
+          new RedirectResolver(projectRootUrl, r.prefix, getFileUrl(r.path)));
   const loaders: UrlLoader[] = redirections.map(
-      (r: redirection) =>
-          new PrefixedUrlLoader(r.prefix, new FSUrlLoader(r.path)));
-  if (loaders.length > 0) {
+      (r: Redirection) => new FSUrlLoader(resolvePath(r.path)));
+  if (redirections.length > 0) {
     options.analyzer = new Analyzer({
-      urlResolver:
-          new MultiUrlResolver([...resolvers, new PackageUrlResolver()]),
-      urlLoader:
-          new MultiUrlLoader([...loaders, new FSUrlLoader(projectRoot)])
+      urlResolver: new MultiUrlResolver([...resolvers, packageUrlResolver]),
+      urlLoader: new MultiUrlLoader([...loaders, fsUrlLoader]),
     });
   }
 }
 
 if (!options.analyzer) {
-  options.analyzer = new Analyzer({urlLoader: new FSUrlLoader(projectRoot)});
+  options.analyzer = new Analyzer({
+    urlResolver: packageUrlResolver,
+    urlLoader: fsUrlLoader,
+  });
 }
 
 if (options.shell) {
-  options.strategy = generateShellMergeStrategy(options.shell, 2);
-}
-
-interface JsonManifest {
-  [entrypoint: string]: UrlString[];
-}
-
-function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
-  const json: JsonManifest = {};
-  const missingImports: Set<string> = new Set();
-  for (const [url, bundle] of manifest.bundles) {
-    json[url] = [...new Set([
-      // `files` and `inlinedHtmlImports` will be partially duplicative, but use
-      // of both ensures the basis document for a file is included since there
-      // is no other specific property that currently expresses it.
-      ...bundle.files,
-      ...bundle.inlinedHtmlImports,
-      ...bundle.inlinedScripts,
-      ...bundle.inlinedStyles
-    ])];
-
-    for (const missingImport of bundle.missingImports) {
-      missingImports.add(missingImport);
-    }
-  }
-  if (missingImports.size > 0) {
-    json['_missing'] = [...missingImports];
-  }
-  return json;
+  options.strategy =
+      generateShellMergeStrategy(options.analyzer.resolveUrl(options.shell), 2);
 }
 
 (async () => {
   const bundler = new Bundler(options);
+
   let documents: DocumentCollection;
   let manifest: BundleManifest;
   try {
@@ -286,14 +251,20 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
         throw new Error('Shell must be provided as `in-html`');
       }
     }
-    ({documents, manifest} =
-         await bundler.bundle(await bundler.generateManifest(entrypoints)));
+    ({documents, manifest} = await bundler.bundle(
+         await bundler.generateManifest(entrypoints.map((e) => {
+           const resolvedUrl = bundler.analyzer.resolveUrl(e);
+           if (!resolvedUrl) {
+             throw new Error(`Unable to resolve URL for entrypoint ${e}`);
+           }
+           return resolvedUrl;
+         }))));
   } catch (err) {
     console.log(err);
     return;
   }
   if (options['manifest-out']) {
-    const manifestJson = bundleManifestToJson(manifest);
+    const manifestJson = manifest.toJson(bundler.analyzer.urlResolver);
     const fd = fs.openSync(options['manifest-out'], 'w');
     fs.writeSync(fd, JSON.stringify(manifestJson));
     fs.closeSync(fd);
@@ -306,7 +277,11 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
     }
     for (const [url, document] of documents) {
       const ast = document.ast;
-      const out = pathLib.resolve(pathLib.join(outDir, url));
+      // When writing the output bundles to the filesystem, we need their paths
+      // to be package relative, since the destination is different than their
+      // original filesystem locations.
+      const out =
+          resolvePath(outDir, bundler.analyzer.urlResolver.relative(url));
       const finalDir = pathLib.dirname(out);
       mkdirp.sync(finalDir);
       const serialized = parse5.serialize(ast);
@@ -316,7 +291,7 @@ function bundleManifestToJson(manifest: BundleManifest): JsonManifest {
     }
     return;
   }
-  const doc = documents.get(entrypoints[0]);
+  const doc = documents.get(bundler.analyzer.resolveUrl(entrypoints[0])!);
   if (!doc) {
     return;
   }

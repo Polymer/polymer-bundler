@@ -18,11 +18,12 @@ import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as fs from 'fs';
 import * as parse5 from 'parse5';
-import * as path from 'path';
 import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
+import {PackageUrlResolver} from 'polymer-analyzer/lib/url-loader/package-url-resolver';
 
 import {Bundle, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, Options as BundlerOptions} from '../bundler';
+import {resolvePath} from '../url-utils';
 
 chai.config.showDiff = true;
 
@@ -35,26 +36,64 @@ const preds = dom5.predicates;
 suite('Bundler', () => {
 
   let documentBundle: Bundle;
-  let bundler: Bundler;
+  let analyzer: Analyzer|undefined;
+  let bundler: Bundler|undefined;
 
-  const inputPath = 'test/html/default.html';
+  beforeEach(() => {
+    analyzer = undefined;
+    bundler = undefined;
+  });
+
+  function getAnalyzer(opts?: any): Analyzer {
+    if (!analyzer) {
+      if (!opts || !opts.urlResolver) {
+        const urlResolver = new PackageUrlResolver({
+          packageDir: resolvePath('test/html'),
+        });
+        opts = Object.assign({}, opts || {}, {urlResolver: urlResolver});
+      }
+      if (!opts || !opts.urlLoader) {
+        const urlLoader = new FSUrlLoader(resolvePath('test/html'));
+        opts = Object.assign({}, opts || {}, {urlLoader: urlLoader});
+      }
+      analyzer = new Analyzer(opts);
+    }
+    return analyzer;
+  }
+
+  function getBundler(opts?: any): Bundler {
+    if (!bundler) {
+      if (!opts || !opts.analyzer) {
+        opts = Object.assign({}, opts || {}, {
+          analyzer: getAnalyzer(),
+        });
+      }
+      bundler = new Bundler(opts);
+    }
+    return bundler;
+  }
+
+  function resolve(url: string) {
+    return getAnalyzer().resolveUrl(url)!;
+  }
+
+  const inputPath = 'default.html';
 
   async function bundle(inputPath: string, opts?: BundlerOptions):
       Promise<parse5.ASTNode> {
         // Don't modify options directly because test-isolation problems occur.
-        const bundlerOpts = Object.assign({}, opts || {});
-        if (!bundlerOpts.analyzer) {
-          bundlerOpts.analyzer = new Analyzer(
-              {urlLoader: new FSUrlLoader(path.dirname(inputPath))});
-          inputPath = path.basename(inputPath);
-        }
-        bundler = new Bundler(bundlerOpts);
-        const manifest = await bundler.generateManifest([inputPath]);
+        bundler = getBundler(opts);
+        const resolvedInputPath = resolve(inputPath)!;
+        const manifest = await bundler.generateManifest([resolvedInputPath]);
         const bundleResult = await bundler.bundle(manifest);
-        documentBundle =
-            bundleResult.manifest.getBundleForFile(inputPath)!.bundle;
+        const bundleForFile =
+            bundleResult.manifest.getBundleForFile(resolvedInputPath);
+        if (!bundleForFile) {
+          throw new Error(`Unable to find bundle for ${resolvedInputPath}`);
+        }
+        documentBundle = bundleForFile.bundle;
         const {documents} = bundleResult;
-        return documents.get(inputPath)!.ast;
+        return documents.get(resolvedInputPath)!.ast;
       }
 
   suite('Default Options', () => {
@@ -63,7 +102,7 @@ suite('Bundler', () => {
       await bundle(inputPath);
       assert.deepEqual(
           [...documentBundle.inlinedHtmlImports],
-          ['imports/simple-import.html']);
+          [resolve('imports/simple-import.html')]);
     });
 
     test('imports removed', async () => {
@@ -93,17 +132,17 @@ suite('Bundler', () => {
         // bundle.
         strategy: (bundles: Bundle[]): Bundle[] => {
           bundles.forEach((b) => {
-            b.files.add('test/html/imports/external-script.html');
-            b.files.add('test/html/imports/import-linked-style.html');
+            b.files.add(resolve('imports/external-script.html'));
+            b.files.add(resolve('imports/import-linked-style.html'));
           });
           return bundles;
         },
       });
 
       const manifest =
-          await bundler.generateManifest(['test/html/default.html']);
+          await bundler.generateManifest([resolve('default.html')]);
       const {documents} = await bundler.bundle(manifest);
-      const document = documents.get('test/html/default.html')!;
+      const document = documents.get(resolve('default.html'))!;
       assert(document);
 
       // Look for the script referenced in the external-script.html source.
@@ -124,23 +163,23 @@ suite('Bundler', () => {
 
     test(
         'changes the href to another bundle if strategy moved it', async () => {
-          const bundler = new Bundler({
+          const bundler = getBundler({
             // This strategy moves a file to a different bundle.
             strategy: (bundles: Bundle[]): Bundle[] => {
               return [
                 new Bundle(
-                    new Set(['test/html/default.html']),
-                    new Set(['test/html/default.html'])),
+                    new Set([resolve('default.html')]),
+                    new Set([resolve('default.html')])),
                 new Bundle(
                     new Set(),  //
-                    new Set(['test/html/imports/simple-import.html']))
+                    new Set([resolve('imports/simple-import.html')]))
               ];
             }
           });
           const manifest =
-              await bundler.generateManifest(['test/html/default.html']);
+              await bundler.generateManifest([resolve('default.html')]);
           const {documents} = await bundler.bundle(manifest);
-          const document = documents.get('test/html/default.html')!;
+          const document = documents.get(resolve('default.html'))!;
           assert(document);
 
           // We've moved the 'imports/simple-import.html' into a shared bundle
@@ -152,16 +191,16 @@ suite('Bundler', () => {
                   preds.hasAttrValue('rel', 'import')))!;
           assert(linkTag);
           assert.equal(
-              dom5.getAttribute(linkTag, 'href'), '../../shared_bundle_1.html');
+              dom5.getAttribute(linkTag, 'href'), 'shared_bundle_1.html');
 
-          const shared = documents.get('shared_bundle_1.html')!;
+          const shared = documents.get(resolve('shared_bundle_1.html'))!;
           assert(shared);
           assert.isOk(dom5.query(
               shared.ast, dom5.predicates.hasAttrValue('id', 'my-element')));
         });
 
     test('bundle documents should not have tags added to them', async () => {
-      const ast = await bundle('test/html/imports/simple-import.html');
+      const ast = await bundle('imports/simple-import.html');
       assert.isNull(dom5.query(
           ast,
           dom5.predicates.OR(
@@ -173,7 +212,7 @@ suite('Bundler', () => {
 
   suite('external dependencies', () => {
     test('html imports from bower_components are inlined', async () => {
-      const ast = await bundle('test/html/external-dependencies.html');
+      const ast = await bundle('external-dependencies.html');
       const div =
           dom5.query(ast, preds.hasAttrValue('id', 'external-dependency'));
       assert(div);
@@ -194,17 +233,16 @@ suite('Bundler', () => {
   });
 
   test('lazy imports are not moved', async () => {
-    const bundler = new Bundler({
-      analyzer:
-          new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')})
-    });
-    const manifest = await bundler.generateManifest(['lazy-imports.html']);
+    const bundler = getBundler();
+    const manifest =
+        await bundler.generateManifest([resolve('imports/lazy-imports.html')]);
     const {documents} = await bundler.bundle(manifest);
 
     // The `lazy-imports.html` file has 2 imports in the head of the
     // document.  The first is eager and should be moved.  The remaining
     // one is lazy and should not be moved.
-    const entrypointBundle = documents.get('lazy-imports.html')!.ast;
+    const entrypointBundle =
+        documents.get(resolve('imports/lazy-imports.html'))!.ast;
     const entrypointLazyImports = dom5.queryAll(
         entrypointBundle,
         preds.AND(preds.parentMatches(matchers.head), matchers.htmlImport));
@@ -214,7 +252,7 @@ suite('Bundler', () => {
     // The shared bundle has an inlined dom-module with an embedded
     // lazy-import via `shared-eager-import-2.html` that we are verifying
     // is preserved.
-    const sharedBundle = documents.get('shared_bundle_1.html')!.ast;
+    const sharedBundle = documents.get(resolve('shared_bundle_1.html'))!.ast;
     const sharedLazyImports = dom5.queryAll(
         sharedBundle,
         preds.AND(
@@ -239,15 +277,13 @@ suite('Bundler', () => {
   });
 
   test('lazy imports are treated like entrypoints', async () => {
-    const bundler = new Bundler({
-      analyzer:
-          new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')})
-    });
-    const manifest = await bundler.generateManifest(['lazy-imports.html']);
+    const bundler = getBundler();
+    const manifest =
+        await bundler.generateManifest([resolve('imports/lazy-imports.html')]);
     const {documents} = await bundler.bundle(manifest);
 
-    const lazyImports =
-        parse5.serialize(documents.get('lazy-imports.html')!.ast);
+    const lazyImports = parse5.serialize(
+        documents.get(resolve('imports/lazy-imports.html'))!.ast);
     assert.include(
         lazyImports,
         '<link rel="lazy-import" group="one" href="lazy-imports/lazy-import-1.html">',
@@ -257,22 +293,22 @@ suite('Bundler', () => {
         '<link rel="lazy-import" group="two" href="lazy-imports/lazy-import-2.html">',
         'lazy-imports.html should keep link to lazy-import-2.html');
 
-    const lazyImport1 =
-        parse5.serialize(documents.get('lazy-imports/lazy-import-1.html')!.ast);
+    const lazyImport1 = parse5.serialize(
+        documents.get(resolve('imports/lazy-imports/lazy-import-1.html'))!.ast);
     assert.include(
         lazyImport1,
-        '<link rel="import" href="../shared_bundle_1.html">',
+        '<link rel="import" href="../../shared_bundle_1.html">',
         'lazy-import-1.html should have a link to shared_bundle_1.html');
     assert.include(
         lazyImport1,
         '<link rel="lazy-import" href="shared-eager-and-lazy-import-1.html">',
         'lazy-import-1.html should keep link to lazy-import shared-eager-and-lazy-import-1.html');
 
-    const lazyImport2 =
-        parse5.serialize(documents.get('lazy-imports/lazy-import-2.html')!.ast);
+    const lazyImport2 = parse5.serialize(
+        documents.get(resolve('imports/lazy-imports/lazy-import-2.html'))!.ast);
     assert.include(
         lazyImport2,
-        '<link rel="import" href="../shared_bundle_1.html">',
+        '<link rel="import" href="../../shared_bundle_1.html">',
         'lazy-import-2.html should have a link to shared_bundle_1.html');
     assert.include(
         lazyImport2,
@@ -280,21 +316,21 @@ suite('Bundler', () => {
         'lazy-import-2.html should keep link to import shared-eager-and-lazy-import-1.html');
 
     const sharedEagerBundle =
-        parse5.serialize(documents.get('shared_bundle_1.html')!.ast);
+        parse5.serialize(documents.get(resolve('shared_bundle_1.html'))!.ast);
     assert.include(sharedEagerBundle, '<div id="shared-eager-import-2">');
   });
 
   test('lazy imports governed by dom-module assetpath', async () => {
-    const bundler = new Bundler({
-      analyzer: new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')}),
+    const bundler = getBundler({
       // We exclude this import so we can examine how the eager import URL
       // is modified in the bundled lazy-import-2.html document.
-      excludes: ['lazy-imports/subfolder/eager-import-2.html'],
+      excludes: [resolve('imports/lazy-imports/subfolder/eager-import-2.html')],
     });
-    const manifest = await bundler.generateManifest(['lazy-imports.html']);
+    const manifest =
+        await bundler.generateManifest([resolve('imports/lazy-imports.html')]);
     const {documents} = await bundler.bundle(manifest);
-    const lazyImport2 =
-        parse5.serialize(documents.get('lazy-imports/lazy-import-2.html')!.ast);
+    const lazyImport2 = parse5.serialize(
+        documents.get(resolve('imports/lazy-imports/lazy-import-2.html'))!.ast);
     assert.include(
         lazyImport2,
         '<dom-module id="eager-import-1" assetpath="subfolder/">',
@@ -316,7 +352,7 @@ suite('Bundler', () => {
     const a = preds.AND(
         preds.hasTagName('a'),
         preds.hasAttrValue('href', 'imports/sub-base/sub-base.html'));
-    const doc = await bundle('test/html/base.html');
+    const doc = await bundle(resolve('base.html'));
     const spanHref = dom5.query(doc, span);
     assert.ok(spanHref);
     const anchorRef = dom5.query(doc, a);
@@ -336,7 +372,7 @@ suite('Bundler', () => {
     const divExpected = preds.AND(
         preds.hasTagName('div'), preds.hasAttrValue('id', 'imported'));
 
-    const doc = await bundle('test/html/import-in-body.html');
+    const doc = await bundle(resolve('import-in-body.html'));
     const imports = dom5.queryAll(doc, importMatcher);
     assert.equal(imports.length, 0);
     const bodyContainer = dom5.query(doc, bodyContainerMatcher)!;
@@ -348,7 +384,7 @@ suite('Bundler', () => {
 
   test('Scripts are not inlined if specified', async () => {
     const scripts = dom5.queryAll(
-        await bundle('test/html/external.html', {inlineScripts: false}),
+        await bundle(resolve('external.html'), {inlineScripts: false}),
         matchers.externalJavascript);
     assert.isAbove(scripts.length, 0, 'scripts were inlined');
     scripts.forEach(function(s) {
@@ -358,14 +394,14 @@ suite('Bundler', () => {
 
   test('Paths for import bodies are resolved correctly', async () => {
     const anchorMatcher = preds.hasTagName('a');
-    const input = 'test/html/multiple-imports.html';
+    const input = resolve('multiple-imports.html');
     const anchor = dom5.query(await bundle(input), anchorMatcher)!;
     const href = dom5.getAttribute(anchor, 'href');
     assert.equal(href, 'imports/target.html');
   });
 
   test('Spaces in paths are handled correctly', async () => {
-    const input = 'test/html/spaces.html';
+    const input = resolve('spaces.html');
     const spacesMatcher = preds.AND(
         preds.hasTagName('dom-module'),
         preds.hasAttrValue('id', 'space-element'));
@@ -377,7 +413,7 @@ suite('Bundler', () => {
 
     test('Imports and scripts are ordered correctly', async () => {
       const doc =
-          await bundle('test/html/order-test.html', {inlineScripts: false});
+          await bundle(resolve('order-test.html'), {inlineScripts: false});
 
       const expectedOrder = [
         'first-script',
@@ -411,8 +447,8 @@ suite('Bundler', () => {
     });
 
     test('exhaustive script order testing', async () => {
-      const doc = await bundle(
-          'test/html/script-order/index.html', {inlineScripts: true});
+      const doc =
+          await bundle('script-order/index.html', {inlineScripts: true});
       assert(doc);
       const serialized = parse5.serialize(doc);
       const beforeLoc = serialized.indexOf('window.BeforeJs');
@@ -421,7 +457,7 @@ suite('Bundler', () => {
     });
 
     test('Paths are correct when maintaining order', async () => {
-      const doc = await bundle('test/html/recursion/import.html');
+      const doc = await bundle('recursion/import.html');
       assert(doc);
       const scripts = dom5.queryAll(
           doc, preds.AND(preds.hasTagName('script'), preds.hasAttr('src')));
@@ -437,7 +473,7 @@ suite('Bundler', () => {
 
     test('will be resolved by the analyzer', async () => {
       const options = {inlineCss: true, inlineScripts: true};
-      const doc = await bundle('test/html/absolute-paths.html', options);
+      const doc = await bundle('absolute-paths.html', options);
       const html = parse5.serialize(doc);
       assert.include(html, '.absolute-paths-style');
       assert.include(html, 'hello from /absolute-paths/script.js');
@@ -447,8 +483,9 @@ suite('Bundler', () => {
   suite('Excludes', () => {
 
     test('Excluded imports are not inlined', async () => {
-      const doc =
-          await bundle(inputPath, {excludes: ['imports/simple-import.html']});
+      const doc = await bundle(inputPath, {
+        excludes: [resolve('imports/simple-import.html')],
+      });
       const imports = dom5.queryAll(
           doc,
           preds.AND(
@@ -459,51 +496,55 @@ suite('Bundler', () => {
     });
 
     test('Excluded imports are not listed as missing', async () => {
-      const bundler = new Bundler({
-        analyzer: new Analyzer({urlLoader: new FSUrlLoader('test/html')}),
+      const bundler = getBundler({
+        analyzer: analyzer,
         excludes: [
-          'this/does/not/exist.html',
-          'this/does/not/exist.js',
-          'this/does/not/exist.css'
-        ],
+          resolve('this/does/not/exist.html'),
+          resolve('this/does/not/exist.js'),
+          resolve('this/does/not/exist.css'),
+        ].map(resolve),
       });
       const manifest = await bundler.generateManifest([
         'absolute-paths.html',
-      ]);
+      ].map(resolve));
       const result = await bundler.bundle(manifest);
       assert.deepEqual(
-          [...result.manifest.bundles.get('absolute-paths.html')!
-               .missingImports],
+          [...result.manifest.bundles.get(resolve(
+              'absolute-paths.html'))!.missingImports],
           []);
     });
 
     test('Excluded CSS file urls is not inlined', async () => {
-      const doc = await bundle(
-          'test/html/external.html', {excludes: ['external/external.css']});
+      const doc = await bundle('external.html', {
+        excludes: [resolve('external/external.css')],
+      });
       assert.include(parse5.serialize(doc), 'href="external/external.css"');
     });
 
     test('Excluded CSS folder urls are not inlined', async () => {
-      const doc =
-          await bundle('test/html/external.html', {excludes: ['external']});
+      const doc = await bundle('external.html', {
+        excludes: [resolve('external')],
+      });
       assert.include(parse5.serialize(doc), 'href="external/external.css"');
     });
 
     test('Excluded Script file urls are not inlined', async () => {
-      const doc = await bundle(
-          'test/html/external.html', {excludes: ['external/external.js']});
+      const doc = await bundle('external.html', {
+        excludes: [resolve('external/external.js')],
+      });
       assert.include(parse5.serialize(doc), 'src="external/external.js"');
     });
 
     test('Excluded Script folder urls are not inlined', async () => {
-      const doc =
-          await bundle('test/html/external.html', {excludes: ['external']});
+      const doc = await bundle('external.html', {
+        excludes: [resolve('external')],
+      });
       assert.include(parse5.serialize(doc), 'src="external/external.js"');
     });
 
     test('Excluded comments are removed', async () => {
       const options = {stripComments: true};
-      const doc = await bundle('test/html/comments.html', options);
+      const doc = await bundle('comments.html', options);
       const comments = dom5.nodeWalkAll(
           doc, dom5.isCommentNode, undefined, dom5.childNodesIncludeTemplate);
       const commentsExpected = [
@@ -520,7 +561,7 @@ suite('Bundler', () => {
 
     test('Comments are kept by default', async () => {
       const options = {stripComments: false};
-      const doc = await bundle('test/html/comments.html', options);
+      const doc = await bundle('comments.html', options);
       const comments = dom5.nodeWalkAll(doc, dom5.isCommentNode);
 
       // NOTE: Explicitly not trimming the expected comments to ensure we keep
@@ -546,8 +587,8 @@ suite('Bundler', () => {
     test('Folder can be excluded', async () => {
       const linkMatcher = preds.AND(
           preds.hasTagName('link'), preds.hasAttrValue('rel', 'import'));
-      const options = {excludes: ['imports/']};
-      const doc = await bundle('test/html/default.html', options);
+      const options = {excludes: [resolve('imports/')]};
+      const doc = await bundle('default.html', options);
       const links = dom5.queryAll(doc, linkMatcher);
       // one duplicate import is removed.  default.html contains this
       // duplication:
@@ -563,13 +604,14 @@ suite('Bundler', () => {
     const options = {inlineScripts: true};
 
     test('URLs for inlined scripts are recorded in Bundle', async () => {
-      await bundle('test/html/external.html');
+      await bundle('external.html');
       assert.deepEqual(
-          [...documentBundle.inlinedScripts], ['external/external.js']);
+          [...documentBundle.inlinedScripts],
+          [resolve('external/external.js')]);
     });
 
     test('External script tags are replaced with inline scripts', async () => {
-      const doc = await bundle('test/html/external.html', options);
+      const doc = await bundle('external.html', options);
       const externalScripts = dom5.queryAll(doc, matchers.externalJavascript);
       assert.equal(externalScripts.length, 0);
       const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
@@ -577,20 +619,23 @@ suite('Bundler', () => {
     });
 
     test('Remote scripts are kept', async () => {
-      const doc = await bundle('test/html/scripts.html', options);
+      const doc = await bundle('scripts.html', options);
       const scripts = dom5.queryAll(doc, matchers.externalJavascript);
       assert.equal(scripts.length, 1);
       assert.equal(
           dom5.getAttribute(scripts[0], 'src'),
           'https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js');
-      assert.deepEqual(
-          [...documentBundle.inlinedScripts].sort(),
-          ['external/external.js', 'imports/external.js']);
+      assert.deepEqual([...documentBundle.inlinedScripts].sort(), [
+        resolve('external/external.js'),
+        resolve('imports/external.js'),
+      ]);
     });
 
     test('Absolute paths are correct for excluded links', async () => {
-      const target = 'test/html/absolute-paths/import.html';
-      const options = {excludes: ['absolute-paths/script.js']};
+      const target = 'absolute-paths/import.html';
+      const options = {
+        excludes: [resolve('absolute-paths/script.js')],
+      };
       const doc = await bundle(target, options);
       const scripts = dom5.queryAll(doc, matchers.externalJavascript);
       assert.equal(scripts.length, 2);
@@ -604,7 +649,7 @@ suite('Bundler', () => {
     });
 
     test('Escape inline <script>', async () => {
-      const doc = await bundle('test/html/xss.html', options);
+      const doc = await bundle('xss.html', options);
       const script = dom5.query(doc, matchers.inlineJavascript)!;
       assert.include(
           dom5.getTextContent(script),
@@ -613,14 +658,14 @@ suite('Bundler', () => {
     });
 
     test('Inlined Scripts are in the expected order', async () => {
-      const doc = await bundle('test/html/reordered/in.html', options);
+      const doc = await bundle('reordered/in.html', options);
       const scripts = dom5.queryAll(doc, matchers.inlineJavascript)!;
       const contents = scripts.map((script) => dom5.getTextContent(script));
       assert.deepEqual(['"First"', '"Second"'], contents);
     });
 
     test('Firebase works inlined', async () => {
-      const doc = await bundle('test/html/firebase.html', {
+      const doc = await bundle('firebase.html', {
         inlineScripts: true,
         analyzer: new Analyzer({urlLoader: new FSUrlLoader()}),
       });
@@ -641,7 +686,7 @@ suite('Bundler', () => {
         'imports/import-linked-style.css',
         'imports/regular-style.css',
         'imports/simple-style.css',
-      ]);
+      ].map(resolve));
     });
 
     test('External links are replaced with inlined styles', async () => {
@@ -664,8 +709,7 @@ suite('Bundler', () => {
     });
 
     test('External style links in templates are inlined', async () => {
-      const doc = await bundle(
-          'test/html/external-in-template.html', {inlineCss: true});
+      const doc = await bundle('external-in-template.html', {inlineCss: true});
       const externalStyles = dom5.queryAll(
           doc,
           matchers.externalStyle,
@@ -688,8 +732,7 @@ suite('Bundler', () => {
     });
 
     test('Inlined styles observe containing dom-module assetpath', async () => {
-      const doc =
-          await bundle('test/html/style-rewriting.html', {inlineCss: true});
+      const doc = await bundle('style-rewriting.html', {inlineCss: true});
       const style = dom5.query(
           doc, matchers.styleMatcher, dom5.childNodesIncludeTemplate)!;
       assert.isNotNull(style);
@@ -698,7 +741,7 @@ suite('Bundler', () => {
 
     test('Inlining ignores assetpath if rewriteUrlsInTemplates', async () => {
       const doc = await bundle(
-          'test/html/style-rewriting.html',
+          'style-rewriting.html',
           {inlineCss: true, rewriteUrlsInTemplates: true});
       const style = dom5.query(
           doc, matchers.styleMatcher, dom5.childNodesIncludeTemplate)!;
@@ -709,7 +752,7 @@ suite('Bundler', () => {
     });
 
     test('Inlined styles have proper paths', async () => {
-      const doc = await bundle('test/html/inline-styles.html', options);
+      const doc = await bundle('inline-styles.html', options);
       const styles = dom5.queryAll(
           doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(styles.length, 2);
@@ -719,7 +762,7 @@ suite('Bundler', () => {
     });
 
     test('Remote styles and media queries are preserved', async () => {
-      const input = 'test/html/imports/remote-stylesheet.html';
+      const input = 'imports/remote-stylesheet.html';
       const doc = await bundle(input, options);
       const links = dom5.queryAll(doc, matchers.externalStyle);
       assert.equal(links.length, 1);
@@ -731,7 +774,7 @@ suite('Bundler', () => {
     });
 
     test('Inlined Polymer styles are moved into the <template>', async () => {
-      const doc = await bundle('test/html/default.html', options);
+      const doc = await bundle('default.html', options);
       const domModule = dom5.query(doc, preds.hasTagName('dom-module'))!;
       assert(domModule);
       const template = dom5.query(domModule, matchers.template)!;
@@ -751,7 +794,7 @@ suite('Bundler', () => {
     test(
         'Inlined Polymer styles force dom-module to have template',
         async () => {
-          const doc = await bundle('test/html/inline-styles.html', options);
+          const doc = await bundle('inline-styles.html', options);
           const domModule = dom5.query(doc, preds.hasTagName('dom-module'))!;
           assert(domModule);
           const template = dom5.query(domModule, matchers.template)!;
@@ -767,7 +810,7 @@ suite('Bundler', () => {
     // Ensure this https://github.com/Polymer/polymer-bundler/issues/596 doesn't
     // happen again.
     test('Bundled file should not import itself', async () => {
-      const doc = await bundle('/test/html/default.html', {
+      const doc = await bundle('default.html', {
         inlineCss: true,
         analyzer: new Analyzer({urlLoader: new FSUrlLoader('.')}),
       });
@@ -780,7 +823,7 @@ suite('Bundler', () => {
     });
 
     test('Base tag emulation should not leak to other imports', async () => {
-      const doc = await bundle('test/html/base.html');
+      const doc = await bundle('base.html');
       const clickMe = dom5.query(doc, preds.hasTextValue('CLICK ME'));
       assert.ok(clickMe);
 
@@ -801,8 +844,7 @@ suite('Bundler', () => {
       // refer to
       // https://github.com/Polymer/polymer-bundler/tree/master/test/html/complicated/ordering.svg
       // for visual reference on the document structure for this example
-      const doc =
-          await bundle('test/html/complicated/A.html', {inlineScripts: true});
+      const doc = await bundle('complicated/A.html', {inlineScripts: true});
       assert(doc);
       const expected = ['A1', 'C', 'E', 'B', 'D', 'A2'];
       const scripts = dom5.queryAll(doc, matchers.jsMatcher);
@@ -814,7 +856,7 @@ suite('Bundler', () => {
 
     test('Assetpath rewriting', async () => {
       const doc = await bundle(
-          'test/html/path-rewriting/src/app-main/app-main.html',
+          'path-rewriting/src/app-main/app-main.html',
           {analyzer: new Analyzer({urlLoader: new FSUrlLoader()})});
       assert(doc);
       const domModules = dom5.queryAll(doc, preds.hasTagName('dom-module'));
@@ -834,13 +876,13 @@ suite('Bundler', () => {
     });
 
     test('Bundler should not emit empty hidden divs', async () => {
-      const doc = await bundle('test/html/import-empty.html');
+      const doc = await bundle('import-empty.html');
       assert(doc);
       assert.isNull(dom5.query(doc, matchers.hiddenDiv));
     });
 
     test('Entrypoint body content should not be wrapped', async () => {
-      const doc = await bundle('test/html/default.html');
+      const doc = await bundle('default.html');
       assert(doc);
       const myElement = dom5.query(doc, preds.hasTagName('my-element'));
       assert(myElement);
@@ -849,21 +891,21 @@ suite('Bundler', () => {
     });
 
     test('eagerly importing a fragment', async () => {
-      const bundler = new Bundler({
-        analyzer:
-            new Analyzer({urlLoader: new FSUrlLoader('test/html/imports')}),
-        strategy: generateShellMergeStrategy('importing-fragments/shell.html'),
+      const bundler = getBundler({
+        strategy: generateShellMergeStrategy(
+            resolve('imports/importing-fragments/shell.html')!),
       });
       const manifest = await bundler.generateManifest([
-        'eagerly-importing-a-fragment.html',
-        'importing-fragments/fragment-a.html',
-        'importing-fragments/fragment-b.html',
-        'importing-fragments/shell.html',
-      ]);
+        'imports/eagerly-importing-a-fragment.html',
+        'imports/importing-fragments/fragment-a.html',
+        'imports/importing-fragments/fragment-b.html',
+        'imports/importing-fragments/shell.html',
+      ].map(resolve));
       const result = await bundler.bundle(manifest);
       assert.equal(result.manifest.bundles.size, 4);
       const shell = parse5.serialize(
-          result.documents.get('importing-fragments/shell.html')!.ast);
+          result.documents
+              .get(resolve('imports/importing-fragments/shell.html'))!.ast);
       const fragmentAAt = shell.indexOf('rel="import" href="fragment-a.html"');
       const shellAt = shell.indexOf(`console.log('shell.html')`);
       const sharedUtilAt = shell.indexOf(`console.log('shared-util.html')`);
@@ -876,7 +918,7 @@ suite('Bundler', () => {
     });
 
     test('Imports in templates should not inline', async () => {
-      const doc = await bundle('test/html/inside-template.html');
+      const doc = await bundle('inside-template.html');
       const importMatcher = preds.AND(
           preds.hasTagName('link'),
           preds.hasAttrValue('rel', 'import'),
@@ -896,7 +938,7 @@ suite('Bundler', () => {
     });
 
     test('Deprecated CSS imports should inline correctly', async () => {
-      const doc = await bundle('test/html/css-imports.html', {inlineCss: true});
+      const doc = await bundle('css-imports.html', {inlineCss: true});
 
       const styleA =
           fs.readFileSync('test/html/css-import/import-a.css', 'utf-8');
