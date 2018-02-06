@@ -289,6 +289,7 @@ suite('Bundler', () => {
 
     const lazyImports =
         documents.get(resolve('imports/lazy-imports.html'))!.content;
+
     assert.include(
         lazyImports,
         '<link rel="lazy-import" group="one" href="lazy-imports/lazy-import-1.html">',
@@ -301,6 +302,7 @@ suite('Bundler', () => {
     const lazyImport1 =
         documents.get(resolve(
             'imports/lazy-imports/lazy-import-1.html'))!.content;
+
     assert.include(
         lazyImport1,
         '<link rel="import" href="../../shared_bundle_1.html">',
@@ -313,6 +315,7 @@ suite('Bundler', () => {
     const lazyImport2 =
         documents.get(resolve(
             'imports/lazy-imports/lazy-import-2.html'))!.content;
+
     assert.include(
         lazyImport2,
         '<link rel="import" href="../../shared_bundle_1.html">',
@@ -336,9 +339,11 @@ suite('Bundler', () => {
     const manifest =
         await bundler.generateManifest([resolve('imports/lazy-imports.html')]);
     const {documents} = await bundler.bundle(manifest);
+
     const lazyImport2 =
         documents.get(resolve(
             'imports/lazy-imports/lazy-import-2.html'))!.content;
+
     assert.include(
         lazyImport2,
         '<dom-module id="eager-import-1" assetpath="subfolder/">',
