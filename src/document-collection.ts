@@ -16,6 +16,7 @@ import {ResolvedUrl} from 'polymer-analyzer';
 
 export interface BundledDocument {
   ast: ASTNode;
+  content: string;
   files: ResolvedUrl[];
 }
 
