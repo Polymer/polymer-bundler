@@ -42,6 +42,18 @@ suite('AST Utils', function() {
     assert.isFalse(ast.inSourceOrder(spans[1], spans[0]), 'hi <- oh');
   });
 
+  test('isSameNode', () => {
+    const html = parse5.parseFragment(
+        `<div><h1>hi</h1><h1>h1</h1></div>`, {locationInfo: true});
+    const h1_1 = html.childNodes![0]!.childNodes![0]!;
+    const h1_2 = html.childNodes![0]!.childNodes![1]!;
+    const h1_1_clone = clone(h1_1);
+    assert.isFalse(h1_1 === h1_2);
+    assert.isFalse(h1_1 === h1_1_clone);
+    assert.isFalse(ast.isSameNode(h1_1, h1_2));
+    assert.isTrue(ast.isSameNode(h1_1, h1_1_clone));
+  });
+
   test('prepend', () => {
     const orderedList =
         parse5.parseFragment(`<ol><li>1<li>2<li>3<li>4<li>5</ol>`);
@@ -52,18 +64,6 @@ suite('AST Utils', function() {
         parse5.serialize(ol.parentNode!),
         parse5.serialize(
             parse5.parseFragment(`<ol><li>3<li>1<li>2<li>4<li>5</ol>`)));
-  });
-
-  test('sameNode', () => {
-    const html = parse5.parseFragment(
-        `<div><h1>hi</h1><h1>h1</h1></div>`, {locationInfo: true});
-    const h1_1 = html.childNodes![0]!.childNodes![0]!;
-    const h1_2 = html.childNodes![0]!.childNodes![1]!;
-    const h1_1_clone = clone(h1_1);
-    assert.isFalse(h1_1 === h1_2);
-    assert.isFalse(h1_1 === h1_1_clone);
-    assert.isFalse(ast.sameNode(h1_1, h1_2));
-    assert.isTrue(ast.sameNode(h1_1, h1_1_clone));
   });
 
   test('siblingsAfter', () => {

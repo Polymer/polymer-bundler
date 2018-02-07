@@ -16,25 +16,43 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
 import * as parse5 from 'parse5';
-import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
 
-const rewire = require('rewire');
-const astUtils = require('../ast-utils');
-const importUtils = rewire('../import-utils');
+// import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
+
+import * as astUtils from '../ast-utils';
+import {AssignedBundle, BundleManifest} from '../bundle-manifest';
+import {Bundler} from '../bundler';
+import {HtmlFragmentBundler} from '../html-fragment-bundler';
+import {getFileUrl} from '../url-utils';
 
 chai.config.showDiff = true;
 
 const assert = chai.assert;
-const analyzer = new Analyzer({urlLoader: new FSUrlLoader()});
 const stripSpace = (html: string): string =>
     html.replace(/>\s+/g, '>').replace(/>/g, '>\n').trim();
 
 suite('import-utils', () => {
-  suite('Path rewriting', () => {
-    const importDocPath = '/foo/bar/my-element/index.html';
-    const mainDocPath = '/foo/bar/index.html';
 
-    test('Rewrite URLs', () => {
+  const importDocUrl = getFileUrl('foo/bar/my-element/index.html');
+  const mainDocUrl = getFileUrl('foo/bar/index.html');
+
+  let bundler: Bundler;
+  let htmlBundler: HtmlFragmentBundler;
+  let manifest: BundleManifest;
+  let bundle: AssignedBundle;
+
+  beforeEach(async () => {
+    bundler = new Bundler();
+    await bundler.analyzeContents(mainDocUrl, '');
+    manifest = await bundler.generateManifest([mainDocUrl]);
+    bundle = manifest.getBundleForFile(mainDocUrl)!;
+    htmlBundler = new HtmlFragmentBundler(bundler, bundle, manifest);
+  });
+
+  suite('Path rewriting', async () => {
+
+    test('Rewrite URLs', async () => {
+
       const css = `
         x-element {
           background-image: url(foo.jpg);
@@ -59,9 +77,8 @@ suite('import-utils', () => {
         }
       `;
 
-      const rewriteCssTextBaseUrl =
-          importUtils.__get__('rewriteCssTextBaseUrl');
-      const actual = rewriteCssTextBaseUrl(css, importDocPath, mainDocPath);
+      const actual =
+          htmlBundler['_rewriteCssTextBaseUrl'](css, importDocUrl, mainDocUrl);
       assert.deepEqual(actual, expected);
     });
 
@@ -103,8 +120,8 @@ suite('import-utils', () => {
         `;
 
         const ast = astUtils.parse(html);
-        importUtils.rewriteAstBaseUrl(
-            analyzer, ast, importDocPath, mainDocPath);
+        bundler.rewriteUrlsInTemplates = false;
+        htmlBundler['_rewriteAstBaseUrl'](ast, importDocUrl, mainDocUrl);
 
         const actual = parse5.serialize(ast);
         assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
@@ -144,8 +161,8 @@ suite('import-utils', () => {
         `;
 
         const ast = astUtils.parse(html);
-        importUtils.rewriteAstBaseUrl(
-            analyzer, ast, importDocPath, mainDocPath, true);
+        bundler.rewriteUrlsInTemplates = true;
+        htmlBundler['_rewriteAstBaseUrl'](ast, importDocUrl, mainDocUrl);
 
         const actual = parse5.serialize(ast);
         assert.deepEqual(stripSpace(actual), stripSpace(expected), 'relative');
@@ -159,7 +176,7 @@ suite('import-utils', () => {
       `;
 
       const ast = astUtils.parse(base);
-      importUtils.rewriteAstBaseUrl(analyzer, ast, importDocPath, mainDocPath);
+      htmlBundler['_rewriteAstBaseUrl'](ast, importDocUrl, mainDocUrl);
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(base), 'templated urls');
@@ -194,7 +211,8 @@ suite('import-utils', () => {
         <script>Polymer({is: "my-element"})</script>`;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(analyzer, ast, 'the/doc/url');
+      htmlBundler['_rewriteAstToEmulateBaseTag'](
+          ast, getFileUrl('the/doc/url'));
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -229,7 +247,8 @@ suite('import-utils', () => {
       `;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(analyzer, ast, 'the/doc/url');
+      htmlBundler['_rewriteAstToEmulateBaseTag'](
+          ast, getFileUrl('the/doc/url'));
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(stripSpace(actual), stripSpace(expectedBase), 'base');
@@ -254,7 +273,8 @@ suite('import-utils', () => {
       `;
 
       const ast = astUtils.parse(htmlBase);
-      importUtils.rewriteAstToEmulateBaseTag(analyzer, ast, 'the/doc/url');
+      htmlBundler['_rewriteAstToEmulateBaseTag'](
+          ast, getFileUrl('the/doc/url'));
 
       const actual = parse5.serialize(ast);
       assert.deepEqual(
