@@ -28,7 +28,7 @@ import {addOrUpdateSourcemapComment} from './source-map';
 import {updateSourcemapLocations} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
 import {ensureTrailingSlash, isTemplatedUrl, rewriteHrefBaseUrl, stripUrlFileSearchAndHash} from './url-utils';
-import {findInSet} from './utils';
+import {find} from './utils';
 
 export class HtmlBundler {
   document: Document;
@@ -330,7 +330,7 @@ export class HtmlBundler {
 
     // If the analyzer could not load the import document, we can't inline it,
     // so lets skip it.
-    const htmlImport = findInSet(
+    const htmlImport = find(
         this.document.getFeatures(
             {kind: 'html-import', imported: true, externalPackages: true}),
         (i) => i.document && i.document.url === resolvedImportUrl);
@@ -399,7 +399,7 @@ export class HtmlBundler {
                 resolvedImportUrl.startsWith(ensureTrailingSlash(e)))) {
       return;
     }
-    const scriptImport = findInSet(
+    const scriptImport = find(
         this.document.getFeatures(
             {kind: 'html-script', imported: true, externalPackages: true}),
         (i) => i.document && i.document.url === resolvedImportUrl);
@@ -462,11 +462,11 @@ export class HtmlBundler {
       return;
     }
     const stylesheetImport =  // HACK(usergenic): clang-format workaround
-        findInSet(
+        find(
             this.document.getFeatures(
                 {kind: 'html-style', imported: true, externalPackages: true}),
             (i) => i.document && i.document.url === resolvedImportUrl) ||
-        findInSet(
+        find(
             this.document.getFeatures(
                 {kind: 'css-import', imported: true, externalPackages: true}),
             (i) => i.document && i.document.url === resolvedImportUrl);

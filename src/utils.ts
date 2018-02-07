@@ -17,12 +17,11 @@
  * function.  Analagous to Array.find(), without requiring converting the set
  * an Array.
  */
-export function findInSet<T>(set: Set<T>, predicate: (item: T) => boolean): T|
+export function find<T>(items: Iterable<T>, predicate: (item: T) => boolean): T|
     undefined {
-  for (const item of set) {
+  for (const item of items) {
     if (predicate(item)) {
       return item;
     }
   }
-  return;
 }
