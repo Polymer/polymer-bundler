@@ -21,7 +21,7 @@ import * as clone from 'clone';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
 
-import * as ast from '../ast-utils';
+import * as ast from '../parse5-utils';
 
 
 const assert = chai.assert;

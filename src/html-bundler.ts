@@ -18,12 +18,12 @@ import {ASTNode, parseFragment, serialize, treeAdapters} from 'parse5';
 import {Document, FileRelativeUrl, ParsedHtmlDocument, ResolvedUrl} from 'polymer-analyzer';
 
 import {getAnalysisDocument} from './analyzer-utils';
-import {findAncestor, insertAfter, insertAllBefore, inSourceOrder, isSameNode, prepend, removeElementAndNewline, siblingsAfter, stripComments} from './ast-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import constants from './constants';
 import {BundledDocument} from './document-collection';
 import * as matchers from './matchers';
+import {findAncestor, insertAfter, insertAllBefore, inSourceOrder, isSameNode, prepend, removeElementAndNewline, siblingsAfter, stripComments} from './parse5-utils';
 import {addOrUpdateSourcemapComment} from './source-map';
 import {updateSourcemapLocations} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';

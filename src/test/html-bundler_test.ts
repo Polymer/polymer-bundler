@@ -17,12 +17,11 @@
 import * as chai from 'chai';
 import * as parse5 from 'parse5';
 
-// import {Analyzer, FSUrlLoader} from 'polymer-analyzer';
-
-import * as astUtils from '../ast-utils';
 import {AssignedBundle, BundleManifest} from '../bundle-manifest';
 import {Bundler} from '../bundler';
 import {HtmlBundler} from '../html-bundler';
+
+import {parse} from '../parse5-utils';
 import {getFileUrl} from '../url-utils';
 
 chai.config.showDiff = true;
@@ -31,7 +30,7 @@ const assert = chai.assert;
 const stripSpace = (html: string): string =>
     html.replace(/>\s+/g, '>').replace(/>/g, '>\n').trim();
 
-suite('import-utils', () => {
+suite('HtmlBundler', () => {
 
   const importDocUrl = getFileUrl('foo/bar/my-element/index.html');
   const mainDocUrl = getFileUrl('foo/bar/index.html');
@@ -119,7 +118,7 @@ suite('import-utils', () => {
           <style>.outside-template { background-image: url("my-element/outside-template.png"); }</style>
         `;
 
-        const ast = astUtils.parse(html);
+        const ast = parse(html);
         bundler.rewriteUrlsInTemplates = false;
         htmlBundler['_rewriteAstBaseUrl'](ast, importDocUrl, mainDocUrl);
 
@@ -160,7 +159,7 @@ suite('import-utils', () => {
           <style>.outside-template { background-image: url("my-element/outside-template.png"); }</style>
         `;
 
-        const ast = astUtils.parse(html);
+        const ast = parse(html);
         bundler.rewriteUrlsInTemplates = true;
         htmlBundler['_rewriteAstBaseUrl'](ast, importDocUrl, mainDocUrl);
 
@@ -175,7 +174,7 @@ suite('import-utils', () => {
         <img src="[[bar]]">
       `;
 
-      const ast = astUtils.parse(base);
+      const ast = parse(base);
       htmlBundler['_rewriteAstBaseUrl'](ast, importDocUrl, mainDocUrl);
 
       const actual = parse5.serialize(ast);
@@ -210,7 +209,7 @@ suite('import-utils', () => {
         </dom-module>
         <script>Polymer({is: "my-element"})</script>`;
 
-      const ast = astUtils.parse(htmlBase);
+      const ast = parse(htmlBase);
       htmlBundler['_rewriteAstToEmulateBaseTag'](
           ast, getFileUrl('the/doc/url'));
 
@@ -246,7 +245,7 @@ suite('import-utils', () => {
         <script>Polymer({is: "my-element"})</script>
       `;
 
-      const ast = astUtils.parse(htmlBase);
+      const ast = parse(htmlBase);
       htmlBundler['_rewriteAstToEmulateBaseTag'](
           ast, getFileUrl('the/doc/url'));
 
@@ -272,7 +271,7 @@ suite('import-utils', () => {
         <div>Just a div.  I don't need a target</div>
       `;
 
-      const ast = astUtils.parse(htmlBase);
+      const ast = parse(htmlBase);
       htmlBundler['_rewriteAstToEmulateBaseTag'](
           ast, getFileUrl('the/doc/url'));
 
