@@ -30,7 +30,7 @@ import encodeString from './third_party/UglifyJS2/encode-string';
 import {ensureTrailingSlash, isTemplatedUrl, rewriteHrefBaseUrl, stripUrlFileSearchAndHash} from './url-utils';
 import {findInSet} from './utils';
 
-export class HtmlFragmentBundler {
+export class HtmlBundler {
   document: Document;
 
   constructor(

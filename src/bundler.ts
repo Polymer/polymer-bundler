@@ -18,7 +18,7 @@ import * as bundleManifestLib from './bundle-manifest';
 import {Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-manifest';
 import * as depsIndexLib from './deps-index';
 import {BundledDocument, DocumentCollection} from './document-collection';
-import {HtmlFragmentBundler} from './html-fragment-bundler';
+import {HtmlBundler} from './html-bundler';
 import {resolvePath} from './url-utils';
 
 export * from './bundle-manifest';
@@ -134,8 +134,7 @@ export class Bundler {
       const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
       if (bundle.url.endsWith('.html')) {
         documents.set(
-            bundleUrl,
-            await(new HtmlFragmentBundler(this, bundle, manifest).bundle()));
+            bundleUrl, await(new HtmlBundler(this, bundle, manifest).bundle()));
       }
     }
 

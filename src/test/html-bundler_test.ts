@@ -22,7 +22,7 @@ import * as parse5 from 'parse5';
 import * as astUtils from '../ast-utils';
 import {AssignedBundle, BundleManifest} from '../bundle-manifest';
 import {Bundler} from '../bundler';
-import {HtmlFragmentBundler} from '../html-fragment-bundler';
+import {HtmlBundler} from '../html-bundler';
 import {getFileUrl} from '../url-utils';
 
 chai.config.showDiff = true;
@@ -37,7 +37,7 @@ suite('import-utils', () => {
   const mainDocUrl = getFileUrl('foo/bar/index.html');
 
   let bundler: Bundler;
-  let htmlBundler: HtmlFragmentBundler;
+  let htmlBundler: HtmlBundler;
   let manifest: BundleManifest;
   let bundle: AssignedBundle;
 
@@ -46,7 +46,7 @@ suite('import-utils', () => {
     await bundler.analyzeContents(mainDocUrl, '');
     manifest = await bundler.generateManifest([mainDocUrl]);
     bundle = manifest.getBundleForFile(mainDocUrl)!;
-    htmlBundler = new HtmlFragmentBundler(bundler, bundle, manifest);
+    htmlBundler = new HtmlBundler(bundler, bundle, manifest);
   });
 
   suite('Path rewriting', async () => {
