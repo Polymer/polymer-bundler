@@ -15,16 +15,13 @@
 import * as dom5 from 'dom5';
 import * as espree from 'espree';
 import * as parse5 from 'parse5';
-import {Analyzer, Document, ParsedHtmlDocument} from 'polymer-analyzer';
+import {Analyzer, Document, ParsedHtmlDocument, ResolvedUrl} from 'polymer-analyzer';
 import {AnalysisContext} from 'polymer-analyzer/lib/core/analysis-context';
-// TODO(usergenic): Move import below to statement above, when polymer-analyzer
-// 3.0.0-pre.3 is released.
-import {ResolvedUrl} from 'polymer-analyzer/lib/model/url';
 import {RawSourceMap, SourceMapConsumer, SourceMapGenerator} from 'source-map';
 import * as urlLib from 'url';
 
-import * as astUtils from './ast-utils';
 import * as matchers from './matchers';
+import * as parse5Utils from './parse5-utils';
 
 const inlineSourcemapPrefix =
     '\n//# sourceMappingURL=data:application/json;charset=utf8;base64,';
@@ -209,7 +206,7 @@ export function updateSourcemapLocations(
     document: Document, ast: parse5.ASTNode) {
   // We need to serialize and reparse the dom for updated location information
   const documentContents = parse5.serialize(ast);
-  ast = astUtils.parse(documentContents, {locationInfo: true});
+  ast = parse5Utils.parse(documentContents, {locationInfo: true});
 
   const reparsedDoc = new ParsedHtmlDocument({
     url: document.parsedDocument.url,

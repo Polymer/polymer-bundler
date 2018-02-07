@@ -18,6 +18,24 @@ import {ASTNode, parse as _parse, ParserOptions} from 'parse5';
 import * as matchers from './matchers';
 
 /**
+ * Walk the ancestor nodes from parentNode up to document root, returning the
+ * first one matching the predicate function.
+ */
+export function findAncestor(ast: ASTNode, predicate: dom5.Predicate): ASTNode|
+    undefined {
+  // The visited set protects us against circular references.
+  const visited = new Set();
+  while (ast.parentNode && !visited.has(ast.parentNode)) {
+    if (predicate(ast.parentNode)) {
+      return ast.parentNode;
+    }
+    visited.add(ast.parentNode);
+    ast = ast.parentNode;
+  }
+  return undefined;
+}
+
+/**
  * Move the `node` to be the immediate sibling after the `target` node.
  * TODO(usergenic): Migrate this code to polymer/dom5 and when you do, use
  * insertNode which will handle the remove and the splicing in once you have
@@ -115,7 +133,7 @@ export function removeElementAndNewline(node: ASTNode, replacement?: ASTNode) {
  * A common pattern is to parse html and then remove the fake nodes.
  * This function dries up that pattern.
  */
-export function parse(html: string, options: ParserOptions): ASTNode {
+export function parse(html: string, options?: ParserOptions): ASTNode {
   const ast = _parse(html, Object.assign({locationInfo: true}, options));
   dom5.removeFakeRootElements(ast);
   return ast;
@@ -140,7 +158,7 @@ export function inSourceOrder(left: ASTNode, right: ASTNode): boolean {
  * TODO(usergenic): Port this to `dom5` and do it with typings for location info
  * instead of all of these string-based lookups.
  */
-export function sameNode(node1: ASTNode, node2: ASTNode): boolean {
+export function isSameNode(node1: ASTNode, node2: ASTNode): boolean {
   const l1 = node1.__location, l2 = node2.__location;
   return !!(
       l1 && l2 && l1['line'] && l1['col'] && l1['line'] === l2['line'] &&
