@@ -25,3 +25,15 @@ export function find<T>(items: Iterable<T>, predicate: (item: T) => boolean): T|
     }
   }
 }
+
+/**
+ * Returns a set of unique/distinct values returned by calling the given
+ * function on each item.
+ */
+export function uniq<T, R>(items: Iterable<T>, map: (item: T) => R): Set<R> {
+  const results = new Set();
+  for (const item of items) {
+    results.add(map(item));
+  }
+  return results;
+}

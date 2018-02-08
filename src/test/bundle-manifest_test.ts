@@ -18,7 +18,7 @@ import * as chai from 'chai';
 import {ResolvedUrl} from 'polymer-analyzer';
 import {resolvedUrl as r} from 'polymer-analyzer/lib/test/test-utils';
 
-import {Bundle, BundleManifest, composeStrategies, generateBundles, generateCountingSharedBundleUrlMapper, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedBundleUrlMapper, generateSharedDepsMergeStrategy, generateShellMergeStrategy, TransitiveDependenciesMap} from '../bundle-manifest';
+import {Bundle, BundleManifest, composeStrategies, generateBundles, generateCountingSharedBundleUrlMapper, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedBundleUrlMapper, generateSharedDepsMergeStrategy, generateShellMergeStrategy, mergeBundles, TransitiveDependenciesMap} from '../bundle-manifest';
 
 chai.config.showDiff = true;
 
@@ -34,7 +34,7 @@ suite('BundleManifest', () => {
     const arrowSplit = serialized.split(/->/);
     const entrypoints = arrowSplit[0].slice(1, -1).split(',') as ResolvedUrl[];
     const files = arrowSplit[1].slice(1, -1).split(',') as ResolvedUrl[];
-    return new Bundle(new Set(entrypoints), new Set(files));
+    return new Bundle('html-fragment', new Set(entrypoints), new Set(files));
   }
 
   /**
@@ -46,6 +46,30 @@ suite('BundleManifest', () => {
     const files = Array.from(bundle.files).sort().join();
     return `[${entrypoints}]->[${files}]`;
   }
+
+  suite('mergeBundles()', () => {
+
+    test('can not work unless at least one Bundle provided', () => {
+      assert.throws(() => mergeBundles([]));
+    });
+
+    test('can not merge bundles of different types', () => {
+      assert.throws(
+          () => mergeBundles([
+            new Bundle('html-fragment', new Set([r`A`]), new Set([r`X`])),
+            new Bundle('es6-module', new Set([r`B`]), new Set([r`Y`])),
+          ]));
+    });
+
+    test('can successfully merge bundles of same type', () => {
+      assert.equal(
+          serializeBundle(mergeBundles([
+            new Bundle('html-fragment', new Set([r`A`]), new Set([r`X`])),
+            new Bundle('html-fragment', new Set([r`B`]), new Set([r`Y`])),
+          ])),
+          '[A,B]->[X,Y]');
+    });
+  });
 
   suite('constructor and generated maps', () => {
 

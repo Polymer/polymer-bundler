@@ -14,6 +14,7 @@
 
 import * as clone from 'clone';
 import {PackageRelativeUrl, ResolvedUrl, UrlResolver} from 'polymer-analyzer';
+import {uniq} from './utils';
 
 /**
  * A bundle strategy function is used to transform an array of bundles.
@@ -34,16 +35,15 @@ export type BundleUrlMapper = (bundles: Bundle[]) => Map<ResolvedUrl, Bundle>;
 export type TransitiveDependenciesMap = Map<ResolvedUrl, Set<ResolvedUrl>>;
 
 /**
+ * The output format of the bundle.
+ */
+export type BundleType = 'html-fragment' | 'es6-module';
+
+/**
  * A bundle is a grouping of files which serve the need of one or more
  * entrypoint files.
  */
 export class Bundle {
-  // Set of all dependant entrypoint URLs of this bundle.
-  entrypoints: Set<ResolvedUrl>;
-
-  // Set of all files included in the bundle.
-  files: Set<ResolvedUrl>;
-
   // Set of imports which should be removed when encountered.
   stripImports = new Set<ResolvedUrl>();
 
@@ -55,9 +55,13 @@ export class Bundle {
   inlinedScripts = new Set<ResolvedUrl>();
   inlinedStyles = new Set<ResolvedUrl>();
 
-  constructor(entrypoints?: Set<ResolvedUrl>, files?: Set<ResolvedUrl>) {
-    this.entrypoints = entrypoints || new Set<ResolvedUrl>();
-    this.files = files || new Set<ResolvedUrl>();
+  constructor(
+      // Filetype discriminator for Bundles.
+      public type: BundleType,
+      // Set of all dependant entrypoint URLs of this bundle.
+      public entrypoints = new Set<ResolvedUrl>(),
+      // Set of all files included in the bundle.
+      public files = new Set<ResolvedUrl>()) {
   }
 }
 
@@ -180,8 +184,10 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
     // entrypoints.
     let bundle =
         bundles.find((bundle) => setEquals(entrypoints, bundle.entrypoints));
+
     if (!bundle) {
-      bundle = new Bundle(entrypoints);
+      const type = 'html-fragment';
+      bundle = new Bundle(type, entrypoints);
       bundles.push(bundle);
     }
     bundle.files.add(dep);
@@ -326,7 +332,17 @@ export function generateNoBackLinkStrategy(urls: ResolvedUrl[]):
  * files of all bundles represented.
  */
 export function mergeBundles(bundles: Bundle[]): Bundle {
-  const newBundle = new Bundle();
+  if (bundles.length === 0) {
+    throw new Error('Can not merge 0 bundles.');
+  }
+  const bundleTypes = uniq(bundles, (b: Bundle) => b.type);
+  if (bundleTypes.size > 1) {
+    throw new Error(
+        'Can not merge bundles of different types: ' +
+        [...bundleTypes].join(' and '));
+  }
+  const bundleType = bundles[0].type;
+  const newBundle = new Bundle(bundleType);
   for (const {
          entrypoints,
          files,

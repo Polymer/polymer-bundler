@@ -170,9 +170,11 @@ suite('Bundler', () => {
             strategy: (bundles: Bundle[]): Bundle[] => {
               return [
                 new Bundle(
+                    'html-fragment',
                     new Set([resolve('default.html')]),
                     new Set([resolve('default.html')])),
                 new Bundle(
+                    'html-fragment',
                     new Set(),  //
                     new Set([resolve('imports/simple-import.html')]))
               ];
