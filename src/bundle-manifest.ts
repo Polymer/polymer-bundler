@@ -34,7 +34,10 @@ export type BundleUrlMapper = (bundles: Bundle[]) => Map<ResolvedUrl, Bundle>;
  */
 export type TransitiveDependenciesMap = Map<ResolvedUrl, Set<ResolvedUrl>>;
 
-export type BundleType = 'html';
+/**
+ * The output format of the bundle.
+ */
+export type BundleType = 'html-fragment' | 'es6-module';
 
 /**
  * A bundle is a grouping of files which serve the need of one or more
@@ -183,7 +186,7 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
         bundles.find((bundle) => setEquals(entrypoints, bundle.entrypoints));
 
     if (!bundle) {
-      const type = 'html';
+      const type = 'html-fragment';
       bundle = new Bundle(type, entrypoints);
       bundles.push(bundle);
     }
