@@ -24,22 +24,6 @@ chai.config.showDiff = true;
 
 const assert = chai.assert;
 
-suite('Bundle', () => {
-
-  suite('mergeBundles()', () => {
-
-    test('can not work unless at least one Bundle provided', () => {
-      assert.throws(() => mergeBundles([]));
-    });
-
-    test('can not merge bundles of different types', () => {
-      assert.throws(
-          () => mergeBundles(
-              [new Bundle('html-fragment'), new Bundle('es6-module')]));
-    });
-  });
-});
-
 suite('BundleManifest', () => {
 
   /**
@@ -62,6 +46,30 @@ suite('BundleManifest', () => {
     const files = Array.from(bundle.files).sort().join();
     return `[${entrypoints}]->[${files}]`;
   }
+
+  suite('mergeBundles()', () => {
+
+    test('can not work unless at least one Bundle provided', () => {
+      assert.throws(() => mergeBundles([]));
+    });
+
+    test('can not merge bundles of different types', () => {
+      assert.throws(
+          () => mergeBundles([
+            new Bundle('html-fragment', new Set([r`A`]), new Set([r`X`])),
+            new Bundle('es6-module', new Set([r`B`]), new Set([r`Y`])),
+          ]));
+    });
+
+    test('can successfully merge bundles of same type', () => {
+      assert.equal(
+          serializeBundle(mergeBundles([
+            new Bundle('html-fragment', new Set([r`A`]), new Set([r`X`])),
+            new Bundle('html-fragment', new Set([r`B`]), new Set([r`Y`])),
+          ])),
+          '[A,B]->[X,Y]');
+    });
+  });
 
   suite('constructor and generated maps', () => {
 
