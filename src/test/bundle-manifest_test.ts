@@ -34,7 +34,7 @@ suite('BundleManifest', () => {
     const arrowSplit = serialized.split(/->/);
     const entrypoints = arrowSplit[0].slice(1, -1).split(',') as ResolvedUrl[];
     const files = arrowSplit[1].slice(1, -1).split(',') as ResolvedUrl[];
-    return new Bundle(new Set(entrypoints), new Set(files));
+    return new Bundle('html', new Set(entrypoints), new Set(files));
   }
 
   /**

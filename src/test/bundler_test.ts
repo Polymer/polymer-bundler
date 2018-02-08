@@ -79,22 +79,22 @@ suite('Bundler', () => {
 
   const inputPath = 'default.html';
 
-  async function bundle(inputPath: string, opts?: BundlerOptions):
-      Promise<BundledDocument> {
-        // Don't modify options directly because test-isolation problems occur.
-        bundler = getBundler(opts);
-        const resolvedInputPath = resolve(inputPath)!;
-        const manifest = await bundler.generateManifest([resolvedInputPath]);
-        const bundleResult = await bundler.bundle(manifest);
-        const bundleForFile =
-            bundleResult.manifest.getBundleForFile(resolvedInputPath);
-        if (!bundleForFile) {
-          throw new Error(`Unable to find bundle for ${resolvedInputPath}`);
-        }
-        documentBundle = bundleForFile.bundle;
-        const {documents} = bundleResult;
-        return documents.get(resolvedInputPath)!;
-      }
+  async function bundle(
+      inputPath: string, opts?: BundlerOptions): Promise<BundledDocument> {
+    // Don't modify options directly because test-isolation problems occur.
+    bundler = getBundler(opts);
+    const resolvedInputPath = resolve(inputPath)!;
+    const manifest = await bundler.generateManifest([resolvedInputPath]);
+    const bundleResult = await bundler.bundle(manifest);
+    const bundleForFile =
+        bundleResult.manifest.getBundleForFile(resolvedInputPath);
+    if (!bundleForFile) {
+      throw new Error(`Unable to find bundle for ${resolvedInputPath}`);
+    }
+    documentBundle = bundleForFile.bundle;
+    const {documents} = bundleResult;
+    return documents.get(resolvedInputPath)!;
+  }
 
   suite('Default Options', () => {
 
@@ -170,9 +170,11 @@ suite('Bundler', () => {
             strategy: (bundles: Bundle[]): Bundle[] => {
               return [
                 new Bundle(
+                    'html',
                     new Set([resolve('default.html')]),
                     new Set([resolve('default.html')])),
                 new Bundle(
+                    'html',
                     new Set(),  //
                     new Set([resolve('imports/simple-import.html')]))
               ];
