@@ -59,9 +59,9 @@ export class Bundle {
       // Filetype discriminator for Bundles.
       public type: BundleType,
       // Set of all dependant entrypoint URLs of this bundle.
-      public entrypoints: Set<ResolvedUrl> = new Set(),
+      public entrypoints = new Set<ResolvedUrl>(),
       // Set of all files included in the bundle.
-      public files: Set<ResolvedUrl> = new Set()) {
+      public files = new Set<ResolvedUrl>()) {
   }
 }
 
