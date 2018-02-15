@@ -11,8 +11,9 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import {Analyzer, Document, ResolvedUrl} from 'polymer-analyzer';
+import {Analyzer, Document, Import, ResolvedUrl} from 'polymer-analyzer';
 import {JavaScriptDocument} from 'polymer-analyzer/lib/javascript/javascript-document';
+
 import {getAnalysisDocument} from './analyzer-utils';
 
 // An index of entrypoint -> html dependencies
@@ -121,18 +122,22 @@ function getDependencies(document: Document): DependencyMapEntry {
 
   function _getDependencies(document: Document, viaEager: boolean) {
     if (document.kinds.has('html-document')) {
-      _getHtmlExternalModuleDependencies(document, viaEager);
-      _getHtmlInlineModuleDependencies(document, viaEager);
-      _getHtmlImportDependencies(document, viaEager);
+      _getHtmlExternalModuleDependencies(document);
+      _getHtmlInlineModuleDependencies(document);
+      _getImportDependencies(
+          document.getFeatures({kind: 'html-import', ...getFeaturesOptions}),
+          viaEager);
     }
 
     if (document.kinds.has('js-document')) {
-      _getJavaScriptModuleDependencies(document, viaEager);
+      _getImportDependencies(
+          modulesOnly(
+              document.getFeatures({kind: 'js-import', ...getFeaturesOptions})),
+          viaEager);
     }
   }
 
-  function _getHtmlExternalModuleDependencies(
-      document: Document, viaEager: boolean) {
+  function _getHtmlExternalModuleDependencies(document: Document) {
     let externalModuleCount = 0;
     const htmlScripts =
         [...document.getFeatures({kind: 'html-script', ...getFeaturesOptions})]
@@ -145,33 +150,7 @@ function getDependencies(document: Document): DependencyMapEntry {
     }
   }
 
-  function _getHtmlImportDependencies(document: Document, viaEager: boolean) {
-    const htmlImports =
-        document.getFeatures({kind: 'html-import', ...getFeaturesOptions});
-    for (const htmlImport of htmlImports) {
-      const importUrl = htmlImport.document.url;
-      if (htmlImport.lazy) {
-        lazyImports.add(importUrl);
-      }
-      if (eagerDeps.has(importUrl)) {
-        continue;
-      }
-      const isEager = viaEager && !lazyImports.has(importUrl);
-      if (isEager) {
-        eagerDeps.add(importUrl);
-        // In this case we've visited a node eagerly for the first time,
-        // so recurse
-      } else if (deps.has(importUrl)) {
-        // In this case we're seeing a node lazily again, so don't recurse
-        continue;
-      }
-      deps.add(importUrl);
-      _getDependencies(htmlImport.document, isEager);
-    }
-  }
-
-  function _getHtmlInlineModuleDependencies(
-      document: Document, viaEager: boolean) {
+  function _getHtmlInlineModuleDependencies(document: Document) {
     let jsDocumentCount = 0;
     const jsDocuments =
         [...document.getFeatures({kind: 'js-document', ...getFeaturesOptions})]
@@ -183,30 +162,41 @@ function getDependencies(document: Document): DependencyMapEntry {
     }
   }
 
-  function _getJavaScriptModuleDependencies(
-      document: Document, viaEager: boolean) {
-    const jsImports =
-        document.getFeatures({kind: 'js-import', ...getFeaturesOptions});
-    for (const jsImport of jsImports) {
-      const importUrl = jsImport.document.url;
-      if (jsImport.lazy) {
+  function _getImportDependencies(imports: Set<Import>, viaEager: boolean) {
+    for (const imprt of imports) {
+      const importUrl = imprt.document.url;
+      if (imprt.lazy) {
         lazyImports.add(importUrl);
       }
       if (eagerDeps.has(importUrl)) {
         continue;
       }
-
       const isEager = viaEager && !lazyImports.has(importUrl);
       if (isEager) {
-        eagerDeps.add(importUrl);
         // In this case we've visited a node eagerly for the first time,
-        // so recurse
+        // so recurse.
+        eagerDeps.add(importUrl);
       } else if (deps.has(importUrl)) {
         // In this case we're seeing a node lazily again, so don't recurse
         continue;
       }
       deps.add(importUrl);
-      _getDependencies(jsImport.document, isEager);
+      _getDependencies(imprt.document, isEager);
     }
   }
+}
+
+/**
+ * Convenience function to return a set where JavaScript documents which were
+ * not parsed as source type 'module' are removed.
+ */
+function modulesOnly(imports: Set<Import>): Set<Import> {
+  const newSet = new Set<Import>();
+  for (const imprt of imports) {
+    if ((imprt.document.parsedDocument as JavaScriptDocument)
+            .parsedAsSourceType === 'module') {
+      newSet.add(imprt);
+    }
+  }
+  return newSet;
 }
