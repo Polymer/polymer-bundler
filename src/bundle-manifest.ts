@@ -14,6 +14,8 @@
 
 import * as clone from 'clone';
 import {PackageRelativeUrl, ResolvedUrl, UrlResolver} from 'polymer-analyzer';
+
+import {getSuperBundleUrl} from './deps-index';
 import {uniq} from './utils';
 
 /**
@@ -216,8 +218,7 @@ export function mergeSingleEntrypointSubBundles(bundles: Bundle[]) {
   for (const subBundle of [...bundles]) {
     if (subBundle.entrypoints.size === 1) {
       const entrypointUrl = [...subBundle.entrypoints][0];
-      const superBundleUrl =
-          entrypointUrl.replace(/>[^>]+$/, '') as ResolvedUrl;
+      const superBundleUrl = getSuperBundleUrl(entrypointUrl);
 
       // If the entrypoint URL is the same as the super bundle URL then the
       // entrypoint URL has not changed and did not represent a sub bundle, so

@@ -54,9 +54,9 @@ export async function buildDepsIndex(
 
       // Add script
       for (const [id, imported] of deps.moduleScriptImports) {
-        const syntheticUrl = `${document.url}>${id}` as ResolvedUrl;
-        allEntrypoints.add(syntheticUrl);
-        inlineDocuments.set(syntheticUrl, imported);
+        const subBundleUrl = getSubBundleUrl(document.url, id);
+        allEntrypoints.add(subBundleUrl);
+        inlineDocuments.set(subBundleUrl, imported);
       }
     } catch (e) {
       console.warn(e.message);
@@ -64,6 +64,24 @@ export async function buildDepsIndex(
   }
 
   return depsIndex;
+}
+
+/**
+ * Constructs a ResolvedUrl to identify a sub bundle, which is a concatenation
+ * of the super bundle or containing file's URL and an id for the sub-bundle.
+ */
+export function getSubBundleUrl(
+    superBundleUrl: ResolvedUrl, id: string): ResolvedUrl {
+  return `${superBundleUrl}>${id}` as ResolvedUrl;
+}
+
+/**
+ * Strips the sub-bundle id off the end of a URL to return the super bundle or
+ * containing file's URL.  If there is no sub-bundle id on the provided URL, the
+ * result is essentially a NOOP, since nothing will have been stripped.
+ */
+export function getSuperBundleUrl(subBundleUrl: string): ResolvedUrl {
+  return subBundleUrl.replace(/>[^>]+$/, '') as ResolvedUrl;
 }
 
 type DependencyMapEntry = {
