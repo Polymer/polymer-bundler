@@ -11,175 +11,12 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import * as dom5 from 'dom5';
 import {Analyzer, Document, ResolvedUrl} from 'polymer-analyzer';
-
+import {JavaScriptDocument} from 'polymer-analyzer/lib/javascript/javascript-document';
 import {getAnalysisDocument} from './analyzer-utils';
 
 // An index of entrypoint -> html dependencies
 export type DepsIndex = Map<ResolvedUrl, Set<ResolvedUrl>>;
-
-type ScriptImport = {
-  scriptId: string,
-  url: ResolvedUrl,
-  imported: Document,
-};
-
-type DependencyMapEntry = {
-  // All dependencies of the document
-  deps: Set<ResolvedUrl>,
-  // Eagerly loaded dependencies of the document
-  eagerDeps: Set<ResolvedUrl>,
-  // All imports defined with `<link rel="lazy-import">` or with dynamic ES
-  // module import syntax like `import().then()`
-  lazyImports: Set<ResolvedUrl>,
-  // All imports defined with `<script type="module" src="...">` or as import
-  // statements within a `<script type="module">...</script>`
-  scriptImports: Set<ScriptImport>,
-};
-
-/**
- * For a given document, return a set of transitive dependencies, including
- * all eagerly-loaded dependencies and lazy html imports encountered.
- */
-function getDependencies(document: Document): DependencyMapEntry {
-  const deps = new Set<ResolvedUrl>();
-  const eagerDeps = new Set<ResolvedUrl>();
-  const lazyImports = new Set<ResolvedUrl>();
-  const scriptImports = new Set<ScriptImport>();
-  _getDependencies(document, true, deps, eagerDeps, lazyImports, scriptImports);
-  return {deps, eagerDeps, lazyImports, scriptImports};
-}
-
-function _getDependencies(
-    document: Document,
-    viaEager: boolean,
-    visited: Set<ResolvedUrl>,
-    visitedEager: Set<ResolvedUrl>,
-    lazyImports: Set<ResolvedUrl>,
-    scriptImports: Set<ScriptImport>) {
-  if (document.kinds.has('html-document')) {
-    _getHtmlDependencies(
-        document, viaEager, visited, visitedEager, lazyImports, scriptImports);
-  }
-
-  if (document.kinds.has('js-document')) {
-    _getJavaScriptDependencies(
-        document, viaEager, visited, visitedEager, lazyImports, scriptImports);
-  }
-}
-
-function _getHtmlDependencies(
-    document: Document,
-    viaEager: boolean,
-    visited: Set<ResolvedUrl>,
-    visitedEager: Set<ResolvedUrl>,
-    lazyImports: Set<ResolvedUrl>,
-    scriptImports: Set<ScriptImport>) {
-  // We have to wind through the html scripts, but we don't treat html scripts
-  // AS imports.
-  let htmlScriptCount = 0;
-  const htmlScripts = document.getFeatures(
-      {kind: 'html-script', imported: false, externalPackages: true});
-  for (const htmlScript of htmlScripts) {
-    ++htmlScriptCount;
-    // TODO(usergenic): Update polymer-analyzer to discriminate between
-    // `<script>` and `<script type=module>` instead of using dom5 here to
-    // inspect AST.
-    const isModule = dom5.getAttribute(htmlScript.astNode, 'type') === 'module';
-    if (!isModule) {
-      continue;
-    }
-    const url = htmlScript.document.url;
-    const scriptId = `external-module-${htmlScriptCount}`;
-    scriptImports.add({scriptId, url, imported: htmlScript.document});
-    continue;
-  }
-
-  const htmlImports = document.getFeatures(
-      {kind: 'html-import', imported: false, externalPackages: true});
-  for (const htmlImport of htmlImports) {
-    const importUrl = htmlImport.document.url;
-    if (htmlImport.lazy) {
-      lazyImports.add(importUrl);
-    }
-    if (visitedEager.has(importUrl)) {
-      continue;
-    }
-    const isEager = viaEager && !lazyImports.has(importUrl);
-    if (isEager) {
-      visitedEager.add(importUrl);
-      // In this case we've visited a node eagerly for the first time,
-      // so recurse
-    } else if (visited.has(importUrl)) {
-      // In this case we're seeing a node lazily again, so don't recurse
-      continue;
-    }
-    visited.add(importUrl);
-    _getDependencies(
-        htmlImport.document,
-        isEager,
-        visited,
-        visitedEager,
-        lazyImports,
-        scriptImports);
-  }
-
-  const jsDocuments = [
-    ...document.getFeatures(
-        {kind: 'js-document', imported: false, externalPackages: true})
-  ].filter((d) => d.kinds.has('inline-document'));
-  for (const jsDocument of jsDocuments) {
-    if (jsDocument.parsedDocument.parsedAsSourceType === 'module') {
-      ++htmlScriptCount;
-      const url = jsDocument.parsedDocument.url;
-      const scriptId = `inline-module-${htmlScriptCount}`;
-      scriptImports.add({scriptId, url, imported: jsDocument});
-    }
-  }
-}
-
-function _getJavaScriptDependencies(
-    document: Document,
-    viaEager: boolean,
-    visited: Set<ResolvedUrl>,
-    visitedEager: Set<ResolvedUrl>,
-    lazyImports: Set<ResolvedUrl>,
-    scriptImports: Set<ScriptImport>) {
-  const jsImports = document.getFeatures({
-    kind: 'js-import',
-    imported: false,
-    externalPackages: true,
-    excludeBackreferences: true,
-  });
-  for (const jsImport of jsImports) {
-    const importUrl = jsImport.document.url;
-    if (jsImport.lazy) {
-      lazyImports.add(importUrl);
-    }
-    if (visitedEager.has(importUrl)) {
-      continue;
-    }
-
-    const isEager = viaEager && !lazyImports.has(importUrl);
-    if (isEager) {
-      visitedEager.add(importUrl);
-      // In this case we've visited a node eagerly for the first time,
-      // so recurse
-    } else if (visited.has(importUrl)) {
-      // In this case we're seeing a node lazily again, so don't recurse
-      continue;
-    }
-    visited.add(importUrl);
-    _getDependencies(
-        jsImport.document,
-        isEager,
-        visited,
-        visitedEager,
-        lazyImports,
-        scriptImports);
-  }
-}
 
 /**
  * Analyzes all entrypoints and determines each of their transitive
@@ -216,8 +53,8 @@ export async function buildDepsIndex(
       }
 
       // Add script
-      for (const {scriptId, imported} of deps.scriptImports) {
-        const syntheticUrl = `${document.url}>${scriptId}` as ResolvedUrl;
+      for (const [id, imported] of deps.moduleScriptImports) {
+        const syntheticUrl = `${document.url}>${id}` as ResolvedUrl;
         allEntrypoints.add(syntheticUrl);
         inlineDocuments.set(syntheticUrl, imported);
       }
@@ -227,4 +64,131 @@ export async function buildDepsIndex(
   }
 
   return depsIndex;
+}
+
+type DependencyMapEntry = {
+  // All dependencies of the document
+  deps: Set<ResolvedUrl>,
+  // Eagerly loaded dependencies of the document
+  eagerDeps: Set<ResolvedUrl>,
+  // All imports defined with `<link rel="lazy-import">` or with dynamic ES
+  // module import syntax like `import().then()`
+  lazyImports: Set<ResolvedUrl>,
+  // All imports defined with `<script type="module" src="...">` or as import
+  // statements within a `<script type="module">...</script>`
+  moduleScriptImports: Map<string, Document>,
+};
+
+/**
+ * These are the options included in every `Document#getFeatures` call, DRY'd up
+ * here for brevity and consistency.
+ */
+const getFeaturesOptions = {
+  imported: false,
+  externalPackages: true,
+  excludeBackreferences: true,
+};
+
+/**
+ * For a given document, return a set of transitive dependencies, including
+ * all eagerly-loaded dependencies and lazy html imports encountered.
+ */
+function getDependencies(document: Document): DependencyMapEntry {
+  const deps = new Set<ResolvedUrl>();
+  const eagerDeps = new Set<ResolvedUrl>();
+  const lazyImports = new Set<ResolvedUrl>();
+  const moduleScriptImports = new Map<string, Document>();
+  _getDependencies(document, true);
+  return {deps, eagerDeps, lazyImports, moduleScriptImports};
+
+  function _getDependencies(document: Document, viaEager: boolean) {
+    if (document.kinds.has('html-document')) {
+      _getHtmlExternalModuleDependencies(document, viaEager);
+      _getHtmlInlineModuleDependencies(document, viaEager);
+      _getHtmlImportDependencies(document, viaEager);
+    }
+
+    if (document.kinds.has('js-document')) {
+      _getJavaScriptModuleDependencies(document, viaEager);
+    }
+  }
+
+  function _getHtmlExternalModuleDependencies(
+      document: Document, viaEager: boolean) {
+    let externalModuleCount = 0;
+    const htmlScripts =
+        [...document.getFeatures({kind: 'html-script', ...getFeaturesOptions})]
+            .filter(
+                (s) => (s.document.parsedDocument as JavaScriptDocument)
+                           .parsedAsSourceType === 'module');
+    for (const htmlScript of htmlScripts) {
+      moduleScriptImports.set(
+          `external-module:${++externalModuleCount}`, htmlScript.document);
+    }
+  }
+
+  function _getHtmlImportDependencies(document: Document, viaEager: boolean) {
+    const htmlImports =
+        document.getFeatures({kind: 'html-import', ...getFeaturesOptions});
+    for (const htmlImport of htmlImports) {
+      const importUrl = htmlImport.document.url;
+      if (htmlImport.lazy) {
+        lazyImports.add(importUrl);
+      }
+      if (eagerDeps.has(importUrl)) {
+        continue;
+      }
+      const isEager = viaEager && !lazyImports.has(importUrl);
+      if (isEager) {
+        eagerDeps.add(importUrl);
+        // In this case we've visited a node eagerly for the first time,
+        // so recurse
+      } else if (deps.has(importUrl)) {
+        // In this case we're seeing a node lazily again, so don't recurse
+        continue;
+      }
+      deps.add(importUrl);
+      _getDependencies(htmlImport.document, isEager);
+    }
+  }
+
+  function _getHtmlInlineModuleDependencies(
+      document: Document, viaEager: boolean) {
+    let jsDocumentCount = 0;
+    const jsDocuments =
+        [...document.getFeatures({kind: 'js-document', ...getFeaturesOptions})]
+            .filter(
+                (d) => d.kinds.has('inline-document') &&
+                    d.parsedDocument.parsedAsSourceType === 'module');
+    for (const jsDocument of jsDocuments) {
+      moduleScriptImports.set(`inline-module:${++jsDocumentCount}`, jsDocument);
+    }
+  }
+
+  function _getJavaScriptModuleDependencies(
+      document: Document, viaEager: boolean) {
+    const jsImports =
+        document.getFeatures({kind: 'js-import', ...getFeaturesOptions});
+    for (const jsImport of jsImports) {
+      const importUrl = jsImport.document.url;
+      if (jsImport.lazy) {
+        lazyImports.add(importUrl);
+      }
+      if (eagerDeps.has(importUrl)) {
+        continue;
+      }
+
+      const isEager = viaEager && !lazyImports.has(importUrl);
+      if (isEager) {
+        eagerDeps.add(importUrl);
+        // In this case we've visited a node eagerly for the first time,
+        // so recurse
+      } else if (deps.has(importUrl)) {
+        // In this case we're seeing a node lazily again, so don't recurse
+        continue;
+      }
+      deps.add(importUrl);
+      _getDependencies(jsImport.document, isEager);
+    }
+  }
 }

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - [BREAKING] Removed `relativeUrl` function from `url-utils`, shifting responsibility to `Bundler#analyzer.urlResolver.relative()`.
 - [BREAKING] Removed `import-utils.ts` and migrated all HTML-specific bundling code out of it and out of `bundler.ts` into a new class `HtmlBundler`.  Renamed `ast-utils.ts` to `parse5-utils.ts` since "ast" is ambiguous when we have JavaScript ASTs coming in.
 - [BREAKING] `Bundle` class now has a required `type` property as first argument to its constructor, with current possible values of `html-fragment` and `es6-module`.
+- [BREAKING] The `DepsIndex` type returned from `buildDepsIndex` has changed to a single map of entrypoints to dependencies.
 - Added support for `<script type="module">` and bundling of ES6 modules by following `import` statements.  Dynamic `import()` statements are treated similarly to the `<link rel="lazy-import">` tag in that the import target implicitly defines a new entrypoint/bundle.
 - Shared bundles containing only one file are named after the original file instead of having naming delegated to shared bundle URL mapper.
 - The `BundleResult` returned by `Bundler#bundle()` includes serialized contents instead of just the root AST node of bundled document.

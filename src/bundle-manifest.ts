@@ -193,7 +193,6 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
     bundle.files.add(dep);
   }
 
-  mergeSingleEntrypointSubBundles(bundles);
   return bundles;
 }
 
@@ -211,7 +210,7 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
  * Would be merged into the following set of bundles:
  *   `[a]->[a,x,z], [a>1,a>2]->[y]`
  */
-function mergeSingleEntrypointSubBundles(bundles: Bundle[]) {
+export function mergeSingleEntrypointSubBundles(bundles: Bundle[]) {
   for (const subBundle of [...bundles]) {
     if (subBundle.entrypoints.size === 1) {
       const entrypointUrl = [...subBundle.entrypoints][0];

@@ -18,7 +18,7 @@ import * as chai from 'chai';
 import {ResolvedUrl} from 'polymer-analyzer';
 import {resolvedUrl as r} from 'polymer-analyzer/lib/test/test-utils';
 
-import {Bundle, BundleManifest, composeStrategies, generateBundles, generateCountingSharedBundleUrlMapper, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedBundleUrlMapper, generateSharedDepsMergeStrategy, generateShellMergeStrategy, mergeBundles, TransitiveDependenciesMap} from '../bundle-manifest';
+import {Bundle, BundleManifest, composeStrategies, generateBundles, generateCountingSharedBundleUrlMapper, generateEagerMergeStrategy, generateMatchMergeStrategy, generateSharedBundleUrlMapper, generateSharedDepsMergeStrategy, generateShellMergeStrategy, mergeBundles, mergeSingleEntrypointSubBundles, TransitiveDependenciesMap} from '../bundle-manifest';
 
 chai.config.showDiff = true;
 
@@ -134,14 +134,20 @@ suite('BundleManifest', () => {
       depsIndex.set(r`B`, new Set([r`B`]));
       depsIndex.set(r`B>1`, new Set([r`Y`]));
 
-      const bundles = generateBundles(depsIndex).map(serializeBundle).sort();
-      assert.deepEqual(
-          bundles,
-          [
-            '[A>2,B>1]->[Y]',  //
-            '[A]->[A,X]',
-            '[B]->[B]',
-          ]);
+      const bundles = generateBundles(depsIndex);
+      assert.deepEqual(bundles.map(serializeBundle).sort(), [
+        '[A>1]->[X]',
+        '[A>2,B>1]->[Y]',
+        '[A]->[A]',
+        '[B]->[B]',
+      ]);
+
+      mergeSingleEntrypointSubBundles(bundles);
+      assert.deepEqual(bundles.map(serializeBundle).sort(), [
+        '[A>2,B>1]->[Y]',
+        '[A]->[A,X]',
+        '[B]->[B]',
+      ]);
     });
   });
 
