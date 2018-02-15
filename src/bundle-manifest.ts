@@ -199,10 +199,12 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
 /**
  * Instances of `<script type="module">` generate synthetic entrypoints in the
  * depsIndex and are treated as entrypoints during the initial phase of
- * `generateBundles`.  Before returning the resulting bundles, any bundle which
- * provides dependencies to a single entrypoint of this type (aka a single
- * entrypoint sub-bundle) are merged back into the bundle for the html
- * containing the script tag, using this function.
+ * `generateBundles`.  Before handing bundles to the strategy function, if
+ * script inlining is enabled, any bundle which provides dependencies to a
+ * single synthetic entrypoint of this type (aka a single entrypoint sub-bundle)
+ * are merged back into the bundle for the HTML containing the script tag, by
+ * use of this function, which performs the merge(s) in-place to the provided
+ * array of bundles.
  *
  * For example, the following bundles:
  *   `[a]->[a], [a>1]->[x], [a>1,a>2]->[y], [a>2]->[z]`
