@@ -421,19 +421,26 @@ export function mergeBundles(
 }
 
 /**
- * Return a new bundle array where all bundles within it matching the predicate
- * are merged.
+ * Return a new bundle array where bundles within it matching the predicate
+ * are merged together.  Note that merge operations are segregated by type so
+ * that no attempt to merge bundles of different types will occur.
  */
 export function mergeMatchingBundles(
     bundles: Bundle[], predicate: (bundle: Bundle) => boolean): Bundle[] {
   const newBundles = Array.from(bundles);
   const bundlesToMerge = newBundles.filter(predicate);
-  if (bundlesToMerge.length > 1) {
-    for (const bundle of bundlesToMerge) {
-      newBundles.splice(newBundles.indexOf(bundle), 1);
+
+  const types = [...new Set(bundlesToMerge.map((b) => b.type))].sort();
+  types.forEach((bundleType) => {
+    const bundlesToMergeForType =
+        bundlesToMerge.filter((b) => b.type === bundleType);
+    if (bundlesToMergeForType.length > 1) {
+      for (const bundle of bundlesToMergeForType) {
+        newBundles.splice(newBundles.indexOf(bundle), 1);
+      }
+      newBundles.push(mergeBundles(bundlesToMergeForType));
     }
-    newBundles.push(mergeBundles(bundlesToMerge));
-  }
+  });
   return newBundles;
 }
 
