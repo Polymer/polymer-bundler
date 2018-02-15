@@ -76,7 +76,7 @@ suite('BundleManifest', () => {
     const bundles = [
       '[A]->[A,C]',  //
       '[B]->[B,D]',
-      '[A,B]->[E]'
+      '[A,B]->[E,F]',
     ].map(deserializeBundle);
 
     const underscoreJoinMapper = generateSharedBundleUrlMapper(
@@ -86,7 +86,7 @@ suite('BundleManifest', () => {
     test('maps bundles to urls based on given mapper', () => {
       const manifest = new BundleManifest(bundles, underscoreJoinMapper);
       assert.equal(
-          serializeBundle(manifest.bundles.get(r`A_B`)!), '[A,B]->[E]');
+          serializeBundle(manifest.bundles.get(r`A_B`)!), '[A,B]->[E,F]');
     });
 
     test('enables bundles to be found by constituent file', () => {
@@ -94,7 +94,7 @@ suite('BundleManifest', () => {
       assert.equal(manifest.getBundleForFile(r`E`)!.url, 'A_B');
       assert.equal(
           serializeBundle(manifest.getBundleForFile(r`E`)!.bundle),
-          '[A,B]->[E]');
+          '[A,B]->[E,F]');
     });
 
     test('generateCountingSharedBundleUrlMapper allows a custom prefix', () => {
@@ -102,7 +102,7 @@ suite('BundleManifest', () => {
           bundles, generateCountingSharedBundleUrlMapper(r`path/to/shared`));
       assert.equal(
           serializeBundle(manifest.bundles.get(r`path/to/shared1.html`)!),
-          '[A,B]->[E]');
+          '[A,B]->[E,F]');
     });
   });
 
@@ -123,6 +123,24 @@ suite('BundleManifest', () => {
             '[A]->[A,C]',
             '[D]->[D,E]',
             '[F]->[F]'
+          ]);
+    });
+
+    test('merges bundles for single script tags back into HTML bundle', () => {
+      const depsIndex = new Map<ResolvedUrl, Set<ResolvedUrl>>();
+      depsIndex.set(r`A`, new Set([r`A`]));
+      depsIndex.set(r`A>1`, new Set([r`X`]));
+      depsIndex.set(r`A>2`, new Set([r`Y`]));
+      depsIndex.set(r`B`, new Set([r`B`]));
+      depsIndex.set(r`B>1`, new Set([r`Y`]));
+
+      const bundles = generateBundles(depsIndex).map(serializeBundle).sort();
+      assert.deepEqual(
+          bundles,
+          [
+            '[A>2,B>1]->[Y]',  //
+            '[A]->[A,X]',
+            '[B]->[B]',
           ]);
     });
   });

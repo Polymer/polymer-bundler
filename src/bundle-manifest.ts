@@ -192,7 +192,56 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
     }
     bundle.files.add(dep);
   }
+
+  mergeSingleEntrypointSubBundles(bundles);
   return bundles;
+}
+
+/**
+ * Instances of `<script type="module">` generate synthetic entrypoints in the
+ * depsIndex and are treated as entrypoints during the initial phase of
+ * `generateBundles`.  Before returning the resulting bundles, any bundle which
+ * provides dependencies to a single entrypoint of this type (aka a single
+ * entrypoint sub-bundle) are merged back into the bundle for the html
+ * containing the script tag, using this function.
+ *
+ * For example, the following bundles:
+ *   `[a]->[a], [a>1]->[x], [a>1,a>2]->[y], [a>2]->[z]`
+ *
+ * Would be merged into the following set of bundles:
+ *   `[a]->[a,x,z], [a>1,a>2]->[y]`
+ */
+function mergeSingleEntrypointSubBundles(bundles: Bundle[]) {
+  for (const subBundle of [...bundles]) {
+    if (subBundle.entrypoints.size === 1) {
+      const entrypointUrl = [...subBundle.entrypoints][0];
+      const superBundleUrl =
+          entrypointUrl.replace(/>[^>]+$/, '') as ResolvedUrl;
+
+      // If the entrypoint URL is the same as the super bundle URL then the
+      // entrypoint URL has not changed and did not represent a sub bundle, so
+      // continue to next candidate sub bundle.
+      if (entrypointUrl === superBundleUrl) {
+        continue;
+      }
+
+      const superBundleIndex =
+          bundles.findIndex((b) => b.files.has(superBundleUrl));
+      if (superBundleIndex < 0) {
+        continue;
+      }
+      const superBundle = bundles[superBundleIndex];
+
+      // The synthetic entrypoint identifier does not need to be represented in
+      // the super bundle's entrypoints list, so we'll clear the sub-bundle's
+      // entrypoints in the bundle before merging.
+      subBundle.entrypoints.clear();
+      const mergedBundle = mergeBundles([superBundle, subBundle], true);
+      bundles.splice(superBundleIndex, 1, mergedBundle);
+      const subBundleIndex = bundles.findIndex((b) => b === subBundle);
+      bundles.splice(subBundleIndex, 1);
+    }
+  }
 }
 
 /**
@@ -243,9 +292,12 @@ export function generateSharedBundleUrlMapper(
     const urlMap = new Map<ResolvedUrl, Bundle>();
     const sharedBundles: Bundle[] = [];
     for (const bundle of bundles) {
-      const bundleEntrypoint = getBundleEntrypoint(bundle);
-      if (bundleEntrypoint) {
-        urlMap.set(bundleEntrypoint, bundle);
+      const bundleUrl = getBundleEntrypoint(bundle) ||
+          // If a bundle contains only a single file it should just be named
+          // the same as that file even if it is a shared bundle.
+          bundle.files.size === 1 && bundle.files.entries().next().value[0];
+      if (bundleUrl) {
+        urlMap.set(bundleUrl, bundle);
       } else {
         sharedBundles.push(bundle);
       }
@@ -299,8 +351,8 @@ export function generateShellMergeStrategy(
     generateMatchMergeStrategy((bundle) => {
       // ...contain the shell file
       return bundle.files.has(shell) ||
-          // or are dependencies of at least the minimum number of entrypoints
-          // and are not entrypoints themselves.
+          // or are dependencies of at least the minimum number of
+          // entrypoints and are not entrypoints themselves.
           bundle.entrypoints.size >= minEntrypoints &&
           !getBundleEntrypoint(bundle);
     }),
@@ -329,14 +381,17 @@ export function generateNoBackLinkStrategy(urls: ResolvedUrl[]):
 
 /**
  * Given an Array of bundles, produce a single bundle with the entrypoints and
- * files of all bundles represented.
+ * files of all bundles represented.  My default, bundles of different types
+ * can not be merged, but this constraint can be skipped by providing
+ * `ignoreTypeCheck` argument with value `true`.
  */
-export function mergeBundles(bundles: Bundle[]): Bundle {
+export function mergeBundles(
+    bundles: Bundle[], ignoreTypeCheck: boolean = false): Bundle {
   if (bundles.length === 0) {
     throw new Error('Can not merge 0 bundles.');
   }
   const bundleTypes = uniq(bundles, (b: Bundle) => b.type);
-  if (bundleTypes.size > 1) {
+  if (!ignoreTypeCheck && bundleTypes.size > 1) {
     throw new Error(
         'Can not merge bundles of different types: ' +
         [...bundleTypes].join(' and '));

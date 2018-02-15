@@ -104,7 +104,8 @@ suite('Bundler', () => {
       assert.isDefined(entrypoint1Doc);
       const entrypoint2Doc = documents.get(entrypoint2)!.ast;
       assert.isDefined(entrypoint2Doc);
-      const sharedDoc = documents.get(resolve('shared_bundle_1.html'))!.ast;
+      const sharedDoc =
+          documents.get(resolve('shards/shop_style_project/dep1.html'))!.ast;
       assert.isDefined(sharedDoc);
       const commonModule = domModulePredicate('common-module');
       const elOne = domModulePredicate('el-one');

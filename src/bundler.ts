@@ -156,8 +156,7 @@ export class Bundler {
   async generateManifest(entrypoints: ResolvedUrl[]): Promise<BundleManifest> {
     const dependencyIndex =
         await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
-    let bundles =
-        bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
+    let bundles = bundleManifestLib.generateBundles(dependencyIndex);
     this._filterExcludesFromBundles(bundles);
     bundles = this.strategy(bundles);
     return new BundleManifest(bundles, this.urlMapper);
