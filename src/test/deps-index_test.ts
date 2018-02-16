@@ -173,7 +173,7 @@ suite('Bundler', () => {
       const expectedEntrypointsToDeps = new Map([
         [entrypoint, new Set([entrypoint])],
         [module1, new Set([abc, upcase])],
-        [module2, new Set([abc, upcase])],
+        [module2, new Set([abc, xyz, upcase])],
         [module3, new Set([def, xyz, upcase])],
       ]);
       chai.assert.deepEqual(

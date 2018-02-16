@@ -53,7 +53,10 @@ export async function buildDepsIndex(
         allEntrypoints.add(dep);
       }
 
-      // Add script
+      // Treat top-level script imports as entrypoints by creating "sub-bundle"
+      // URLs to enable the inline document to be processed as an entrypoint
+      // document on a subsequent iteration of the outer loop over all
+      // entrypoints.
       for (const [id, imported] of deps.moduleScriptImports) {
         const subBundleUrl = getSubBundleUrl(document.url, id);
         allEntrypoints.add(subBundleUrl);
@@ -121,6 +124,9 @@ function getDependencies(document: Document): DependencyMapEntry {
   return {deps, eagerDeps, lazyImports, moduleScriptImports};
 
   function _getDependencies(document: Document, viaEager: boolean) {
+    // HTML document dependencies include external modules referenced by script
+    // src attribute, external modules imported by inline module import
+    // statements, and HTML imports (recursively).
     if (document.kinds.has('html-document')) {
       _getHtmlExternalModuleDependencies(document);
       _getHtmlInlineModuleDependencies(document);
@@ -129,10 +135,14 @@ function getDependencies(document: Document): DependencyMapEntry {
           viaEager);
     }
 
+    // JavaScript documents, when parsed as modules, have dependencies defined
+    // by their import statements.
     if (document.kinds.has('js-document')) {
       _getImportDependencies(
-          modulesOnly(
-              document.getFeatures({kind: 'js-import', ...getFeaturesOptions})),
+          [...document.getFeatures({kind: 'js-import', ...getFeaturesOptions})]
+              .filter(
+                  (d) => (d.document.parsedDocument as JavaScriptDocument)
+                             .parsedAsSourceType === 'module'),
           viaEager);
     }
   }
@@ -142,7 +152,7 @@ function getDependencies(document: Document): DependencyMapEntry {
     const htmlScripts =
         [...document.getFeatures({kind: 'html-script', ...getFeaturesOptions})]
             .filter(
-                (s) => (s.document.parsedDocument as JavaScriptDocument)
+                (i) => (i.document.parsedDocument as JavaScriptDocument)
                            .parsedAsSourceType === 'module');
     for (const htmlScript of htmlScripts) {
       moduleScriptImports.set(
@@ -162,7 +172,8 @@ function getDependencies(document: Document): DependencyMapEntry {
     }
   }
 
-  function _getImportDependencies(imports: Set<Import>, viaEager: boolean) {
+  function _getImportDependencies(
+      imports: Iterable<Import>, viaEager: boolean) {
     for (const imprt of imports) {
       const importUrl = imprt.document.url;
       if (imprt.lazy) {
@@ -184,19 +195,4 @@ function getDependencies(document: Document): DependencyMapEntry {
       _getDependencies(imprt.document, isEager);
     }
   }
-}
-
-/**
- * Convenience function to return a set where JavaScript documents which were
- * not parsed as source type 'module' are removed.
- */
-function modulesOnly(imports: Set<Import>): Set<Import> {
-  const newSet = new Set<Import>();
-  for (const imprt of imports) {
-    if ((imprt.document.parsedDocument as JavaScriptDocument)
-            .parsedAsSourceType === 'module') {
-      newSet.add(imprt);
-    }
-  }
-  return newSet;
 }
