@@ -427,17 +427,17 @@ export function mergeMatchingBundles(
   const newBundles = Array.from(bundles);
   const bundlesToMerge = newBundles.filter(predicate);
 
-  const types = [...new Set(bundlesToMerge.map((b) => b.type))].sort();
-  types.forEach((bundleType) => {
-    const bundlesToMergeForType =
-        bundlesToMerge.filter((b) => b.type === bundleType);
-    if (bundlesToMergeForType.length > 1) {
-      for (const bundle of bundlesToMergeForType) {
-        newBundles.splice(newBundles.indexOf(bundle), 1);
-      }
-      newBundles.push(mergeBundles(bundlesToMergeForType));
-    }
-  });
+  [...new Set(bundlesToMerge.map((b) => b.type))].sort().forEach(
+      (bundleType) => {
+        const bundlesToMergeForType =
+            bundlesToMerge.filter((b) => b.type === bundleType);
+        if (bundlesToMergeForType.length > 1) {
+          for (const bundle of bundlesToMergeForType) {
+            newBundles.splice(newBundles.indexOf(bundle), 1);
+          }
+          newBundles.push(mergeBundles(bundlesToMergeForType));
+        }
+      });
   return newBundles;
 }
 
