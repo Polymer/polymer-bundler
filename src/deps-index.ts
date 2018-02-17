@@ -16,7 +16,7 @@ import {JavaScriptDocument} from 'polymer-analyzer/lib/javascript/javascript-doc
 
 import {getAnalysisDocument} from './analyzer-utils';
 
-// An index of entrypoint -> html dependencies
+// An index of entrypoint -> dependencies
 export type DepsIndex = Map<ResolvedUrl, Set<ResolvedUrl>>;
 
 /**
