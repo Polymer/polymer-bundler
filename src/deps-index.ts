@@ -41,7 +41,7 @@ export async function buildDepsIndex(
       const document = inlineDocuments.has(entrypoint) ?
           inlineDocuments.get(entrypoint)! :
           getAnalysisDocument(analysis, entrypoint);
-      const deps = getDependencies(document);
+      const deps = getDependencies(analyzer, document);
       depsIndex.set(entrypoint, new Set([
                       ...(document.isInline ? [] : [document.url]),
                       ...deps.eagerDeps
@@ -115,7 +115,8 @@ const getFeaturesOptions = {
  * For a given document, return a set of transitive dependencies, including
  * all eagerly-loaded dependencies and lazy html imports encountered.
  */
-function getDependencies(document: Document): DependencyMapEntry {
+function getDependencies(
+    analyzer: Analyzer, document: Document): DependencyMapEntry {
   const deps = new Set<ResolvedUrl>();
   const eagerDeps = new Set<ResolvedUrl>();
   const lazyImports = new Set<ResolvedUrl>();
@@ -155,8 +156,11 @@ function getDependencies(document: Document): DependencyMapEntry {
                 (i) => (i.document.parsedDocument as JavaScriptDocument)
                            .parsedAsSourceType === 'module');
     for (const htmlScript of htmlScripts) {
+      const relativeUrl =
+          analyzer.urlResolver.relative(document.url, htmlScript.document.url);
       moduleScriptImports.set(
-          `external-module:${++externalModuleCount}`, htmlScript.document);
+          `external-module:${++externalModuleCount}:${relativeUrl}`,
+          htmlScript.document);
     }
   }
 

@@ -136,9 +136,9 @@ suite('Bundler', () => {
         urlLoader: new FSUrlLoader('test/html/imports/es6-modules')
       });
       const entrypoint = resolve('multiple-external-modules.html');
-      const module1 = entrypoint + '>external-module:1';
-      const module2 = entrypoint + '>external-module:2';
-      const module3 = entrypoint + '>external-module:3';
+      const module1 = entrypoint + '>external-module:1:abc.js';
+      const module2 = entrypoint + '>external-module:2:abc.js';
+      const module3 = entrypoint + '>external-module:3:def.js';
       const abc = resolve('abc.js');
       const def = resolve('def.js');
       const xyz = resolve('xyz.js');
