@@ -188,7 +188,9 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
         bundles.find((bundle) => setEquals(entrypoints, bundle.entrypoints));
 
     if (!bundle) {
-      const type = 'html-fragment';
+      const type = [...entrypoints].some((e) => !!e.match(/>/)) ?
+          'es6-module' :
+          'html-fragment';
       bundle = new Bundle(type, entrypoints);
       bundles.push(bundle);
     }
@@ -291,10 +293,7 @@ export function generateSharedBundleUrlMapper(
     const urlMap = new Map<ResolvedUrl, Bundle>();
     const sharedBundles: Bundle[] = [];
     for (const bundle of bundles) {
-      const bundleUrl = getBundleEntrypoint(bundle) ||
-          // If a bundle contains only a single file it should just be named
-          // the same as that file even if it is a shared bundle.
-          bundle.files.size === 1 && bundle.files.entries().next().value[0];
+      const bundleUrl = getBundleEntrypoint(bundle);
       if (bundleUrl) {
         urlMap.set(bundleUrl, bundle);
       } else {
