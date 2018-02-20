@@ -16,6 +16,7 @@ import * as clone from 'clone';
 import {PackageRelativeUrl, ResolvedUrl, UrlResolver} from 'polymer-analyzer';
 
 import {getSuperBundleUrl} from './deps-index';
+import {getFileExtension} from './url-utils';
 import {uniq} from './utils';
 
 /**
@@ -188,7 +189,8 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
         bundles.find((bundle) => setEquals(entrypoints, bundle.entrypoints));
 
     if (!bundle) {
-      const type = [...entrypoints].some((e) => !!e.match(/>/)) ?
+      const type = [...entrypoints].every(
+                       (e) => !!e.match(/>/) || getFileExtension(e) === '.js') ?
           'es6-module' :
           'html-fragment';
       bundle = new Bundle(type, entrypoints);
