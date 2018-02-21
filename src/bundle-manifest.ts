@@ -380,7 +380,7 @@ export function generateNoBackLinkStrategy(urls: ResolvedUrl[]):
 
 /**
  * Given an Array of bundles, produce a single bundle with the entrypoints and
- * files of all bundles represented.  My default, bundles of different types
+ * files of all bundles represented.  By default, bundles of different types
  * can not be merged, but this constraint can be skipped by providing
  * `ignoreTypeCheck` argument with value `true`.
  */
