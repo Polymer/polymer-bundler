@@ -83,7 +83,7 @@ export function getSubBundleUrl(
 /**
  * Returns the file extension for the URL.  If the URL given is a compound
  * `>`-joined string representing a sub-bundle, the extension will come from the
- * last segment, which describes the type of the content.
+ * last segment, which describes the type of content in the sub-bundle.
  */
 export function getSubBundleFileExtension(url: string): string {
   return getFileExtension(url.split('>').pop()!);
