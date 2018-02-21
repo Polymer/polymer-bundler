@@ -15,6 +15,7 @@ import {Analyzer, Document, Import, ResolvedUrl} from 'polymer-analyzer';
 import {JavaScriptDocument} from 'polymer-analyzer/lib/javascript/javascript-document';
 
 import {getAnalysisDocument} from './analyzer-utils';
+import {getFileExtension} from './url-utils';
 
 // An index of entrypoint -> dependencies
 export type DepsIndex = Map<ResolvedUrl, Set<ResolvedUrl>>;
@@ -80,12 +81,21 @@ export function getSubBundleUrl(
 }
 
 /**
+ * Returns the file extension for the URL.  If the URL given is a compound
+ * `>`-joined string representing a sub-bundle, the extension will come from the
+ * last segment, which describes the type of the content.
+ */
+export function getSubBundleFileExtension(url: string): string {
+  return getFileExtension(url.split('>').pop()!);
+}
+
+/**
  * Strips the sub-bundle id off the end of a URL to return the super bundle or
  * containing file's URL.  If there is no sub-bundle id on the provided URL, the
  * result is essentially a NOOP, since nothing will have been stripped.
  */
 export function getSuperBundleUrl(subBundleUrl: string): ResolvedUrl {
-  return subBundleUrl.replace(/>[^>]+$/, '') as ResolvedUrl;
+  return subBundleUrl.split('>').shift()! as ResolvedUrl;
 }
 
 type DependencyMapEntry = {
@@ -159,7 +169,7 @@ function getDependencies(
       const relativeUrl =
           analyzer.urlResolver.relative(document.url, htmlScript.document.url);
       moduleScriptImports.set(
-          `external-module:${++externalModuleCount}:${relativeUrl}`,
+          `external-module-${++externalModuleCount}>${relativeUrl}`,
           htmlScript.document);
     }
   }
@@ -172,7 +182,8 @@ function getDependencies(
                 (d) => d.kinds.has('inline-document') &&
                     d.parsedDocument.parsedAsSourceType === 'module');
     for (const jsDocument of jsDocuments) {
-      moduleScriptImports.set(`inline-module:${++jsDocumentCount}`, jsDocument);
+      moduleScriptImports.set(
+          `inline-module-${++jsDocumentCount}.js`, jsDocument);
     }
   }
 
