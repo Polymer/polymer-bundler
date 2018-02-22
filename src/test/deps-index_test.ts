@@ -136,9 +136,9 @@ suite('Bundler', () => {
         urlLoader: new FSUrlLoader('test/html/imports/es6-modules')
       });
       const entrypoint = resolve('multiple-external-modules.html');
-      const module1 = entrypoint + '>external-module-1>abc.js';
-      const module2 = entrypoint + '>external-module-2>abc.js';
-      const module3 = entrypoint + '>external-module-3>def.js';
+      const module1 = entrypoint + '>external#1>abc.js>es6-module';
+      const module2 = entrypoint + '>external#2>abc.js>es6-module';
+      const module3 = entrypoint + '>external#3>def.js>es6-module';
       const abc = resolve('abc.js');
       const def = resolve('def.js');
       const xyz = resolve('xyz.js');
@@ -162,9 +162,9 @@ suite('Bundler', () => {
         urlLoader: new FSUrlLoader('test/html/imports/es6-modules')
       });
       const entrypoint = resolve('multiple-inline-modules.html');
-      const module1 = entrypoint + '>inline-module-1.js';
-      const module2 = entrypoint + '>inline-module-2.js';
-      const module3 = entrypoint + '>inline-module-3.js';
+      const module1 = entrypoint + '>inline#1>es6-module';
+      const module2 = entrypoint + '>inline#2>es6-module';
+      const module3 = entrypoint + '>inline#3>es6-module';
       const abc = resolve('abc.js');
       const def = resolve('def.js');
       const xyz = resolve('xyz.js');

@@ -15,7 +15,6 @@ import {Analyzer, Document, Import, ResolvedUrl} from 'polymer-analyzer';
 import {JavaScriptDocument} from 'polymer-analyzer/lib/javascript/javascript-document';
 
 import {getAnalysisDocument} from './analyzer-utils';
-import {getFileExtension} from './url-utils';
 
 // An index of entrypoint -> dependencies
 export type DepsIndex = Map<ResolvedUrl, Set<ResolvedUrl>>;
@@ -78,15 +77,6 @@ export async function buildDepsIndex(
 export function getSubBundleUrl(
     superBundleUrl: ResolvedUrl, id: string): ResolvedUrl {
   return `${superBundleUrl}>${id}` as ResolvedUrl;
-}
-
-/**
- * Returns the file extension for the URL.  If the URL given is a compound
- * `>`-joined string representing a sub-bundle, the extension will come from the
- * last segment, which describes the type of content in the sub-bundle.
- */
-export function getSubBundleFileExtension(url: string): string {
-  return getFileExtension(url.split('>').pop()!);
 }
 
 /**
@@ -169,7 +159,7 @@ function getDependencies(
       const relativeUrl =
           analyzer.urlResolver.relative(document.url, htmlScript.document.url);
       moduleScriptImports.set(
-          `external-module-${++externalModuleCount}>${relativeUrl}`,
+          `external#${++externalModuleCount}>${relativeUrl}>es6-module`,
           htmlScript.document);
     }
   }
@@ -183,7 +173,7 @@ function getDependencies(
                     d.parsedDocument.parsedAsSourceType === 'module');
     for (const jsDocument of jsDocuments) {
       moduleScriptImports.set(
-          `inline-module-${++jsDocumentCount}.js`, jsDocument);
+          `inline#${++jsDocumentCount}>es6-module`, jsDocument);
     }
   }
 

@@ -441,22 +441,22 @@ suite('BundleManifest', () => {
       const depsIndex: TransitiveDependenciesMap = new Map();
       depsIndex.set(r`page1.html`, new Set([r`page1.html`]));
       depsIndex.set(
-          r`page1.html>inline-module-1.js`,
+          r`page1.html>inline#1>es6-module`,
           new Set([r`shared-1.js`, r`shared-2.js`]));
       depsIndex.set(
-          r`page1.html>inline-module-2.js`,
+          r`page1.html>inline#2>es6-module`,
           new Set([r`shared-1.js`, r`shared-2.js`]));
       depsIndex.set(r`page2.html`, new Set([r`page2.html`]));
       depsIndex.set(
-          r`page2.html>inline-module-1.js`,
+          r`page2.html>inline#1>es6-module`,
           new Set([r`page2-only.js`, r`shared-2.js`]));
       depsIndex.set(r`dynamic-import.js`, new Set([r`dynamic-import.js`]));
       const expected = [
         '[dynamic-import.js]->[dynamic-import.js].es6-module',
-        '[page1.html>inline-module-1.js,page1.html>inline-module-2.js,page2.html>inline-module-1.js]->[shared-2.js].es6-module',
-        '[page1.html>inline-module-1.js,page1.html>inline-module-2.js]->[shared-1.js].es6-module',
+        '[page1.html>inline#1>es6-module,page1.html>inline#2>es6-module,page2.html>inline#1>es6-module]->[shared-2.js].es6-module',
+        '[page1.html>inline#1>es6-module,page1.html>inline#2>es6-module]->[shared-1.js].es6-module',
         '[page1.html]->[page1.html].html-fragment',
-        '[page2.html>inline-module-1.js]->[page2-only.js].es6-module',
+        '[page2.html>inline#1>es6-module]->[page2-only.js].es6-module',
         '[page2.html]->[page2.html].html-fragment',
       ];
       const bundles = generateBundles(depsIndex);

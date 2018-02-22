@@ -15,7 +15,8 @@
 import * as clone from 'clone';
 import {PackageRelativeUrl, ResolvedUrl, UrlResolver} from 'polymer-analyzer';
 
-import {getSubBundleFileExtension, getSuperBundleUrl} from './deps-index';
+import {getSuperBundleUrl} from './deps-index';
+import {getFileExtension} from './url-utils';
 import {uniq} from './utils';
 
 /**
@@ -41,6 +42,11 @@ export type TransitiveDependenciesMap = Map<ResolvedUrl, Set<ResolvedUrl>>;
  */
 export type BundleType = 'html-fragment' | 'es6-module';
 
+export const bundleTypeExtnames = new Map<BundleType, string>([
+  ['es6-module', '.js'],
+  ['html-fragment', '.html'],
+]);
+
 /**
  * A bundle is a grouping of files which serve the need of one or more
  * entrypoint files.
@@ -64,6 +70,10 @@ export class Bundle {
       public entrypoints = new Set<ResolvedUrl>(),
       // Set of all files included in the bundle.
       public files = new Set<ResolvedUrl>()) {
+  }
+
+  get extname() {
+    return bundleTypeExtnames.get(this.type);
   }
 }
 
@@ -188,10 +198,7 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
         bundles.find((bundle) => setEquals(entrypoints, bundle.entrypoints));
 
     if (!bundle) {
-      const type =
-          [...entrypoints].some((e) => getSubBundleFileExtension(e) === '.js') ?
-          'es6-module' :
-          'html-fragment';
+      const type = getBundleTypeForUrl([...entrypoints][0]);
       bundle = new Bundle(type, entrypoints);
       bundles.push(bundle);
     }
@@ -256,7 +263,7 @@ export function generateCountingSharedBundleUrlMapper(urlPrefix: ResolvedUrl):
       (sharedBundles: Bundle[]): ResolvedUrl[] => {
         let counter = 0;
         return sharedBundles.map(
-            (b) => `${urlPrefix}${++counter}.html` as ResolvedUrl);
+            (b) => `${urlPrefix}${++counter}${b.extname}` as ResolvedUrl);
       });
 }
 
@@ -453,6 +460,20 @@ function getBundleEntrypoint(bundle: Bundle): ResolvedUrl|null {
     }
   }
   return null;
+}
+
+/**
+ * Generally bundle types are determined by the file extension of the URL,
+ * though in the case of sub-bundles, the bundle type is the last segment of the
+ * `>` delimited URL.
+ */
+function getBundleTypeForUrl(url: ResolvedUrl): BundleType {
+  const segments = url.split('>');
+  if (segments.length === 1) {
+    const extname = getFileExtension(segments[0]);
+    return extname === '.js' ? 'es6-module' : 'html-fragment';
+  }
+  return segments.pop()! as BundleType;
 }
 
 /**
