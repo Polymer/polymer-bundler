@@ -63,6 +63,9 @@ export class Bundle {
   inlinedScripts = new Set<ResolvedUrl>();
   inlinedStyles = new Set<ResolvedUrl>();
 
+  // Maps the URLs of bundled es6 modules to their export names.
+  bundledExports = new Map<ResolvedUrl, string>();
+
   constructor(
       // Filetype discriminator for Bundles.
       public type: BundleType,
@@ -410,6 +413,7 @@ export function mergeBundles(
          inlinedHtmlImports,
          inlinedScripts,
          inlinedStyles,
+         bundledExports,
        } of bundles) {
     newBundle.entrypoints =
         new Set<ResolvedUrl>([...newBundle.entrypoints, ...entrypoints]);
@@ -420,6 +424,8 @@ export function mergeBundles(
         new Set<ResolvedUrl>([...newBundle.inlinedScripts, ...inlinedScripts]);
     newBundle.inlinedStyles =
         new Set<ResolvedUrl>([...newBundle.inlinedStyles, ...inlinedStyles]);
+    newBundle.bundledExports = new Map<ResolvedUrl, string>(
+        [...newBundle.bundledExports, ...bundledExports]);
   }
   return newBundle;
 }

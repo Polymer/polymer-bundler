@@ -1,4 +1,5 @@
 import generate from 'babel-generator';
+import {GeneratorResult} from 'babel-generator';
 import traverse from 'babel-traverse';
 import {NodePath} from 'babel-traverse';
 import * as babel from 'babel-types';
@@ -26,19 +27,22 @@ export function getParentNode(root: babel.Node, node: babel.Node): babel.Node|
 /**
  * Parse the module with babylon and return a babel.Node
  */
-// export function parseModuleFile(url: string, code: string): babel.File {
-//   return babylon.parse(code, {
-//     sourceFilename: url,
-//     sourceType: 'module',
-//     plugins: [
-//       'asyncGenerators',
-//       'dynamicImport',
-//       // 'importMeta', // not yet in the @types file
-//       'objectRestSpread',
-//     ],
-//   });
-// }
+export function parseModuleFile(url: string, code: string): babel.File {
+  return babylon.parse(code, {
+    sourceFilename: url,
+    sourceType: 'module',
+    plugins: [
+      'asyncGenerators',
+      'dynamicImport',
+      // 'importMeta', // not yet in the @types file
+      'objectRestSpread',
+    ],
+  });
+}
 
-export function serialize(root: babel.Node): string {
-  return generate(root, {quotes: 'single'}).code;
+/**
+ * Convenience wrapper for generating source text from the babel AST node.
+ */
+export function serialize(root: babel.Node): GeneratorResult {
+  return generate(root, {quotes: 'single'});
 }

@@ -14,11 +14,11 @@
 /// <reference path="../../node_modules/@types/chai/index.d.ts" />
 /// <reference path="../../node_modules/@types/node/index.d.ts" />
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
-import * as chai from 'chai';
+import {assert} from 'chai';
 
-suite(
-    'Es6ModuleBundler',
-    () => {
+suite('Es6ModuleBundler', () => {
 
-
-    });
+  test('look at me', () => {
+    assert.equal(1, 1);
+  });
+});

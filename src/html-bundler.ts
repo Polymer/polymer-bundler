@@ -622,10 +622,10 @@ export class HtmlBundler {
   }
 
   /**
-   * Generate a fresh document (ASTNode) to bundle contents into.
-   * If we're building a bundle which is based on an existing file, we
-   * should load that file and prepare it as the bundle document, otherwise
-   * we'll create a clean/empty html document.
+   * Generate a fresh document to bundle contents into.  If we're building
+   * a bundle which is based on an existing file, we should load that file and
+   * prepare it as the bundle document, otherwise we'll create a clean/empty
+   * HTML document.
    */
   private async _prepareBundleDocument(): Promise<Document> {
     if (!this.assignedBundle.bundle.files.has(this.assignedBundle.url)) {
