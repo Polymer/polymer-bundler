@@ -156,8 +156,12 @@ export class Bundler {
   async generateManifest(entrypoints: ResolvedUrl[]): Promise<BundleManifest> {
     const dependencyIndex =
         await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
-    let bundles =
-        bundleManifestLib.generateBundles(dependencyIndex.entrypointToDeps);
+    let bundles = bundleManifestLib.generateBundles(dependencyIndex);
+    // Merge single-entrypoint sub-bundles into their containing documents so
+    // that inlining code can knows which module scripts can be inlined.
+    if (this.enableScriptInlining) {
+      bundleManifestLib.mergeSingleEntrypointSubBundles(bundles);
+    }
     this._filterExcludesFromBundles(bundles);
     bundles = this.strategy(bundles);
     return new BundleManifest(bundles, this.urlMapper);

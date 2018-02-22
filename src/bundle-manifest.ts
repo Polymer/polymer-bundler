@@ -14,6 +14,9 @@
 
 import * as clone from 'clone';
 import {PackageRelativeUrl, ResolvedUrl, UrlResolver} from 'polymer-analyzer';
+
+import {getSuperBundleUrl} from './deps-index';
+import {getFileExtension} from './url-utils';
 import {uniq} from './utils';
 
 /**
@@ -39,6 +42,11 @@ export type TransitiveDependenciesMap = Map<ResolvedUrl, Set<ResolvedUrl>>;
  */
 export type BundleType = 'html-fragment' | 'es6-module';
 
+export const bundleTypeExtnames = new Map<BundleType, string>([
+  ['es6-module', '.js'],
+  ['html-fragment', '.html'],
+]);
+
 /**
  * A bundle is a grouping of files which serve the need of one or more
  * entrypoint files.
@@ -62,6 +70,10 @@ export class Bundle {
       public entrypoints = new Set<ResolvedUrl>(),
       // Set of all files included in the bundle.
       public files = new Set<ResolvedUrl>()) {
+  }
+
+  get extname() {
+    return bundleTypeExtnames.get(this.type);
   }
 }
 
@@ -186,13 +198,59 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
         bundles.find((bundle) => setEquals(entrypoints, bundle.entrypoints));
 
     if (!bundle) {
-      const type = 'html-fragment';
+      const type = getBundleTypeForUrl([...entrypoints][0]);
       bundle = new Bundle(type, entrypoints);
       bundles.push(bundle);
     }
     bundle.files.add(dep);
   }
+
   return bundles;
+}
+
+/**
+ * Instances of `<script type="module">` generate synthetic entrypoints in the
+ * depsIndex and are treated as entrypoints during the initial phase of
+ * `generateBundles`.  Any bundle which provides dependencies to a single
+ * synthetic entrypoint of this type (aka a single entrypoint sub-bundle) are
+ * merged back into the bundle for the HTML containing the script tag.
+ *
+ * For example, the following bundles:
+ *   `[a]->[a], [a>1]->[x], [a>1,a>2]->[y], [a>2]->[z]`
+ *
+ * Would be merged into the following set of bundles:
+ *   `[a]->[a,x,z], [a>1,a>2]->[y]`
+ */
+export function mergeSingleEntrypointSubBundles(bundles: Bundle[]) {
+  for (const subBundle of [...bundles]) {
+    if (subBundle.entrypoints.size === 1) {
+      const entrypointUrl = [...subBundle.entrypoints][0];
+      const superBundleUrl = getSuperBundleUrl(entrypointUrl);
+
+      // If the entrypoint URL is the same as the super bundle URL then the
+      // entrypoint URL has not changed and did not represent a sub bundle, so
+      // continue to next candidate sub bundle.
+      if (entrypointUrl === superBundleUrl) {
+        continue;
+      }
+
+      const superBundleIndex =
+          bundles.findIndex((b) => b.files.has(superBundleUrl));
+      if (superBundleIndex < 0) {
+        continue;
+      }
+      const superBundle = bundles[superBundleIndex];
+
+      // The synthetic entrypoint identifier does not need to be represented in
+      // the super bundle's entrypoints list, so we'll clear the sub-bundle's
+      // entrypoints in the bundle before merging.
+      subBundle.entrypoints.clear();
+      const mergedBundle = mergeBundles([superBundle, subBundle], true);
+      bundles.splice(superBundleIndex, 1, mergedBundle);
+      const subBundleIndex = bundles.findIndex((b) => b === subBundle);
+      bundles.splice(subBundleIndex, 1);
+    }
+  }
 }
 
 /**
@@ -205,7 +263,7 @@ export function generateCountingSharedBundleUrlMapper(urlPrefix: ResolvedUrl):
       (sharedBundles: Bundle[]): ResolvedUrl[] => {
         let counter = 0;
         return sharedBundles.map(
-            (b) => `${urlPrefix}${++counter}.html` as ResolvedUrl);
+            (b) => `${urlPrefix}${++counter}${b.extname}` as ResolvedUrl);
       });
 }
 
@@ -243,9 +301,9 @@ export function generateSharedBundleUrlMapper(
     const urlMap = new Map<ResolvedUrl, Bundle>();
     const sharedBundles: Bundle[] = [];
     for (const bundle of bundles) {
-      const bundleEntrypoint = getBundleEntrypoint(bundle);
-      if (bundleEntrypoint) {
-        urlMap.set(bundleEntrypoint, bundle);
+      const bundleUrl = getBundleEntrypoint(bundle);
+      if (bundleUrl) {
+        urlMap.set(bundleUrl, bundle);
       } else {
         sharedBundles.push(bundle);
       }
@@ -299,8 +357,8 @@ export function generateShellMergeStrategy(
     generateMatchMergeStrategy((bundle) => {
       // ...contain the shell file
       return bundle.files.has(shell) ||
-          // or are dependencies of at least the minimum number of entrypoints
-          // and are not entrypoints themselves.
+          // or are dependencies of at least the minimum number of
+          // entrypoints and are not entrypoints themselves.
           bundle.entrypoints.size >= minEntrypoints &&
           !getBundleEntrypoint(bundle);
     }),
@@ -329,14 +387,17 @@ export function generateNoBackLinkStrategy(urls: ResolvedUrl[]):
 
 /**
  * Given an Array of bundles, produce a single bundle with the entrypoints and
- * files of all bundles represented.
+ * files of all bundles represented.  By default, bundles of different types
+ * can not be merged, but this constraint can be skipped by providing
+ * `ignoreTypeCheck` argument with value `true`.
  */
-export function mergeBundles(bundles: Bundle[]): Bundle {
+export function mergeBundles(
+    bundles: Bundle[], ignoreTypeCheck: boolean = false): Bundle {
   if (bundles.length === 0) {
     throw new Error('Can not merge 0 bundles.');
   }
   const bundleTypes = uniq(bundles, (b: Bundle) => b.type);
-  if (bundleTypes.size > 1) {
+  if (!ignoreTypeCheck && bundleTypes.size > 1) {
     throw new Error(
         'Can not merge bundles of different types: ' +
         [...bundleTypes].join(' and '));
@@ -364,19 +425,26 @@ export function mergeBundles(bundles: Bundle[]): Bundle {
 }
 
 /**
- * Return a new bundle array where all bundles within it matching the predicate
- * are merged.
+ * Return a new bundle array where bundles within it matching the predicate
+ * are merged together.  Note that merge operations are segregated by type so
+ * that no attempt to merge bundles of different types will occur.
  */
 export function mergeMatchingBundles(
     bundles: Bundle[], predicate: (bundle: Bundle) => boolean): Bundle[] {
   const newBundles = Array.from(bundles);
   const bundlesToMerge = newBundles.filter(predicate);
-  if (bundlesToMerge.length > 1) {
-    for (const bundle of bundlesToMerge) {
-      newBundles.splice(newBundles.indexOf(bundle), 1);
-    }
-    newBundles.push(mergeBundles(bundlesToMerge));
-  }
+
+  [...new Set(bundlesToMerge.map((b) => b.type))].sort().forEach(
+      (bundleType) => {
+        const bundlesToMergeForType =
+            bundlesToMerge.filter((b) => b.type === bundleType);
+        if (bundlesToMergeForType.length > 1) {
+          for (const bundle of bundlesToMergeForType) {
+            newBundles.splice(newBundles.indexOf(bundle), 1);
+          }
+          newBundles.push(mergeBundles(bundlesToMergeForType));
+        }
+      });
   return newBundles;
 }
 
@@ -392,6 +460,20 @@ function getBundleEntrypoint(bundle: Bundle): ResolvedUrl|null {
     }
   }
   return null;
+}
+
+/**
+ * Generally bundle types are determined by the file extension of the URL,
+ * though in the case of sub-bundles, the bundle type is the last segment of the
+ * `>` delimited URL.
+ */
+function getBundleTypeForUrl(url: ResolvedUrl): BundleType {
+  const segments = url.split('>');
+  if (segments.length === 1) {
+    const extname = getFileExtension(segments[0]);
+    return extname === '.js' ? 'es6-module' : 'html-fragment';
+  }
+  return segments.pop()! as BundleType;
 }
 
 /**

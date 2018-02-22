@@ -31,6 +31,14 @@ export function ensureTrailingSlash<T>(href: T): T {
 }
 
 /**
+ * Parses the URL and returns the extname of the path.
+ */
+export function getFileExtension(url_: string): string {
+  const uri = Uri.parse(url_);
+  return path.extname(uri.path);
+}
+
+/**
  * Returns a WHATWG ResolvedURL for a filename on local filesystem.
  */
 export function getFileUrl(filename: string): ResolvedUrl {
