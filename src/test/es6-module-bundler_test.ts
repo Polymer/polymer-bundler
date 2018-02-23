@@ -16,9 +16,78 @@
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import {assert} from 'chai';
 
+import {Bundle, mergeBundles} from '../bundle-manifest';
+import {Bundler} from '../bundler';
+import {Es6ModuleBundler} from '../es6-module-bundler';
+import {heredoc} from './test-utils';
+
 suite('Es6ModuleBundler', () => {
 
-  test('look at me', () => {
-    assert.equal(1, 1);
+  test('inline modules', async () => {
+    const root = 'test/html/imports/es6-modules';
+    const bundler = new Bundler();
+    const multipleInlineBundlesUrl =
+        bundler.analyzer.resolveUrl(`${root}/multiple-inline-modules.html`)!;
+    const sharedBundleUrl = bundler.analyzer.resolveUrl(`shared_bundle_1.js`)!;
+    const abcUrl = bundler.analyzer.resolveUrl(`${root}/abc.js`)!;
+    const defUrl = bundler.analyzer.resolveUrl(`${root}/def.js`)!;
+    const manifest = await bundler.generateManifest([multipleInlineBundlesUrl]);
+    const multipleInlineBundlesBundle =
+        manifest.getBundleForFile(multipleInlineBundlesUrl)!;
+    const sharedBundle = {
+      url: sharedBundleUrl,
+      bundle: manifest.bundles.get(sharedBundleUrl)!
+    };
+    assert.deepEqual(manifest.getBundleForFile(abcUrl)!, sharedBundle);
+    assert.deepEqual(
+        manifest.getBundleForFile(defUrl)!, multipleInlineBundlesBundle);
+    const sharedBundleBundler =
+        new Es6ModuleBundler(bundler, sharedBundle, manifest);
+    const sharedBundleDocument = await sharedBundleBundler.bundle();
+    assert.deepEqual(sharedBundleDocument.content, heredoc`
+      function upcase(str) {
+        return str.toUpperCase();
+      }
+
+      const A = upcase('a');
+      const B = upcase('b');
+      const C = upcase('c');
+
+      const X = upcase('x');
+      const Y = upcase('y');
+      const Z = upcase('z');
+
+      export { A, B, C, upcase, X, Y, Z };
+    `);
+  });
+
+  test('name conflict in shared bundle', async () => {
+    const root = 'test/html/imports/es6-modules';
+    const bundler = new Bundler();
+    bundler.strategy = (bundles: Bundle[]) => [mergeBundles(bundles)];
+    const sharedBundleUrl = bundler.analyzer.resolveUrl(`shared_bundle_1.js`)!;
+    const xyzUrl = bundler.analyzer.resolveUrl(`${root}/xyz.js`)!;
+    const omgzUrl = bundler.analyzer.resolveUrl(`${root}/omgz.js`)!;
+    const manifest = await bundler.generateManifest([xyzUrl, omgzUrl]);
+    const sharedBundle = {
+      url: sharedBundleUrl,
+      bundle: manifest.bundles.get(sharedBundleUrl)!
+    };
+    const sharedBundleBundler =
+        new Es6ModuleBundler(bundler, sharedBundle, manifest);
+    const sharedBundleDocument = await sharedBundleBundler.bundle();
+    assert.deepEqual(sharedBundleDocument.content, heredoc`
+      function upcase(str) {
+        return str.toUpperCase();
+      }
+
+      const Z = upcase('omgz');
+
+      const X = upcase('x');
+      const Y = upcase('y');
+      const Z$1 = upcase('z');
+
+      export { Z, upcase, X, Y, Z$1 };
+    `);
   });
 });
