@@ -22,12 +22,13 @@ import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import constants from './constants';
 import {BundledDocument} from './document-collection';
+import {Es6Rewriter} from './es6-module-utils';
 import * as matchers from './matchers';
 import {findAncestor, insertAfter, insertAllBefore, inSourceOrder, isSameNode, prepend, removeElementAndNewline, siblingsAfter, stripComments} from './parse5-utils';
 import {addOrUpdateSourcemapComment} from './source-map';
 import {updateSourcemapLocations} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
-import {ensureTrailingSlash, isTemplatedUrl, rewriteHrefBaseUrl, stripUrlFileSearchAndHash} from './url-utils';
+import {ensureTrailingSlash, getFileExtension, isTemplatedUrl, rewriteHrefBaseUrl, stripUrlFileSearchAndHash} from './url-utils';
 import {find} from './utils';
 
 export class HtmlBundler {
@@ -43,8 +44,8 @@ export class HtmlBundler {
     this.document = await this._prepareBundleDocument();
     let ast = clone(this.document.parsedDocument.ast);
     dom5.removeFakeRootElements(ast);
-    this._injectHtmlImportsForBundle(ast);
     this._rewriteAstToEmulateBaseTag(ast, this.assignedBundle.url);
+    this._injectHtmlImportsForBundle(ast);
 
     // Re-analyzing the document using the updated ast to refresh the scanned
     // imports, since we may now have appended some that were not initially
@@ -57,6 +58,11 @@ export class HtmlBundler {
 
     if (this.bundler.enableScriptInlining) {
       await this._inlineScripts(ast);
+      this.document = await this.bundler.analyzeContents(
+          this.assignedBundle.url, serialize(ast));
+      ast = this.document.parsedDocument.ast;
+      dom5.removeFakeRootElements(ast);
+      await this._rollupInlineScripts();
     }
     if (this.bundler.enableCssInlining) {
       await this._inlineStylesheetLinks(ast);
@@ -186,10 +192,14 @@ export class HtmlBundler {
               ...existingImport.document.getFeatures(
                   {kind: 'html-import', imported: true, noLazyImports: true})
             ].filter((i) => !i.lazy).map((feature) => feature.document.url)]));
-
-    // Every file in the bundle is a candidate for injection into the
+    // Every HTML file in the bundle is a candidate for injection into the
     // document.
     for (const importUrl of this.assignedBundle.bundle.files) {
+      // We only want to inject an HTML import to an HTML file.
+      if (getFileExtension(importUrl) !== '.html') {
+        continue;
+      }
+
       // We don't want to inject the bundle into itself.
       if (this.assignedBundle.url === importUrl) {
         continue;
@@ -209,8 +219,8 @@ export class HtmlBundler {
       // bundle.
       for (const existingImport of existingImports.filter(
                (e) => !this.assignedBundle.bundle.files.has(e.document.url))) {
-        // If the existing import has a dependency on the import we are about
-        // to inject, it may be our new target.
+        // If the existing import has a dependency on the import we are
+        // about to inject, it may be our new target.
         if (existingImportDependencies.get(existingImport.document.url)!
                 .indexOf(importUrl) !== -1) {
           const newPrependTarget = dom5.query(
@@ -408,7 +418,6 @@ export class HtmlBundler {
       return;
     }
 
-    // Second argument 'true' tells encodeString to escape <script> tags.
     let scriptContent = scriptImport.document.parsedDocument.contents;
 
     if (this.bundler.sourcemaps) {
@@ -426,6 +435,7 @@ export class HtmlBundler {
     }
 
     dom5.removeAttribute(scriptTag, 'src');
+    // Second argument 'true' tells encodeString to escape the <script> content.
     dom5.setTextContent(scriptTag, encodeString(scriptContent, true));
 
     // Record that the inlining took place.
@@ -788,6 +798,31 @@ export class HtmlBundler {
       styleText =
           this._rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);
       dom5.setTextContent(node, styleText);
+    }
+  }
+
+  private async _rollupInlineScripts() {
+    const es6Rewriter =
+        new Es6Rewriter(this.bundler, this.manifest, this.assignedBundle);
+    const inlineModuleScripts =
+        [...this.document.getFeatures({
+          kind: 'js-document',
+          imported: false,
+          externalPackages: true,
+          excludeBackreferences: true,
+        })]
+            .filter(
+                (f) => f.isInline &&
+                    f.parsedDocument.parsedAsSourceType === 'module');
+    for (const inlineModuleScript of inlineModuleScripts) {
+      const {code} = await es6Rewriter.rollup(
+          this.document.parsedDocument.baseUrl,
+          inlineModuleScript.parsedDocument.contents);
+      // Second argument 'true' tells encodeString to escape the <script>
+      // content.
+      dom5.setTextContent(
+          (inlineModuleScript.astNode as any).node,
+          encodeString(`\n${code}\n`, true));
     }
   }
 

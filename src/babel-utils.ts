@@ -24,6 +24,12 @@ export function getParentNode(root: babel.Node, node: babel.Node): babel.Node|
   return parent;
 }
 
+export function getNodeValue(node: babel.Node): string|undefined {
+  if (babel.isStringLiteral(node)) {
+    return node.value;
+  }
+}
+
 /**
  * Parse the module with babylon and return a babel.Node
  */

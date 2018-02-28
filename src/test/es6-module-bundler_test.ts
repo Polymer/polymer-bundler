@@ -57,11 +57,10 @@ suite('Es6ModuleBundler', () => {
       const Y = upcase('y');
       const Z = upcase('z');
 
-      export { A, B, C, upcase, X, Y, Z };
-    `);
+      export { A, B, C, upcase, X, Y, Z };`);
   });
 
-  test('name conflict in shared bundle', async () => {
+  test('resolving name conflict in a shared bundle', async () => {
     const root = 'test/html/imports/es6-modules';
     const bundler = new Bundler();
     bundler.strategy = (bundles: Bundle[]) => [mergeBundles(bundles)];
@@ -87,7 +86,6 @@ suite('Es6ModuleBundler', () => {
       const Y = upcase('y');
       const Z$1 = upcase('z');
 
-      export { Z, upcase, X, Y, Z$1 };
-    `);
+      export { Z, upcase, X, Y, Z$1 };`);
   });
 });

@@ -18,8 +18,9 @@ import * as bundleManifestLib from './bundle-manifest';
 import {Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-manifest';
 import * as depsIndexLib from './deps-index';
 import {BundledDocument, DocumentCollection} from './document-collection';
+import {Es6ModuleBundler} from './es6-module-bundler';
 import {HtmlBundler} from './html-bundler';
-import {resolvePath} from './url-utils';
+import {getFileExtension, resolvePath} from './url-utils';
 
 export * from './bundle-manifest';
 
@@ -110,11 +111,23 @@ export class Bundler {
    * Analyze a URL using the given contents in place of what would otherwise
    * have been loaded.
    */
-  async analyzeContents(url: ResolvedUrl, contents: string): Promise<Document> {
+  async analyzeContents(
+      url: ResolvedUrl,
+      contents: string,
+      permanent?: boolean): Promise<Document> {
     this._overlayUrlLoader.urlContentsMap.set(url, contents);
     await this.analyzer.filesChanged([url]);
     const analysis = await this.analyzer.analyze([url]);
-    return getAnalysisDocument(analysis, url);
+    const document = getAnalysisDocument(analysis, url);
+    // Unless we explicitly want to make this analysis permanent, we remove the
+    // entry from the overlay and tell analyzer to forget what it just analyzed.
+    // This is because logic in many parts of the bundler assume the documents
+    // and features will be of the original content.
+    if (!permanent) {
+      this._overlayUrlLoader.urlContentsMap.delete(url);
+      await this.analyzer.filesChanged([url]);
+    }
+    return document;
   }
 
   /**
@@ -132,9 +145,15 @@ export class Bundler {
     for (const bundleEntry of manifest.bundles) {
       const bundleUrl = bundleEntry[0];
       const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-      if (bundle.url.endsWith('.html')) {
+      const extname = getFileExtension(bundle.url);
+      if (extname === '.html') {
         documents.set(
             bundleUrl, await(new HtmlBundler(this, bundle, manifest).bundle()));
+      }
+      if (extname === '.js') {
+        documents.set(
+            bundleUrl,
+            await(new Es6ModuleBundler(this, bundle, manifest).bundle()));
       }
     }
 

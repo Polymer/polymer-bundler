@@ -20,7 +20,10 @@ export function heredoc(
       buildAString += values.shift();
     }
   }
-  return undent(buildAString).trim() + '\n';
+  buildAString = undent(buildAString);
+  // Remove first blank line.
+  buildAString = buildAString.replace(/^ *\n/, '');
+  return buildAString;
 }
 
 export function mindent(text: string): number {
