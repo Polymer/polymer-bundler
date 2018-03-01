@@ -19,6 +19,7 @@ import {Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-
 import * as depsIndexLib from './deps-index';
 import {BundledDocument, DocumentCollection} from './document-collection';
 import {Es6ModuleBundler} from './es6-module-bundler';
+import {getBundleModuleExportName, getModuleExportNames} from './es6-module-utils';
 import {HtmlBundler} from './html-bundler';
 import {getFileExtension, resolvePath} from './url-utils';
 
@@ -142,18 +143,30 @@ export class Bundler {
         new Map<ResolvedUrl, BundledDocument>();
     manifest = manifest.fork();
 
-    for (const bundleEntry of manifest.bundles) {
-      const bundleUrl = bundleEntry[0];
-      const bundle = {url: bundleUrl, bundle: bundleEntry[1]};
-      const extname = getFileExtension(bundle.url);
-      if (extname === '.html') {
-        documents.set(
-            bundleUrl, await(new HtmlBundler(this, bundle, manifest).bundle()));
+    for (const [url, bundle] of manifest.bundles) {
+      if (getFileExtension(url) === '.js' && bundle.files.has(url)) {
+        const document =
+            getAnalysisDocument(await this.analyzer.analyze([url]), url);
+        for (const exportName of getModuleExportNames(
+                 document.parsedDocument.ast as any)) {
+          getBundleModuleExportName({url, bundle}, url, exportName);
+        }
       }
-      if (extname === '.js') {
-        documents.set(
-            bundleUrl,
-            await(new Es6ModuleBundler(this, bundle, manifest).bundle()));
+    }
+    for (const [url, bundle] of manifest.bundles) {
+      const assignedBundle = {url, bundle};
+      switch (getFileExtension(url)) {
+        case '.html':
+          documents.set(
+              url,
+              await(new HtmlBundler(this, assignedBundle, manifest).bundle()));
+          break;
+        case '.js':
+          documents.set(
+              url,
+              await(new Es6ModuleBundler(this, assignedBundle, manifest)
+                        .bundle()));
+          break;
       }
     }
 

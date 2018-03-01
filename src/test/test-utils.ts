@@ -11,6 +11,8 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
+import {Analyzer, InMemoryOverlayUrlLoader, PackageRelativeUrl, PackageUrlResolver} from 'polymer-analyzer';
+
 export function heredoc(
     strings: TemplateStringsArray, ...values: any[]): string {
   let buildAString = '';
@@ -39,4 +41,19 @@ export function mindent(text: string): number {
 
 export function undent(text: string): string {
   return text.replace(new RegExp(`^ {0,${mindent(text)}}`, 'mg'), '');
+}
+
+export function inMemoryAnalyzer(files: {[key: string]: string}) {
+  const inMemoryLoader = new InMemoryOverlayUrlLoader();
+  const urlResolver = new PackageUrlResolver({packageDir: '/memory/'});
+  for (const packageUrl in files) {
+    if (!files.hasOwnProperty(packageUrl)) {
+      continue;
+    }
+    const content = files[packageUrl];
+    const resolvedUrl = urlResolver.resolve(packageUrl as PackageRelativeUrl)!;
+    inMemoryLoader.urlContentsMap.set(resolvedUrl, heredoc`${content}`);
+  }
+  const analyzer = new Analyzer({urlLoader: inMemoryLoader, urlResolver});
+  return analyzer;
 }

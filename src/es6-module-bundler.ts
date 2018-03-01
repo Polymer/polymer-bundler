@@ -14,11 +14,10 @@
 import {Document} from 'polymer-analyzer';
 
 import {getAnalysisDocument} from './analyzer-utils';
-// import {serialize} from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {BundledDocument} from './document-collection';
-import {Es6Rewriter, getBundleModuleExportName, getModuleExportNames} from './es6-module-utils';
+import {Es6Rewriter, getBundleModuleExportName, getModuleExportNames, hasDefaultModuleExport} from './es6-module-utils';
 
 export class Es6ModuleBundler {
   document: Document;
@@ -69,15 +68,29 @@ export class Es6ModuleBundler {
         // TODO(usergenic): Use babel AST to build the source document instead
         // of string concatenation, to handle special cases of names that might
         // break syntax otherwise.
-        bundleSource += 'export {' +
-            [...moduleExports]
-                .map((e) => {
-                  const exportName = getBundleModuleExportName(
-                      this.assignedBundle, sourceUrl, e);
-                  return e === exportName ? e : `${e} as ${exportName}`;
-                })
-                .join(', ') +
-            '} from \'' + rebasedSourceUrl + '\';\n';
+        if (moduleExports.size > 0) {
+          const starExportName =
+              getBundleModuleExportName(this.assignedBundle, sourceUrl, '*');
+          bundleSource +=
+              `import * as ${starExportName} from '${rebasedSourceUrl}';\n` +
+              `export {${starExportName}};\n`;
+          bundleSource += 'export {' +
+              [...moduleExports]
+                  .map((e) => {
+                    const exportName = getBundleModuleExportName(
+                        this.assignedBundle, sourceUrl, e);
+                    return e === exportName ? e : `${e} as ${exportName}`;
+                  })
+                  .join(', ') +
+              `} from '${rebasedSourceUrl}';\n`;
+        }
+        if (hasDefaultModuleExport(moduleDocument.ast)) {
+          const defaultExportName = getBundleModuleExportName(
+              this.assignedBundle, sourceUrl, 'default');
+          bundleSource +=
+              `import ${defaultExportName} from '${rebasedSourceUrl}';\n` +
+              `export {${defaultExportName}};\n`;
+        }
       }
       return this.bundler.analyzeContents(
           this.assignedBundle.url, bundleSource);
@@ -85,6 +98,18 @@ export class Es6ModuleBundler {
     const analysis =
         await this.bundler.analyzer.analyze([this.assignedBundle.url]);
     const document = getAnalysisDocument(analysis, this.assignedBundle.url);
+    const ast = document.parsedDocument.ast;
+    const exportNames = getModuleExportNames(ast);
+    const exportNamesMap = new Map();
+    for (const name of exportNames) {
+      exportNamesMap.set(name, name);
+    }
+    if (hasDefaultModuleExport(ast)) {
+      exportNamesMap.set('default', 'default');
+    }
+    exportNamesMap.set('*', '*');
+    this.assignedBundle.bundle.bundledExports.set(
+        this.assignedBundle.url, exportNamesMap);
     return document;
   }
 }

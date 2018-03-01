@@ -20,6 +20,7 @@ import {getAnalysisDocument} from './analyzer-utils';
 import {getNodeValue, parseModuleFile, serialize} from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
+import {ensureLeadingDot} from './url-utils';
 
 /**
  * Looks up and/or defines the unique name for an item exported with the given
@@ -27,6 +28,12 @@ import {Bundler} from './bundler';
  */
 export function getBundleModuleExportName(
     bundle: AssignedBundle, moduleUrl: ResolvedUrl, name: string): string {
+  let basisBundle = false;
+  // When the bundle contains a file with same URL as the bundle, then that
+  // module's exports will remain unchanged.
+  if (bundle.bundle.files.has(bundle.url) && moduleUrl === bundle.url) {
+    basisBundle = true;
+  }
   let moduleExports = bundle.bundle.bundledExports.get(moduleUrl);
   const bundledExports = bundle.bundle.bundledExports;
   if (!moduleExports) {
@@ -36,6 +43,11 @@ export function getBundleModuleExportName(
   let exportName = moduleExports.get(name);
   if (!exportName) {
     let trialName = name;
+    if (!basisBundle) {
+      trialName = trialName.replace(/^default$/, '$default')
+                      .replace(/^\*$/, '$all')
+                      .replace(/[^a-z0-9_]/gi, '$');
+    }
     while (!exportName) {
       if ([...bundledExports.values()].every(
               (map) => [...map.values()].indexOf(trialName) === -1)) {
@@ -51,6 +63,20 @@ export function getBundleModuleExportName(
     moduleExports.set(name, exportName);
   }
   return exportName;
+}
+
+export function hasDefaultModuleExport(node: babel.Node): boolean {
+  let hasDefaultModuleExport = false;
+  traverse(node, {
+    noScope: true,
+    ExportDefaultDeclaration: {
+      enter(path: NodePath) {
+        hasDefaultModuleExport = true;
+        path.stop();
+      }
+    }
+  });
+  return hasDefaultModuleExport;
 }
 
 export function getModuleExportNames(node: babel.Node): Set<string> {
@@ -136,7 +162,7 @@ export class Es6Rewriter {
                        importee as PackageRelativeUrl)! as string;
           },
           load: (id: ResolvedUrl) => {
-            if (this.bundle.url === id) {
+            if (url === id) {
               return code;
             }
             if (this.bundle.bundle.files.has(id)) {
@@ -147,42 +173,93 @@ export class Es6Rewriter {
       ],
       experimentalDynamicImport: true,
     });
-    const {code: rolledUpCode} = await rollupBundle.generate({format: 'es'});
+    const {code: rolledUpCode} = await rollupBundle.generate({
+      format: 'es',
+      freeze: false,
+    });
     const babelFile = parseModuleFile(url, rolledUpCode);
-    this._rewriteJsImportStatements(url, babelFile);
+    this._rewriteImportStatements(url, babelFile);
     const {code: rewrittenCode} = serialize(babelFile);
     return {code: rewrittenCode, map: undefined};
   }
 
-  private _rewriteJsImportStatements(baseUrl: ResolvedUrl, node: babel.Node) {
-    const {bundler, manifest} = this;
+  private _rewriteImportStatements(baseUrl: ResolvedUrl, node: babel.Node) {
+    const this_ = this;
     traverse(node, {
       noScope: true,
       ImportDeclaration: {
         enter(path: NodePath) {
           const importDeclaration = path.node as babel.ImportDeclaration;
           const source = getNodeValue(importDeclaration.source) as ResolvedUrl;
-          const importBundle = manifest.getBundleForFile(source);
+          const sourceBundle = this_.manifest.getBundleForFile(source);
           // If there is no import bundle, then this URL is not bundled (maybe
           // excluded or something) so we should just ensure the URL is
           // converted back to a relative URL.
-          if (!importBundle) {
+          if (!sourceBundle) {
             importDeclaration.source.value =
-                bundler.analyzer.urlResolver.relative(baseUrl, source);
+                this_.bundler.analyzer.urlResolver.relative(baseUrl, source);
             return;
           }
           for (const specifier of importDeclaration.specifiers) {
             if (babel.isImportSpecifier(specifier)) {
-              const originalExportName = specifier.imported.name;
-              const exportName = getBundleModuleExportName(
-                  importBundle, source, originalExportName);
-              specifier.imported.name = exportName;
+              this_._rewriteImportSpecifierName(
+                  specifier, source, sourceBundle);
+            }
+            if (babel.isImportDefaultSpecifier(specifier)) {
+              this_._rewriteImportDefaultSpecifier(
+                  specifier, source, sourceBundle);
+            }
+            if (babel.isImportNamespaceSpecifier(specifier)) {
+              this_._rewriteImportNamespaceSpecifier(
+                  specifier, source, sourceBundle);
             }
           }
           importDeclaration.source.value =
-              bundler.analyzer.urlResolver.relative(baseUrl, importBundle.url);
+              ensureLeadingDot(this_.bundler.analyzer.urlResolver.relative(
+                  baseUrl, sourceBundle.url));
         }
       }
     });
+  }
+
+  private _rewriteImportSpecifierName(
+      specifier: babel.ImportSpecifier,
+      source: ResolvedUrl,
+      sourceBundle: AssignedBundle) {
+    const originalExportName = specifier.imported.name;
+    const exportName =
+        getBundleModuleExportName(sourceBundle, source, originalExportName);
+    specifier.imported.name = exportName;
+  }
+
+  private _rewriteImportDefaultSpecifier(
+      specifier: babel.ImportDefaultSpecifier,
+      source: ResolvedUrl,
+      sourceBundle: AssignedBundle) {
+    const exportName =
+        getBundleModuleExportName(sourceBundle, source, 'default');
+    // No rewrite necessary if default is the name
+    if (exportName === 'default') {
+      return;
+    }
+    const importSpecifier = specifier as any as babel.ImportSpecifier;
+    Object.assign(
+        importSpecifier,
+        {type: 'ImportSpecifier', imported: babel.identifier(exportName)});
+  }
+
+  private _rewriteImportNamespaceSpecifier(
+      specifier: babel.ImportNamespaceSpecifier,
+      source: ResolvedUrl,
+      sourceBundle: AssignedBundle) {
+    const exportName = getBundleModuleExportName(sourceBundle, source, '*');
+    // No rewrite necessary if * is the name
+    if (exportName === '*') {
+      return;
+    }
+    const importSpecifier = specifier as any as babel.ImportSpecifier;
+    Object.assign(
+        importSpecifier,
+        {type: 'ImportSpecifier', imported: babel.identifier(exportName)});
   }
 }

@@ -22,6 +22,19 @@ import {FileRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
 import Uri from 'vscode-uri';
 
 /**
+ * Given a string representing a relative path of some form, ensure a `./`
+ * leader if it doesn't already start with dot-based path leader.
+ */
+export function ensureLeadingDot<T>(href: T): T {
+  const hrefString = href as any as string;
+  if (!Uri.parse(hrefString).scheme &&
+      !(hrefString.startsWith('./') || hrefString.startsWith('../'))) {
+    return './' + href as any as T;
+  }
+  return href;
+}
+
+/**
  * Given a string representing a URL or path of some form, append a `/`
  * character if it doesn't already end with one.
  */
