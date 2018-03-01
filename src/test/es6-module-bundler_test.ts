@@ -49,15 +49,31 @@ suite('Es6ModuleBundler', () => {
         return str.toUpperCase();
       }
 
+      var upcase$1 = {
+        upcase: upcase
+      };
+
       const A = upcase('a');
       const B = upcase('b');
       const C = upcase('c');
+
+      var abc = {
+        A: A,
+        B: B,
+        C: C
+      };
 
       const X = upcase('x');
       const Y = upcase('y');
       const Z = upcase('z');
 
-      export { A, B, C, upcase, X, Y, Z };`);
+      var xyz = {
+        X: X,
+        Y: Y,
+        Z: Z
+      };
+
+      export { abc as $all, upcase$1 as $all$1, xyz as $all$2, A, B, C, upcase, X, Y, Z };`);
   });
 
   test('resolving name conflict in a shared bundle', async () => {
@@ -80,12 +96,26 @@ suite('Es6ModuleBundler', () => {
         return str.toUpperCase();
       }
 
+      var upcase$1 = {
+        upcase: upcase
+      };
+
       const Z = upcase('omgz');
+
+      var omgz = {
+        Z: Z
+      };
 
       const X = upcase('x');
       const Y = upcase('y');
       const Z$1 = upcase('z');
 
-      export { Z, upcase, X, Y, Z$1 };`);
+      var xyz = {
+        X: X,
+        Y: Y,
+        Z: Z$1
+      };
+
+      export { omgz as $all, upcase$1 as $all$1, xyz as $all$2, Z, upcase, X, Y, Z$1 };`);
   });
 });

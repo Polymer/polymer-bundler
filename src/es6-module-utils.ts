@@ -13,7 +13,7 @@
  */
 import traverse, {NodePath} from 'babel-traverse';
 import * as babel from 'babel-types';
-import {FileRelativeUrl, PackageRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
+import {Analyzer, FileRelativeUrl, PackageRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
 import {rollup} from 'rollup';
 
 import {getAnalysisDocument} from './analyzer-utils';
@@ -123,6 +123,24 @@ function getModuleExportIdentifiers(...nodes: babel.Node[]): string[] {
     }
   }
   return identifiers;
+}
+
+export async function reserveBundleModuleExportNames(
+    analyzer: Analyzer, manifest: BundleManifest) {
+  const es6ModuleBundles =
+      [...manifest.bundles]
+          .map(([url, bundle]) => ({url, bundle}))
+          .filter(({bundle}) => bundle.type === 'es6-module');
+  const analysis = await analyzer.analyze(es6ModuleBundles.map(({url}) => url));
+  for (const {url, bundle} of es6ModuleBundles) {
+    if (bundle.files.has(url)) {
+      const document = getAnalysisDocument(analysis, url);
+      for (const exportName of getModuleExportNames(
+               document.parsedDocument.ast as any)) {
+        getBundleModuleExportName({url, bundle}, url, exportName);
+      }
+    }
+  }
 }
 
 /**

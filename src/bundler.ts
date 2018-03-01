@@ -19,9 +19,9 @@ import {Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-
 import * as depsIndexLib from './deps-index';
 import {BundledDocument, DocumentCollection} from './document-collection';
 import {Es6ModuleBundler} from './es6-module-bundler';
-import {getBundleModuleExportName, getModuleExportNames} from './es6-module-utils';
+import {reserveBundleModuleExportNames} from './es6-module-utils';
 import {HtmlBundler} from './html-bundler';
-import {getFileExtension, resolvePath} from './url-utils';
+import {resolvePath} from './url-utils';
 
 export * from './bundle-manifest';
 
@@ -143,25 +143,17 @@ export class Bundler {
         new Map<ResolvedUrl, BundledDocument>();
     manifest = manifest.fork();
 
-    for (const [url, bundle] of manifest.bundles) {
-      if (getFileExtension(url) === '.js' && bundle.files.has(url)) {
-        const document =
-            getAnalysisDocument(await this.analyzer.analyze([url]), url);
-        for (const exportName of getModuleExportNames(
-                 document.parsedDocument.ast as any)) {
-          getBundleModuleExportName({url, bundle}, url, exportName);
-        }
-      }
-    }
+    reserveBundleModuleExportNames(this.analyzer, manifest);
+
     for (const [url, bundle] of manifest.bundles) {
       const assignedBundle = {url, bundle};
-      switch (getFileExtension(url)) {
-        case '.html':
+      switch (bundle.type) {
+        case 'html-fragment':
           documents.set(
               url,
               await(new HtmlBundler(this, assignedBundle, manifest).bundle()));
           break;
-        case '.js':
+        case 'es6-module':
           documents.set(
               url,
               await(new Es6ModuleBundler(this, assignedBundle, manifest)
