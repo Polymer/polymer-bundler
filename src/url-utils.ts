@@ -59,9 +59,6 @@ export function getFileName(url_: string): string {
 }
 
 /**
- * Parses the URL and just returns the d
- */
-/**
  * Returns a WHATWG ResolvedURL for a filename on local filesystem.
  */
 export function getFileUrl(filename: string): ResolvedUrl {
