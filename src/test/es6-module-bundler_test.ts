@@ -73,7 +73,7 @@ suite('Es6ModuleBundler', () => {
         Z: Z
       };
 
-      export { abc as $all, upcase$1 as $all$1, xyz as $all$2, A, B, C, upcase, X, Y, Z };`);
+      export { abc as $abc, upcase$1 as $upcase, xyz as $xyz, A, B, C, upcase, X, Y, Z };`);
   });
 
   test('resolving name conflict in a shared bundle', async () => {
@@ -116,6 +116,6 @@ suite('Es6ModuleBundler', () => {
         Z: Z$1
       };
 
-      export { omgz as $all, upcase$1 as $all$1, xyz as $all$2, Z, upcase, X, Y, Z$1 };`);
+      export { omgz as $omgz, upcase$1 as $upcase, xyz as $xyz, Z, upcase, X, Y, Z$1 };`);
   });
 });

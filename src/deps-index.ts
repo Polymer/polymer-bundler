@@ -140,10 +140,11 @@ function getDependencies(
     // by their import statements.
     if (document.kinds.has('js-document')) {
       _getImportDependencies(
-          [...document.getFeatures({kind: 'js-import', ...getFeaturesOptions})]
-              .filter(
-                  (d) => (d.document.parsedDocument as JavaScriptDocument)
-                             .parsedAsSourceType === 'module'),
+          // TODO(usergenic): We should be able to filter here on:
+          // `.filter((d) => d.parsedAsSourceType === 'module')`
+          // here, but Analyzer wont report that if there are no
+          // import/export statements in the imported file.
+          document.getFeatures({kind: 'js-import', ...getFeaturesOptions}),
           viaEager);
     }
   }

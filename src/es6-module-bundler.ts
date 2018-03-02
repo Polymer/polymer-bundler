@@ -18,6 +18,7 @@ import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {BundledDocument} from './document-collection';
 import {Es6Rewriter, getBundleModuleExportName, getModuleExportNames, hasDefaultModuleExport} from './es6-module-utils';
+import {stripUrlFileSearchAndHash} from './url-utils';
 
 export class Es6ModuleBundler {
   document: Document;
@@ -51,14 +52,15 @@ export class Es6ModuleBundler {
    * JS document.
    */
   private async _prepareBundleDocument(): Promise<Document> {
-    if (!this.assignedBundle.bundle.files.has(this.assignedBundle.url)) {
+    if (!this.assignedBundle.bundle.files.has(this.assignedBundle.url) ||
+        'a'.match(/a/)) {
       let bundleSource = '';
       const sourceAnalysis = await this.bundler.analyzer.analyze(
           [...this.assignedBundle.bundle.files]);
       for (const sourceUrl of [...this.assignedBundle.bundle.files].sort()) {
         const rebasedSourceUrl = './' +
             this.bundler.analyzer.urlResolver.relative(
-                this.assignedBundle.url, sourceUrl);
+                stripUrlFileSearchAndHash(this.assignedBundle.url), sourceUrl);
         const result = sourceAnalysis.getDocument(sourceUrl);
         if (!result.successful) {
           continue;
@@ -68,12 +70,12 @@ export class Es6ModuleBundler {
         // TODO(usergenic): Use babel AST to build the source document instead
         // of string concatenation, to handle special cases of names that might
         // break syntax otherwise.
+        const starExportName =
+            getBundleModuleExportName(this.assignedBundle, sourceUrl, '*');
+        bundleSource +=
+            `import * as ${starExportName} from '${rebasedSourceUrl}';\n`;
         if (moduleExports.size > 0) {
-          const starExportName =
-              getBundleModuleExportName(this.assignedBundle, sourceUrl, '*');
-          bundleSource +=
-              `import * as ${starExportName} from '${rebasedSourceUrl}';\n` +
-              `export {${starExportName}};\n`;
+          bundleSource += `export {${starExportName}};\n`;
           bundleSource += 'export {' +
               [...moduleExports]
                   .map((e) => {

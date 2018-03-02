@@ -53,16 +53,17 @@ suite('HtmlBundler', () => {
       </script>
 
       <script type="module">
-      import { B, C } from '../../../../shared_bundle_1.js';
-      import { Y } from '../../../../shared_bundle_1.js';
+      import { B, C, Y } from '../../../../shared_bundle_1.js';
+
 
       console.log(B, C, Y);
       </script>
 
       <script type="module">
-      import { X, Z } from '../../../../shared_bundle_1.js';
+      import { X, Y, Z } from '../../../../shared_bundle_1.js';
 
       const D = X + X;
+      const E = Y + Y;
       const F = Z + Z;
 
       console.log(D, F);

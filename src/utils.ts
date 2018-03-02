@@ -27,6 +27,14 @@ export function find<T>(items: Iterable<T>, predicate: (item: T) => boolean): T|
 }
 
 /**
+ * Converts string like `abc-xyz__omg` to `abcXyzOmg`.
+ */
+export function camelCase(text: string): string {
+  return text.replace(
+      /([a-z0-9])[^a-z0-9]+([a-z])/gi, (m) => m[0] + m[2].toUpperCase());
+}
+
+/**
  * Returns a set of unique/distinct values returned by calling the given
  * function on each item.
  */

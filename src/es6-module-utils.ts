@@ -13,14 +13,16 @@
  */
 import traverse, {NodePath} from 'babel-traverse';
 import * as babel from 'babel-types';
+import * as clone from 'clone';
 import {Analyzer, FileRelativeUrl, PackageRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
 import {rollup} from 'rollup';
 
 import {getAnalysisDocument} from './analyzer-utils';
-import {getNodeValue, parseModuleFile, serialize} from './babel-utils';
+import {getNodePath, getNodeValue, parseModuleFile, rewriteNode, serialize} from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
-import {ensureLeadingDot} from './url-utils';
+import {ensureLeadingDot, getFileName} from './url-utils';
+import {camelCase} from './utils';
 
 /**
  * Looks up and/or defines the unique name for an item exported with the given
@@ -32,7 +34,7 @@ export function getBundleModuleExportName(
   // When the bundle contains a file with same URL as the bundle, then that
   // module's exports will remain unchanged.
   if (bundle.bundle.files.has(bundle.url) && moduleUrl === bundle.url) {
-    basisBundle = true;
+    //    basisBundle = true;
   }
   let moduleExports = bundle.bundle.bundledExports.get(moduleUrl);
   const bundledExports = bundle.bundle.bundledExports;
@@ -44,9 +46,12 @@ export function getBundleModuleExportName(
   if (!exportName) {
     let trialName = name;
     if (!basisBundle) {
-      trialName = trialName.replace(/^default$/, '$default')
-                      .replace(/^\*$/, '$all')
-                      .replace(/[^a-z0-9_]/gi, '$');
+      let moduleFileNameIdentifier =
+          '$' + camelCase(getFileName(moduleUrl).replace(/\.[a-z]+$/, ''));
+      trialName =
+          trialName.replace(/^default$/, `${moduleFileNameIdentifier}Default`)
+              .replace(/^\*$/, moduleFileNameIdentifier)
+              .replace(/[^a-z0-9_]/gi, '$');
     }
     while (!exportName) {
       if ([...bundledExports.values()].every(
@@ -155,6 +160,10 @@ export class Es6Rewriter {
   }
 
   async rollup(url: ResolvedUrl, code: string) {
+    // This is a synthetic module specifier used to identify the code to rollup
+    // and differentiate it from the a request to contents of the document at
+    // the actual given url which should load from the analyzer.
+    const input = '*bundle*';
     const analysis =
         await this.bundler.analyzer.analyze([...this.bundle.bundle.files]);
     const external: string[] = [];
@@ -164,23 +173,27 @@ export class Es6Rewriter {
       }
     }
     const rollupBundle = await rollup({
-      input: url,
+      input,
       external,
       onwarn: (warning: string) => {},
+      treeshake: false,
       plugins: [
         {
           name: 'analyzerPlugin',
           resolveId: (importee: string, importer?: string) => {
+            if (importee === input) {
+              return input;
+            }
             if (importer) {
               return this.bundler.analyzer.urlResolver.resolve(
-                         importer as ResolvedUrl,
+                         importer === input ? url : importer as ResolvedUrl,
                          importee as FileRelativeUrl)! as string;
             }
             return this.bundler.analyzer.urlResolver.resolve(
                        importee as PackageRelativeUrl)! as string;
           },
           load: (id: ResolvedUrl) => {
-            if (url === id) {
+            if (id === input) {
               return code;
             }
             if (this.bundle.bundle.files.has(id)) {
@@ -197,12 +210,59 @@ export class Es6Rewriter {
     });
     const babelFile = parseModuleFile(url, rolledUpCode);
     this._rewriteImportStatements(url, babelFile);
+    this._deduplicateImportStatements(babelFile);
     const {code: rewrittenCode} = serialize(babelFile);
     return {code: rewrittenCode, map: undefined};
   }
 
+  private _deduplicateImportStatements(node: babel.Node) {
+    const importDeclarations = new Map<string, babel.ImportDeclaration>();
+    traverse(node, {
+      noScope: true,
+      ImportDeclaration: {
+        enter(path: NodePath) {
+          const importDeclaration = path.node;
+          if (!babel.isImportDeclaration(importDeclaration)) {
+            return;
+          }
+          const source = getNodeValue(importDeclaration.source);
+          if (!source) {
+            return;
+          }
+          const hasNamespaceSpecifier = importDeclaration.specifiers.some(
+              (s) => babel.isImportNamespaceSpecifier(s));
+          const hasDefaultSpecifier = importDeclaration.specifiers.some(
+              (s) => babel.isImportDefaultSpecifier(s));
+          if (!importDeclarations.has(source) && !hasNamespaceSpecifier &&
+              !hasDefaultSpecifier) {
+            importDeclarations.set(source, importDeclaration);
+          } else if (importDeclarations.has(source)) {
+            const existingDeclaration = importDeclarations.get(source)!;
+            for (const specifier of importDeclaration.specifiers) {
+              existingDeclaration.specifiers.push(specifier);
+            }
+            path.remove();
+          }
+        }
+      }
+    });
+  }
+
   private _rewriteImportStatements(baseUrl: ResolvedUrl, node: babel.Node) {
     const this_ = this;
+    traverse(node, {
+      noScope: true,
+      // Dynamic import() syntax doesn't have full type support yet, so we
+      // have to use generic `enter` and walk all nodes unti that's fixed.
+      // TODO(usergenic): Switch this to the `Import: { enter }` style
+      // after dynamic imports fully supported.
+      enter(path: NodePath) {
+        if (path.node.type === 'Import') {
+          this_._rewriteDynamicImport(baseUrl, node, path.node);
+        }
+      },
+    });
+
     traverse(node, {
       noScope: true,
       ImportDeclaration: {
@@ -240,6 +300,75 @@ export class Es6Rewriter {
     });
   }
 
+  private _rewriteDynamicImport(
+      baseUrl: ResolvedUrl,
+      root: babel.Node,
+      importNode: babel.Node) {
+    const importNodePath = getNodePath(root, importNode);
+    if (!importNodePath) {
+      return;
+    }
+    const importCallExpression = importNodePath.parent;
+    if (!importCallExpression ||
+        !babel.isCallExpression(importCallExpression)) {
+      return;
+    }
+    const importCallArgument = importCallExpression.arguments[0];
+    if (!babel.isStringLiteral(importCallArgument)) {
+      return;
+    }
+    const sourceUrl = importCallArgument.value;
+    const resolvedSourceUrl = this.bundler.analyzer.urlResolver.resolve(
+        baseUrl, sourceUrl as FileRelativeUrl);
+    if (!resolvedSourceUrl) {
+      return;
+    }
+    const sourceBundle = this.manifest.getBundleForFile(resolvedSourceUrl);
+    // TODO(usergenic): To support *skipping* the rewrite, we need a way to
+    // identify whether a bundle contains a single top-level module or is a
+    // merged bundle with multiple top-level modules.
+    //
+    // if (!sourceBundle || sourceBundle.url === resolvedSourceUrl) {
+    let exportName;
+    if (sourceBundle) {
+      exportName =
+          getBundleModuleExportName(sourceBundle, resolvedSourceUrl, '*');
+    }
+    // If there's no source bundle or the namespace export name of the bundle
+    // is just '*', then we don't need to append a .then() to transform the
+    // return value of the import().  Lets just rewrite the URL to be a relative
+    // path and exit.
+    if (!sourceBundle || exportName === '*') {
+      const relativeSourceUrl =
+          ensureLeadingDot(this.bundler.analyzer.urlResolver.relative(
+              baseUrl, resolvedSourceUrl));
+      importCallArgument.value = relativeSourceUrl;
+      return;
+    }
+    // Rewrite the URL to be a relative path to the bundle.
+    const relativeSourceUrl = ensureLeadingDot(
+        this.bundler.analyzer.urlResolver.relative(baseUrl, sourceBundle.url));
+    importCallArgument.value = relativeSourceUrl;
+    const importCallExpressionParent = importNodePath.parentPath.parent!;
+    if (!importCallExpressionParent) {
+      return;
+    }
+    const thenifiedCallExpression = babel.callExpression(
+        babel.memberExpression(
+            clone(importCallExpression), babel.identifier('then')),
+        [babel.arrowFunctionExpression(
+            [
+              babel.objectPattern(
+                  [babel.objectProperty(
+                       babel.identifier(exportName),
+                       babel.identifier(exportName),
+                       undefined,
+                       true) as any]),
+            ],
+            babel.identifier(exportName))]);
+    rewriteNode(importCallExpression, thenifiedCallExpression);
+  }
+
   private _rewriteImportSpecifierName(
       specifier: babel.ImportSpecifier,
       source: ResolvedUrl,
@@ -256,7 +385,8 @@ export class Es6Rewriter {
       sourceBundle: AssignedBundle) {
     const exportName =
         getBundleModuleExportName(sourceBundle, source, 'default');
-    // No rewrite necessary if default is the name
+    // No rewrite necessary if default is the name, since this indicates there
+    // was no rewriting or bundling of the default export.
     if (exportName === 'default') {
       return;
     }
@@ -271,7 +401,8 @@ export class Es6Rewriter {
       source: ResolvedUrl,
       sourceBundle: AssignedBundle) {
     const exportName = getBundleModuleExportName(sourceBundle, source, '*');
-    // No rewrite necessary if * is the name
+    // No rewrite necessary if * is the name, since this indicates there was no
+    // bundling of the namespace.
     if (exportName === '*') {
       return;
     }
