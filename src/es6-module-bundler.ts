@@ -20,7 +20,7 @@ import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {BundledDocument} from './document-collection';
 import {Es6Rewriter, getBundleModuleExportName, getModuleExportNames, hasDefaultModuleExport} from './es6-module-utils';
-import {stripUrlFileSearchAndHash} from './url-utils';
+import {ensureLeadingDot, stripUrlFileSearchAndHash} from './url-utils';
 
 export class Es6ModuleBundler {
   document: Document;
@@ -60,9 +60,9 @@ export class Es6ModuleBundler {
       const sourceAnalysis = await this.bundler.analyzer.analyze(
           [...this.assignedBundle.bundle.files]);
       for (const sourceUrl of [...this.assignedBundle.bundle.files].sort()) {
-        const rebasedSourceUrl = './' +
-            this.bundler.analyzer.urlResolver.relative(
-                stripUrlFileSearchAndHash(this.assignedBundle.url), sourceUrl);
+        const rebasedSourceUrl =
+            ensureLeadingDot(this.bundler.analyzer.urlResolver.relative(
+                stripUrlFileSearchAndHash(this.assignedBundle.url), sourceUrl));
         const result = sourceAnalysis.getDocument(sourceUrl);
         if (!result.successful) {
           continue;

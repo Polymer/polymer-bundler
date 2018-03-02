@@ -23,7 +23,9 @@ import Uri from 'vscode-uri';
 
 /**
  * Given a string representing a relative path of some form, ensure a `./`
- * leader if it doesn't already start with dot-based path leader.
+ * leader if it doesn't already start with dot-based path leader or a scheme
+ * (like, you wouldn't want to change `file:///example.js` into
+ * `./file:///example.js`)
  */
 export function ensureLeadingDot<T>(href: T): T {
   const hrefString = href as any as string;
