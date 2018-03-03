@@ -11,15 +11,12 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-
-// jshint node:true
-'use strict';
-
 import * as path from 'path';
-import * as url from 'url';
-import constants from './constants';
 import {FileRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
+import * as url from 'url';
 import Uri from 'vscode-uri';
+
+import constants from './constants';
 
 /**
  * Given a string representing a relative path of some form, ensure a `./`
@@ -162,6 +159,9 @@ export function rewriteHrefBaseUrl<T>(
   return relativeUrl as FileRelativeUrl;
 }
 
+/**
+ * Ensures a leading slash on given string.
+ */
 function makeAbsolutePath(path: string): string {
   return path.startsWith('/') ? path : '/' + path;
 }
