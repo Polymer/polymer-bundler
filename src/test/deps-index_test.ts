@@ -129,98 +129,102 @@ suite('Bundler', () => {
           serializeMap(index), serializeMap(expectedEntrypointsToDeps));
     });
 
-    test('when external html script type module imports', async () => {
-      analyzer = new Analyzer({
-        urlResolver: new PackageUrlResolver({
-          packageDir: 'test/html/imports/es6-modules',
-        }),
-        urlLoader: new FSUrlLoader('test/html/imports/es6-modules')
-      });
-      const entrypoint = resolve('multiple-external-modules.html');
-      const module1 = entrypoint + '>external#1>abc.js>es6-module';
-      const module2 = entrypoint + '>external#2>abc.js>es6-module';
-      const module3 = entrypoint + '>external#3>def.js>es6-module';
-      const abc = resolve('abc.js');
-      const def = resolve('def.js');
-      const xyz = resolve('xyz.js');
-      const upcase = resolve('upcase.js');
-      const index = await buildDepsIndex([entrypoint], analyzer);
-      const expectedEntrypointsToDeps = new Map([
-        [entrypoint, new Set([entrypoint])],
-        [module1, new Set([abc, upcase])],
-        [module2, new Set([abc, upcase])],
-        [module3, new Set([def, xyz, upcase])],
-      ]);
-      chai.assert.deepEqual(
-          serializeMap(index), serializeMap(expectedEntrypointsToDeps));
-    });
+    suite('module imports', () => {
 
-    test('when inline html script type module imports', async () => {
-      analyzer = inMemoryAnalyzer({
-        'multiple-inline-modules.html': `
-          <script type="module">
-            import {A, B} from './abc.js';
-            console.log(A,B);
-          </script>
+      setup(() => {
+        analyzer = inMemoryAnalyzer({
+          'multiple-external-modules.html': `
+            <script type="module" src="abc.js"></script>
+            <script type="module" src="abc.js"></script>
+            <script type="module" src="def.js"></script>
+          `,
+          'multiple-inline-modules.html': `
+            <script type="module">
+              import {A, B} from './abc.js';
+              console.log(A,B);
+            </script>
 
-          <script type="module">
-            import {B, C} from './abc.js';
-            import {Y} from './xyz.js';
-            console.log(B,C,Y);
-          </script>
+            <script type="module">
+              import {B, C} from './abc.js';
+              import {Y} from './xyz.js';
+              console.log(B,C,Y);
+            </script>
 
-          <script type="module">
-            import {D,F} from './def.js';
-            console.log(D,F);
-          </script>
-        `,
-        'abc.js': `
-          import { upcase } from './upcase.js';
-          export const A = upcase('a');
-          export const B = upcase('b');
-          export const C = upcase('c');
-        `,
-        'def.js': `
-          import { X, Y, Z } from './xyz.js';
-          const D = X + X;
-          const E = Y + Y;
-          const F = Z + Z;
-          export { D, E, F }
-        `,
-        'omgz.js': `
-          import { upcase } from './upcase.js';
-          export const Z = upcase('omgz');
-        `,
-        'upcase.js': `
-          export function upcase(str) {
-            return str.toUpperCase();
-          }
-        `,
-        'xyz.js': `
-          import { upcase } from './upcase.js';
-          export const X = upcase('x');
-          export const Y = upcase('y');
-          export const Z = upcase('z');
-        `,
+            <script type="module">
+              import {D,F} from './def.js';
+              console.log(D,F);
+            </script>
+          `,
+          'abc.js': `
+            import { upcase } from './upcase.js';
+            export const A = upcase('a');
+            export const B = upcase('b');
+            export const C = upcase('c');
+          `,
+          'def.js': `
+            import { X, Y, Z } from './xyz.js';
+            const D = X + X;
+            const E = Y + Y;
+            const F = Z + Z;
+            export { D, E, F }
+          `,
+          'omgz.js': `
+            import { upcase } from './upcase.js';
+            export const Z = upcase('omgz');
+          `,
+          'upcase.js': `
+            export function upcase(str) {
+              return str.toUpperCase();
+            }
+          `,
+          'xyz.js': `
+            import { upcase } from './upcase.js';
+            export const X = upcase('x');
+            export const Y = upcase('y');
+            export const Z = upcase('z');
+          `,
+        });
       });
 
-      const entrypoint = resolve('multiple-inline-modules.html');
-      const module1 = entrypoint + '>inline#1>es6-module';
-      const module2 = entrypoint + '>inline#2>es6-module';
-      const module3 = entrypoint + '>inline#3>es6-module';
-      const abc = resolve('abc.js');
-      const def = resolve('def.js');
-      const xyz = resolve('xyz.js');
-      const upcase = resolve('upcase.js');
-      const index = await buildDepsIndex([entrypoint], analyzer);
-      const expectedEntrypointsToDeps = new Map([
-        [entrypoint, new Set([entrypoint])],
-        [module1, new Set([abc, upcase])],
-        [module2, new Set([abc, xyz, upcase])],
-        [module3, new Set([def, xyz, upcase])],
-      ]);
-      chai.assert.deepEqual(
-          serializeMap(index), serializeMap(expectedEntrypointsToDeps));
+      test('when external html script type module imports', async () => {
+        const entrypoint = resolve('multiple-external-modules.html');
+        const module1 = entrypoint + '>external#1>abc.js>es6-module';
+        const module2 = entrypoint + '>external#2>abc.js>es6-module';
+        const module3 = entrypoint + '>external#3>def.js>es6-module';
+        const abc = resolve('abc.js');
+        const def = resolve('def.js');
+        const xyz = resolve('xyz.js');
+        const upcase = resolve('upcase.js');
+        const index = await buildDepsIndex([entrypoint], analyzer);
+        const expectedEntrypointsToDeps = new Map([
+          [entrypoint, new Set([entrypoint])],
+          [module1, new Set([abc, upcase])],
+          [module2, new Set([abc, upcase])],
+          [module3, new Set([def, xyz, upcase])],
+        ]);
+        chai.assert.deepEqual(
+            serializeMap(index), serializeMap(expectedEntrypointsToDeps));
+      });
+
+      test('when inline html script type module imports', async () => {
+        const entrypoint = resolve('multiple-inline-modules.html');
+        const module1 = entrypoint + '>inline#1>es6-module';
+        const module2 = entrypoint + '>inline#2>es6-module';
+        const module3 = entrypoint + '>inline#3>es6-module';
+        const abc = resolve('abc.js');
+        const def = resolve('def.js');
+        const xyz = resolve('xyz.js');
+        const upcase = resolve('upcase.js');
+        const index = await buildDepsIndex([entrypoint], analyzer);
+        const expectedEntrypointsToDeps = new Map([
+          [entrypoint, new Set([entrypoint])],
+          [module1, new Set([abc, upcase])],
+          [module2, new Set([abc, xyz, upcase])],
+          [module3, new Set([def, xyz, upcase])],
+        ]);
+        chai.assert.deepEqual(
+            serializeMap(index), serializeMap(expectedEntrypointsToDeps));
+      });
     });
   });
 });
