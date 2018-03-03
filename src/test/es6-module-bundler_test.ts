@@ -19,28 +19,78 @@ import {assert} from 'chai';
 import {Bundle, mergeBundles} from '../bundle-manifest';
 import {Bundler} from '../bundler';
 import {Es6ModuleBundler} from '../es6-module-bundler';
-import {heredoc} from './test-utils';
+import {heredoc, inMemoryAnalyzer} from './test-utils';
 
 suite('Es6ModuleBundler', () => {
 
+  const analyzer = inMemoryAnalyzer({
+    'multiple-inline-modules.html': `
+      <script type="module">
+        import {A, B} from './abc.js';
+        console.log(A,B);
+      </script>
+
+      <script type="module">
+        import {B, C} from './abc.js';
+        import {Y} from './xyz.js';
+        console.log(B,C,Y);
+      </script>
+
+      <script type="module">
+        import {D,F} from './def.js';
+        console.log(D,F);
+      </script>
+    `,
+    'abc.js': `
+      import { upcase } from './upcase.js';
+      export const A = upcase('a');
+      export const B = upcase('b');
+      export const C = upcase('c');
+    `,
+    'def.js': `
+      import { X, Y, Z } from './xyz.js';
+      const D = X + X;
+      const E = Y + Y;
+      const F = Z + Z;
+      export { D, E, F }
+    `,
+    'omgz.js': `
+      import { upcase } from './upcase.js';
+      export const Z = upcase('omgz');
+    `,
+    'upcase.js': `
+      export function upcase(str) {
+        return str.toUpperCase();
+      }
+    `,
+    'xyz.js': `
+      import { upcase } from './upcase.js';
+      export const X = upcase('x');
+      export const Y = upcase('y');
+      export const Z = upcase('z');
+    `,
+  });
+
+  const abcUrl = analyzer.resolveUrl('abc.js')!;
+  const defUrl = analyzer.resolveUrl('def.js')!;
+  const omgzUrl = analyzer.resolveUrl('omgz.js')!;
+  const multipleInlineModulesUrl =
+      analyzer.resolveUrl('multiple-inline-modules.html')!;
+  const sharedBundleUrl = analyzer.resolveUrl('shared_bundle_1.js')!;
+  const xyzUrl = analyzer.resolveUrl('xyz.js')!;
+
   test('inline modules', async () => {
-    const root = 'test/html/imports/es6-modules';
-    const bundler = new Bundler();
-    const multipleInlineBundlesUrl =
-        bundler.analyzer.resolveUrl(`${root}/multiple-inline-modules.html`)!;
-    const sharedBundleUrl = bundler.analyzer.resolveUrl(`shared_bundle_1.js`)!;
-    const abcUrl = bundler.analyzer.resolveUrl(`${root}/abc.js`)!;
-    const defUrl = bundler.analyzer.resolveUrl(`${root}/def.js`)!;
-    const manifest = await bundler.generateManifest([multipleInlineBundlesUrl]);
-    const multipleInlineBundlesBundle =
-        manifest.getBundleForFile(multipleInlineBundlesUrl)!;
+    const bundler = new Bundler({analyzer});
+    const manifest = await bundler.generateManifest([multipleInlineModulesUrl]);
+    const multipleInlineModulesBundle =
+        manifest.getBundleForFile(multipleInlineModulesUrl)!;
     const sharedBundle = {
       url: sharedBundleUrl,
       bundle: manifest.bundles.get(sharedBundleUrl)!
     };
     assert.deepEqual(manifest.getBundleForFile(abcUrl)!, sharedBundle);
     assert.deepEqual(
-        manifest.getBundleForFile(defUrl)!, multipleInlineBundlesBundle);
+        manifest.getBundleForFile(defUrl)!, multipleInlineModulesBundle);
     const sharedBundleBundler =
         new Es6ModuleBundler(bundler, sharedBundle, manifest);
     const sharedBundleDocument = await sharedBundleBundler.bundle();
@@ -77,12 +127,8 @@ suite('Es6ModuleBundler', () => {
   });
 
   test('resolving name conflict in a shared bundle', async () => {
-    const root = 'test/html/imports/es6-modules';
-    const bundler = new Bundler();
-    bundler.strategy = (bundles: Bundle[]) => [mergeBundles(bundles)];
-    const sharedBundleUrl = bundler.analyzer.resolveUrl(`shared_bundle_1.js`)!;
-    const xyzUrl = bundler.analyzer.resolveUrl(`${root}/xyz.js`)!;
-    const omgzUrl = bundler.analyzer.resolveUrl(`${root}/omgz.js`)!;
+    const bundler = new Bundler(
+        {analyzer, strategy: (bundles: Bundle[]) => [mergeBundles(bundles)]});
     const manifest = await bundler.generateManifest([xyzUrl, omgzUrl]);
     const sharedBundle = {
       url: sharedBundleUrl,
