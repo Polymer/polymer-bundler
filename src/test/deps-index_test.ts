@@ -19,6 +19,7 @@ import * as chai from 'chai';
 import {Analyzer, FSUrlLoader, PackageRelativeUrl, PackageUrlResolver, ResolvedUrl} from 'polymer-analyzer';
 
 import {buildDepsIndex} from '../deps-index';
+import {inMemoryAnalyzer} from './test-utils';
 
 chai.config.showDiff = true;
 
@@ -155,12 +156,54 @@ suite('Bundler', () => {
     });
 
     test('when inline html script type module imports', async () => {
-      analyzer = new Analyzer({
-        urlResolver: new PackageUrlResolver({
-          packageDir: 'test/html/imports/es6-modules',
-        }),
-        urlLoader: new FSUrlLoader('test/html/imports/es6-modules')
+      analyzer = inMemoryAnalyzer({
+        'multiple-inline-modules.html': `
+          <script type="module">
+            import {A, B} from './abc.js';
+            console.log(A,B);
+          </script>
+
+          <script type="module">
+            import {B, C} from './abc.js';
+            import {Y} from './xyz.js';
+            console.log(B,C,Y);
+          </script>
+
+          <script type="module">
+            import {D,F} from './def.js';
+            console.log(D,F);
+          </script>
+        `,
+        'abc.js': `
+          import { upcase } from './upcase.js';
+          export const A = upcase('a');
+          export const B = upcase('b');
+          export const C = upcase('c');
+        `,
+        'def.js': `
+          import { X, Y, Z } from './xyz.js';
+          const D = X + X;
+          const E = Y + Y;
+          const F = Z + Z;
+          export { D, E, F }
+        `,
+        'omgz.js': `
+          import { upcase } from './upcase.js';
+          export const Z = upcase('omgz');
+        `,
+        'upcase.js': `
+          export function upcase(str) {
+            return str.toUpperCase();
+          }
+        `,
+        'xyz.js': `
+          import { upcase } from './upcase.js';
+          export const X = upcase('x');
+          export const Y = upcase('y');
+          export const Z = upcase('z');
+        `,
       });
+
       const entrypoint = resolve('multiple-inline-modules.html');
       const module1 = entrypoint + '>inline#1>es6-module';
       const module2 = entrypoint + '>inline#2>es6-module';
