@@ -25,7 +25,6 @@ import {ensureTrailingSlash, getFileUrl, resolvePath} from '../url-utils';
 
 const prefixArgument = '[underline]{prefix}';
 const pathArgument = '[underline]{path}';
-const moduleResolution = 'node';
 
 const optionDefinitions = [
   {name: 'help', type: Boolean, alias: 'h', description: 'Print this message'},
@@ -129,6 +128,16 @@ const optionDefinitions = [
         'The root of the package/project being bundled.  Defaults to the ' +
         'current working folder.'
   },
+  {
+    name: 'module-resolution',
+    alias: 'm',
+    type: String,
+    typeLabel: '"node"',
+    description:
+        'Module resolution strategy for non-relative-path specifiers in ' +
+        'module import declarations.  Set to "node" if you want to use ' +
+        'node/npm style resolution.'
+  }
 ];
 
 const usage = [
@@ -196,9 +205,10 @@ options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = Boolean(options['inline-scripts']);
 options.inlineCss = Boolean(options['inline-css']);
 options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
+options.moduleResolution = options['module-resolution'];
 
+const {moduleResolution} = options;
 const fsUrlLoader = new FSUrlLoader(projectRoot);
-import * as path from 'path';
 const packageUrlResolver = new PackageUrlResolver({
   packageDir: projectRoot,
 });
