@@ -172,6 +172,11 @@ export class Es6Rewriter {
         external.push(...[...bundle.files, url]);
       }
     }
+    // For each document loaded from the analyzer, we build a map of the
+    // original specifiers to the resolved URLs since we want to use analyzer
+    // resolutions for such things as bare module specifiers.
+    const jsImportResolvedUrls =
+        new Map<ResolvedUrl, Map<string, ResolvedUrl>>();
     const rollupBundle = await rollup({
       input,
       external,
@@ -185,6 +190,13 @@ export class Es6Rewriter {
               return input;
             }
             if (importer) {
+              if (jsImportResolvedUrls.has(importer as ResolvedUrl)) {
+                const resolutions =
+                    jsImportResolvedUrls.get(importer as ResolvedUrl)!;
+                if (resolutions.has(importee)) {
+                  return resolutions.get(importee);
+                }
+              }
               return this.bundler.analyzer.urlResolver.resolve(
                          importer === input ? url : importer as ResolvedUrl,
                          importee as FileRelativeUrl)! as string;
@@ -197,7 +209,25 @@ export class Es6Rewriter {
               return code;
             }
             if (this.bundle.bundle.files.has(id)) {
-              return getAnalysisDocument(analysis, id).parsedDocument.contents;
+              const document = getAnalysisDocument(analysis, id);
+              if (!jsImportResolvedUrls.has(id)) {
+                const jsImports = document.getFeatures({
+                  kind: 'js-import',
+                  imported: false,
+                  externalPackages: true,
+                  excludeBackreferences: true,
+                });
+                const resolutions = new Map<string, ResolvedUrl>();
+                jsImportResolvedUrls.set(id, resolutions);
+                for (const jsImport of jsImports) {
+                  const source = jsImport.astNode && jsImport.astNode.source &&
+                      jsImport.astNode.source.value;
+                  if (source) {
+                    resolutions.set(source, jsImport.document.url);
+                  }
+                }
+              }
+              return document.parsedDocument.contents;
             }
           },
         },

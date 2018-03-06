@@ -25,6 +25,7 @@ import {ensureTrailingSlash, getFileUrl, resolvePath} from '../url-utils';
 
 const prefixArgument = '[underline]{prefix}';
 const pathArgument = '[underline]{path}';
+const moduleResolution = 'node';
 
 const optionDefinitions = [
   {name: 'help', type: Boolean, alias: 'h', description: 'Print this message'},
@@ -197,7 +198,10 @@ options.inlineCss = Boolean(options['inline-css']);
 options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
 
 const fsUrlLoader = new FSUrlLoader(projectRoot);
-const packageUrlResolver = new PackageUrlResolver({packageDir: projectRoot});
+import * as path from 'path';
+const packageUrlResolver = new PackageUrlResolver({
+  packageDir: projectRoot,
+});
 const projectRootUrl = getFileUrl(projectRoot);
 
 type Redirection = {
@@ -220,6 +224,7 @@ if (options.redirect) {
       (r: Redirection) => new FSUrlLoader(resolvePath(r.path)));
   if (redirections.length > 0) {
     options.analyzer = new Analyzer({
+      moduleResolution,
       urlResolver: new MultiUrlResolver([...resolvers, packageUrlResolver]),
       urlLoader: new MultiUrlLoader([...loaders, fsUrlLoader]),
     });
@@ -228,6 +233,7 @@ if (options.redirect) {
 
 if (!options.analyzer) {
   options.analyzer = new Analyzer({
+    moduleResolution,
     urlResolver: packageUrlResolver,
     urlLoader: fsUrlLoader,
   });
