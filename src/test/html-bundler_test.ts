@@ -23,7 +23,7 @@ import {HtmlBundler} from '../html-bundler';
 
 import {parse} from '../parse5-utils';
 import {getFileUrl} from '../url-utils';
-import {heredoc} from './test-utils';
+import {heredoc, inMemoryAnalyzer} from './test-utils';
 
 chai.config.showDiff = true;
 
@@ -34,10 +34,56 @@ const stripSpace = (html: string): string =>
 suite('HtmlBundler', () => {
 
   test('inline es6 modules', async () => {
-    const root = 'test/html/imports/es6-modules';
-    const bundler = new Bundler();
+    const analyzer = inMemoryAnalyzer({
+      'multiple-inline-modules.html': `
+        <script type="module">
+          import {A, B} from './abc.js';
+          console.log(A,B);
+        </script>
+
+        <script type="module">
+          import {B, C} from './abc.js';
+          import {Y} from './xyz.js';
+          console.log(B,C,Y);
+        </script>
+
+        <script type="module">
+          import {D,F} from './def.js';
+          console.log(D,F);
+        </script>
+      `,
+      'abc.js': `
+        import{upcase} from './upcase.js';
+        export const A = upcase('a');
+        export const B = upcase('b');
+        export const C = upcase('c');
+      `,
+      'def.js': `
+        import{X, Y, Z} from './xyz.js';
+        const D = X + X;
+        const E = Y + Y;
+        const F = Z + Z;
+        export { D, E, F };
+      `,
+      'omgz.js': `
+        import {upcase} from './upcase.js';
+        export const Z = upcase('omgz');
+      `,
+      'upcase.js': `
+        export function upcase(str) {
+          return str.toUpperCase();
+        }
+      `,
+      'xyz.js': `
+        import{upcase} from './upcase.js';
+        export const X = upcase('x');
+        export const Y = upcase('y');
+        export const Z = upcase('z');
+      `,
+    });
+    const bundler = new Bundler({analyzer});
     const multipleInlineBundlesUrl =
-        bundler.analyzer.resolveUrl(`${root}/multiple-inline-modules.html`)!;
+        analyzer.resolveUrl('multiple-inline-modules.html')!;
     const manifest = await bundler.generateManifest([multipleInlineBundlesUrl]);
     const multipleInlineBundlesBundle =
         manifest.getBundleForFile(multipleInlineBundlesUrl)!;
@@ -47,20 +93,20 @@ suite('HtmlBundler', () => {
         await multipleInlineBundlesBundleBundler.bundle();
     assert.deepEqual(multipleInlineBundlesBundleDocument.content, heredoc`
       <script type="module">
-      import { A, B } from '../../../../shared_bundle_1.js';
+      import { A, B } from './shared_bundle_1.js';
 
       console.log(A, B);
       </script>
 
       <script type="module">
-      import { B, C, Y } from '../../../../shared_bundle_1.js';
+      import { B, C, Y } from './shared_bundle_1.js';
 
 
       console.log(B, C, Y);
       </script>
 
       <script type="module">
-      import { X, Y, Z } from '../../../../shared_bundle_1.js';
+      import { X, Y, Z } from './shared_bundle_1.js';
 
       const D = X + X;
       const E = Y + Y;
@@ -138,8 +184,7 @@ suite('HtmlBundler', () => {
             <template is="dom-bind">
             <style>.outside-dom-module { background-image: url(outside-dom-module.png); }</style>
             </template>
-            <style>.outside-template { background-image: url(outside-template.png); }</style>
-          `;
+            <style>.outside-template { background-image: url(outside-template.png); }</style>`;
 
           const expected = `
             <link rel="import" href="polymer/polymer.html">
@@ -227,7 +272,6 @@ suite('HtmlBundler', () => {
 
     suite('Document <base> tag emulation', () => {
 
-      // The trailing slash is meaningful.
       test('Resolve Paths with <base href> having a trailing /', () => {
         const htmlBase = `
           <base href="components/my-element/">
