@@ -17,7 +17,6 @@
     "@types/babel-generator": "^6.25.1",
     "@types/babel-traverse": "^6.25.3",
     "@types/babylon": "^6.16.2",
-    "@types/chokidar": "^1.7.5",
     "@types/rollup": "^0.54.0",
     "babel-generator": "^6.26.1",
     "babel-traverse": "^6.26.0",
@@ -37,6 +36,7 @@
   },
   "devDependencies": {
     "@types/chai": "^3.4.30",
+    "@types/chokidar": "^1.7.5",
     "@types/clone": "^0.1.30",
     "@types/mocha": "^2.2.29",
     "@types/node": "^6.0.33",
