@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 <!-- ## Unreleased -->
 <!-- Add new, unreleased changes here. -->
 
-## 4.0.0-pre.1
+## 4.0.0-pre.1 - 2018-03-07
 - [BREAKING] Upgraded to use `polymer-analyzer` version `3.0.0-pre.13` which requires the `ResolvedUrl` type in nearly all places where URLs are exchanged and provides strict typing on URLs used globally.  Eliminated the local `UrlString` type.
 - [BREAKING] Removed `relativeUrl` function from `url-utils`, shifting responsibility to `Bundler#analyzer.urlResolver.relative()`.
 - [BREAKING] Removed `import-utils.ts` and migrated all HTML-specific bundling code out of it and out of `bundler.ts` into a new class `HtmlBundler`.  Renamed `ast-utils.ts` to `parse5-utils.ts` since "ast" is ambiguous when we have JavaScript ASTs coming in.
