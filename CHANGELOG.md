@@ -5,13 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
-- [BREAKING] Upgraded to use `polymer-analyzer` version `3.0.0-pre.10` which requires the `ResolvedUrl` type in nearly all places where URLs are exchanged and provides strict typing on URLs used globally.  Eliminated the local `UrlString` type.
+<!-- ## Unreleased -->
+<!-- Add new, unreleased changes here. -->
+
+## 4.0.0-pre.1
+- [BREAKING] Upgraded to use `polymer-analyzer` version `3.0.0-pre.13` which requires the `ResolvedUrl` type in nearly all places where URLs are exchanged and provides strict typing on URLs used globally.  Eliminated the local `UrlString` type.
 - [BREAKING] Removed `relativeUrl` function from `url-utils`, shifting responsibility to `Bundler#analyzer.urlResolver.relative()`.
 - [BREAKING] Removed `import-utils.ts` and migrated all HTML-specific bundling code out of it and out of `bundler.ts` into a new class `HtmlBundler`.  Renamed `ast-utils.ts` to `parse5-utils.ts` since "ast" is ambiguous when we have JavaScript ASTs coming in.
 - [BREAKING] `Bundle` class now has a required `type` property as first argument to its constructor, with current possible values of `html-fragment` and `es6-module`.
 - The `BundleResult` returned by `Bundler#bundle()` includes serialized contents instead of just the root AST node of bundled document.
-<!-- Add new, unreleased changes here. -->
 
 ## 3.1.1 - 2017-10-20
 - Fixed an issue with moving deprecated CSS import links into templates reported in [Polymer CLI Issue #917](https://github.com/polymer/polymer-cli/issues/917).
