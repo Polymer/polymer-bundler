@@ -17,7 +17,7 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as path from 'path';
-import {Analyzer, FSUrlLoader, PackageRelativeUrl, PackageUrlResolver, ResolvedUrl} from 'polymer-analyzer';
+import {Analyzer, FsUrlLoader, PackageRelativeUrl, PackageUrlResolver, ResolvedUrl} from 'polymer-analyzer';
 import {MappingItem, RawSourceMap, SourceMapConsumer} from 'source-map';
 
 import {Bundler} from '../bundler';
@@ -40,7 +40,7 @@ suite('Bundler', () => {
         const bundlerOpts = Object.assign({}, opts || {});
         if (!bundlerOpts.analyzer) {
           bundlerOpts.analyzer = new Analyzer(
-              {urlLoader: new FSUrlLoader(path.dirname(inputPath))});
+              {urlLoader: new FsUrlLoader(path.dirname(inputPath))});
           inputPath = path.basename(inputPath);
         }
         bundler = new Bundler(bundlerOpts);
@@ -85,7 +85,7 @@ suite('Bundler', () => {
   }
 
   const basePath = resolvePath('test/html/sourcemaps/');
-  const urlLoader = new FSUrlLoader(basePath);
+  const urlLoader = new FsUrlLoader(basePath);
   const analyzer = new Analyzer({
     urlResolver: new PackageUrlResolver({packageDir: basePath}),
     urlLoader: urlLoader
