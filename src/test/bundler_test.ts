@@ -18,7 +18,7 @@ import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as fs from 'fs';
 import * as parse5 from 'parse5';
-import {Analyzer, FsUrlLoader, PackageUrlResolver} from 'polymer-analyzer';
+import {Analyzer, FsUrlLoader, FsUrlResolver} from 'polymer-analyzer';
 
 import {Bundle, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, Options as BundlerOptions} from '../bundler';
@@ -47,14 +47,12 @@ suite('Bundler', () => {
   function getAnalyzer(opts?: any): Analyzer {
     if (!analyzer) {
       if (!opts || !opts.urlResolver) {
-        const urlResolver = new PackageUrlResolver({
-          packageDir: resolvePath('test/html'),
-        });
-        opts = Object.assign({}, opts || {}, {urlResolver: urlResolver});
+        const urlResolver = new FsUrlResolver(resolvePath('test/html'), );
+        opts = Object.assign({}, opts || {}, {urlResolver});
       }
       if (!opts || !opts.urlLoader) {
         const urlLoader = new FsUrlLoader(resolvePath('test/html'));
-        opts = Object.assign({}, opts || {}, {urlLoader: urlLoader});
+        opts = Object.assign({}, opts || {}, {urlLoader});
       }
       analyzer = new Analyzer(opts);
     }
