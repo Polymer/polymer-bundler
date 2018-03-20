@@ -18,7 +18,7 @@ import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
-import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageRelativeUrl, PackageUrlResolver, RedirectResolver, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
+import {Analyzer, FsUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageRelativeUrl, PackageUrlResolver, RedirectResolver, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
 import {ensureTrailingSlash, getFileUrl, resolvePath} from '../url-utils';
@@ -196,7 +196,7 @@ options.inlineScripts = Boolean(options['inline-scripts']);
 options.inlineCss = Boolean(options['inline-css']);
 options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
 
-const fsUrlLoader = new FSUrlLoader(projectRoot);
+const fsUrlLoader = new FsUrlLoader(projectRoot);
 const packageUrlResolver = new PackageUrlResolver({packageDir: projectRoot});
 const projectRootUrl = getFileUrl(projectRoot);
 
@@ -217,7 +217,7 @@ if (options.redirect) {
       (r: Redirection) =>
           new RedirectResolver(projectRootUrl, r.prefix, getFileUrl(r.path)));
   const loaders: UrlLoader[] = redirections.map(
-      (r: Redirection) => new FSUrlLoader(resolvePath(r.path)));
+      (r: Redirection) => new FsUrlLoader(resolvePath(r.path)));
   if (redirections.length > 0) {
     options.analyzer = new Analyzer({
       urlResolver: new MultiUrlResolver([...resolvers, packageUrlResolver]),

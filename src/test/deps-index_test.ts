@@ -16,7 +16,7 @@
 /// <reference path="../../node_modules/@types/node/index.d.ts" />
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
-import {Analyzer, FSUrlLoader, PackageRelativeUrl, PackageUrlResolver, ResolvedUrl} from 'polymer-analyzer';
+import {Analyzer, FsUrlLoader, PackageRelativeUrl, PackageUrlResolver, ResolvedUrl} from 'polymer-analyzer';
 
 import {buildDepsIndex} from '../deps-index';
 
@@ -49,7 +49,7 @@ suite('Bundler', () => {
         urlResolver: new PackageUrlResolver({
           packageDir: 'test/html/shards/polymer_style_project',
         }),
-        urlLoader: new FSUrlLoader('test/html/shards/polymer_style_project'),
+        urlLoader: new FsUrlLoader('test/html/shards/polymer_style_project'),
       });
       const common = resolve('common.html');
       const dep1 = resolve('dep1.html');
@@ -74,7 +74,7 @@ suite('Bundler', () => {
         urlResolver: new PackageUrlResolver({
           packageDir: 'test/html/imports',
         }),
-        urlLoader: new FSUrlLoader('test/html/imports')
+        urlLoader: new FsUrlLoader('test/html/imports')
       });
       const entrypoint = resolve('lazy-imports.html');
       const lazyImport1 = resolve('lazy-imports/lazy-import-1.html');
@@ -111,7 +111,7 @@ suite('Bundler', () => {
         urlResolver: new PackageUrlResolver({
           packageDir: 'test/html/imports',
         }),
-        urlLoader: new FSUrlLoader('test/html/imports')
+        urlLoader: new FsUrlLoader('test/html/imports')
       });
       const entrypoint = resolve('eagerly-importing-a-fragment.html');
       const fragmentA = resolve('importing-fragments/fragment-a.html');
