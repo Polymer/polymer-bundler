@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!-- ## Unreleased -->
+## Unreleased
+- Upgraded to use `polymer-analyzer` version `3.0.0-pre.17`.
+- Switched to `FsUrlResolver` from `PackageUrlResolver` as the default `UrlResolver` for bundling contexts.  This is because `PackageUrlResolver` is intended for component analysis, not application analysis.
 <!-- Add new, unreleased changes here. -->
 
 ## 4.0.0-pre.1 - 2018-03-07
