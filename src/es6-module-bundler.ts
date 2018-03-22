@@ -33,85 +33,68 @@ export async function bundle(
     throw new Error(`No bundle found in manifest for url ${url}.`);
   }
   const assignedBundle = {url, bundle};
-  const es6ModuleBundler =
-      new Es6ModuleBundler(bundler, assignedBundle, manifest);
-  return es6ModuleBundler.bundle();
+  const generatedCode =
+      await prepareBundleModule(bundler, manifest, assignedBundle);
+  const es6Rewriter = new Es6Rewriter(bundler, manifest, assignedBundle);
+  const {code: rolledUpCode} = await es6Rewriter.rollup(url, generatedCode);
+  const document =
+      await bundler.analyzeContents(assignedBundle.url, rolledUpCode);
+  return {
+    ast: document.parsedDocument.ast,
+    content: document.parsedDocument.contents,
+    files: [...assignedBundle.bundle.files]
+  };
 }
 
 /**
- * A single-use instance of this class produces a single ES6 Module
- * BundledDocument.
+ * Generate code containing import statements to all bundled modules and
+ * export statements to re-export their namespaces and exports.
  */
-class Es6ModuleBundler {
-  constructor(
-      public bundler: Bundler,
-      public assignedBundle: AssignedBundle,
-      public manifest: BundleManifest) {
-  }
-
-  async bundle(): Promise<BundledDocument> {
-    const generatedCode = await this._prepareBundleModule();
-    const baseUrl = this.assignedBundle.url;
-    const es6Rewriter =
-        new Es6Rewriter(this.bundler, this.manifest, this.assignedBundle);
-    const {code: rolledUpCode} =
-        await es6Rewriter.rollup(baseUrl, generatedCode);
-    const document = await this.bundler.analyzeContents(
-        this.assignedBundle.url, rolledUpCode);
-    return {
-      ast: document.parsedDocument.ast,
-      content: document.parsedDocument.contents,
-      files: [...this.assignedBundle.bundle.files]
-    };
-  }
-
-  /**
-   * Generate code containing import statements to all bundled modules and
-   * export statements to re-export their namespaces and exports.
-   */
-  private async _prepareBundleModule(): Promise<string> {
-    let bundleSource = babel.program([]);
-    const sourceAnalysis = await this.bundler.analyzer.analyze(
-        [...this.assignedBundle.bundle.files]);
-    for (const sourceUrl of [...this.assignedBundle.bundle.files].sort()) {
-      const rebasedSourceUrl =
-          ensureLeadingDot(this.bundler.analyzer.urlResolver.relative(
-              stripUrlFileSearchAndHash(this.assignedBundle.url), sourceUrl));
-      const moduleDocument =
-          getAnalysisDocument(sourceAnalysis, sourceUrl).parsedDocument;
-      const moduleExports = getModuleExportNames(moduleDocument.ast);
-      const starExportName =
-          getOrSetBundleModuleExportName(this.assignedBundle, sourceUrl, '*');
-      bundleSource.body.push(babel.importDeclaration(
-          [babel.importNamespaceSpecifier(babel.identifier(starExportName))],
+async function prepareBundleModule(
+    bundler: Bundler,
+    manifest: BundleManifest,
+    assignedBundle: AssignedBundle): Promise<string> {
+  let bundleSource = babel.program([]);
+  const sourceAnalysis =
+      await bundler.analyzer.analyze([...assignedBundle.bundle.files]);
+  for (const sourceUrl of [...assignedBundle.bundle.files].sort()) {
+    const rebasedSourceUrl =
+        ensureLeadingDot(bundler.analyzer.urlResolver.relative(
+            stripUrlFileSearchAndHash(assignedBundle.url), sourceUrl));
+    const moduleDocument =
+        getAnalysisDocument(sourceAnalysis, sourceUrl).parsedDocument;
+    const moduleExports = getModuleExportNames(moduleDocument.ast);
+    const starExportName =
+        getOrSetBundleModuleExportName(assignedBundle, sourceUrl, '*');
+    bundleSource.body.push(babel.importDeclaration(
+        [babel.importNamespaceSpecifier(babel.identifier(starExportName))],
+        babel.stringLiteral(rebasedSourceUrl)));
+    if (moduleExports.size > 0) {
+      bundleSource.body.push(babel.exportNamedDeclaration(
+          undefined, [babel.exportSpecifier(
+                         babel.identifier(starExportName),
+                         babel.identifier(starExportName))]));
+      bundleSource.body.push(babel.exportNamedDeclaration(
+          undefined,
+          [...moduleExports].map(
+              (e) => babel.exportSpecifier(
+                  babel.identifier(e),
+                  babel.identifier(getOrSetBundleModuleExportName(
+                      assignedBundle, sourceUrl, e)))),
           babel.stringLiteral(rebasedSourceUrl)));
-      if (moduleExports.size > 0) {
-        bundleSource.body.push(babel.exportNamedDeclaration(
-            undefined, [babel.exportSpecifier(
-                           babel.identifier(starExportName),
-                           babel.identifier(starExportName))]));
-        bundleSource.body.push(babel.exportNamedDeclaration(
-            undefined,
-            [...moduleExports].map(
-                (e) => babel.exportSpecifier(
-                    babel.identifier(e),
-                    babel.identifier(getOrSetBundleModuleExportName(
-                        this.assignedBundle, sourceUrl, e)))),
-            babel.stringLiteral(rebasedSourceUrl)));
-      }
-      if (hasDefaultModuleExport(moduleDocument.ast)) {
-        const defaultExportName = getOrSetBundleModuleExportName(
-            this.assignedBundle, sourceUrl, 'default');
-        bundleSource.body.push(babel.importDeclaration(
-            [babel.importDefaultSpecifier(babel.identifier(defaultExportName))],
-            babel.stringLiteral(rebasedSourceUrl)));
-        bundleSource.body.push(babel.exportNamedDeclaration(
-            undefined, [babel.exportSpecifier(
-                           babel.identifier(defaultExportName),
-                           babel.identifier(defaultExportName))]));
-      }
     }
-    const {code} = generate(bundleSource);
-    return code;
+    if (hasDefaultModuleExport(moduleDocument.ast)) {
+      const defaultExportName =
+          getOrSetBundleModuleExportName(assignedBundle, sourceUrl, 'default');
+      bundleSource.body.push(babel.importDeclaration(
+          [babel.importDefaultSpecifier(babel.identifier(defaultExportName))],
+          babel.stringLiteral(rebasedSourceUrl)));
+      bundleSource.body.push(babel.exportNamedDeclaration(
+          undefined, [babel.exportSpecifier(
+                         babel.identifier(defaultExportName),
+                         babel.identifier(defaultExportName))]));
+    }
   }
+  const {code} = generate(bundleSource);
+  return code;
 }
