@@ -461,8 +461,11 @@ export function mergeMatchingBundles(
 
 
 /**
- * Return the entrypoint that represents the given bundle, or null if no
- * entrypoint represents the bundle.
+ * Return the single entrypoint that represents the given bundle, or null
+ * if bundle contains more or less than a single file in its entrypoints
+ * set. This function makes it convenient to identify whether a bundle
+ * is a named fragment or whether it is simply a shared bundle of some
+ * kind.
  */
 function getBundleEntrypoint(bundle: Bundle): ResolvedUrl|null {
   let bundleEntrypoint = null;
