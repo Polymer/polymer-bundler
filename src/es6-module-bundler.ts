@@ -21,6 +21,10 @@ import {BundledDocument} from './document-collection';
 import {Es6Rewriter, getModuleExportNames, getOrSetBundleModuleExportName, hasDefaultModuleExport} from './es6-module-utils';
 import {ensureLeadingDot, stripUrlFileSearchAndHash} from './url-utils';
 
+/**
+ * A single-use instance of this class produces a single ES6 Module
+ * BundledDocument.
+ */
 export class Es6ModuleBundler {
   constructor(
       public bundler: Bundler,

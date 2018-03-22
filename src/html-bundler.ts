@@ -31,8 +31,11 @@ import encodeString from './third_party/UglifyJS2/encode-string';
 import {ensureTrailingSlash, getFileExtension, isTemplatedUrl, rewriteHrefBaseUrl, stripUrlFileSearchAndHash} from './url-utils';
 import {find} from './utils';
 
+/**
+ * Responsible for producing a single HTML BundledDocument.
+ */
 export class HtmlBundler {
-  document: Document;
+  protected document: Document;
 
   constructor(
       public bundler: Bundler,
