@@ -30,12 +30,6 @@ import {camelCase} from './utils';
  */
 export function getBundleModuleExportName(
     bundle: AssignedBundle, moduleUrl: ResolvedUrl, name: string): string {
-  let basisBundle = false;
-  // When the bundle contains a file with same URL as the bundle, then that
-  // module's exports will remain unchanged.
-  if (bundle.bundle.files.has(bundle.url) && moduleUrl === bundle.url) {
-    //    basisBundle = true;
-  }
   let moduleExports = bundle.bundle.bundledExports.get(moduleUrl);
   const bundledExports = bundle.bundle.bundledExports;
   if (!moduleExports) {
@@ -45,14 +39,12 @@ export function getBundleModuleExportName(
   let exportName = moduleExports.get(name);
   if (!exportName) {
     let trialName = name;
-    if (!basisBundle) {
-      let moduleFileNameIdentifier =
-          '$' + camelCase(getFileName(moduleUrl).replace(/\.[a-z]+$/, ''));
-      trialName =
-          trialName.replace(/^default$/, `${moduleFileNameIdentifier}Default`)
-              .replace(/^\*$/, moduleFileNameIdentifier)
-              .replace(/[^a-z0-9_]/gi, '$');
-    }
+    let moduleFileNameIdentifier =
+        '$' + camelCase(getFileName(moduleUrl).replace(/\.[a-z]+$/, ''));
+    trialName =
+        trialName.replace(/^default$/, `${moduleFileNameIdentifier}Default`)
+            .replace(/^\*$/, moduleFileNameIdentifier)
+            .replace(/[^a-z0-9_]/gi, '$');
     while (!exportName) {
       if ([...bundledExports.values()].every(
               (map) => [...map.values()].indexOf(trialName) === -1)) {
