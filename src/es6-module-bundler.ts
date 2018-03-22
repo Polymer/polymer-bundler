@@ -18,7 +18,7 @@ import {getAnalysisDocument} from './analyzer-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {BundledDocument} from './document-collection';
-import {Es6Rewriter, getBundleModuleExportName, getModuleExportNames, hasDefaultModuleExport} from './es6-module-utils';
+import {Es6Rewriter, getModuleExportNames, getOrSetBundleModuleExportName, hasDefaultModuleExport} from './es6-module-utils';
 import {ensureLeadingDot, stripUrlFileSearchAndHash} from './url-utils';
 
 export class Es6ModuleBundler {
@@ -60,7 +60,7 @@ export class Es6ModuleBundler {
           getAnalysisDocument(sourceAnalysis, sourceUrl).parsedDocument;
       const moduleExports = getModuleExportNames(moduleDocument.ast);
       const starExportName =
-          getBundleModuleExportName(this.assignedBundle, sourceUrl, '*');
+          getOrSetBundleModuleExportName(this.assignedBundle, sourceUrl, '*');
       bundleSource.body.push(babel.importDeclaration(
           [babel.importNamespaceSpecifier(babel.identifier(starExportName))],
           babel.stringLiteral(rebasedSourceUrl)));
@@ -74,12 +74,12 @@ export class Es6ModuleBundler {
             [...moduleExports].map(
                 (e) => babel.exportSpecifier(
                     babel.identifier(e),
-                    babel.identifier(getBundleModuleExportName(
+                    babel.identifier(getOrSetBundleModuleExportName(
                         this.assignedBundle, sourceUrl, e)))),
             babel.stringLiteral(rebasedSourceUrl)));
       }
       if (hasDefaultModuleExport(moduleDocument.ast)) {
-        const defaultExportName = getBundleModuleExportName(
+        const defaultExportName = getOrSetBundleModuleExportName(
             this.assignedBundle, sourceUrl, 'default');
         bundleSource.body.push(babel.importDeclaration(
             [babel.importDefaultSpecifier(babel.identifier(defaultExportName))],

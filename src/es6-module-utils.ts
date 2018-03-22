@@ -28,7 +28,7 @@ import {camelCase} from './utils';
  * Looks up and/or defines the unique name for an item exported with the given
  * name in a module within a in a bundle.
  */
-export function getBundleModuleExportName(
+export function getOrSetBundleModuleExportName(
     bundle: AssignedBundle, moduleUrl: ResolvedUrl, name: string): string {
   let moduleExports = bundle.bundle.bundledExports.get(moduleUrl);
   const bundledExports = bundle.bundle.bundledExports;
@@ -40,7 +40,7 @@ export function getBundleModuleExportName(
   if (!exportName) {
     let trialName = name;
     let moduleFileNameIdentifier =
-        '$' + camelCase(getFileName(moduleUrl).replace(/\.[a-z]+$/, ''));
+        '$' + camelCase(getFileName(moduleUrl).replace(/\.[a-z0-9_]+$/, ''));
     trialName =
         trialName.replace(/^default$/, `${moduleFileNameIdentifier}Default`)
             .replace(/^\*$/, moduleFileNameIdentifier)
@@ -134,7 +134,7 @@ export async function reserveBundleModuleExportNames(
       const document = getAnalysisDocument(analysis, url);
       for (const exportName of getModuleExportNames(
                document.parsedDocument.ast as any)) {
-        getBundleModuleExportName({url, bundle}, url, exportName);
+        getOrSetBundleModuleExportName({url, bundle}, url, exportName);
       }
     }
   }
@@ -354,7 +354,7 @@ export class Es6Rewriter {
     let exportName;
     if (sourceBundle) {
       exportName =
-          getBundleModuleExportName(sourceBundle, resolvedSourceUrl, '*');
+          getOrSetBundleModuleExportName(sourceBundle, resolvedSourceUrl, '*');
     }
     // If there's no source bundle or the namespace export name of the bundle
     // is just '*', then we don't need to append a .then() to transform the
@@ -396,8 +396,8 @@ export class Es6Rewriter {
       source: ResolvedUrl,
       sourceBundle: AssignedBundle) {
     const originalExportName = specifier.imported.name;
-    const exportName =
-        getBundleModuleExportName(sourceBundle, source, originalExportName);
+    const exportName = getOrSetBundleModuleExportName(
+        sourceBundle, source, originalExportName);
     specifier.imported.name = exportName;
   }
 
@@ -406,7 +406,7 @@ export class Es6Rewriter {
       source: ResolvedUrl,
       sourceBundle: AssignedBundle) {
     const exportName =
-        getBundleModuleExportName(sourceBundle, source, 'default');
+        getOrSetBundleModuleExportName(sourceBundle, source, 'default');
     // No rewrite necessary if default is the name, since this indicates there
     // was no rewriting or bundling of the default export.
     if (exportName === 'default') {
@@ -422,7 +422,8 @@ export class Es6Rewriter {
       specifier: babel.ImportNamespaceSpecifier,
       source: ResolvedUrl,
       sourceBundle: AssignedBundle) {
-    const exportName = getBundleModuleExportName(sourceBundle, source, '*');
+    const exportName =
+        getOrSetBundleModuleExportName(sourceBundle, source, '*');
     // No rewrite necessary if * is the name, since this indicates there was no
     // bundling of the namespace.
     if (exportName === '*') {
