@@ -483,7 +483,7 @@ function getBundleEntrypoint(bundle: Bundle): ResolvedUrl|null {
 /**
  * Generally bundle types are determined by the file extension of the URL,
  * though in the case of sub-bundles, the bundle type is the last segment of the
- * `>` delimited URL.
+ * `>` delimited URL, (e.g. `page1.html>inline#1>es6-module`).
  */
 function getBundleTypeForUrl(url: ResolvedUrl): BundleType {
   const segments = url.split('>');
