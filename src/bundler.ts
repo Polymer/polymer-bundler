@@ -184,7 +184,7 @@ export class Bundler {
         await depsIndexLib.buildDepsIndex(entrypoints, this.analyzer);
     let bundles = bundleManifestLib.generateBundles(dependencyIndex);
     // Merge single-entrypoint sub-bundles into their containing documents so
-    // that inlining code can knows which module scripts can be inlined.
+    // that inlining code can know which module scripts can be inlined.
     if (this.enableScriptInlining) {
       bundleManifestLib.mergeSingleEntrypointSubBundles(bundles);
     }
