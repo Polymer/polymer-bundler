@@ -13,7 +13,6 @@
  */
 import generate from 'babel-generator';
 import * as babel from 'babel-types';
-import {Document} from 'polymer-analyzer';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
@@ -30,14 +29,14 @@ export class Es6ModuleBundler {
   }
 
   async bundle(): Promise<BundledDocument> {
-    let document = await this._prepareBundleDocument();
-    const baseUrl = document.parsedDocument.baseUrl;
+    const generatedCode = await this._prepareBundleModule();
+    const baseUrl = this.assignedBundle.url;
     const es6Rewriter =
         new Es6Rewriter(this.bundler, this.manifest, this.assignedBundle);
-    const {code} =
-        await es6Rewriter.rollup(baseUrl, document.parsedDocument.contents);
-    document =
-        await this.bundler.analyzeContents(this.assignedBundle.url, code);
+    const {code: rolledUpCode} =
+        await es6Rewriter.rollup(baseUrl, generatedCode);
+    const document = await this.bundler.analyzeContents(
+        this.assignedBundle.url, rolledUpCode);
     return {
       ast: document.parsedDocument.ast,
       content: document.parsedDocument.contents,
@@ -46,10 +45,10 @@ export class Es6ModuleBundler {
   }
 
   /**
-   * Generate a document containing import statements to all bundled modules and
+   * Generate code containing import statements to all bundled modules and
    * export statements to re-export their namespaces and exports.
    */
-  private async _prepareBundleDocument(): Promise<Document> {
+  private async _prepareBundleModule(): Promise<string> {
     let bundleSource = babel.program([]);
     const sourceAnalysis = await this.bundler.analyzer.analyze(
         [...this.assignedBundle.bundle.files]);
@@ -92,6 +91,6 @@ export class Es6ModuleBundler {
       }
     }
     const {code} = generate(bundleSource);
-    return this.bundler.analyzeContents(this.assignedBundle.url, code);
+    return code;
   }
 }
