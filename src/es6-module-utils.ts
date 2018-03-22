@@ -18,7 +18,7 @@ import {Analyzer, FileRelativeUrl, PackageRelativeUrl, ResolvedUrl} from 'polyme
 import {rollup} from 'rollup';
 
 import {getAnalysisDocument} from './analyzer-utils';
-import {getNodePath, getNodeValue, parseModuleFile, rewriteNode, serialize} from './babel-utils';
+import {getNodePath, parseModuleFile, rewriteNode, serialize} from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {ensureLeadingDot, getFileName} from './url-utils';
@@ -254,7 +254,8 @@ export class Es6Rewriter {
           if (!babel.isImportDeclaration(importDeclaration)) {
             return;
           }
-          const source = getNodeValue(importDeclaration.source);
+          const source = babel.isStringLiteral(importDeclaration.source) &&
+              importDeclaration.source.value;
           if (!source) {
             return;
           }
@@ -297,7 +298,12 @@ export class Es6Rewriter {
       ImportDeclaration: {
         enter(path: NodePath) {
           const importDeclaration = path.node as babel.ImportDeclaration;
-          const source = getNodeValue(importDeclaration.source) as ResolvedUrl;
+          if (!babel.isStringLiteral(importDeclaration.source)) {
+            // We can't actually handle values which are not string literals, so
+            // we'll skip them.
+            return;
+          }
+          const source = importDeclaration.source.value as ResolvedUrl;
           const sourceBundle = this_.manifest.getBundleForFile(source);
           // If there is no import bundle, then this URL is not bundled (maybe
           // excluded or something) so we should just ensure the URL is

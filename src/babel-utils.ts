@@ -37,12 +37,6 @@ export function getNodePath(root: babel.Node, node: babel.Node): NodePath|
   return nodepath;
 }
 
-export function getNodeValue(node: babel.Node): string|undefined {
-  if (babel.isStringLiteral(node)) {
-    return node.value;
-  }
-}
-
 /**
  * Parse the module with babylon and return a babel.Node
  */
