@@ -64,7 +64,7 @@ export class Bundle {
   inlinedStyles = new Set<ResolvedUrl>();
 
   // Maps the URLs of bundled ES6 modules to a map of their original exported
-  // names to names which may be rewritten to prevent conflicts.
+  // names to names which may have been rewritten to prevent conflicts.
   bundledExports = new Map<ResolvedUrl, Map<string, string>>();
 
   constructor(
