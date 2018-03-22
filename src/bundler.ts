@@ -143,6 +143,8 @@ export class Bundler {
         new Map<ResolvedUrl, BundledDocument>();
     manifest = manifest.fork();
 
+    // Ensure exports of modules sharing the URL of their bundle have priority
+    // in name-collision scenarios.
     reserveBundleModuleExportNames(this.analyzer, manifest);
 
     for (const [url, bundle] of manifest.bundles) {

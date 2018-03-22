@@ -122,6 +122,13 @@ function getModuleExportIdentifiers(...nodes: babel.Node[]): string[] {
   return identifiers;
 }
 
+/**
+ * Ensures that exported names from modules which have the same URL as their
+ * bundle will have precedence over other module exports, which will be
+ * counter-suffixed in the event of name collisions.  This has no technical
+ * benefit, but it results in module export naming choices that are easier
+ * to reason about for developers and may aid in debugging.
+ */
 export async function reserveBundleModuleExportNames(
     analyzer: Analyzer, manifest: BundleManifest) {
   const es6ModuleBundles =
