@@ -58,7 +58,7 @@ export async function buildDepsIndex(
         allEntrypoints.add(dep);
       }
 
-      // Treat top-level script imports as entrypoints by creating "sub-bundle"
+      // Treat top-level module imports as entrypoints by creating "sub-bundle"
       // URLs to enable the inline document to be processed as an entrypoint
       // document on a subsequent iteration of the outer loop over all
       // entrypoints.
