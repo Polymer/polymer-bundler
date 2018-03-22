@@ -491,7 +491,10 @@ function getBundleTypeForUrl(url: ResolvedUrl): BundleType {
     const extname = getFileExtension(segments[0]);
     return extname === '.js' ? 'es6-module' : 'html-fragment';
   }
-  return segments.pop()! as BundleType;
+  if (segments.length === 0) {
+    throw new Error(`ResolvedUrl "${url}" is empty/invalid.`);
+  }
+  return segments.pop() as BundleType;
 }
 
 /**
