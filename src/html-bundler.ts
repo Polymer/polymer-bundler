@@ -32,7 +32,25 @@ import {ensureTrailingSlash, getFileExtension, isTemplatedUrl, rewriteHrefBaseUr
 import {find} from './utils';
 
 /**
- * Responsible for producing a single HTML BundledDocument.
+ * Produces an HTML BundledDocument.
+ */
+export async function bundle(
+    bundler: Bundler, manifest: BundleManifest, url: ResolvedUrl):
+    Promise<BundledDocument> {
+  const bundle = manifest.bundles.get(url);
+  if (!bundle) {
+    throw new Error(`No bundle found in manifest for url ${url}.`);
+  }
+  const assignedBundle = {url, bundle};
+  const htmlBundler = new HtmlBundler(bundler, assignedBundle, manifest);
+  return htmlBundler.bundle();
+}
+
+/**
+ * A single-use instance of this class produces a single HTML BundledDocument.
+ * Use the bundle directly is deprecated; it is exported only to support unit
+ * tests of its methods in html-bundler_test.ts for now.  Please use the
+ * exported bundle function above.
  */
 export class HtmlBundler {
   protected document: Document;

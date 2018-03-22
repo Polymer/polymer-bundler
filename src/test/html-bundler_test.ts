@@ -19,7 +19,7 @@ import * as parse5 from 'parse5';
 
 import {AssignedBundle, BundleManifest} from '../bundle-manifest';
 import {Bundler} from '../bundler';
-import {HtmlBundler} from '../html-bundler';
+import {bundle, HtmlBundler} from '../html-bundler';
 
 import {parse} from '../parse5-utils';
 import {getFileUrl} from '../url-utils';
@@ -85,12 +85,8 @@ suite('HtmlBundler', () => {
     const multipleInlineBundlesUrl =
         analyzer.resolveUrl('multiple-inline-modules.html')!;
     const manifest = await bundler.generateManifest([multipleInlineBundlesUrl]);
-    const multipleInlineBundlesBundle =
-        manifest.getBundleForFile(multipleInlineBundlesUrl)!;
-    const multipleInlineBundlesBundleBundler =
-        new HtmlBundler(bundler, multipleInlineBundlesBundle, manifest);
     const multipleInlineBundlesBundleDocument =
-        await multipleInlineBundlesBundleBundler.bundle();
+        await bundle(bundler, manifest, multipleInlineBundlesUrl);
     assert.deepEqual(multipleInlineBundlesBundleDocument.content, heredoc`
       <script type="module">
       import { A, B } from './shared_bundle_1.js';

@@ -18,9 +18,9 @@ import * as bundleManifestLib from './bundle-manifest';
 import {Bundle, BundleManifest, BundleStrategy, BundleUrlMapper} from './bundle-manifest';
 import * as depsIndexLib from './deps-index';
 import {BundledDocument, DocumentCollection} from './document-collection';
-import {Es6ModuleBundler} from './es6-module-bundler';
+import {bundle as bundleEs6Module} from './es6-module-bundler';
 import {reserveBundleModuleExportNames} from './es6-module-utils';
-import {HtmlBundler} from './html-bundler';
+import {bundle as bundleHtmlFragment} from './html-bundler';
 import {resolvePath} from './url-utils';
 
 export * from './bundle-manifest';
@@ -147,19 +147,13 @@ export class Bundler {
     // in name-collision scenarios.
     reserveBundleModuleExportNames(this.analyzer, manifest);
 
-    for (const [url, bundle] of manifest.bundles) {
-      const assignedBundle = {url, bundle};
-      switch (bundle.type) {
+    for (const [url, {type: bundleType}] of manifest.bundles) {
+      switch (bundleType) {
         case 'html-fragment':
-          documents.set(
-              url,
-              await(new HtmlBundler(this, assignedBundle, manifest).bundle()));
+          documents.set(url, await bundleHtmlFragment(this, manifest, url));
           break;
         case 'es6-module':
-          documents.set(
-              url,
-              await(new Es6ModuleBundler(this, assignedBundle, manifest)
-                        .bundle()));
+          documents.set(url, await bundleEs6Module(this, manifest, url));
           break;
       }
     }

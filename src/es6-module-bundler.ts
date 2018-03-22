@@ -13,6 +13,7 @@
  */
 import generate from 'babel-generator';
 import * as babel from 'babel-types';
+import {ResolvedUrl} from 'polymer-analyzer';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
@@ -22,10 +23,26 @@ import {Es6Rewriter, getModuleExportNames, getOrSetBundleModuleExportName, hasDe
 import {ensureLeadingDot, stripUrlFileSearchAndHash} from './url-utils';
 
 /**
+ * Produces an ES6 Module BundledDocument.
+ */
+export async function bundle(
+    bundler: Bundler, manifest: BundleManifest, url: ResolvedUrl):
+    Promise<BundledDocument> {
+  const bundle = manifest.bundles.get(url);
+  if (!bundle) {
+    throw new Error(`No bundle found in manifest for url ${url}.`);
+  }
+  const assignedBundle = {url, bundle};
+  const es6ModuleBundler =
+      new Es6ModuleBundler(bundler, assignedBundle, manifest);
+  return es6ModuleBundler.bundle();
+}
+
+/**
  * A single-use instance of this class produces a single ES6 Module
  * BundledDocument.
  */
-export class Es6ModuleBundler {
+class Es6ModuleBundler {
   constructor(
       public bundler: Bundler,
       public assignedBundle: AssignedBundle,

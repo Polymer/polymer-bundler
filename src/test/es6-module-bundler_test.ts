@@ -18,7 +18,7 @@ import {assert} from 'chai';
 
 import {Bundle, mergeBundles} from '../bundle-manifest';
 import {Bundler} from '../bundler';
-import {Es6ModuleBundler} from '../es6-module-bundler';
+import {bundle} from '../es6-module-bundler';
 import {heredoc, inMemoryAnalyzer} from './test-utils';
 
 suite('Es6ModuleBundler', () => {
@@ -91,9 +91,8 @@ suite('Es6ModuleBundler', () => {
     assert.deepEqual(manifest.getBundleForFile(abcUrl)!, sharedBundle);
     assert.deepEqual(
         manifest.getBundleForFile(defUrl)!, multipleInlineModulesBundle);
-    const sharedBundleBundler =
-        new Es6ModuleBundler(bundler, sharedBundle, manifest);
-    const sharedBundleDocument = await sharedBundleBundler.bundle();
+    const sharedBundleDocument =
+        await bundle(bundler, manifest, sharedBundleUrl);
     assert.deepEqual(sharedBundleDocument.content, heredoc`
       function upcase(str) {
         return str.toUpperCase();
@@ -130,13 +129,8 @@ suite('Es6ModuleBundler', () => {
     const bundler = new Bundler(
         {analyzer, strategy: (bundles: Bundle[]) => [mergeBundles(bundles)]});
     const manifest = await bundler.generateManifest([xyzUrl, omgzUrl]);
-    const sharedBundle = {
-      url: sharedBundleUrl,
-      bundle: manifest.bundles.get(sharedBundleUrl)!
-    };
-    const sharedBundleBundler =
-        new Es6ModuleBundler(bundler, sharedBundle, manifest);
-    const sharedBundleDocument = await sharedBundleBundler.bundle();
+    const sharedBundleDocument =
+        await bundle(bundler, manifest, sharedBundleUrl);
     assert.deepEqual(sharedBundleDocument.content, heredoc`
       function upcase(str) {
         return str.toUpperCase();
