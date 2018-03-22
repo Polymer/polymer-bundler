@@ -23,8 +23,6 @@ import {Es6Rewriter, getBundleModuleExportName, getModuleExportNames, hasDefault
 import {ensureLeadingDot, stripUrlFileSearchAndHash} from './url-utils';
 
 export class Es6ModuleBundler {
-  document: Document;
-
   constructor(
       public bundler: Bundler,
       public assignedBundle: AssignedBundle,
@@ -32,17 +30,17 @@ export class Es6ModuleBundler {
   }
 
   async bundle(): Promise<BundledDocument> {
-    this.document = await this._prepareBundleDocument();
-    const baseUrl = this.document.parsedDocument.baseUrl;
+    let document = await this._prepareBundleDocument();
+    const baseUrl = document.parsedDocument.baseUrl;
     const es6Rewriter =
         new Es6Rewriter(this.bundler, this.manifest, this.assignedBundle);
-    const {code} = await es6Rewriter.rollup(
-        baseUrl, this.document.parsedDocument.contents);
-    this.document =
+    const {code} =
+        await es6Rewriter.rollup(baseUrl, document.parsedDocument.contents);
+    document =
         await this.bundler.analyzeContents(this.assignedBundle.url, code);
     return {
-      ast: this.document.parsedDocument.ast,
-      content: this.document.parsedDocument.contents,
+      ast: document.parsedDocument.ast,
+      content: document.parsedDocument.contents,
       files: [...this.assignedBundle.bundle.files]
     };
   }
