@@ -37,10 +37,15 @@ export async function buildDepsIndex(
   // Note: the following iteration takes place over a Set which may be added
   // to from within the loop.
   for (const entrypoint of allEntrypoints) {
+    let document;
     try {
-      const document = inlineDocuments.has(entrypoint) ?
+      document = inlineDocuments.has(entrypoint) ?
           inlineDocuments.get(entrypoint)! :
           getAnalysisDocument(analysis, entrypoint);
+    } catch (e) {
+      console.warn(e.message);
+    }
+    if (document) {
       const deps = getDependencies(analyzer, document);
       depsIndex.set(entrypoint, new Set([
                       ...(document.isInline ? [] : [document.url]),
@@ -62,8 +67,6 @@ export async function buildDepsIndex(
         allEntrypoints.add(subBundleUrl);
         inlineDocuments.set(subBundleUrl, imported);
       }
-    } catch (e) {
-      console.warn(e.message);
     }
   }
 
