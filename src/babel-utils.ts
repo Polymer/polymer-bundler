@@ -47,7 +47,7 @@ export function parseModuleFile(url: string, code: string): babel.File {
     plugins: [
       'asyncGenerators',
       'dynamicImport',
-      // 'importMeta', // not yet in the @types file
+      'importMeta' as any,  // not yet in the @types file
       'objectRestSpread',
     ],
   });
