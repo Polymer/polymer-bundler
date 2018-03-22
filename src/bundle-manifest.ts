@@ -394,7 +394,10 @@ export function generateNoBackLinkStrategy(urls: ResolvedUrl[]):
  * Given an Array of bundles, produce a single bundle with the entrypoints and
  * files of all bundles represented.  By default, bundles of different types
  * can not be merged, but this constraint can be skipped by providing
- * `ignoreTypeCheck` argument with value `true`.
+ * `ignoreTypeCheck` argument with value `true`, which is necessary to merge a
+ * bundle containining an inline document's unique transitive dependencies, as
+ * inline documents typically are of different type (`<script type="module">`
+ * within HTML document contains JavaScript document).
  */
 export function mergeBundles(
     bundles: Bundle[], ignoreTypeCheck: boolean = false): Bundle {
