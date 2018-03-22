@@ -48,10 +48,8 @@ export class Es6ModuleBundler {
   }
 
   /**
-   * Generate a fresh document to bundle contents into.  If we're building a
-   * bundle which is based on an existing file, we should load that file and
-   * prepare it as the bundle document, otherwise we'll create a clean/empty
-   * JS document.
+   * Generate a document containing import statements to all bundled modules and
+   * export statements to re-export their namespaces and exports.
    */
   private async _prepareBundleDocument(): Promise<Document> {
     let bundleSource = babel.program([]);
