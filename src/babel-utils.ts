@@ -62,16 +62,12 @@ export function parseModuleFile(url: string, code: string): babel.File {
  */
 export function rewriteNode(target: babel.Node, replacement: babel.Node) {
   // Strip all properties from target
-  for (const key in target) {
-    if (target.hasOwnProperty(key)) {
-      delete target[key];
-    }
+  for (const key of Object.getOwnPropertyNames(target)) {
+    delete target[key];
   }
   // Transfer remaining properties from replacement
-  for (const key in replacement) {
-    if (replacement.hasOwnProperty(key)) {
-      target[key] = replacement[key];
-    }
+  for (const key of Object.getOwnPropertyNames(replacement)) {
+    target[key] = replacement[key];
   }
 }
 
