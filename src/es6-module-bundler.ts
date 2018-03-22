@@ -59,11 +59,8 @@ export class Es6ModuleBundler {
       const rebasedSourceUrl =
           ensureLeadingDot(this.bundler.analyzer.urlResolver.relative(
               stripUrlFileSearchAndHash(this.assignedBundle.url), sourceUrl));
-      const result = sourceAnalysis.getDocument(sourceUrl);
-      if (!result.successful) {
-        continue;
-      }
-      const moduleDocument = result.value.parsedDocument;
+      const moduleDocument =
+          getAnalysisDocument(sourceAnalysis, sourceUrl).parsedDocument;
       const moduleExports = getModuleExportNames(moduleDocument.ast);
       const starExportName =
           getBundleModuleExportName(this.assignedBundle, sourceUrl, '*');
