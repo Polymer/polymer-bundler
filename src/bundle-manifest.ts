@@ -227,33 +227,34 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
  */
 export function mergeSingleEntrypointSubBundles(bundles: Bundle[]) {
   for (const subBundle of [...bundles]) {
-    if (subBundle.entrypoints.size === 1) {
-      const entrypointUrl = [...subBundle.entrypoints][0];
-      const superBundleUrl = getSuperBundleUrl(entrypointUrl);
-
-      // If the entrypoint URL is the same as the super bundle URL then the
-      // entrypoint URL has not changed and did not represent a sub bundle, so
-      // continue to next candidate sub bundle.
-      if (entrypointUrl === superBundleUrl) {
-        continue;
-      }
-
-      const superBundleIndex =
-          bundles.findIndex((b) => b.files.has(superBundleUrl));
-      if (superBundleIndex < 0) {
-        continue;
-      }
-      const superBundle = bundles[superBundleIndex];
-
-      // The synthetic entrypoint identifier does not need to be represented in
-      // the super bundle's entrypoints list, so we'll clear the sub-bundle's
-      // entrypoints in the bundle before merging.
-      subBundle.entrypoints.clear();
-      const mergedBundle = mergeBundles([superBundle, subBundle], true);
-      bundles.splice(superBundleIndex, 1, mergedBundle);
-      const subBundleIndex = bundles.findIndex((b) => b === subBundle);
-      bundles.splice(subBundleIndex, 1);
+    if (subBundle.entrypoints.size !== 1) {
+      continue;
     }
+    const entrypointUrl = [...subBundle.entrypoints][0];
+    const superBundleUrl = getSuperBundleUrl(entrypointUrl);
+
+    // If the entrypoint URL is the same as the super bundle URL then the
+    // entrypoint URL has not changed and did not represent a sub bundle, so
+    // continue to next candidate sub bundle.
+    if (entrypointUrl === superBundleUrl) {
+      continue;
+    }
+
+    const superBundleIndex =
+        bundles.findIndex((b) => b.files.has(superBundleUrl));
+    if (superBundleIndex < 0) {
+      continue;
+    }
+    const superBundle = bundles[superBundleIndex];
+
+    // The synthetic entrypoint identifier does not need to be represented in
+    // the super bundle's entrypoints list, so we'll clear the sub-bundle's
+    // entrypoints in the bundle before merging.
+    subBundle.entrypoints.clear();
+    const mergedBundle = mergeBundles([superBundle, subBundle], true);
+    bundles.splice(superBundleIndex, 1, mergedBundle);
+    const subBundleIndex = bundles.findIndex((b) => b === subBundle);
+    bundles.splice(subBundleIndex, 1);
   }
 }
 
