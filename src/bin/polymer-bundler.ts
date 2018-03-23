@@ -86,14 +86,14 @@ const optionDefinitions = [
         `${pathArgument}.`
   },
   {
-    name: 'in-html',
+    name: 'input',
     type: String,
     typeLabel: pathArgument,
     defaultOption: true,
     multiple: true,
     description:
-        'Input HTML. If not specified, will be the last command line ' +
-        'argument.  Multiple in-html arguments may be specified.'
+        'Input HTML (.html) and ES6 (.js) files. If not specified, will be ' +
+        'the last command line argument.  Multiple input values allowable.'
   },
   {
     name: 'redirect',
@@ -178,7 +178,7 @@ const usage = [
 const options = commandLineArgs(optionDefinitions);
 const projectRoot = resolvePath(ensureTrailingSlash(options.root || '.'));
 
-const entrypoints: PackageRelativeUrl[] = options['in-html'];
+const entrypoints: PackageRelativeUrl[] = options['input'];
 
 function printHelp() {
   console.log(commandLineUsage(usage));
@@ -257,7 +257,7 @@ if (options.shell) {
     const shell = options.shell;
     if (shell) {
       if (entrypoints.indexOf(shell) === -1) {
-        throw new Error('Shell must be provided as `in-html`');
+        entrypoints.push(shell);
       }
     }
     ({documents, manifest} = await bundler.bundle(

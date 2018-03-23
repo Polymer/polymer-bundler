@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!-- ## Unreleased -->
+## Unreleased
+- [BREAKING] The `--in-html` argument in `bin/polymer-bundler` is now `--input` because input is no longer limited to HTML.
+- ES6 Module Bundling! Bundler can simultaneously process HTML imports and ES6 module imports, including inline `<script type="module">` scripts.
 <!-- Add new, unreleased changes here. -->
 
 ## 4.0.0-pre.2 - 2018-03-20
