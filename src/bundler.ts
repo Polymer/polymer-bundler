@@ -115,6 +115,12 @@ export class Bundler {
   async analyzeContents(
       url: ResolvedUrl,
       contents: string,
+      // By default, the contents given to analyzeContents are not kept in the
+      // Analyzer's cache and the Analyzer will act as though it never happened.
+      // By giving a `true` value to `permanent`, the Analysis cache and the
+      // in-memory overlay will not be purged of the contents.  This toggle lets
+      // us use the Analyzer to process documents in intermediate stages without
+      // committing to them.
       permanent?: boolean): Promise<Document> {
     this._overlayUrlLoader.urlContentsMap.set(url, contents);
     await this.analyzer.filesChanged([url]);
