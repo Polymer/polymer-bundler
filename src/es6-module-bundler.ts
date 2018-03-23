@@ -49,6 +49,16 @@ export async function bundle(
 /**
  * Generate code containing import statements to all bundled modules and
  * export statements to re-export their namespaces and exports.
+ *
+ * Example: a bundle containing files `module-a.js` and `module-b.js` would
+ * result in a prepareBundleModule result like:
+ *
+ *     import * as $moduleA from './module-a.js';
+ *     import * as $moduleB from './module-b.js';
+ *     import $moduleBDefault from './module-b.js';
+ *     export {thing1, thing2} from './module-a.js';
+ *     export {thing3} from './module-b.js';
+ *     export {$moduleA, $moduleB, $moduleBDefault};
  */
 async function prepareBundleModule(
     bundler: Bundler,
