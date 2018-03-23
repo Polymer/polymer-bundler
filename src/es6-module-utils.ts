@@ -82,7 +82,7 @@ export function getModuleExportNames(node: babel.Node): Set<string> {
     noScope: true,
     ExportNamedDeclaration: {
       enter(path: NodePath) {
-        const exportNode: babel.ExportNamedDeclaration = path.node as any;
+        const exportNode = path.node as babel.ExportNamedDeclaration;
         exportedNames.push(
             ...getModuleExportIdentifiers(...exportNode.specifiers));
         exportedNames.push(
