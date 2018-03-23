@@ -86,6 +86,12 @@ export function getSubBundleUrl(
  * Strips the sub-bundle id off the end of a URL to return the super bundle or
  * containing file's URL.  If there is no sub-bundle id on the provided URL, the
  * result is essentially a NOOP, since nothing will have been stripped.
+ *
+ * Sub-Bundle URL for an inline ES6 module document:
+ *     file:///my-project/src/page.html>inline#1>es6-module
+ *
+ * Super-bundle URL for the containing HTML document:
+ *     file:///my-project/src/page.html
  */
 export function getSuperBundleUrl(subBundleUrl: string): ResolvedUrl {
   return subBundleUrl.split('>').shift()! as ResolvedUrl;
