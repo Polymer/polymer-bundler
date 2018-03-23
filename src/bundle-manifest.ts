@@ -17,7 +17,7 @@ import {PackageRelativeUrl, ResolvedUrl, UrlResolver} from 'polymer-analyzer';
 
 import {getSuperBundleUrl} from './deps-index';
 import {getFileExtension} from './url-utils';
-import {uniq} from './utils';
+import {partitionMap, uniq} from './utils';
 
 /**
  * A bundle strategy function is used to transform an array of bundles.
@@ -447,18 +447,11 @@ export function mergeBundles(
  */
 export function mergeMatchingBundles(
     bundles: Bundle[], predicate: (bundle: Bundle) => boolean): Bundle[] {
-  const newBundles = Array.from(bundles);
-  const bundlesToMerge = newBundles.filter(predicate);
-  const bundleTypes = new Set(bundlesToMerge.map((b) => b.type));
-  for (const bundleType of [...bundleTypes].sort()) {
-    const bundlesToMergeForType =
-        bundlesToMerge.filter((b) => b.type === bundleType);
-    if (bundlesToMergeForType.length > 1) {
-      for (const bundle of bundlesToMergeForType) {
-        newBundles.splice(newBundles.indexOf(bundle), 1);
-      }
-      newBundles.push(mergeBundles(bundlesToMergeForType));
-    }
+  const newBundles = bundles.filter((b) => !predicate(b));
+  const bundlesToMerge = partitionMap(
+      bundles.filter((b) => !newBundles.includes(b)), (b) => b.type);
+  for (const bundlesOfType of bundlesToMerge.values()) {
+    newBundles.push(mergeBundles(bundlesOfType));
   }
   return newBundles;
 }

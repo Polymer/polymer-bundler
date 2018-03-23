@@ -150,8 +150,8 @@ suite('polymer-bundler CLI', () => {
           'importing-fragments/fragment-b.html',
         ],
         'importing-fragments/shell.html': [
-          'importing-fragments/shell.html',
           'importing-fragments/shared-util.html',
+          'importing-fragments/shell.html',
         ],
       });
 
