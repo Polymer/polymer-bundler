@@ -449,18 +449,17 @@ export function mergeMatchingBundles(
     bundles: Bundle[], predicate: (bundle: Bundle) => boolean): Bundle[] {
   const newBundles = Array.from(bundles);
   const bundlesToMerge = newBundles.filter(predicate);
-
-  [...new Set(bundlesToMerge.map((b) => b.type))].sort().forEach(
-      (bundleType) => {
-        const bundlesToMergeForType =
-            bundlesToMerge.filter((b) => b.type === bundleType);
-        if (bundlesToMergeForType.length > 1) {
-          for (const bundle of bundlesToMergeForType) {
-            newBundles.splice(newBundles.indexOf(bundle), 1);
-          }
-          newBundles.push(mergeBundles(bundlesToMergeForType));
-        }
-      });
+  const bundleTypes = new Set(bundlesToMerge.map((b) => b.type));
+  for (const bundleType of [...bundleTypes].sort()) {
+    const bundlesToMergeForType =
+        bundlesToMerge.filter((b) => b.type === bundleType);
+    if (bundlesToMergeForType.length > 1) {
+      for (const bundle of bundlesToMergeForType) {
+        newBundles.splice(newBundles.indexOf(bundle), 1);
+      }
+      newBundles.push(mergeBundles(bundlesToMergeForType));
+    }
+  }
   return newBundles;
 }
 
