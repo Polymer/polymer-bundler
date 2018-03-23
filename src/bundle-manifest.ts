@@ -224,6 +224,11 @@ export function generateBundles(depsIndex: TransitiveDependenciesMap):
  *
  * Would be merged into the following set of bundles:
  *   `[a]->[a,x,z], [a>1,a>2]->[y]`
+ *
+ * `a>1` and `a>2` represent script tag entrypoints. Only `x` and `z` are
+ * bundled with `a` because they each serve only a single script tag entrypoint.
+ * `y` has to be in a separate bundle so that it is not inlined into bundle `a`
+ * in both script tags.
  */
 export function mergeSingleEntrypointSubBundles(bundles: Bundle[]) {
   for (const subBundle of [...bundles]) {
