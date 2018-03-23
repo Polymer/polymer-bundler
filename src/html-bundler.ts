@@ -65,8 +65,8 @@ export class HtmlBundler {
     this.document = await this._prepareBundleDocument();
     let ast = clone(this.document.parsedDocument.ast);
     dom5.removeFakeRootElements(ast);
-    this._rewriteAstToEmulateBaseTag(ast, this.assignedBundle.url);
     this._injectHtmlImportsForBundle(ast);
+    this._rewriteAstToEmulateBaseTag(ast, this.assignedBundle.url);
 
     // Re-analyzing the document using the updated ast to refresh the scanned
     // imports, since we may now have appended some that were not initially
