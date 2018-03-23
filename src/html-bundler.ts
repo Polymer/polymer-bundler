@@ -29,7 +29,7 @@ import {addOrUpdateSourcemapComment} from './source-map';
 import {updateSourcemapLocations} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
 import {ensureTrailingSlash, getFileExtension, isTemplatedUrl, rewriteHrefBaseUrl, stripUrlFileSearchAndHash} from './url-utils';
-import {find, overwriteObject} from './utils';
+import {find, rewriteObject} from './utils';
 
 /**
  * Produces an HTML BundledDocument.
@@ -415,7 +415,7 @@ export class HtmlBundler {
    */
   private async _inlineModuleScripts(ast: ASTNode) {
     this.document = await this._reanalyze(serialize(ast));
-    overwriteObject(ast, this.document.parsedDocument.ast);
+    rewriteObject(ast, this.document.parsedDocument.ast);
     dom5.removeFakeRootElements(ast);
     const es6Rewriter =
         new Es6Rewriter(this.bundler, this.manifest, this.assignedBundle);

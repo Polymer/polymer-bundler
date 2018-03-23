@@ -54,10 +54,12 @@ export function uniq<T, R>(items: Iterable<T>, map: (item: T) => R): Set<R> {
  * convenient to obtain the specific parent node property to which a node may be
  * attached out of many possible configurations.
  */
-export function overwriteObject(target: Object, replacement: Object) {
+export function rewriteObject(target: Object, replacement: Object) {
   // Strip all properties from target
   for (const key of Object.getOwnPropertyNames(target)) {
-    delete target[key];
+    if (!replacement.hasOwnProperty(key)) {
+      delete target[key];
+    }
   }
   // Transfer remaining properties from replacement
   for (const key of Object.getOwnPropertyNames(replacement)) {

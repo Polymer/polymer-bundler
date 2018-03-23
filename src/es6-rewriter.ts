@@ -23,7 +23,7 @@ import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {getOrSetBundleModuleExportName} from './es6-module-utils';
 import {ensureLeadingDot} from './url-utils';
-import {overwriteObject} from './utils';
+import {rewriteObject} from './utils';
 
 /**
  * Utility class to rollup/merge ES6 modules code using rollup and rewrite
@@ -308,7 +308,7 @@ export class Es6Rewriter {
                        true) as any]),
             ],
             babel.identifier(exportName))]);
-    overwriteObject(importCallExpression, thenifiedCallExpression);
+    rewriteObject(importCallExpression, thenifiedCallExpression);
   }
 
   /**
