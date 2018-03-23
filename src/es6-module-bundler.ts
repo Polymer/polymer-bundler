@@ -19,7 +19,8 @@ import {getAnalysisDocument} from './analyzer-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {BundledDocument} from './document-collection';
-import {Es6Rewriter, getModuleExportNames, getOrSetBundleModuleExportName, hasDefaultModuleExport} from './es6-module-utils';
+import {getModuleExportNames, getOrSetBundleModuleExportName, hasDefaultModuleExport} from './es6-module-utils';
+import {Es6Rewriter} from './es6-rewriter';
 import {ensureLeadingDot, stripUrlFileSearchAndHash} from './url-utils';
 
 /**

@@ -22,7 +22,7 @@ import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import constants from './constants';
 import {BundledDocument} from './document-collection';
-import {Es6Rewriter} from './es6-module-utils';
+import {Es6Rewriter} from './es6-rewriter';
 import * as matchers from './matchers';
 import {findAncestor, insertAfter, insertAllBefore, inSourceOrder, isSameNode, prepend, removeElementAndNewline, siblingsAfter, stripComments} from './parse5-utils';
 import {addOrUpdateSourcemapComment} from './source-map';
