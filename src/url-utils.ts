@@ -146,8 +146,8 @@ export function rewriteHrefBaseUrl<T>(
         parsedFrom.pathname ? parsedFrom.pathname + '_' : '');
     let pathTo = parsedTo.pathname || '';
     if (isAbsolutePath(oldBaseUrl) || isAbsolutePath(newBaseUrl)) {
-      dirFrom = makeAbsolutePath(dirFrom);
-      pathTo = makeAbsolutePath(pathTo);
+      dirFrom = ensureLeadingSlash(dirFrom);
+      pathTo = ensureLeadingSlash(pathTo);
     }
     const pathname = pathPosixRelative(dirFrom, pathTo);
     return url.format({
@@ -162,6 +162,6 @@ export function rewriteHrefBaseUrl<T>(
 /**
  * Ensures a leading slash on given string.
  */
-function makeAbsolutePath(path: string): string {
+function ensureLeadingSlash(path: string): string {
   return path.startsWith('/') ? path : '/' + path;
 }
