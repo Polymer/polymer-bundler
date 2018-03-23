@@ -130,12 +130,13 @@ const optionDefinitions = [
   },
   {
     name: 'module-resolution',
+    description: 'Algorithm to use for resolving module specifiers in import ' +
+        'and export statements when rewriting them to be web-compatible. ' +
+        'Valid values are "none" and "node". "none" disables module specifier ' +
+        'rewriting. "node" uses Node.js resolution to find modules.',
     type: String,
     typeLabel: '"node|none"',
-    description:
-        'Module resolution strategy for non-relative-path specifiers in ' +
-        'module import declarations.  Set to "node" if you want to use ' +
-        'node/npm style resolution.'
+    defaultValue: 'none',
   }
 ];
 
