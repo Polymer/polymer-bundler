@@ -129,9 +129,9 @@ suite('polymer-bundler CLI', () => {
       execSync(
           `cd ${projectRoot} && ` +
           `node ${cliPath} --inline-scripts --inline-css ` +
-          `--input eagerly-importing-a-fragment.html ` +
-          `--input importing-fragments/fragment-a.html ` +
-          `--input importing-fragments/fragment-b.html ` +
+          `--in-file eagerly-importing-a-fragment.html ` +
+          `--in-file importing-fragments/fragment-a.html ` +
+          `--in-file importing-fragments/fragment-b.html ` +
           `--shell importing-fragments/shell.html ` +
           `--out-dir ${tempdir}/bundled/ ` +
           `--manifest-out ${manifestPath}`)

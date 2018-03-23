@@ -58,7 +58,7 @@ const optionDefinitions = [
     description: 'Inline external stylesheets'
   },
   {
-    name: 'out-html',
+    name: 'out-file',
     type: String,
     typeLabel: pathArgument,
     description: `If specified, output will be written to ${pathArgument}` +
@@ -86,7 +86,7 @@ const optionDefinitions = [
         `${pathArgument}.`
   },
   {
-    name: 'input',
+    name: 'in-file',
     type: String,
     typeLabel: pathArgument,
     defaultOption: true,
@@ -178,7 +178,7 @@ const usage = [
 const options = commandLineArgs(optionDefinitions);
 const projectRoot = resolvePath(ensureTrailingSlash(options.root || '.'));
 
-const entrypoints: PackageRelativeUrl[] = options['input'];
+const entrypoints: PackageRelativeUrl[] = options['in-file'];
 
 function printHelp() {
   console.log(commandLineUsage(usage));
@@ -302,8 +302,8 @@ if (options.shell) {
   if (!doc) {
     return;
   }
-  if (options['out-html']) {
-    const fd = fs.openSync(options['out-html'], 'w');
+  if (options['out-file']) {
+    const fd = fs.openSync(options['out-file'], 'w');
     fs.writeSync(fd, doc.content);
     fs.closeSync(fd);
   } else {

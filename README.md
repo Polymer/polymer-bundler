@@ -39,7 +39,7 @@ for this step).
 - `--shell`: Uses a bundling strategy which puts inlines shared dependencies into a specified html app "shell".
 - `--strip-comments`: Strips all HTML comments from the document which do not contain an `@license`, or start with `<!--#` or `<!--!`.
 - `--sourcemaps`: Honor (or create) sourcemaps for inline script tags.
-- `--out-html <path>`: If specified, output will be written to <path> instead of stdout.
+- `--out-file <path>`: If specified, output will be written to <path> instead of stdout.
 - `--out-dir <path>`: If specified, output will be written to <path>. Necessary if bundling multiple files.
 
 ## Usage
