@@ -130,9 +130,8 @@ const optionDefinitions = [
   },
   {
     name: 'module-resolution',
-    alias: 'm',
     type: String,
-    typeLabel: '"node"',
+    typeLabel: '"node|none"',
     description:
         'Module resolution strategy for non-relative-path specifiers in ' +
         'module import declarations.  Set to "node" if you want to use ' +
