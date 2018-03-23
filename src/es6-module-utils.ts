@@ -26,7 +26,7 @@ import {camelCase} from './utils';
 
 /**
  * Looks up and/or defines the unique name for an item exported with the given
- * name in a module within a in a bundle.
+ * name in a module within a bundle.
  */
 export function getOrSetBundleModuleExportName(
     bundle: AssignedBundle, moduleUrl: ResolvedUrl, name: string): string {
