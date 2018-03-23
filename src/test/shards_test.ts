@@ -17,7 +17,7 @@
 import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as parse5 from 'parse5';
-import {Analyzer, FSUrlLoader, PackageRelativeUrl, PackageUrlResolver} from 'polymer-analyzer';
+import {Analyzer, FsUrlLoader, FsUrlResolver, PackageRelativeUrl} from 'polymer-analyzer';
 
 import {generateSharedDepsMergeStrategy, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, BundleResult} from '../bundler';
@@ -49,8 +49,8 @@ suite('Bundler', () => {
   function getAnalyzer(): Analyzer {
     if (!analyzer) {
       analyzer = new Analyzer({
-        urlResolver: new PackageUrlResolver({packageDir: 'test/html'}),
-        urlLoader: new FSUrlLoader('test/html'),
+        urlResolver: new FsUrlResolver('test/html'),
+        urlLoader: new FsUrlLoader('test/html'),
       });
     }
     return analyzer;

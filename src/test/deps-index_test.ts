@@ -16,7 +16,7 @@
 /// <reference path="../../node_modules/@types/node/index.d.ts" />
 /// <reference path="../../node_modules/@types/mocha/index.d.ts" />
 import * as chai from 'chai';
-import {Analyzer, FSUrlLoader, PackageRelativeUrl, PackageUrlResolver, ResolvedUrl} from 'polymer-analyzer';
+import {Analyzer, FsUrlLoader, FsUrlResolver, PackageRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
 
 import {buildDepsIndex} from '../deps-index';
 import {inMemoryAnalyzer} from './test-utils';
@@ -47,10 +47,9 @@ suite('Bundler', () => {
 
     test('with 3 endpoints', async () => {
       analyzer = new Analyzer({
-        urlResolver: new PackageUrlResolver({
-          packageDir: 'test/html/shards/polymer_style_project',
-        }),
-        urlLoader: new FSUrlLoader('test/html/shards/polymer_style_project'),
+        urlResolver:
+            new FsUrlResolver('test/html/shards/polymer_style_project'),
+        urlLoader: new FsUrlLoader('test/html/shards/polymer_style_project'),
       });
       const common = resolve('common.html');
       const dep1 = resolve('dep1.html');
@@ -71,10 +70,8 @@ suite('Bundler', () => {
     // Deps index currently treats lazy imports as eager imports.
     test('with lazy imports', async () => {
       analyzer = new Analyzer({
-        urlResolver: new PackageUrlResolver({
-          packageDir: 'test/html/imports',
-        }),
-        urlLoader: new FSUrlLoader('test/html/imports')
+        urlResolver: new FsUrlResolver('test/html/imports'),
+        urlLoader: new FsUrlLoader('test/html/imports')
       });
       const entrypoint = resolve('lazy-imports.html');
       const lazyImport1 = resolve('lazy-imports/lazy-import-1.html');
@@ -107,10 +104,8 @@ suite('Bundler', () => {
 
     test('when an entrypoint imports an entrypoint', async () => {
       analyzer = new Analyzer({
-        urlResolver: new PackageUrlResolver({
-          packageDir: 'test/html/imports',
-        }),
-        urlLoader: new FSUrlLoader('test/html/imports')
+        urlResolver: new FsUrlResolver('test/html/imports'),
+        urlLoader: new FsUrlLoader('test/html/imports')
       });
       const entrypoint = resolve('eagerly-importing-a-fragment.html');
       const fragmentA = resolve('importing-fragments/fragment-a.html');

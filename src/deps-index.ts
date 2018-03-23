@@ -153,7 +153,8 @@ function getDependencies(
           // `.filter((d) => d.parsedAsSourceType === 'module')`
           // here, but Analyzer wont report that if there are no
           // import/export statements in the imported file.
-          document.getFeatures({kind: 'js-import', ...getFeaturesOptions}),
+          document.getFeatures({kind: 'js-import', ...getFeaturesOptions}) as
+              Set<Import>,
           viaEager);
     }
   }

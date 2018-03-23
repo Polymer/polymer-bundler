@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+<!-- ## Unreleased -->
+<!-- Add new, unreleased changes here. -->
+
+## 4.0.0-pre.2 - 2018-03-20
+- Upgraded to use `polymer-analyzer` version `3.0.0-pre.17`.
+- Switched to `FsUrlResolver` from `PackageUrlResolver` as the default `UrlResolver` for bundling contexts.  This is because `PackageUrlResolver` is intended for component analysis, not application analysis.
+
+## 4.0.0-pre.1 - 2018-03-07
 - [BREAKING] Upgraded to use `polymer-analyzer` version `3.0.0-pre.13` which requires the `ResolvedUrl` type in nearly all places where URLs are exchanged and provides strict typing on URLs used globally.  Eliminated the local `UrlString` type.
 - [BREAKING] Removed `relativeUrl` function from `url-utils`, shifting responsibility to `Bundler#analyzer.urlResolver.relative()`.
 - [BREAKING] Removed `import-utils.ts` and migrated all HTML-specific bundling code out of it and out of `bundler.ts` into a new class `HtmlBundler`.  Renamed `ast-utils.ts` to `parse5-utils.ts` since "ast" is ambiguous when we have JavaScript ASTs coming in.
@@ -13,7 +20,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - [BREAKING] The `DepsIndex` type returned from `buildDepsIndex` has changed to a single map of entrypoints to dependencies.
 - Added support for `<script type="module">` and bundling of ES6 modules by following `import` statements.  Dynamic `import()` statements are treated similarly to the `<link rel="lazy-import">` tag in that the import target implicitly defines a new entrypoint/bundle.
 - The `BundleResult` returned by `Bundler#bundle()` includes serialized contents instead of just the root AST node of bundled document.
-<!-- Add new, unreleased changes here. -->
 
 ## 3.1.1 - 2017-10-20
 - Fixed an issue with moving deprecated CSS import links into templates reported in [Polymer CLI Issue #917](https://github.com/polymer/polymer-cli/issues/917).

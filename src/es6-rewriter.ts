@@ -14,7 +14,7 @@
 import traverse, {NodePath} from 'babel-traverse';
 import * as babel from 'babel-types';
 import * as clone from 'clone';
-import {FileRelativeUrl, PackageRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
+import {FileRelativeUrl, Import, PackageRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
 import {rollup} from 'rollup';
 
 import {getAnalysisDocument} from './analyzer-utils';
@@ -93,7 +93,7 @@ export class Es6Rewriter {
                   imported: false,
                   externalPackages: true,
                   excludeBackreferences: true,
-                });
+                }) as Set<Import>;
                 const resolutions = new Map<string, ResolvedUrl>();
                 jsImportResolvedUrls.set(id, resolutions);
                 for (const jsImport of jsImports) {

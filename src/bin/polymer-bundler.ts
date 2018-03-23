@@ -18,7 +18,7 @@ import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
 import * as pathLib from 'path';
 import {Bundler} from '../bundler';
-import {Analyzer, FSUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageRelativeUrl, PackageUrlResolver, RedirectResolver, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
+import {Analyzer, FsUrlLoader, MultiUrlLoader, MultiUrlResolver, PackageRelativeUrl, FsUrlResolver, RedirectResolver, ResolvedUrl, UrlLoader, UrlResolver} from 'polymer-analyzer';
 import {DocumentCollection} from '../document-collection';
 import {generateShellMergeStrategy, BundleManifest} from '../bundle-manifest';
 import {ensureTrailingSlash, getFileUrl, resolvePath} from '../url-utils';
@@ -208,10 +208,8 @@ options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
 options.moduleResolution = options['module-resolution'];
 
 const {moduleResolution} = options;
-const fsUrlLoader = new FSUrlLoader(projectRoot);
-const packageUrlResolver = new PackageUrlResolver({
-  packageDir: projectRoot,
-});
+const urlLoader = new FsUrlLoader(projectRoot);
+const urlResolver = new FsUrlResolver(projectRoot);
 const projectRootUrl = getFileUrl(projectRoot);
 
 type Redirection = {
@@ -223,7 +221,7 @@ if (options.redirect) {
       options.redirect
           .map((redirect: string) => {
             const [prefix, path] = redirect.split('|');
-            const resolvedPrefix = packageUrlResolver.resolve(prefix as any);
+            const resolvedPrefix = urlResolver.resolve(prefix as any);
             return {prefix: resolvedPrefix, path};
           })
           .filter((r: Redirection) => r.prefix && r.path);
@@ -231,22 +229,18 @@ if (options.redirect) {
       (r: Redirection) =>
           new RedirectResolver(projectRootUrl, r.prefix, getFileUrl(r.path)));
   const loaders: UrlLoader[] = redirections.map(
-      (r: Redirection) => new FSUrlLoader(resolvePath(r.path)));
+      (r: Redirection) => new FsUrlLoader(resolvePath(r.path)));
   if (redirections.length > 0) {
     options.analyzer = new Analyzer({
       moduleResolution,
-      urlResolver: new MultiUrlResolver([...resolvers, packageUrlResolver]),
-      urlLoader: new MultiUrlLoader([...loaders, fsUrlLoader]),
+      urlResolver: new MultiUrlResolver([...resolvers, urlResolver]),
+      urlLoader: new MultiUrlLoader([...loaders, urlLoader]),
     });
   }
 }
 
 if (!options.analyzer) {
-  options.analyzer = new Analyzer({
-    moduleResolution,
-    urlResolver: packageUrlResolver,
-    urlLoader: fsUrlLoader,
-  });
+  options.analyzer = new Analyzer({moduleResolution, urlResolver, urlLoader});
 }
 
 if (options.shell) {

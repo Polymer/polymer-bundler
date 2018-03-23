@@ -131,9 +131,9 @@ bundler.generateManifest(['my-app.html']).then((manifest) => {
 
 An example with a customized sharding strategy and output layout:
 ```js
-const {Analyzer, FSUrlLoader} = require('polymer-analyzer');
+const {Analyzer, FsUrlLoader} = require('polymer-analyzer');
 const analyzer = new Analyzer({
-  urlLoader: new FSUrlLoader(path.resolve('.'))
+  urlLoader: new FsUrlLoader(path.resolve('.'))
 });
 
 const {Bundler,

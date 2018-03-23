@@ -1,6 +1,6 @@
 {
   "name": "polymer-bundler",
-  "version": "4.0.0-pre.0",
+  "version": "4.0.0-pre.2",
   "description": "Process Web Components into one output file",
   "main": "lib/bundler.js",
   "typings": "lib/bundler.d.ts",
@@ -29,7 +29,7 @@
     "magic-string": "^0.22.4",
     "mkdirp": "^0.5.1",
     "parse5": "^2.2.2",
-    "polymer-analyzer": "^3.0.0-pre.13",
+    "polymer-analyzer": "^3.0.0-pre.17",
     "rollup": "^0.56.1",
     "source-map": "^0.5.6",
     "vscode-uri": "^1.0.1"

@@ -18,7 +18,7 @@ import * as chai from 'chai';
 import * as dom5 from 'dom5';
 import * as fs from 'fs';
 import * as parse5 from 'parse5';
-import {Analyzer, FSUrlLoader, PackageUrlResolver} from 'polymer-analyzer';
+import {Analyzer, FsUrlLoader, FsUrlResolver} from 'polymer-analyzer';
 
 import {Bundle, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, Options as BundlerOptions} from '../bundler';
@@ -47,14 +47,12 @@ suite('Bundler', () => {
   function getAnalyzer(opts?: any): Analyzer {
     if (!analyzer) {
       if (!opts || !opts.urlResolver) {
-        const urlResolver = new PackageUrlResolver({
-          packageDir: resolvePath('test/html'),
-        });
-        opts = Object.assign({}, opts || {}, {urlResolver: urlResolver});
+        const urlResolver = new FsUrlResolver(resolvePath('test/html'), );
+        opts = Object.assign({}, opts || {}, {urlResolver});
       }
       if (!opts || !opts.urlLoader) {
-        const urlLoader = new FSUrlLoader(resolvePath('test/html'));
-        opts = Object.assign({}, opts || {}, {urlLoader: urlLoader});
+        const urlLoader = new FsUrlLoader(resolvePath('test/html'));
+        opts = Object.assign({}, opts || {}, {urlLoader});
       }
       analyzer = new Analyzer(opts);
     }
@@ -690,7 +688,7 @@ suite('Bundler', () => {
     test('Firebase works inlined', async () => {
       const {ast: doc} = await bundle('firebase.html', {
         inlineScripts: true,
-        analyzer: new Analyzer({urlLoader: new FSUrlLoader()}),
+        analyzer: new Analyzer({urlLoader: new FsUrlLoader()}),
       });
       const scripts = dom5.queryAll(doc, matchers.inlineJavascript)!;
       assert.equal(scripts.length, 1);
@@ -839,7 +837,7 @@ suite('Bundler', () => {
     test('Bundled file should not import itself', async () => {
       const {ast: doc} = await bundle('default.html', {
         inlineCss: true,
-        analyzer: new Analyzer({urlLoader: new FSUrlLoader('.')}),
+        analyzer: new Analyzer({urlLoader: new FsUrlLoader('.')}),
       });
 
       const link = dom5.query(
@@ -885,7 +883,7 @@ suite('Bundler', () => {
     test('Assetpath rewriting', async () => {
       const {ast: doc} = await bundle(
           'path-rewriting/src/app-main/app-main.html',
-          {analyzer: new Analyzer({urlLoader: new FSUrlLoader()})});
+          {analyzer: new Analyzer({urlLoader: new FsUrlLoader()})});
       assert(doc);
       const domModules = dom5.queryAll(doc, preds.hasTagName('dom-module'));
       const assetpaths = domModules.map(

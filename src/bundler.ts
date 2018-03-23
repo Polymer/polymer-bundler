@@ -11,7 +11,7 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import {Analyzer, Document, FSUrlLoader, InMemoryOverlayUrlLoader, ResolvedUrl} from 'polymer-analyzer';
+import {Analyzer, Document, FsUrlLoader, InMemoryOverlayUrlLoader, ResolvedUrl} from 'polymer-analyzer';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import * as bundleManifestLib from './bundle-manifest';
@@ -89,7 +89,7 @@ export class Bundler {
       this.analyzer = analyzer._fork({urlLoader: this._overlayUrlLoader});
     } else {
       this._overlayUrlLoader =
-          new InMemoryOverlayUrlLoader(new FSUrlLoader(resolvePath('.')));
+          new InMemoryOverlayUrlLoader(new FsUrlLoader(resolvePath('.')));
       this.analyzer = new Analyzer({urlLoader: this._overlayUrlLoader});
     }
 
