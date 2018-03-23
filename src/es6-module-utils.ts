@@ -62,6 +62,13 @@ export function getOrSetBundleModuleExportName(
   return exportName;
 }
 
+/**
+ * Returns true if a module has a default export.
+ *
+ * TODO(usergenic): This does not identify a named export with exported
+ * identifier of `default`.
+ * https://github.com/Polymer/polymer-bundler/issues/645
+ */
 export function hasDefaultModuleExport(node: babel.Node): boolean {
   let hasDefaultModuleExport = false;
   traverse(node, {
@@ -76,6 +83,13 @@ export function hasDefaultModuleExport(node: babel.Node): boolean {
   return hasDefaultModuleExport;
 }
 
+/**
+ * Returns a set of every name exported by a module.
+ *
+ * TODO(usergenic): This does not include names brought in by the statement
+ * `export * from './module-a.js';`.
+ * https://github.com/Polymer/polymer-bundler/issues/641
+ */
 export function getModuleExportNames(node: babel.Node): Set<string> {
   const exportedNames: string[] = [];
   traverse(node, {
@@ -93,6 +107,10 @@ export function getModuleExportNames(node: babel.Node): Set<string> {
   return new Set(exportedNames);
 }
 
+/**
+ * Returns an array of strings representing all export identifiers for each of
+ * the provided nodes which are part of an ExportNamedDeclaration.
+ */
 function getModuleExportIdentifiers(...nodes: babel.Node[]): string[] {
   const identifiers = [];
   for (const node of nodes) {
@@ -244,6 +262,19 @@ export class Es6Rewriter {
     return {code: rewrittenCode, map: undefined};
   }
 
+  /**
+   * Attempts to reduce the number of distinct import declarations by combining
+   * those referencing the same source into the same declaration. Results in
+   * deduplication of imports of the same item as well.
+   *
+   * Before:
+   *     import {a} from './module-1.js';
+   *     import {b} from './module-1.js';
+   *     import {c} from './module-2.js';
+   * After:
+   *     import {a,b} from './module-1.js';
+   *     import {c} from './module-2.js';
+   */
   private _deduplicateImportStatements(node: babel.Node) {
     const importDeclarations = new Map<string, babel.ImportDeclaration>();
     traverse(node, {
@@ -278,12 +309,17 @@ export class Es6Rewriter {
     });
   }
 
+  /**
+   * Rewrite import declarations source URLs reference the bundle URL for
+   * bundled files and import names to correspond to names as exported by
+   * bundles.
+   */
   private _rewriteImportStatements(baseUrl: ResolvedUrl, node: babel.Node) {
     const this_ = this;
     traverse(node, {
       noScope: true,
       // Dynamic import() syntax doesn't have full type support yet, so we
-      // have to use generic `enter` and walk all nodes unti that's fixed.
+      // have to use generic `enter` and walk all nodes until that's fixed.
       // TODO(usergenic): Switch this to the `Import: { enter }` style
       // after dynamic imports fully supported.
       enter(path: NodePath) {
@@ -335,6 +371,19 @@ export class Es6Rewriter {
     });
   }
 
+  /**
+   * Extends dynamic import statements to extract the explicitly namespace
+   * export for the imported module.
+   *
+   * Before:
+   *     import('./module-a.js')
+   *         .then((moduleA) => moduleA.doSomething());
+   *
+   * After:
+   *     import('./bundle_1.js')
+   *         .then(({$moduleA}) => $moduleA)
+   *         .then((moduleA) => moduleA.doSomething());
+   */
   private _rewriteDynamicImport(
       baseUrl: ResolvedUrl,
       root: babel.Node,
@@ -362,8 +411,6 @@ export class Es6Rewriter {
     // TODO(usergenic): To support *skipping* the rewrite, we need a way to
     // identify whether a bundle contains a single top-level module or is a
     // merged bundle with multiple top-level modules.
-    //
-    // if (!sourceBundle || sourceBundle.url === resolvedSourceUrl) {
     let exportName;
     if (sourceBundle) {
       exportName =
@@ -404,6 +451,15 @@ export class Es6Rewriter {
     rewriteNode(importCallExpression, thenifiedCallExpression);
   }
 
+  /**
+   * Changes an import specifier to use the exported name defined in the bundle.
+   *
+   * Before:
+   *     import {something} from './module-a.js';
+   *
+   * After:
+   *     import {something_1} from './bundle_1.js';
+   */
   private _rewriteImportSpecifierName(
       specifier: babel.ImportSpecifier,
       source: ResolvedUrl,
@@ -414,6 +470,16 @@ export class Es6Rewriter {
     specifier.imported.name = exportName;
   }
 
+  /**
+   * Changes an import specifier to use the exported name for original module's
+   * default as defined in the bundle.
+   *
+   * Before:
+   *     import moduleA from './module-a.js';
+   *
+   * After:
+   *     import {$moduleADefault} from './bundle_1.js';
+   */
   private _rewriteImportDefaultSpecifier(
       specifier: babel.ImportDefaultSpecifier,
       source: ResolvedUrl,
@@ -431,6 +497,16 @@ export class Es6Rewriter {
         {type: 'ImportSpecifier', imported: babel.identifier(exportName)});
   }
 
+  /**
+   * Changes an import specifier to use the exported name for original module's
+   * namespace as defined in the bundle.
+   *
+   * Before:
+   *     import * as moduleA from './module-a.js';
+   *
+   * After:
+   *     import {$moduleA} from './bundle_1.js';
+   */
   private _rewriteImportNamespaceSpecifier(
       specifier: babel.ImportNamespaceSpecifier,
       source: ResolvedUrl,
