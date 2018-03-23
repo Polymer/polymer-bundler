@@ -45,3 +45,22 @@ export function uniq<T, R>(items: Iterable<T>, map: (item: T) => R): Set<R> {
   }
   return results;
 }
+
+
+/**
+ * Performs an in-place rewrite of a target object's properties from a given
+ * replacement node.  This is useful because there are some transformations
+ * of ASTs which simply require replacing a node, but it is not always
+ * convenient to obtain the specific parent node property to which a node may be
+ * attached out of many possible configurations.
+ */
+export function overwriteObject(target: Object, replacement: Object) {
+  // Strip all properties from target
+  for (const key of Object.getOwnPropertyNames(target)) {
+    delete target[key];
+  }
+  // Transfer remaining properties from replacement
+  for (const key of Object.getOwnPropertyNames(replacement)) {
+    target[key] = replacement[key];
+  }
+}

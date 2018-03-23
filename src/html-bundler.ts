@@ -29,7 +29,7 @@ import {addOrUpdateSourcemapComment} from './source-map';
 import {updateSourcemapLocations} from './source-map';
 import encodeString from './third_party/UglifyJS2/encode-string';
 import {ensureTrailingSlash, getFileExtension, isTemplatedUrl, rewriteHrefBaseUrl, stripUrlFileSearchAndHash} from './url-utils';
-import {find} from './utils';
+import {find, overwriteObject} from './utils';
 
 /**
  * Produces an HTML BundledDocument.
@@ -71,19 +71,13 @@ export class HtmlBundler {
     // Re-analyzing the document using the updated ast to refresh the scanned
     // imports, since we may now have appended some that were not initially
     // present.
-    this.document = await this.bundler.analyzeContents(
-        this.assignedBundle.url, serialize(ast));
+    this.document = await this._reanalyze(serialize(ast));
 
-    // The following set of operations manipulate the ast directly, so
     await this._inlineHtmlImports(ast);
 
     if (this.bundler.enableScriptInlining) {
-      await this._inlineScripts(ast);
-      this.document = await this.bundler.analyzeContents(
-          this.assignedBundle.url, serialize(ast));
-      ast = this.document.parsedDocument.ast;
-      dom5.removeFakeRootElements(ast);
-      await this._rollupInlineScripts();
+      await this._inlineNonModuleScripts(ast);
+      await this._inlineModuleScripts(ast);
     }
     if (this.bundler.enableCssInlining) {
       await this._inlineStylesheetLinks(ast);
@@ -414,11 +408,44 @@ export class HtmlBundler {
       await this._inlineHtmlImport(htmlImport);
     }
   }
+
+  /**
+   * Inlines the contents of external module scripts and rolls-up imported
+   * modules into inline scripts.
+   */
+  private async _inlineModuleScripts(ast: ASTNode) {
+    this.document = await this._reanalyze(serialize(ast));
+    overwriteObject(ast, this.document.parsedDocument.ast);
+    dom5.removeFakeRootElements(ast);
+    const es6Rewriter =
+        new Es6Rewriter(this.bundler, this.manifest, this.assignedBundle);
+    const inlineModuleScripts =
+        [...this.document.getFeatures({
+          kind: 'js-document',
+          imported: false,
+          externalPackages: true,
+          excludeBackreferences: true,
+        })].filter(({
+                     isInline,
+                     parsedDocument: {parsedAsSourceType}
+                   }) => isInline && parsedAsSourceType === 'module');
+    for (const inlineModuleScript of inlineModuleScripts) {
+      const {code} = await es6Rewriter.rollup(
+          this.document.parsedDocument.baseUrl,
+          inlineModuleScript.parsedDocument.contents);
+      // Second argument 'true' tells encodeString to escape the <script>
+      // content.
+      dom5.setTextContent(
+          (inlineModuleScript.astNode as any).node,
+          encodeString(`\n${code}\n`, true));
+    }
+  }
+
   /**
    * Inlines the contents of the document returned by the script tag's src URL
    * into the script tag content and removes the src attribute.
    */
-  private async _inlineScript(scriptTag: ASTNode) {
+  private async _inlineNonModuleScript(scriptTag: ASTNode) {
     const scriptHref = dom5.getAttribute(scriptTag, 'src')!;
     const resolvedImportUrl = this.bundler.analyzer.urlResolver.resolve(
         this.assignedBundle.url, scriptHref as FileRelativeUrl);
@@ -469,10 +496,10 @@ export class HtmlBundler {
    * Replace all external javascript tags (`<script src="...">`)
    * with `<script>` tags containing the file contents inlined.
    */
-  private async _inlineScripts(ast: ASTNode) {
+  private async _inlineNonModuleScripts(ast: ASTNode) {
     const scriptImports = dom5.queryAll(ast, matchers.externalJavascript);
     for (const externalScript of scriptImports) {
-      await this._inlineScript(externalScript);
+      await this._inlineNonModuleScript(externalScript);
     }
   }
 
@@ -660,7 +687,7 @@ export class HtmlBundler {
    */
   private async _prepareBundleDocument(): Promise<Document> {
     if (!this.assignedBundle.bundle.files.has(this.assignedBundle.url)) {
-      return this.bundler.analyzeContents(this.assignedBundle.url, '');
+      return this._reanalyze('');
     }
     const analysis =
         await this.bundler.analyzer.analyze([this.assignedBundle.url]);
@@ -669,7 +696,15 @@ export class HtmlBundler {
     this._moveOrderedImperativesFromHeadIntoHiddenDiv(ast);
     this._moveUnhiddenHtmlImportsIntoHiddenDiv(ast);
     dom5.removeFakeRootElements(ast);
-    return this.bundler.analyzeContents(document.url, serialize(ast));
+    return this._reanalyze(serialize(ast));
+  }
+
+  /**
+   * Fetch a new copy of an analyzed document serializing an AST and analyzing
+   * it.
+   */
+  private async _reanalyze(code: string): Promise<Document> {
+    return this.bundler.analyzeContents(this.assignedBundle.url, code);
   }
 
   /**
@@ -819,31 +854,6 @@ export class HtmlBundler {
       styleText =
           this._rewriteCssTextBaseUrl(styleText, oldBaseUrl, newBaseUrl);
       dom5.setTextContent(node, styleText);
-    }
-  }
-
-  private async _rollupInlineScripts() {
-    const es6Rewriter =
-        new Es6Rewriter(this.bundler, this.manifest, this.assignedBundle);
-    const inlineModuleScripts =
-        [...this.document.getFeatures({
-          kind: 'js-document',
-          imported: false,
-          externalPackages: true,
-          excludeBackreferences: true,
-        })]
-            .filter(
-                (f) => f.isInline &&
-                    f.parsedDocument.parsedAsSourceType === 'module');
-    for (const inlineModuleScript of inlineModuleScripts) {
-      const {code} = await es6Rewriter.rollup(
-          this.document.parsedDocument.baseUrl,
-          inlineModuleScript.parsedDocument.contents);
-      // Second argument 'true' tells encodeString to escape the <script>
-      // content.
-      dom5.setTextContent(
-          (inlineModuleScript.astNode as any).node,
-          encodeString(`\n${code}\n`, true));
     }
   }
 

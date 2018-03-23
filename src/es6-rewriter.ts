@@ -18,11 +18,12 @@ import {FileRelativeUrl, PackageRelativeUrl, ResolvedUrl} from 'polymer-analyzer
 import {rollup} from 'rollup';
 
 import {getAnalysisDocument} from './analyzer-utils';
-import {getNodePath, parseModuleFile, rewriteNode, serialize} from './babel-utils';
+import {getNodePath, parseModuleFile, serialize} from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {getOrSetBundleModuleExportName} from './es6-module-utils';
 import {ensureLeadingDot} from './url-utils';
+import {overwriteObject} from './utils';
 
 /**
  * Utility class to rollup/merge ES6 modules code using rollup and rewrite
@@ -307,7 +308,7 @@ export class Es6Rewriter {
                        true) as any]),
             ],
             babel.identifier(exportName))]);
-    rewriteNode(importCallExpression, thenifiedCallExpression);
+    overwriteObject(importCallExpression, thenifiedCallExpression);
   }
 
   /**
