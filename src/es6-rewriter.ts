@@ -121,7 +121,6 @@ export class Es6Rewriter {
     const rolledUpUrl = getFileExtension(url) === '.js' ?
         url :
         appendUrlPath(url, '_inline_es6_module.js');
-    console.log('rolledUpUrl', rolledUpUrl);
     const rolledUpDocument = await this.bundler.analyzeContents(
         rolledUpUrl as ResolvedUrl, rolledUpCode);
     const babelFile = rolledUpDocument.parsedDocument.ast;

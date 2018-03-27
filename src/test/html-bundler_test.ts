@@ -33,7 +33,7 @@ const stripSpace = (html: string): string =>
 
 suite('HtmlBundler', () => {
 
-  test.only('inline es6 modules', async () => {
+  test('inline es6 modules', async () => {
     const analyzer = inMemoryAnalyzer({
       'multiple-inline-modules.html': `
         <script type="module">

@@ -28,7 +28,8 @@ import constants from './constants';
  */
 export function appendUrlPath(url_: string, extension: string): string {
   const uri = Uri.parse(url_);
-  return url_.replace(uri.path, `${uri.path}${extension}`);
+  uri['_path'] = `${uri.path}${extension}`;
+  return uri.toString();
 }
 /**
  * Given a string representing a relative path of some form, ensure a `./`
