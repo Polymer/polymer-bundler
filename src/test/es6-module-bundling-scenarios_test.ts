@@ -139,7 +139,7 @@ suite('Es6 Module Bundling', () => {
           honey: honey,
           beeSea: beeSea
         };
-        export { b$1 as $b, b as $bDefault, c as $c, sea$1 as $cDefault, honey, beeSea, boat };`);
+        export { b$1 as $b, c as $c, b as $bDefault, honey, beeSea, sea$1 as $cDefault, boat };`);
     });
   });
 
