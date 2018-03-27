@@ -22,7 +22,7 @@ import {getNodePath, serialize} from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {getOrSetBundleModuleExportName} from './es6-module-utils';
-import {ensureLeadingDot} from './url-utils';
+import {appendUrlPath, ensureLeadingDot, getFileExtension} from './url-utils';
 import {rewriteObject} from './utils';
 
 /**
@@ -118,8 +118,11 @@ export class Es6Rewriter {
     // We have to force the extension of the URL to analyze here because inline
     // es6 module document url is going to end in `.html` and the file would be
     // incorrectly analyzed as an HTML document.
+    const rolledUpUrl = getFileExtension(url) === '.js' ?
+        url :
+        appendUrlPath(url, '_inline_es6_module.js');
     const rolledUpDocument = await this.bundler.analyzeContents(
-        `${url}.js` as ResolvedUrl, rolledUpCode);
+        rolledUpUrl as ResolvedUrl, rolledUpCode);
     const babelFile = rolledUpDocument.parsedDocument.ast;
     this._rewriteImportStatements(url, babelFile);
     this._deduplicateImportStatements(babelFile);

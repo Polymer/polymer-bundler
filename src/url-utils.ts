@@ -18,6 +18,18 @@ import Uri from 'vscode-uri';
 
 import constants from './constants';
 
+
+/**
+ * Produce a version of the URL provided with the given extension concatenated
+ * to the path. Example:
+ *     appendUrlPath('file:///something/something.html?ponies', '_omg.js')
+ * Produces:
+ *     'file:///something/something.html_omg.js?ponies'
+ */
+export function appendUrlPath(url_: string, extension: string): string {
+  const uri = Uri.parse(url_);
+  return url_.replace(uri.path, `${uri.path}${extension}`);
+}
 /**
  * Given a string representing a relative path of some form, ensure a `./`
  * leader if it doesn't already start with dot-based path leader or a scheme
