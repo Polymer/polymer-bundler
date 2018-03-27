@@ -13,32 +13,11 @@
  */
 import generate from 'babel-generator';
 import {GeneratorResult} from 'babel-generator';
-import traverse from 'babel-traverse';
-import {NodePath} from 'babel-traverse';
-import * as babel from 'babel-types';
-
-/**
- * Within the `root` of the babel AST, find and returns a NodePath of the
- * given `node`.  Returns `undefined` if node not found within `root`.
- */
-export function getNodePath(root: babel.Node, node: babel.Node): NodePath|
-    undefined {
-  let nodepath;
-  traverse(root, {
-    noScope: true,
-    enter(path: NodePath) {
-      if (path.node === node) {
-        nodepath = path;
-        path.stop();
-      }
-    }
-  });
-  return nodepath;
-}
+import {Node} from 'babel-types';
 
 /**
  * Convenience wrapper for generating source text from the babel AST node.
  */
-export function serialize(root: babel.Node): GeneratorResult {
+export function serialize(root: Node): GeneratorResult {
   return generate(root, {quotes: 'single'});
 }

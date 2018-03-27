@@ -18,7 +18,7 @@ import {FileRelativeUrl, Import, PackageRelativeUrl, ResolvedUrl} from 'polymer-
 import {rollup} from 'rollup';
 
 import {getAnalysisDocument} from './analyzer-utils';
-import {getNodePath, serialize} from './babel-utils';
+import {serialize} from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {getOrSetBundleModuleExportName} from './es6-module-utils';
@@ -192,7 +192,7 @@ export class Es6Rewriter {
       // after dynamic imports fully supported.
       enter(path: NodePath) {
         if (path.node.type === 'Import') {
-          this_._rewriteDynamicImport(baseUrl, node, path.node);
+          this_._rewriteDynamicImport(baseUrl, node, path);
         }
       },
     });
@@ -255,8 +255,7 @@ export class Es6Rewriter {
   private _rewriteDynamicImport(
       baseUrl: ResolvedUrl,
       root: babel.Node,
-      importNode: babel.Node) {
-    const importNodePath = getNodePath(root, importNode);
+      importNodePath: NodePath) {
     if (!importNodePath) {
       return;
     }
