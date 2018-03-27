@@ -24,6 +24,43 @@ import {heredoc, inMemoryAnalyzer} from './test-utils';
 
 suite('Es6 Module Bundling', () => {
 
+  test('export from', async () => {
+    const analyzer = inMemoryAnalyzer({
+      'a.js': `
+        export * from './b.js';
+        export const A = 'a';
+      `,
+      'b.js': `
+        export * from './c.js';
+        export const B = 'b';
+      `,
+      'c.js': `
+        export const C = 'c';
+      `,
+    });
+    const aUrl = analyzer.resolveUrl('a.js')!;
+    const bundler = new Bundler({analyzer});
+    const {documents} =
+        await bundler.bundle(await bundler.generateManifest([aUrl]));
+    assert.deepEqual(documents.get(aUrl)!.content, heredoc`
+      const C = 'c';
+      var c = {
+        C: C
+      };
+      const B = 'b';
+      var b = {
+        B: B,
+        C: C
+      };
+      const A = 'a';
+      var a = {
+        A: A,
+        B: B,
+        C: C
+      };
+      export { a as $a, b as $b, c as $c, C, B, A, C as C$1, B as B$1, C as C$2 };`);
+  });
+
   suite('rewriting import specifiers', () => {
 
     const analyzer = inMemoryAnalyzer({
@@ -184,7 +221,7 @@ suite('Es6 Module Bundling', () => {
           export const bee = '🐝';
         `,
       });
-      const aUrl = analyzer.urlResolver.resolve('a.js' as PackageRelativeUrl)!;
+      const aUrl = analyzer.resolveUrl('a.js')!;
       const bundler = new Bundler({analyzer});
       const {documents} =
           await bundler.bundle(await bundler.generateManifest([aUrl]));
