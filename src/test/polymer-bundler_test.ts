@@ -129,10 +129,9 @@ suite('polymer-bundler CLI', () => {
       execSync(
           `cd ${projectRoot} && ` +
           `node ${cliPath} --inline-scripts --inline-css ` +
-          `--in-html eagerly-importing-a-fragment.html ` +
-          `--in-html importing-fragments/fragment-a.html ` +
-          `--in-html importing-fragments/fragment-b.html ` +
-          `--in-html importing-fragments/shell.html ` +
+          `--in-file eagerly-importing-a-fragment.html ` +
+          `--in-file importing-fragments/fragment-a.html ` +
+          `--in-file importing-fragments/fragment-b.html ` +
           `--shell importing-fragments/shell.html ` +
           `--out-dir ${tempdir}/bundled/ ` +
           `--manifest-out ${manifestPath}`)
@@ -150,8 +149,8 @@ suite('polymer-bundler CLI', () => {
           'importing-fragments/fragment-b.html',
         ],
         'importing-fragments/shell.html': [
-          'importing-fragments/shell.html',
           'importing-fragments/shared-util.html',
+          'importing-fragments/shell.html',
         ],
       });
 

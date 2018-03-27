@@ -98,9 +98,10 @@ suite('Bundler', () => {
 
     test('URLs for inlined HTML imports are recorded in Bundle', async () => {
       await bundle(inputPath);
-      assert.deepEqual(
-          [...documentBundle.inlinedHtmlImports],
-          [resolve('imports/simple-import.html')]);
+      assert.deepEqual([...documentBundle.inlinedHtmlImports], [
+        resolve('imports/simple-import.html'),
+        resolve('imports/another-simple-import.html'),
+      ]);
     });
 
     test('imports removed', async () => {
@@ -116,7 +117,10 @@ suite('Bundler', () => {
     test('imports were deduplicated', async () => {
       assert.equal(
           dom5.queryAll(
-                  (await bundle(inputPath)).ast, preds.hasTagName('dom-module'))
+                  (await bundle(inputPath)).ast,
+                  preds.AND(
+                      preds.hasAttrValue('id', 'my-element'),
+                      preds.hasTagName('dom-module')))
               .length,
           1);
     });
@@ -174,7 +178,10 @@ suite('Bundler', () => {
                 new Bundle(
                     'html-fragment',
                     new Set(),  //
-                    new Set([resolve('imports/simple-import.html')]))
+                    new Set([
+                      resolve('imports/simple-import.html'),
+                      resolve('imports/another-simple-import.html'),
+                    ]))
               ];
             }
           });
@@ -604,9 +611,13 @@ suite('Bundler', () => {
       // duplication:
       //     <link rel="import" href="imports/simple-import.html">
       //     <link rel="import" href="imports/simple-import.html">
-      assert.equal(links.length, 1);
+      //     <link rel="import" href="imports/another-simple-import.html">
+      assert.equal(links.length, 2);
       assert.equal(
           dom5.getAttribute(links[0]!, 'href'), 'imports/simple-import.html');
+      assert.equal(
+          dom5.getAttribute(links[1]!, 'href'),
+          'imports/another-simple-import.html');
     });
   });
 
@@ -705,10 +716,12 @@ suite('Bundler', () => {
       const styles = dom5.queryAll(
           doc, matchers.styleMatcher, [], dom5.childNodesIncludeTemplate);
       assert.equal(links.length, 0);
-      assert.equal(styles.length, 3);
+      assert.equal(styles.length, 5);
       assert.match(dom5.getTextContent(styles[0]), /regular-style/);
       assert.match(dom5.getTextContent(styles[1]), /simple-style/);
       assert.match(dom5.getTextContent(styles[2]), /import-linked-style/);
+      assert.match(dom5.getTextContent(styles[3]), /simple-style/);
+      assert.match(dom5.getTextContent(styles[4]), /import-linked-style/);
 
       // Verify the inlined url() values in the stylesheet are not rewritten
       // to use the "imports/" prefix, since the stylesheet is inside a

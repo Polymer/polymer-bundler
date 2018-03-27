@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-<!-- ## Unreleased -->
+## Unreleased
+- [BREAKING] The `--in-html` and `--out-html` arguments for `bin/polymer-bundler` are now `--in-file` and `--out-file` because input filetypes are no longer limited to HTML.
+- ES6 Module Bundling! Bundler can simultaneously process HTML imports and ES6 module imports, including inline `<script type="module">` scripts.
 <!-- Add new, unreleased changes here. -->
 
 ## 4.0.0-pre.2 - 2018-03-20
@@ -17,6 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - [BREAKING] Removed `relativeUrl` function from `url-utils`, shifting responsibility to `Bundler#analyzer.urlResolver.relative()`.
 - [BREAKING] Removed `import-utils.ts` and migrated all HTML-specific bundling code out of it and out of `bundler.ts` into a new class `HtmlBundler`.  Renamed `ast-utils.ts` to `parse5-utils.ts` since "ast" is ambiguous when we have JavaScript ASTs coming in.
 - [BREAKING] `Bundle` class now has a required `type` property as first argument to its constructor, with current possible values of `html-fragment` and `es6-module`.
+- [BREAKING] The `DepsIndex` type returned from `buildDepsIndex` has changed to a single map of entrypoints to dependencies.
+- Added support for `<script type="module">` and bundling of ES6 modules by following `import` statements.  Dynamic `import()` statements are treated similarly to the `<link rel="lazy-import">` tag in that the import target implicitly defines a new entrypoint/bundle.
 - The `BundleResult` returned by `Bundler#bundle()` includes serialized contents instead of just the root AST node of bundled document.
 
 ## 3.1.1 - 2017-10-20

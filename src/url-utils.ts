@@ -11,15 +11,40 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-
-// jshint node:true
-'use strict';
-
 import * as path from 'path';
-import * as url from 'url';
-import constants from './constants';
 import {FileRelativeUrl, ResolvedUrl} from 'polymer-analyzer';
+import * as url from 'url';
 import Uri from 'vscode-uri';
+
+import constants from './constants';
+
+
+/**
+ * Produce a version of the URL provided with the given extension concatenated
+ * to the path. Example:
+ *     appendUrlPath('file:///something/something.html?ponies', '_omg.js')
+ * Produces:
+ *     'file:///something/something.html_omg.js?ponies'
+ */
+export function appendUrlPath(url_: string, extension: string): string {
+  const uri = Uri.parse(url_);
+  uri['_path'] = `${uri.path}${extension}`;
+  return uri.toString();
+}
+/**
+ * Given a string representing a relative path of some form, ensure a `./`
+ * leader if it doesn't already start with dot-based path leader or a scheme
+ * (like, you wouldn't want to change `file:///example.js` into
+ * `./file:///example.js`)
+ */
+export function ensureLeadingDot<T>(href: T): T {
+  const hrefString = href as any as string;
+  if (!Uri.parse(hrefString).scheme &&
+      !(hrefString.startsWith('./') || hrefString.startsWith('../'))) {
+    return './' + href as any as T;
+  }
+  return href;
+}
 
 /**
  * Given a string representing a URL or path of some form, append a `/`
@@ -28,6 +53,21 @@ import Uri from 'vscode-uri';
 export function ensureTrailingSlash<T>(href: T): T {
   const hrefString = href as any as string;
   return hrefString.endsWith('/') ? href : (href + '/') as any as T;
+}
+
+/**
+ * Parses the URL and returns the extname of the path.
+ */
+export function getFileExtension(url_: string): string {
+  return path.extname(getFileName(url_));
+}
+
+/**
+ * Parses the URL and returns only the filename part of the path.
+ */
+export function getFileName(url_: string): string {
+  const uri = Uri.parse(url_);
+  return uri.path.split(/\//).pop() || '';
 }
 
 /**
@@ -119,8 +159,8 @@ export function rewriteHrefBaseUrl<T>(
         parsedFrom.pathname ? parsedFrom.pathname + '_' : '');
     let pathTo = parsedTo.pathname || '';
     if (isAbsolutePath(oldBaseUrl) || isAbsolutePath(newBaseUrl)) {
-      dirFrom = makeAbsolutePath(dirFrom);
-      pathTo = makeAbsolutePath(pathTo);
+      dirFrom = ensureLeadingSlash(dirFrom);
+      pathTo = ensureLeadingSlash(pathTo);
     }
     const pathname = pathPosixRelative(dirFrom, pathTo);
     return url.format({
@@ -132,6 +172,9 @@ export function rewriteHrefBaseUrl<T>(
   return relativeUrl as FileRelativeUrl;
 }
 
-function makeAbsolutePath(path: string): string {
+/**
+ * Ensures a leading slash on given string.
+ */
+function ensureLeadingSlash(path: string): string {
   return path.startsWith('/') ? path : '/' + path;
 }

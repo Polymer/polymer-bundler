@@ -58,7 +58,7 @@ const optionDefinitions = [
     description: 'Inline external stylesheets'
   },
   {
-    name: 'out-html',
+    name: 'out-file',
     type: String,
     typeLabel: pathArgument,
     description: `If specified, output will be written to ${pathArgument}` +
@@ -86,14 +86,14 @@ const optionDefinitions = [
         `${pathArgument}.`
   },
   {
-    name: 'in-html',
+    name: 'in-file',
     type: String,
     typeLabel: pathArgument,
     defaultOption: true,
     multiple: true,
     description:
-        'Input HTML. If not specified, will be the last command line ' +
-        'argument.  Multiple in-html arguments may be specified.'
+        'Input HTML (.html) and ES6 (.js) files. If not specified, will be ' +
+        'the last command line argument.  Multiple input values allowable.'
   },
   {
     name: 'redirect',
@@ -128,6 +128,16 @@ const optionDefinitions = [
         'The root of the package/project being bundled.  Defaults to the ' +
         'current working folder.'
   },
+  {
+    name: 'module-resolution',
+    description: 'Algorithm to use for resolving module specifiers in import ' +
+        'and export statements when rewriting them to be web-compatible. ' +
+        'Valid values are "none" and "node". "none" disables module specifier ' +
+        'rewriting. "node" uses Node.js resolution to find modules.',
+    type: String,
+    typeLabel: '"node|none"',
+    defaultValue: 'none',
+  }
 ];
 
 const usage = [
@@ -168,7 +178,7 @@ const usage = [
 const options = commandLineArgs(optionDefinitions);
 const projectRoot = resolvePath(ensureTrailingSlash(options.root || '.'));
 
-const entrypoints: PackageRelativeUrl[] = options['in-html'];
+const entrypoints: PackageRelativeUrl[] = options['in-file'];
 
 function printHelp() {
   console.log(commandLineUsage(usage));
@@ -195,7 +205,9 @@ options.implicitStrip = !options['no-implicit-strip'];
 options.inlineScripts = Boolean(options['inline-scripts']);
 options.inlineCss = Boolean(options['inline-css']);
 options.rewriteUrlsInTemplates = Boolean(options['rewrite-urls-in-templates']);
+options.moduleResolution = options['module-resolution'];
 
+const {moduleResolution} = options;
 const urlLoader = new FsUrlLoader(projectRoot);
 const urlResolver = new FsUrlResolver(projectRoot);
 const projectRootUrl = getFileUrl(projectRoot);
@@ -220,6 +232,7 @@ if (options.redirect) {
       (r: Redirection) => new FsUrlLoader(resolvePath(r.path)));
   if (redirections.length > 0) {
     options.analyzer = new Analyzer({
+      moduleResolution,
       urlResolver: new MultiUrlResolver([...resolvers, urlResolver]),
       urlLoader: new MultiUrlLoader([...loaders, urlLoader]),
     });
@@ -227,7 +240,7 @@ if (options.redirect) {
 }
 
 if (!options.analyzer) {
-  options.analyzer = new Analyzer({urlResolver, urlLoader});
+  options.analyzer = new Analyzer({moduleResolution, urlResolver, urlLoader});
 }
 
 if (options.shell) {
@@ -244,7 +257,7 @@ if (options.shell) {
     const shell = options.shell;
     if (shell) {
       if (entrypoints.indexOf(shell) === -1) {
-        throw new Error('Shell must be provided as `in-html`');
+        entrypoints.push(shell);
       }
     }
     ({documents, manifest} = await bundler.bundle(
@@ -289,8 +302,8 @@ if (options.shell) {
   if (!doc) {
     return;
   }
-  if (options['out-html']) {
-    const fd = fs.openSync(options['out-html'], 'w');
+  if (options['out-file']) {
+    const fd = fs.openSync(options['out-file'], 'w');
     fs.writeSync(fd, doc.content);
     fs.closeSync(fd);
   } else {
