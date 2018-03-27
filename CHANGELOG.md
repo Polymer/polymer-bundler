@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## Unreleased
 - [BREAKING] The `--in-html` and `--out-html` arguments for `bin/polymer-bundler` are now `--in-file` and `--out-file` because input filetypes are no longer limited to HTML.
 - ES6 Module Bundling! Bundler can simultaneously process HTML imports and ES6 module imports, including inline `<script type="module">` scripts.
+- Fixed issue where `export * from 'x'` did not export identifiers from module `x`.
 <!-- Add new, unreleased changes here. -->
 
 ## 4.0.0-pre.2 - 2018-03-20
