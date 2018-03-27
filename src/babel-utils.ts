@@ -16,7 +16,6 @@ import {GeneratorResult} from 'babel-generator';
 import traverse from 'babel-traverse';
 import {NodePath} from 'babel-traverse';
 import * as babel from 'babel-types';
-import * as babylon from 'babylon';
 
 /**
  * Within the `root` of the babel AST, find and returns a NodePath of the
@@ -35,26 +34,6 @@ export function getNodePath(root: babel.Node, node: babel.Node): NodePath|
     }
   });
   return nodepath;
-}
-
-/**
- * Parse the module with babylon and return a babel.Node
- *
- * TODO(usergenic): Normalize list of plugins by using a babel preset or
- * delegate only to Analyzer.
- * https://github.com/Polymer/polymer-bundler/issues/646
- */
-export function parseModuleFile(url: string, code: string): babel.File {
-  return babylon.parse(code, {
-    sourceFilename: url,
-    sourceType: 'module',
-    plugins: [
-      'asyncGenerators',
-      'dynamicImport',
-      'importMeta' as any,  // not yet in the @types file
-      'objectRestSpread',
-    ],
-  });
 }
 
 /**

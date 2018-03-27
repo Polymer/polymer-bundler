@@ -65,35 +65,27 @@ suite('Es6 Module Bundling', () => {
           await bundler.generateManifest([aUrl, bUrl, cUrl]));
       assert.deepEqual(documents.get(aUrl)!.content, heredoc`
         import { $b as bee, $bDefault as bee__default, honey } from './b.js';
-
         import { $c as sea, $cDefault as sea__default, boat } from './c.js';
-
-
         console.log(bee__default, bee, honey);
         console.log(sea__default, sea, boat);`);
       assert.deepEqual(documents.get(bUrl)!.content, heredoc`
         import { $cDefault as sea } from './c.js';
-
         var b = bee = '🐝';
         const honey = '🍯';
         const beeSea = bee + sea;
-
         var b$1 = {
           default: b,
           honey: honey,
           beeSea: beeSea
         };
-
         export { b$1 as $b, b as $bDefault, honey, beeSea };`);
       assert.deepEqual(documents.get(cUrl)!.content, heredoc`
         var c = sea = '🌊';
         const boat = '⛵️';
-
         var c$1 = {
           default: c,
           boat: boat
         };
-
         export { c$1 as $c, c as $cDefault, boat };`);
     });
 
@@ -103,29 +95,23 @@ suite('Es6 Module Bundling', () => {
           await bundler.bundle(await bundler.generateManifest([bUrl, dUrl]));
       assert.deepEqual(documents.get(bUrl)!.content, heredoc`
         import { $cDefault as sea } from './shared_bundle_1.js';
-
         var b = bee = '🐝';
         const honey = '🍯';
         const beeSea = bee + sea;
-
         var b$1 = {
           default: b,
           honey: honey,
           beeSea: beeSea
         };
-
         export { b$1 as $b, b as $bDefault, honey, beeSea };`);
       assert.deepEqual(documents.get(dUrl)!.content, heredoc`
         import { boat } from './shared_bundle_1.js';
-
         var d = deer = '🦌';
         const deerBoat = deer + boat;
-
         var d$1 = {
           default: d,
           deerBoat: deerBoat
         };
-
         export { d$1 as $d, d as $dDefault, deerBoat };`);
     });
 
@@ -136,29 +122,23 @@ suite('Es6 Module Bundling', () => {
           await bundler.bundle(await bundler.generateManifest([aUrl, bUrl]));
       assert.deepEqual(documents.get(aUrl)!.content, heredoc`
         import { $b as bee, $bDefault as bee__default, honey, $c as sea, $cDefault as sea__default, boat } from './b.js';
-
-
         console.log(bee__default, bee, honey);
         console.log(sea__default, sea, boat);`);
       assert.deepEqual(documents.get(bUrl)!.content, heredoc`
         var sea$1 = sea = '🌊';
         const boat = '⛵️';
-
         var c = {
           default: sea$1,
           boat: boat
         };
-
         var b = bee = '🐝';
         const honey = '🍯';
         const beeSea = bee + sea$1;
-
         var b$1 = {
           default: b,
           honey: honey,
           beeSea: beeSea
         };
-
         export { b$1 as $b, b as $bDefault, c as $c, sea$1 as $cDefault, honey, beeSea, boat };`);
     });
   });
@@ -192,7 +172,6 @@ suite('Es6 Module Bundling', () => {
         var a = {
           go: go
         };
-
         export { a as $a, go };`);
     });
 

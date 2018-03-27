@@ -101,27 +101,22 @@ suite('Es6ModuleBundler', () => {
       var upcase$1 = {
         upcase: upcase
       };
-
       const A = upcase('a');
       const B = upcase('b');
       const C = upcase('c');
-
       var abc = {
         A: A,
         B: B,
         C: C
       };
-
       const X = upcase('x');
       const Y = upcase('y');
       const Z = upcase('z');
-
       var xyz = {
         X: X,
         Y: Y,
         Z: Z
       };
-
       export { abc as $abc, upcase$1 as $upcase, xyz as $xyz, A, B, C, upcase, X, Y, Z };`);
   });
 
@@ -139,23 +134,18 @@ suite('Es6ModuleBundler', () => {
       var upcase$1 = {
         upcase: upcase
       };
-
       const Z = upcase('omgz');
-
       var omgz = {
         Z: Z
       };
-
       const X = upcase('x');
       const Y = upcase('y');
       const Z$1 = upcase('z');
-
       var xyz = {
         X: X,
         Y: Y,
         Z: Z$1
       };
-
       export { omgz as $omgz, upcase$1 as $upcase, xyz as $xyz, Z, upcase, X, Y, Z$1 };`);
   });
 });

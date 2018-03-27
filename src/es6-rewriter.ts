@@ -18,7 +18,7 @@ import {FileRelativeUrl, Import, PackageRelativeUrl, ResolvedUrl} from 'polymer-
 import {rollup} from 'rollup';
 
 import {getAnalysisDocument} from './analyzer-utils';
-import {getNodePath, parseModuleFile, serialize} from './babel-utils';
+import {getNodePath, serialize} from './babel-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {getOrSetBundleModuleExportName} from './es6-module-utils';
@@ -115,7 +115,12 @@ export class Es6Rewriter {
       format: 'es',
       freeze: false,
     });
-    const babelFile = parseModuleFile(url, rolledUpCode);
+    // We have to force the extension of the URL to analyze here because inline
+    // es6 module document url is going to end in `.html` and the file would be
+    // incorrectly analyzed as an HTML document.
+    const rolledUpDocument = await this.bundler.analyzeContents(
+        `${url}.js` as ResolvedUrl, rolledUpCode);
+    const babelFile = rolledUpDocument.parsedDocument.ast;
     this._rewriteImportStatements(url, babelFile);
     this._deduplicateImportStatements(babelFile);
     const {code: rewrittenCode} = serialize(babelFile);
