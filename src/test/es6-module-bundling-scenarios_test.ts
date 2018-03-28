@@ -36,6 +36,7 @@ suite('Es6 Module Bundling', () => {
       `,
       'c.js': `
         export const C = 'c';
+        export {C as default};
       `,
     });
     const aUrl = analyzer.resolveUrl('a.js')!;
@@ -45,7 +46,8 @@ suite('Es6 Module Bundling', () => {
     assert.deepEqual(documents.get(aUrl)!.content, heredoc`
       const C = 'c';
       var c = {
-        C: C
+        C: C,
+        default: C
       };
       const B = 'b';
       var b = {
@@ -58,7 +60,7 @@ suite('Es6 Module Bundling', () => {
         B: B,
         C: C
       };
-      export { a as $a, b as $b, c as $c, C, B, A, C as C$1, B as B$1, C as C$2 };`);
+      export { a as $a, b as $b, c as $c, C, B, A, C as C$1, B as B$1, C as C$2, C as $cDefault };`);
   });
 
   suite('rewriting import specifiers', () => {
