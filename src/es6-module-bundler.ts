@@ -19,7 +19,7 @@ import {getAnalysisDocument} from './analyzer-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
 import {Bundler} from './bundler';
 import {BundledDocument} from './document-collection';
-import {getModuleExportNames, getOrSetBundleModuleExportName, hasDefaultModuleExport} from './es6-module-utils';
+import {getModuleExportNames, getOrSetBundleModuleExportName} from './es6-module-utils';
 import {Es6Rewriter} from './es6-rewriter';
 import {ensureLeadingDot, stripUrlFileSearchAndHash} from './url-utils';
 
@@ -62,50 +62,37 @@ export async function bundle(
  *     export {$moduleA, $moduleB, $moduleBDefault};
  */
 async function prepareBundleModule(
-    bundler: Bundler,
-    manifest: BundleManifest,
-    assignedBundle: AssignedBundle): Promise<string> {
-  let bundleSource = babel.program([]);
-  const sourceAnalysis =
-      await bundler.analyzer.analyze([...assignedBundle.bundle.files]);
-  for (const sourceUrl of [...assignedBundle.bundle.files].sort()) {
-    const rebasedSourceUrl =
-        ensureLeadingDot(bundler.analyzer.urlResolver.relative(
-            stripUrlFileSearchAndHash(assignedBundle.url), sourceUrl));
-    const moduleDocument =
-        getAnalysisDocument(sourceAnalysis, sourceUrl).parsedDocument;
-    const moduleExports = getModuleExportNames(moduleDocument.ast);
-    const starExportName =
-        getOrSetBundleModuleExportName(assignedBundle, sourceUrl, '*');
-    bundleSource.body.push(babel.importDeclaration(
-        [babel.importNamespaceSpecifier(babel.identifier(starExportName))],
-        babel.stringLiteral(rebasedSourceUrl)));
-    if (moduleExports.size > 0) {
-      bundleSource.body.push(babel.exportNamedDeclaration(
-          undefined, [babel.exportSpecifier(
-                         babel.identifier(starExportName),
-                         babel.identifier(starExportName))]));
-      bundleSource.body.push(babel.exportNamedDeclaration(
-          undefined,
-          [...moduleExports].map(
-              (e) => babel.exportSpecifier(
-                  babel.identifier(e),
-                  babel.identifier(getOrSetBundleModuleExportName(
-                      assignedBundle, sourceUrl, e)))),
-          babel.stringLiteral(rebasedSourceUrl)));
+    bundler: Bundler, manifest: BundleManifest, assignedBundle: AssignedBundle):
+    Promise<string> {
+      let bundleSource = babel.program([]);
+      const sourceAnalysis =
+          await bundler.analyzer.analyze([...assignedBundle.bundle.files]);
+      for (const sourceUrl of [...assignedBundle.bundle.files].sort()) {
+        const rebasedSourceUrl =
+            ensureLeadingDot(bundler.analyzer.urlResolver.relative(
+                stripUrlFileSearchAndHash(assignedBundle.url), sourceUrl));
+        const moduleDocument = getAnalysisDocument(sourceAnalysis, sourceUrl);
+        const moduleExports = getModuleExportNames(moduleDocument);
+        const starExportName =
+            getOrSetBundleModuleExportName(assignedBundle, sourceUrl, '*');
+        bundleSource.body.push(babel.importDeclaration(
+            [babel.importNamespaceSpecifier(babel.identifier(starExportName))],
+            babel.stringLiteral(rebasedSourceUrl)));
+        if (moduleExports.size > 0) {
+          bundleSource.body.push(babel.exportNamedDeclaration(
+              undefined, [babel.exportSpecifier(
+                             babel.identifier(starExportName),
+                             babel.identifier(starExportName))]));
+          bundleSource.body.push(babel.exportNamedDeclaration(
+              undefined,
+              [...moduleExports].map(
+                  (e) => babel.exportSpecifier(
+                      babel.identifier(e),
+                      babel.identifier(getOrSetBundleModuleExportName(
+                          assignedBundle, sourceUrl, e)))),
+              babel.stringLiteral(rebasedSourceUrl)));
+        }
+      }
+      const {code} = generate(bundleSource);
+      return code;
     }
-    if (hasDefaultModuleExport(moduleDocument.ast)) {
-      const defaultExportName =
-          getOrSetBundleModuleExportName(assignedBundle, sourceUrl, 'default');
-      bundleSource.body.push(babel.importDeclaration(
-          [babel.importDefaultSpecifier(babel.identifier(defaultExportName))],
-          babel.stringLiteral(rebasedSourceUrl)));
-      bundleSource.body.push(babel.exportNamedDeclaration(
-          undefined, [babel.exportSpecifier(
-                         babel.identifier(defaultExportName),
-                         babel.identifier(defaultExportName))]));
-    }
-  }
-  const {code} = generate(bundleSource);
-  return code;
-}

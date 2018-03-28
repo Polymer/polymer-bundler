@@ -11,9 +11,7 @@
  * subject to an additional IP rights grant found at
  * http://polymer.github.io/PATENTS.txt
  */
-import traverse, {NodePath} from 'babel-traverse';
-import * as babel from 'babel-types';
-import {Analyzer, ResolvedUrl} from 'polymer-analyzer';
+import {Analyzer, Document, ResolvedUrl} from 'polymer-analyzer';
 
 import {getAnalysisDocument} from './analyzer-utils';
 import {AssignedBundle, BundleManifest} from './bundle-manifest';
@@ -59,78 +57,18 @@ export function getOrSetBundleModuleExportName(
 }
 
 /**
- * Returns true if a module has a default export.
- *
- * TODO(usergenic): This does not identify a named export with exported
- * identifier of `default`.
- * https://github.com/Polymer/polymer-bundler/issues/645
- */
-export function hasDefaultModuleExport(node: babel.Node): boolean {
-  let hasDefaultModuleExport = false;
-  traverse(node, {
-    noScope: true,
-    ExportDefaultDeclaration: {
-      enter(path: NodePath) {
-        hasDefaultModuleExport = true;
-        path.stop();
-      }
-    }
-  });
-  return hasDefaultModuleExport;
-}
-
-/**
  * Returns a set of every name exported by a module.
  *
  * TODO(usergenic): This does not include names brought in by the statement
  * `export * from './module-a.js';`.
  * https://github.com/Polymer/polymer-bundler/issues/641
  */
-export function getModuleExportNames(node: babel.Node): Set<string> {
-  const exportedNames: string[] = [];
-  traverse(node, {
-    noScope: true,
-    ExportNamedDeclaration: {
-      enter(path: NodePath) {
-        const exportNode = path.node as babel.ExportNamedDeclaration;
-        exportedNames.push(
-            ...getModuleExportIdentifiers(...exportNode.specifiers));
-        exportedNames.push(
-            ...getModuleExportIdentifiers(exportNode.declaration));
-      }
-    }
-  });
-  return new Set(exportedNames);
-}
-
-/**
- * Returns an array of strings representing all export identifiers for each of
- * the provided nodes which are part of an ExportNamedDeclaration.
- */
-function getModuleExportIdentifiers(...nodes: babel.Node[]): string[] {
-  const identifiers = [];
-  for (const node of nodes) {
-    if (babel.isArrayPattern(node)) {
-      identifiers.push(...getModuleExportIdentifiers(...node.elements));
-    }
-    if (babel.isClassDeclaration(node) || babel.isFunctionDeclaration(node) ||
-        babel.isVariableDeclarator(node)) {
-      identifiers.push(...getModuleExportIdentifiers(node.id));
-    }
-    if (babel.isExportSpecifier(node)) {
-      identifiers.push(...getModuleExportIdentifiers(node.exported));
-    }
-    if (babel.isIdentifier(node)) {
-      identifiers.push(node.name);
-    }
-    if (babel.isObjectPattern(node)) {
-      identifiers.push(...getModuleExportIdentifiers(...node.properties));
-    }
-    if (babel.isObjectProperty(node)) {
-      identifiers.push(...getModuleExportIdentifiers(node.value));
-    }
-    if (babel.isVariableDeclaration(node)) {
-      identifiers.push(...getModuleExportIdentifiers(...node.declarations));
+export function getModuleExportNames(document: Document): Set<string> {
+  const exports_ = document.getFeatures({kind: 'export'});
+  const identifiers = new Set<string>();
+  for (const export_ of exports_) {
+    for (const identifier of export_.identifiers) {
+      identifiers.add(identifier);
     }
   }
   return identifiers;
@@ -153,8 +91,7 @@ export async function reserveBundleModuleExportNames(
   for (const {url, bundle} of es6ModuleBundles) {
     if (bundle.files.has(url)) {
       const document = getAnalysisDocument(analysis, url);
-      for (const exportName of getModuleExportNames(
-               document.parsedDocument.ast as any)) {
+      for (const exportName of getModuleExportNames(document)) {
         getOrSetBundleModuleExportName({url, bundle}, url, exportName);
       }
     }

@@ -24,6 +24,45 @@ import {heredoc, inMemoryAnalyzer} from './test-utils';
 
 suite('Es6 Module Bundling', () => {
 
+  test('export from', async () => {
+    const analyzer = inMemoryAnalyzer({
+      'a.js': `
+        export * from './b.js';
+        export const A = 'a';
+      `,
+      'b.js': `
+        export * from './c.js';
+        export const B = 'b';
+      `,
+      'c.js': `
+        export const C = 'c';
+        export {C as default};
+      `,
+    });
+    const aUrl = analyzer.resolveUrl('a.js')!;
+    const bundler = new Bundler({analyzer});
+    const {documents} =
+        await bundler.bundle(await bundler.generateManifest([aUrl]));
+    assert.deepEqual(documents.get(aUrl)!.content, heredoc`
+      const C = 'c';
+      var c = {
+        C: C,
+        default: C
+      };
+      const B = 'b';
+      var b = {
+        B: B,
+        C: C
+      };
+      const A = 'a';
+      var a = {
+        A: A,
+        B: B,
+        C: C
+      };
+      export { a as $a, b as $b, c as $c, C, B, A, C as C$1, B as B$1, C as C$2, C as $cDefault };`);
+  });
+
   suite('rewriting import specifiers', () => {
 
     const analyzer = inMemoryAnalyzer({
@@ -139,7 +178,7 @@ suite('Es6 Module Bundling', () => {
           honey: honey,
           beeSea: beeSea
         };
-        export { b$1 as $b, b as $bDefault, c as $c, sea$1 as $cDefault, honey, beeSea, boat };`);
+        export { b$1 as $b, c as $c, b as $bDefault, honey, beeSea, sea$1 as $cDefault, boat };`);
     });
   });
 
@@ -184,7 +223,7 @@ suite('Es6 Module Bundling', () => {
           export const bee = '🐝';
         `,
       });
-      const aUrl = analyzer.urlResolver.resolve('a.js' as PackageRelativeUrl)!;
+      const aUrl = analyzer.resolveUrl('a.js')!;
       const bundler = new Bundler({analyzer});
       const {documents} =
           await bundler.bundle(await bundler.generateManifest([aUrl]));
