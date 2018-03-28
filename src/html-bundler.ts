@@ -200,20 +200,17 @@ export class HtmlBundler {
     const existingImports = [
       ...this.document.getFeatures(
           {kind: 'html-import', noLazyImports: true, imported: false})
-    ].filter((i) => !i.lazy);
+    ].filter((i) => !i.lazy && i.document !== undefined);
     const existingImportDependencies = new Map<ResolvedUrl, ResolvedUrl[]>();
-    for (const existingImport of existingImports) {
-      if (existingImport.document === undefined) {
-        continue;
-      }
-      const transitiveImports =
-          [...existingImport.document.getFeatures({
+    for (const {url, document} of existingImports) {
+      existingImportDependencies.set(
+          url,
+          [...document!.getFeatures({
             kind: 'html-import',
             imported: true,
             noLazyImports: true,
           })].filter((i) => i.lazy === false && i.document !== undefined)
-              .map((i) => i.document!.url);
-      existingImportDependencies.set(existingImport.url, transitiveImports);
+              .map((i) => i.document!.url));
     }
     // Every HTML file in the bundle is a candidate for injection into the
     // document.
