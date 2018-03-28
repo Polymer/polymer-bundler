@@ -164,14 +164,15 @@ function getDependencies(
     const htmlScripts =
         [...document.getFeatures({kind: 'html-script', ...getFeaturesOptions})]
             .filter(
-                (i) => (i.document.parsedDocument as JavaScriptDocument)
-                           .parsedAsSourceType === 'module');
+                (i) => i.document !== undefined &&
+                    (i.document.parsedDocument as JavaScriptDocument)
+                            .parsedAsSourceType === 'module');
     for (const htmlScript of htmlScripts) {
       const relativeUrl =
-          analyzer.urlResolver.relative(document.url, htmlScript.document.url);
+          analyzer.urlResolver.relative(document.url, htmlScript.document!.url);
       moduleScriptImports.set(
           `external#${++externalModuleCount}>${relativeUrl}>es6-module`,
-          htmlScript.document);
+          htmlScript.document!);
     }
   }
 
@@ -191,6 +192,9 @@ function getDependencies(
   function _getImportDependencies(
       imports: Iterable<Import>, viaEager: boolean) {
     for (const imprt of imports) {
+      if (imprt.document === undefined) {
+        continue;
+      }
       const importUrl = imprt.document.url;
       if (imprt.lazy) {
         lazyImports.add(importUrl);

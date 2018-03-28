@@ -99,7 +99,7 @@ export class Es6Rewriter {
                 for (const jsImport of jsImports) {
                   const source = jsImport.astNode && jsImport.astNode.source &&
                       jsImport.astNode.source.value;
-                  if (source) {
+                  if (source && jsImport.document !== undefined) {
                     resolutions.set(source, jsImport.document.url);
                   }
                 }

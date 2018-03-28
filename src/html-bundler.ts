@@ -201,12 +201,20 @@ export class HtmlBundler {
       ...this.document.getFeatures(
           {kind: 'html-import', noLazyImports: true, imported: false})
     ].filter((i) => !i.lazy);
-    const existingImportDependencies =
-        new Map(<[ResolvedUrl, ResolvedUrl[]][]>existingImports.map(
-            (existingImport) => [existingImport.document.url, [
-              ...existingImport.document.getFeatures(
-                  {kind: 'html-import', imported: true, noLazyImports: true})
-            ].filter((i) => !i.lazy).map((feature) => feature.document.url)]));
+    const existingImportDependencies = new Map<ResolvedUrl, ResolvedUrl[]>();
+    for (const existingImport of existingImports) {
+      if (existingImport.document === undefined) {
+        continue;
+      }
+      const transitiveImports =
+          [...existingImport.document.getFeatures({
+            kind: 'html-import',
+            imported: true,
+            noLazyImports: true,
+          })].filter((i) => i.lazy === false && i.document !== undefined)
+              .map((i) => i.document!.url);
+      existingImportDependencies.set(existingImport.url, transitiveImports);
+    }
     // Every HTML file in the bundle is a candidate for injection into the
     // document.
     for (const importUrl of this.assignedBundle.bundle.files) {
@@ -222,7 +230,9 @@ export class HtmlBundler {
 
       // If there is an existing import in the document that matches the
       // import URL already, we don't need to inject one.
-      if (existingImports.find((e) => e.document.url === importUrl)) {
+      if (existingImports.find(
+              (e) =>
+                  e.document !== undefined && e.document.url === importUrl)) {
         continue;
       }
 
@@ -233,10 +243,11 @@ export class HtmlBundler {
       // We are only concerned with imports that are not of files in this
       // bundle.
       for (const existingImport of existingImports.filter(
-               (e) => !this.assignedBundle.bundle.files.has(e.document.url))) {
+               (e) => e.document !== undefined &&
+                   !this.assignedBundle.bundle.files.has(e.document.url))) {
         // If the existing import has a dependency on the import we are
         // about to inject, it may be our new target.
-        if (existingImportDependencies.get(existingImport.document.url)!
+        if (existingImportDependencies.get(existingImport.document!.url)!
                 .indexOf(importUrl) !== -1) {
           const newPrependTarget = dom5.query(
               ast, (node) => isSameNode(node, existingImport.astNode));
@@ -358,8 +369,9 @@ export class HtmlBundler {
     const htmlImport = find(
         this.document.getFeatures(
             {kind: 'html-import', imported: true, externalPackages: true}),
-        (i) => i.document && i.document.url === resolvedImportUrl);
-    if (!htmlImport) {
+        (i) =>
+            i.document !== undefined && i.document.url === resolvedImportUrl);
+    if (htmlImport === undefined || htmlImport.document === undefined) {
       return;
     }
 
@@ -460,8 +472,9 @@ export class HtmlBundler {
     const scriptImport = find(
         this.document.getFeatures(
             {kind: 'html-script', imported: true, externalPackages: true}),
-        (i) => i.document && i.document.url === resolvedImportUrl);
-    if (!scriptImport) {
+        (i) =>
+            i.document !== undefined && i.document.url === resolvedImportUrl);
+    if (scriptImport === undefined || scriptImport.document === undefined) {
       this.assignedBundle.bundle.missingImports.add(resolvedImportUrl);
       return;
     }
@@ -523,12 +536,15 @@ export class HtmlBundler {
         find(
             this.document.getFeatures(
                 {kind: 'html-style', imported: true, externalPackages: true}),
-            (i) => i.document && i.document.url === resolvedImportUrl) ||
+            (i) => i.document !== undefined &&
+                i.document.url === resolvedImportUrl) ||
         find(
             this.document.getFeatures(
                 {kind: 'css-import', imported: true, externalPackages: true}),
-            (i) => i.document && i.document.url === resolvedImportUrl);
-    if (!stylesheetImport) {
+            (i) => i.document !== undefined &&
+                i.document.url === resolvedImportUrl);
+    if (stylesheetImport === undefined ||
+        stylesheetImport.document === undefined) {
       this.assignedBundle.bundle.missingImports.add(resolvedImportUrl);
       return;
     }
