@@ -75,6 +75,7 @@ export class HtmlBundler {
 
     await this._inlineHtmlImports(ast);
 
+    await this._updateExternalModuleScripts(ast);
     if (this.bundler.enableScriptInlining) {
       await this._inlineNonModuleScripts(ast);
       await this._inlineModuleScripts(ast);
@@ -108,7 +109,7 @@ export class HtmlBundler {
       reparsedDoc: ParsedHtmlDocument,
       oldBaseUrl: ResolvedUrl) {
     const inlineScripts =
-        dom5.queryAll(reparsedDoc.ast, matchers.inlineJavascript);
+        dom5.queryAll(reparsedDoc.ast, matchers.inlineNonModuleScript);
     const promises = inlineScripts.map(scriptAst => {
       let content = dom5.getTextContent(scriptAst);
       const sourceRange = reparsedDoc.sourceRangeForStartTag(scriptAst)!;
@@ -419,6 +420,30 @@ export class HtmlBundler {
   }
 
   /**
+   * Update the `src` attribute of external `type=module` script tags to point
+   * at new bundle locations.
+   */
+  public async _updateExternalModuleScripts(ast: ASTNode) {
+    const scripts = dom5.queryAll(ast, matchers.externalModuleScript);
+    for (const script of scripts) {
+      const oldSrc = dom5.getAttribute(script, 'src')!;
+      const oldFileUrl = this.bundler.analyzer.urlResolver.resolve(
+          this.assignedBundle.url, oldSrc as FileRelativeUrl);
+      if (oldFileUrl === undefined) {
+        continue;
+      }
+      const bundle = this.manifest.getBundleForFile(oldFileUrl);
+      if (bundle === undefined) {
+        continue;
+      }
+      const newFileUrl = bundle.url;
+      const newSrc = this.bundler.analyzer.urlResolver.relative(
+          this.assignedBundle.url, newFileUrl);
+      dom5.setAttribute(script, 'src', newSrc);
+    }
+  }
+
+  /**
    * Inlines the contents of external module scripts and rolls-up imported
    * modules into inline scripts.
    */
@@ -507,7 +532,7 @@ export class HtmlBundler {
    * with `<script>` tags containing the file contents inlined.
    */
   private async _inlineNonModuleScripts(ast: ASTNode) {
-    const scriptImports = dom5.queryAll(ast, matchers.externalJavascript);
+    const scriptImports = dom5.queryAll(ast, matchers.externalNonModuleScript);
     for (const externalScript of scriptImports) {
       await this._inlineNonModuleScript(externalScript);
     }

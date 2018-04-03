@@ -23,18 +23,17 @@ import {Analyzer, FsUrlLoader, FsUrlResolver} from 'polymer-analyzer';
 import {Bundle, generateShellMergeStrategy} from '../bundle-manifest';
 import {Bundler, Options as BundlerOptions} from '../bundler';
 import {BundledDocument} from '../document-collection';
+import * as matchers from '../matchers';
 import {resolvePath} from '../url-utils';
 
 chai.config.showDiff = true;
 
 const assert = chai.assert;
-const matchers = require('../matchers');
 const preds = dom5.predicates;
 
 // TODO(usergenic): This suite is getting very big.  Please break up the file
 // and/or reorganize the suites and tests to be easier to find and reason about.
 suite('Bundler', () => {
-
   let documentBundle: Bundle;
   let analyzer: Analyzer|undefined;
   let bundler: Bundler|undefined;
@@ -95,7 +94,6 @@ suite('Bundler', () => {
       }
 
   suite('Default Options', () => {
-
     test('URLs for inlined HTML imports are recorded in Bundle', async () => {
       await bundle(inputPath);
       assert.deepEqual([...documentBundle.inlinedHtmlImports], [
@@ -127,7 +125,6 @@ suite('Bundler', () => {
   });
 
   suite('Applying strategy', () => {
-
     test('inlines css/scripts of html imports added by strategy', async () => {
       const bundler = new Bundler({
         inlineCss: true,
@@ -363,7 +360,6 @@ suite('Bundler', () => {
         lazyImport2,
         '<link rel="import" href="subfolder/eager-import-2.html">',
         'The href of an eager import link inside a dom-module should still be modified');
-
   });
 
   test('Handle <base> tag', async () => {
@@ -405,7 +401,7 @@ suite('Bundler', () => {
   test('Scripts are not inlined if specified', async () => {
     const scripts = dom5.queryAll(
         (await bundle(resolve('external.html'), {inlineScripts: false})).ast,
-        matchers.externalJavascript);
+        matchers.externalNonModuleScript);
     assert.isAbove(scripts.length, 0, 'scripts were inlined');
     scripts.forEach(function(s) {
       assert.equal(dom5.getTextContent(s), '', 'script src should be empty');
@@ -430,7 +426,6 @@ suite('Bundler', () => {
   });
 
   suite('Script Ordering', () => {
-
     test('Imports and scripts are ordered correctly', async () => {
       const {ast: doc} =
           await bundle(resolve('order-test.html'), {inlineScripts: false});
@@ -455,7 +450,7 @@ suite('Bundler', () => {
         'order/third-script.js'
       ];
 
-      const scripts = dom5.queryAll(doc, matchers.jsMatcher);
+      const scripts = dom5.queryAll(doc, matchers.nonModuleScript);
       const actualOrder: Array<string> = [], actualSrc: Array<string> = [];
       scripts.forEach(function(s) {
         actualOrder.push(dom5.getAttribute(s, 'id')!);
@@ -488,7 +483,6 @@ suite('Bundler', () => {
   });
 
   suite('Absolute paths in URLs', () => {
-
     test('will be resolved by the analyzer', async () => {
       const options = {inlineCss: true, inlineScripts: true};
       const {content: html} = await bundle('absolute-paths.html', options);
@@ -498,7 +492,6 @@ suite('Bundler', () => {
   });
 
   suite('Excludes', () => {
-
     test('Excluded imports are not inlined', async () => {
       const {ast: doc} = await bundle(inputPath, {
         excludes: [resolve('imports/simple-import.html')],
@@ -633,15 +626,16 @@ suite('Bundler', () => {
 
     test('External script tags are replaced with inline scripts', async () => {
       const {ast: doc} = await bundle('external.html', options);
-      const externalScripts = dom5.queryAll(doc, matchers.externalJavascript);
+      const externalScripts =
+          dom5.queryAll(doc, matchers.externalNonModuleScript);
       assert.equal(externalScripts.length, 0);
-      const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
+      const inlineScripts = dom5.queryAll(doc, matchers.inlineNonModuleScript);
       assert.equal(inlineScripts.length, 1);
     });
 
     test('Remote scripts are kept', async () => {
       const {ast: doc} = await bundle('scripts.html', options);
-      const scripts = dom5.queryAll(doc, matchers.externalJavascript);
+      const scripts = dom5.queryAll(doc, matchers.externalNonModuleScript);
       assert.equal(scripts.length, 1);
       assert.equal(
           dom5.getAttribute(scripts[0], 'src'),
@@ -658,7 +652,7 @@ suite('Bundler', () => {
         excludes: [resolve('absolute-paths/script.js')],
       };
       const {ast: doc} = await bundle(target, options);
-      const scripts = dom5.queryAll(doc, matchers.externalJavascript);
+      const scripts = dom5.queryAll(doc, matchers.externalNonModuleScript);
       assert.equal(scripts.length, 2);
       assert.deepEqual(
           dom5.getAttribute(scripts[0]!, 'src'), '/absolute-paths/script.js');
@@ -671,7 +665,7 @@ suite('Bundler', () => {
 
     test('Escape inline <script>', async () => {
       const {ast: doc} = await bundle('xss.html', options);
-      const script = dom5.query(doc, matchers.inlineJavascript)!;
+      const script = dom5.query(doc, matchers.inlineNonModuleScript)!;
       assert.include(
           dom5.getTextContent(script),
           'var b = 0<\\/script><script>alert(\'XSS\'); //2;',
@@ -680,7 +674,7 @@ suite('Bundler', () => {
 
     test('Inlined Scripts are in the expected order', async () => {
       const {ast: doc} = await bundle('reordered/in.html', options);
-      const scripts = dom5.queryAll(doc, matchers.inlineJavascript)!;
+      const scripts = dom5.queryAll(doc, matchers.inlineNonModuleScript)!;
       const contents = scripts.map((script) => dom5.getTextContent(script));
       assert.deepEqual(['"First"', '"Second"'], contents);
     });
@@ -690,7 +684,7 @@ suite('Bundler', () => {
         inlineScripts: true,
         analyzer: new Analyzer({urlLoader: new FsUrlLoader()}),
       });
-      const scripts = dom5.queryAll(doc, matchers.inlineJavascript)!;
+      const scripts = dom5.queryAll(doc, matchers.inlineNonModuleScript)!;
       assert.equal(scripts.length, 1);
       const idx = dom5.getTextContent(scripts[0]).indexOf('</script>');
       assert(idx === -1, '/script found, should be escaped');
@@ -698,7 +692,6 @@ suite('Bundler', () => {
   });
 
   suite('Inline CSS', () => {
-
     const options = {inlineCss: true};
 
     test('URLs for inlined styles are recorded in Bundle', async () => {
@@ -831,7 +824,6 @@ suite('Bundler', () => {
   });
 
   suite('Regression Testing', () => {
-
     // Ensure this https://github.com/Polymer/polymer-bundler/issues/596 doesn't
     // happen again.
     test('Bundled file should not import itself', async () => {
@@ -873,7 +865,7 @@ suite('Bundler', () => {
           await bundle('complicated/A.html', {inlineScripts: true});
       assert(doc);
       const expected = ['A1', 'C', 'E', 'B', 'D', 'A2'];
-      const scripts = dom5.queryAll(doc, matchers.jsMatcher);
+      const scripts = dom5.queryAll(doc, matchers.nonModuleScript);
       const contents = scripts.map(function(s) {
         return dom5.getTextContent(s).trim();
       });

@@ -23,13 +23,13 @@ import {MappingItem, RawSourceMap, SourceMapConsumer} from 'source-map';
 import {Bundler} from '../bundler';
 import {Options as BundlerOptions} from '../bundler';
 import {BundledDocument} from '../document-collection';
+import * as matchers from '../matchers';
 import {getExistingSourcemap} from '../source-map';
 import {resolvePath} from '../url-utils';
 
 chai.config.showDiff = true;
 
 const assert = chai.assert;
-const matchers = require('../matchers');
 
 suite('Bundler', () => {
   let bundler: Bundler;
@@ -90,13 +90,12 @@ suite('Bundler', () => {
       {urlResolver: new FsUrlResolver(basePath), urlLoader: urlLoader});
 
   suite('Sourcemaps', () => {
-
     test('inline maps are compiled correctly', async () => {
       const {ast: doc, content: compiledHtml} = await bundle(
           'inline.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
       assert(doc);
-      const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
+      const inlineScripts = dom5.queryAll(doc, matchers.inlineNonModuleScript);
       assert.equal(inlineScripts.length, 3);
 
       for (let i = 0; i < inlineScripts.length; i++) {
@@ -117,7 +116,7 @@ suite('Bundler', () => {
           'external.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
       assert(doc);
-      const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
+      const inlineScripts = dom5.queryAll(doc, matchers.inlineNonModuleScript);
       assert.equal(inlineScripts.length, 3);
 
       for (let i = 0; i < inlineScripts.length; i++) {
@@ -134,7 +133,7 @@ suite('Bundler', () => {
           'combined.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
       assert(doc);
-      const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
+      const inlineScripts = dom5.queryAll(doc, matchers.inlineNonModuleScript);
       assert.equal(inlineScripts.length, 7);
 
       for (let i = 0; i < inlineScripts.length; i++) {
@@ -151,7 +150,7 @@ suite('Bundler', () => {
           'invalid.html',
           {inlineScripts: true, sourcemaps: true, analyzer: analyzer});
       assert(doc);
-      const inlineScripts = dom5.queryAll(doc, matchers.inlineJavascript);
+      const inlineScripts = dom5.queryAll(doc, matchers.inlineNonModuleScript);
       assert.equal(inlineScripts.length, 2);
 
       for (let i = 0; i < inlineScripts.length; i++) {
