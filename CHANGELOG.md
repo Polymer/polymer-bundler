@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- ## Unreleased -->
 <!-- Add new, unreleased changes here. -->
+
+## 4.0.0-pre.4 - 2018-04-02
+- Fix issue where external script tags referencing bundled ES modules were not updated.
+
 ## 4.0.0-pre.3 - 2018-03-28
 - [BREAKING] The `--in-html` and `--out-html` arguments for `bin/polymer-bundler` are now `--in-file` and `--out-file` because input filetypes are no longer limited to HTML.
 - ES6 Module Bundling! Bundler can simultaneously process HTML imports and ES6 module imports, including inline `<script type="module">` scripts.
