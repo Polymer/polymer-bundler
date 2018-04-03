@@ -426,7 +426,7 @@ export class HtmlBundler {
   public async _updateExternalModuleScripts(ast: ASTNode) {
     const scripts = dom5.queryAll(ast, matchers.externalModuleScript);
     for (const script of scripts) {
-      const oldSrc = dom5.getAttribute(script, 'src')!;
+      const oldSrc = dom5.getAttribute(script, 'src');
       const oldFileUrl = this.bundler.analyzer.urlResolver.resolve(
           this.assignedBundle.url, oldSrc as FileRelativeUrl);
       if (oldFileUrl === undefined) {
