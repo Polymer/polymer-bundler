@@ -218,7 +218,7 @@ export function updateSourcemapLocations(
     astNode: undefined,
   });
 
-  const inlineScripts = dom5.queryAll(ast, matchers.inlineJavascript);
+  const inlineScripts = dom5.queryAll(ast, matchers.nonModuleScript);
   inlineScripts.forEach(script => {
     let content = dom5.getTextContent(script);
 

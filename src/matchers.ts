@@ -21,12 +21,17 @@ import * as parse5 from 'parse5';
 
 export interface Matcher { (node: parse5.ASTNode): boolean; }
 
-export const jsMatcher: Matcher = predicates.AND(
+// TODO(aomarks) Look at what's using this matcher. A number of code paths
+// should probably not be excluding type=module scripts.
+export const nonModuleScript: Matcher = predicates.AND(
     predicates.hasTagName('script'),
     predicates.OR(
         predicates.NOT(predicates.hasAttr('type')),
         predicates.hasAttrValue('type', 'text/javascript'),
         predicates.hasAttrValue('type', 'application/javascript')));
+
+export const moduleScript: Matcher = predicates.AND(
+    predicates.hasTagName('script'), predicates.hasAttrValue('type', 'module'));
 
 export const externalStyle: Matcher = predicates.AND(
     predicates.hasTagName('link'),
@@ -56,10 +61,16 @@ export const domModuleWithoutAssetpath: Matcher = predicates.AND(
     predicates.hasAttr('id'),
     predicates.NOT(predicates.hasAttr('assetpath')));
 export const polymerElement: Matcher = predicates.hasTagName('polymer-element');
-export const externalJavascript: Matcher =
-    predicates.AND(predicates.hasAttr('src'), jsMatcher);
-export const inlineJavascript: Matcher =
-    predicates.AND(predicates.NOT(predicates.hasAttr('src')), jsMatcher);
+
+export const externalNonModuleScript: Matcher =
+    predicates.AND(predicates.hasAttr('src'), nonModuleScript);
+
+export const inlineNonModuleScript: Matcher =
+    predicates.AND(predicates.NOT(predicates.hasAttr('src')), nonModuleScript);
+
+export const externalModuleScript: Matcher =
+    predicates.AND(predicates.hasAttr('src'), moduleScript);
+
 export const eagerHtmlImport: Matcher = predicates.AND(
     predicates.hasTagName('link'),
     predicates.hasAttrValue('rel', 'import'),
@@ -117,7 +128,7 @@ export const beforeHiddenDiv = nextToHiddenDiv(1);
 export const afterHiddenDiv = nextToHiddenDiv(-1);
 export const orderedImperative: Matcher = predicates.OR(
     eagerHtmlImport,
-    jsMatcher,
+    nonModuleScript,
     styleMatcher,
     externalStyle,
     polymerExternalStyle);

@@ -23,7 +23,6 @@ import {Bundler} from '../bundler';
 import {heredoc, inMemoryAnalyzer} from './test-utils';
 
 suite('Es6 Module Bundling', () => {
-
   test('export from', async () => {
     const analyzer = inMemoryAnalyzer({
       'a.js': `
@@ -64,7 +63,6 @@ suite('Es6 Module Bundling', () => {
   });
 
   suite('rewriting import specifiers', () => {
-
     const analyzer = inMemoryAnalyzer({
       'a.js': `
         import bee from './b.js';
@@ -183,7 +181,6 @@ suite('Es6 Module Bundling', () => {
   });
 
   suite('dynamic imports', () => {
-
     test('await expression', async () => {
       const analyzer = inMemoryAnalyzer({
         'a.js': `
@@ -231,6 +228,44 @@ suite('Es6 Module Bundling', () => {
         import('./b.js').then(({
           $b
         }) => $b).then(b => console.log(b.bee));`);
+    });
+
+    test('updates external module script src', async () => {
+      const analyzer = inMemoryAnalyzer({
+        'index.html': `
+          <script type="module" src="./a.js"></script>
+        `,
+        'a.js': `
+          import {b} from './b.js';
+          export const a = 'a' + b;
+        `,
+        'b.js': `
+          export const b = 'b';
+        `,
+      });
+      const indexUrl = analyzer.resolveUrl('index.html')!;
+      const sharedBundleUrl = analyzer.resolveUrl('shared_bundle_1.js')!;
+      const bundler = new Bundler({analyzer, inlineScripts: false});
+      const manifest = await bundler.generateManifest([indexUrl]);
+      assert.deepEqual(
+          [...manifest.bundles.keys()], [indexUrl, sharedBundleUrl]);
+      const {documents} =
+          await bundler.bundle(await bundler.generateManifest([indexUrl]));
+
+      assert.deepEqual(documents.get(indexUrl)!.content, heredoc`
+        <script type="module" src="shared_bundle_1.js"></script>
+      `);
+
+      assert.deepEqual(documents.get(sharedBundleUrl)!.content, heredoc`
+        const b = 'b';
+        var b$1 = {
+          b: b
+        };
+        const a = 'a' + b;
+        var a$1 = {
+          a: a
+        };
+        export { a$1 as $a, b$1 as $b, a, b };`);
     });
   });
 });

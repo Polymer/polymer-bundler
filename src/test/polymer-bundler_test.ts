@@ -26,7 +26,6 @@ chai.config.showDiff = true;
 const assert = chai.assert;
 
 suite('polymer-bundler CLI', () => {
-
   const getTempDir = () =>
       fs.mkdtempSync(resolvePath(ensureTrailingSlash(os.tmpdir())));
   const cliPath = resolvePath(__dirname, '../bin/polymer-bundler.js');
@@ -66,7 +65,6 @@ suite('polymer-bundler CLI', () => {
       });
 
   suite('--out-dir', () => {
-
     test('writes to the dir even for single bundle', async () => {
       const projectRoot = resolvePath(__dirname, '../../test/html');
       const tempdir = getTempDir();
@@ -95,7 +93,6 @@ suite('polymer-bundler CLI', () => {
   });
 
   suite('--manifest-out', () => {
-
     test('writes out the bundle manifest to given path', async () => {
       const projectRoot = resolvePath(__dirname, '../../test/html');
       const tempdir = getTempDir();
@@ -153,12 +150,10 @@ suite('polymer-bundler CLI', () => {
           'importing-fragments/shell.html',
         ],
       });
-
     });
   });
 
   suite('--redirect', () => {
-
     test('handles URLs with arbitrary protocols and hosts', async () => {
       const projectRoot =
           resolvePath(__dirname, '../../test/html')
